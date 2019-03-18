@@ -9,14 +9,15 @@ defmodule Pleroma.Web.TwitterAPI.UtilController do
 
   alias Comeonin.Pbkdf2
   alias Pleroma.Emoji
+  alias Pleroma.Notification
   alias Pleroma.PasswordResetToken
-  alias Pleroma.User
   alias Pleroma.Repo
+  alias Pleroma.User
   alias Pleroma.Web
+  alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.OStatus
   alias Pleroma.Web.WebFinger
-  alias Pleroma.Web.ActivityPub.ActivityPub
 
   def show_password_reset(conn, %{"token" => token}) do
     with %{used: false} = token <- Repo.get_by(PasswordResetToken, %{token: token}),
@@ -139,6 +140,17 @@ defmodule Pleroma.Web.TwitterAPI.UtilController do
 
         conn
         |> render("followed.html", %{error: inspect(e)})
+    end
+  end
+
+  def notifications_read(%{assigns: %{user: user}} = conn, %{"id" => notification_id}) do
+    with {:ok, _} <- Notification.read_one(user, notification_id) do
+      json(conn, %{status: "success"})
+    else
+      {:error, message} ->
+        conn
+        |> put_resp_content_type("application/json")
+        |> send_resp(403, Jason.encode!(%{"error" => message}))
     end
   end
 

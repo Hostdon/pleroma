@@ -5,12 +5,12 @@
 defmodule Pleroma.Web.OAuth.OAuthController do
   use Pleroma.Web, :controller
 
-  alias Pleroma.Web.OAuth.Authorization
-  alias Pleroma.Web.OAuth.Token
-  alias Pleroma.Web.OAuth.App
   alias Pleroma.Repo
   alias Pleroma.User
-  alias Comeonin.Pbkdf2
+  alias Pleroma.Web.Auth.Authenticator
+  alias Pleroma.Web.OAuth.App
+  alias Pleroma.Web.OAuth.Authorization
+  alias Pleroma.Web.OAuth.Token
 
   import Pleroma.Web.ControllerHelper, only: [oauth_scopes: 2]
 
@@ -24,27 +24,25 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     available_scopes = (app && app.scopes) || []
     scopes = oauth_scopes(params, nil) || available_scopes
 
-    render(conn, "show.html", %{
+    render(conn, Authenticator.auth_template(), %{
       response_type: params["response_type"],
       client_id: params["client_id"],
       available_scopes: available_scopes,
       scopes: scopes,
       redirect_uri: params["redirect_uri"],
-      state: params["state"]
+      state: params["state"],
+      params: params
     })
   end
 
   def create_authorization(conn, %{
         "authorization" =>
           %{
-            "name" => name,
-            "password" => password,
             "client_id" => client_id,
             "redirect_uri" => redirect_uri
           } = auth_params
       }) do
-    with %User{} = user <- User.get_by_nickname_or_email(name),
-         true <- Pbkdf2.checkpw(password, user.password_hash),
+    with {_, {:ok, %User{} = user}} <- {:get_user, Authenticator.get_user(conn)},
          %App{} = app <- Repo.get_by(App, client_id: client_id),
          true <- redirect_uri in String.split(app.redirect_uris),
          scopes <- oauth_scopes(auth_params, []),
@@ -53,9 +51,9 @@ defmodule Pleroma.Web.OAuth.OAuthController do
          {:missing_scopes, false} <- {:missing_scopes, scopes == []},
          {:auth_active, true} <- {:auth_active, User.auth_active?(user)},
          {:ok, auth} <- Authorization.create_authorization(app, user, scopes) do
-      # Special case: Local MastodonFE.
       redirect_uri =
         if redirect_uri == "." do
+          # Special case: Local MastodonFE
           mastodon_api_url(conn, :login)
         else
           redirect_uri
@@ -97,7 +95,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
         |> authorize(auth_params)
 
       error ->
-        error
+        Authenticator.handle_error(conn, error)
     end
   end
 
@@ -106,6 +104,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
          fixed_token = fix_padding(params["code"]),
          %Authorization{} = auth <-
            Repo.get_by(Authorization, token: fixed_token, app_id: app.id),
+         %User{} = user <- Repo.get(User, auth.user_id),
          {:ok, token} <- Token.exchange_token(app, auth),
          {:ok, inserted_at} <- DateTime.from_naive(token.inserted_at, "Etc/UTC") do
       response = %{
@@ -114,7 +113,8 @@ defmodule Pleroma.Web.OAuth.OAuthController do
         refresh_token: token.refresh_token,
         created_at: DateTime.to_unix(inserted_at),
         expires_in: 60 * 10,
-        scope: Enum.join(token.scopes)
+        scope: Enum.join(token.scopes, " "),
+        me: user.ap_id
       }
 
       json(conn, response)
@@ -127,11 +127,10 @@ defmodule Pleroma.Web.OAuth.OAuthController do
 
   def token_exchange(
         conn,
-        %{"grant_type" => "password", "username" => name, "password" => password} = params
+        %{"grant_type" => "password"} = params
       ) do
-    with %App{} = app <- get_app_from_request(conn, params),
-         %User{} = user <- User.get_by_nickname_or_email(name),
-         true <- Pbkdf2.checkpw(password, user.password_hash),
+    with {_, {:ok, %User{} = user}} <- {:get_user, Authenticator.get_user(conn)},
+         %App{} = app <- get_app_from_request(conn, params),
          {:auth_active, true} <- {:auth_active, User.auth_active?(user)},
          scopes <- oauth_scopes(params, app.scopes),
          [] <- scopes -- app.scopes,
@@ -143,7 +142,8 @@ defmodule Pleroma.Web.OAuth.OAuthController do
         access_token: token.token,
         refresh_token: token.refresh_token,
         expires_in: 60 * 10,
-        scope: Enum.join(token.scopes, " ")
+        scope: Enum.join(token.scopes, " "),
+        me: user.ap_id
       }
 
       json(conn, response)

@@ -7,9 +7,9 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   A module to handle coding from internal to wire ActivityPub and back.
   """
   alias Pleroma.Activity
-  alias Pleroma.User
   alias Pleroma.Object
   alias Pleroma.Repo
+  alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.ActivityPub.Visibility
@@ -355,6 +355,40 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     end
   end
 
+  # Flag objects are placed ahead of the ID check because Mastodon 2.8 and earlier send them
+  # with nil ID.
+  def handle_incoming(%{"type" => "Flag", "object" => objects, "actor" => actor} = data) do
+    with context <- data["context"] || Utils.generate_context_id(),
+         content <- data["content"] || "",
+         %User{} = actor <- User.get_cached_by_ap_id(actor),
+
+         # Reduce the object list to find the reported user.
+         %User{} = account <-
+           Enum.reduce_while(objects, nil, fn ap_id, _ ->
+             with %User{} = user <- User.get_cached_by_ap_id(ap_id) do
+               {:halt, user}
+             else
+               _ -> {:cont, nil}
+             end
+           end),
+
+         # Remove the reported user from the object list.
+         statuses <- Enum.filter(objects, fn ap_id -> ap_id != account.ap_id end) do
+      params = %{
+        actor: actor,
+        context: context,
+        account: account,
+        statuses: statuses,
+        content: content,
+        additional: %{
+          "cc" => [account.ap_id]
+        }
+      }
+
+      ActivityPub.flag(params)
+    end
+  end
+
   # disallow objects with bogus IDs
   def handle_incoming(%{"id" => nil}), do: :error
   def handle_incoming(%{"id" => ""}), do: :error
@@ -650,10 +684,10 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     if object = Object.normalize(id), do: {:ok, object}, else: nil
   end
 
-  def set_reply_to_uri(%{"inReplyTo" => inReplyTo} = object) when is_binary(inReplyTo) do
-    with false <- String.starts_with?(inReplyTo, "http"),
-         {:ok, %{data: replied_to_object}} <- get_obj_helper(inReplyTo) do
-      Map.put(object, "inReplyTo", replied_to_object["external_url"] || inReplyTo)
+  def set_reply_to_uri(%{"inReplyTo" => in_reply_to} = object) when is_binary(in_reply_to) do
+    with false <- String.starts_with?(in_reply_to, "http"),
+         {:ok, %{data: replied_to_object}} <- get_obj_helper(in_reply_to) do
+      Map.put(object, "inReplyTo", replied_to_object["external_url"] || in_reply_to)
     else
       _e -> object
     end
@@ -736,6 +770,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   def prepare_outgoing(%{"type" => _type} = data) do
     data =
       data
+      |> strip_internal_fields
       |> maybe_fix_object_url
       |> Map.merge(Utils.make_json_ld_header())
 
@@ -829,10 +864,10 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   end
 
   def add_attributed_to(object) do
-    attributedTo = object["attributedTo"] || object["actor"]
+    attributed_to = object["attributedTo"] || object["actor"]
 
     object
-    |> Map.put("attributedTo", attributedTo)
+    |> Map.put("attributedTo", attributed_to)
   end
 
   def add_likes(%{"id" => id, "like_count" => likes} = object) do
@@ -870,7 +905,8 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
       "announcements",
       "announcement_count",
       "emoji",
-      "context_id"
+      "context_id",
+      "deleted_activity_id"
     ])
   end
 

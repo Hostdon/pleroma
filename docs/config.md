@@ -6,6 +6,7 @@ If you run Pleroma with ``MIX_ENV=prod`` the file is ``prod.secret.exs``, otherw
 ## Pleroma.Upload
 * `uploader`: Select which `Pleroma.Uploaders` to use
 * `filters`: List of `Pleroma.Upload.Filter` to use.
+* `link_name`: When enabled Pleroma will add a `name` parameter to the url of the upload, for example `https://instance.tld/media/corndog.png?name=corndog.png`. This is needed to provide the correct filename in Content-Disposition headers when using filters like `Pleroma.Upload.Filter.Dedupe`
 * `base_url`: The base URL to access a user-uploaded file. Useful when you want to proxy the media files via another host.
 * `proxy_remote`: If you\'re using a remote uploader, Pleroma will proxy media requests instead of redirecting to it.
 * `proxy_opts`: Proxy options, see `Pleroma.ReverseProxy` documentation.
@@ -107,7 +108,7 @@ config :pleroma, Pleroma.Mailer,
 
 An example to enable ONLY ExSyslogger (f/ex in ``prod.secret.exs``) with info and debug suppressed:
 ```
-config :logger, 
+config :logger,
   backends: [{ExSyslogger, :ex_syslogger}]
 
 config :logger, :ex_syslogger,
@@ -129,7 +130,7 @@ See: [logger’s documentation](https://hexdocs.pm/logger/Logger.html) and [ex_s
 
 ## :frontend_configurations
 
-This can be used to configure a keyword list that keeps the configuration data for any kind of frontend. By default, settings for `pleroma_fe` are configured.
+This can be used to configure a keyword list that keeps the configuration data for any kind of frontend. By default, settings for `pleroma_fe` and `masto_fe` are configured.
 
 Frontends can access these settings at `/api/pleroma/frontend_configurations`
 
@@ -285,6 +286,10 @@ This config contains two queues: `federator_incoming` and `federator_outgoing`. 
 ## :rich_media
 * `enabled`: if enabled the instance will parse metadata from attached links to generate link previews
 
+## :fetch_initial_posts
+* `enabled`: if enabled, when a new user is federated with, fetch some of their latest posts
+* `pages`: the amount of pages to fetch
+
 ## :hackney_pools
 
 Advanced. Tweaks Hackney (http client) connections pools.
@@ -301,3 +306,51 @@ For each pool, the options are:
 * `max_connections` - how much connections a pool can hold
 * `timeout` - retention duration for connections
 
+## :auto_linker
+
+Configuration for the `auto_linker` library:
+
+* `class: "auto-linker"` - specify the class to be added to the generated link. false to clear
+* `rel: "noopener noreferrer"` - override the rel attribute. false to clear
+* `new_window: true` - set to false to remove `target='_blank'` attribute
+* `scheme: false` - Set to true to link urls with schema `http://google.com`
+* `truncate: false` - Set to a number to truncate urls longer then the number. Truncated urls will end in `..`
+* `strip_prefix: true` - Strip the scheme prefix
+* `extra: false` - link urls with rarely used schemes (magnet, ipfs, irc, etc.)
+
+Example:
+
+```exs
+config :auto_linker,
+  opts: [
+    scheme: true,
+    extra: true,
+    class: false,
+    strip_prefix: false,
+    new_window: false,
+    rel: false
+  ]
+```
+
+## :ldap
+
+Use LDAP for user authentication.  When a user logs in to the Pleroma
+instance, the name and password will be verified by trying to authenticate
+(bind) to an LDAP server.  If a user exists in the LDAP directory but there
+is no account with the same name yet on the Pleroma instance then a new
+Pleroma account will be created with the same name as the LDAP user name.
+
+* `enabled`: enables LDAP authentication
+* `host`: LDAP server hostname
+* `port`: LDAP port, e.g. 389 or 636
+* `ssl`: true to use SSL, usually implies the port 636
+* `sslopts`: additional SSL options
+* `tls`: true to start TLS, usually implies the port 389
+* `tlsopts`: additional TLS options
+* `base`: LDAP base, e.g. "dc=example,dc=com"
+* `uid`: LDAP attribute name to authenticate the user, e.g. when "cn", the filter will be "cn=username,base"
+
+## Pleroma.Web.Auth.Authenticator
+
+* `Pleroma.Web.Auth.PleromaAuthenticator`: default database authenticator
+* `Pleroma.Web.Auth.LDAPAuthenticator`: LDAP authentication

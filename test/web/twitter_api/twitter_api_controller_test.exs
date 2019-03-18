@@ -4,23 +4,23 @@
 
 defmodule Pleroma.Web.TwitterAPI.ControllerTest do
   use Pleroma.Web.ConnCase
-  alias Pleroma.Web.TwitterAPI.Representers.ActivityRepresenter
-  alias Pleroma.Builders.ActivityBuilder
-  alias Pleroma.Builders.UserBuilder
-  alias Pleroma.Repo
-  alias Pleroma.Activity
-  alias Pleroma.User
-  alias Pleroma.Object
-  alias Pleroma.Notification
-  alias Pleroma.Web.ActivityPub.ActivityPub
-  alias Pleroma.Web.OAuth.Token
-  alias Pleroma.Web.TwitterAPI.Controller
-  alias Pleroma.Web.TwitterAPI.UserView
-  alias Pleroma.Web.TwitterAPI.NotificationView
-  alias Pleroma.Web.CommonAPI
-  alias Pleroma.Web.TwitterAPI.TwitterAPI
   alias Comeonin.Pbkdf2
   alias Ecto.Changeset
+  alias Pleroma.Activity
+  alias Pleroma.Builders.ActivityBuilder
+  alias Pleroma.Builders.UserBuilder
+  alias Pleroma.Notification
+  alias Pleroma.Object
+  alias Pleroma.Repo
+  alias Pleroma.User
+  alias Pleroma.Web.ActivityPub.ActivityPub
+  alias Pleroma.Web.CommonAPI
+  alias Pleroma.Web.OAuth.Token
+  alias Pleroma.Web.TwitterAPI.Controller
+  alias Pleroma.Web.TwitterAPI.NotificationView
+  alias Pleroma.Web.TwitterAPI.Representers.ActivityRepresenter
+  alias Pleroma.Web.TwitterAPI.TwitterAPI
+  alias Pleroma.Web.TwitterAPI.UserView
 
   import Pleroma.Factory
   import Mock
@@ -415,6 +415,33 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
       assert status["id"] == direct_two.id
       assert status_two["id"] == direct.id
     end
+
+    test "doesn't include DMs from blocked users", %{conn: conn} do
+      blocker = insert(:user)
+      blocked = insert(:user)
+      user = insert(:user)
+      {:ok, blocker} = User.block(blocker, blocked)
+
+      {:ok, _blocked_direct} =
+        CommonAPI.post(blocked, %{
+          "status" => "Hi @#{blocker.nickname}!",
+          "visibility" => "direct"
+        })
+
+      {:ok, direct} =
+        CommonAPI.post(user, %{
+          "status" => "Hi @#{blocker.nickname}!",
+          "visibility" => "direct"
+        })
+
+      res_conn =
+        conn
+        |> assign(:user, blocker)
+        |> get("/api/statuses/dm_timeline.json")
+
+      [status] = json_response(res_conn, 200)
+      assert status["id"] == direct.id
+    end
   end
 
   describe "GET /statuses/mentions.json" do
@@ -427,7 +454,10 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
 
     test "with credentials", %{conn: conn, user: current_user} do
       {:ok, activity} =
-        ActivityBuilder.insert(%{"to" => [current_user.ap_id]}, %{user: current_user})
+        CommonAPI.post(current_user, %{
+          "status" => "why is tenshi eating a corndog so cute?",
+          "visibility" => "public"
+        })
 
       conn =
         conn
@@ -444,6 +474,23 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
                  for: current_user,
                  mentioned: [current_user]
                })
+    end
+
+    test "does not show DMs in mentions timeline", %{conn: conn, user: current_user} do
+      {:ok, _activity} =
+        CommonAPI.post(current_user, %{
+          "status" => "Have you guys ever seen how cute tenshi eating a corndog is?",
+          "visibility" => "direct"
+        })
+
+      conn =
+        conn
+        |> with_credentials(current_user.nickname, "test")
+        |> get("/api/statuses/mentions.json")
+
+      response = json_response(conn, 200)
+
+      assert Enum.empty?(response)
     end
   end
 
@@ -670,7 +717,6 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
       followed = Repo.get(User, followed.id)
 
       refute User.ap_followers(followed) in current_user.following
-      assert followed.info.follow_request_count == 1
 
       assert json_response(conn, 200) ==
                UserView.render("show.json", %{user: followed, for: current_user})
@@ -1737,19 +1783,15 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
       other_user = Repo.get(User, other_user.id)
 
       assert User.following?(other_user, user) == false
-      assert user.info.follow_request_count == 1
 
       conn =
         build_conn()
         |> assign(:user, user)
         |> post("/api/pleroma/friendships/approve", %{"user_id" => other_user.id})
 
-      user = Repo.get(User, user.id)
-
       assert relationship = json_response(conn, 200)
       assert other_user.id == relationship["id"]
       assert relationship["follows_you"] == true
-      assert user.info.follow_request_count == 0
     end
   end
 
@@ -1764,19 +1806,15 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
       other_user = Repo.get(User, other_user.id)
 
       assert User.following?(other_user, user) == false
-      assert user.info.follow_request_count == 1
 
       conn =
         build_conn()
         |> assign(:user, user)
         |> post("/api/pleroma/friendships/deny", %{"user_id" => other_user.id})
 
-      user = Repo.get(User, user.id)
-
       assert relationship = json_response(conn, 200)
       assert other_user.id == relationship["id"]
       assert relationship["follows_you"] == false
-      assert user.info.follow_request_count == 0
     end
   end
 

@@ -34,7 +34,8 @@ config :pleroma, Pleroma.Captcha.Kocaptcha, endpoint: "https://captcha.kotobank.
 # Upload configuration
 config :pleroma, Pleroma.Upload,
   uploader: Pleroma.Uploaders.Local,
-  filters: [],
+  filters: [Pleroma.Upload.Filter.Dedupe],
+  link_name: true,
   proxy_remote: false,
   proxy_opts: [
     redirect_on_failure: false,
@@ -93,10 +94,11 @@ config :pleroma, Pleroma.Web.Endpoint,
     dispatch: [
       {:_,
        [
-         {"/api/v1/streaming", Elixir.Pleroma.Web.MastodonAPI.WebsocketHandler, []},
-         {"/socket/websocket", Phoenix.Endpoint.CowboyWebSocket,
-          {nil, {Pleroma.Web.Endpoint, Pleroma.Web.UserSocket, websocket_config}}},
-         {:_, Plug.Adapters.Cowboy.Handler, {Pleroma.Web.Endpoint, []}}
+         {"/api/v1/streaming", Pleroma.Web.MastodonAPI.WebsocketHandler, []},
+         {"/websocket", Phoenix.Endpoint.CowboyWebSocket,
+          {Phoenix.Transports.WebSocket,
+           {Pleroma.Web.Endpoint, Pleroma.Web.UserSocket, websocket_config}}},
+         {:_, Phoenix.Endpoint.Cowboy2Handler, {Pleroma.Web.Endpoint, []}}
        ]}
     ]
   ],
@@ -132,7 +134,14 @@ config :pleroma, :httpoison, Pleroma.HTTP
 config :tesla, adapter: Tesla.Adapter.Hackney
 
 # Configures http settings, upstream proxy etc.
-config :pleroma, :http, proxy_url: nil
+config :pleroma, :http,
+  proxy_url: nil,
+  adapter: [
+    ssl_options: [
+      # We don't support TLS v1.3 yet
+      versions: [:tlsv1, :"tlsv1.1", :"tlsv1.2"]
+    ]
+  ]
 
 config :pleroma, :instance,
   name: "Pleroma",
@@ -214,6 +223,9 @@ config :pleroma, :frontend_configurations,
     scopeCopy: true,
     subjectLineBehavior: "email",
     alwaysShowSubjectInput: true
+  },
+  masto_fe: %{
+    showInstanceSpecificPanel: true
   }
 
 config :pleroma, :activitypub,
@@ -343,6 +355,31 @@ config :pleroma, Pleroma.Jobs,
   federator_incoming: [max_jobs: 50],
   federator_outgoing: [max_jobs: 50],
   mailer: [max_jobs: 10]
+
+config :pleroma, :fetch_initial_posts,
+  enabled: false,
+  pages: 5
+
+config :auto_linker,
+  opts: [
+    scheme: true,
+    extra: true,
+    class: false,
+    strip_prefix: false,
+    new_window: false,
+    rel: false
+  ]
+
+config :pleroma, :ldap,
+  enabled: System.get_env("LDAP_ENABLED") == "true",
+  host: System.get_env("LDAP_HOST") || "localhost",
+  port: String.to_integer(System.get_env("LDAP_PORT") || "389"),
+  ssl: System.get_env("LDAP_SSL") == "true",
+  sslopts: [],
+  tls: System.get_env("LDAP_TLS") == "true",
+  tlsopts: [],
+  base: System.get_env("LDAP_BASE") || "dc=example,dc=com",
+  uid: System.get_env("LDAP_UID") || "cn"
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

@@ -5,15 +5,15 @@
 defmodule Pleroma.Web.TwitterAPI.ActivityViewTest do
   use Pleroma.DataCase
 
+  alias Pleroma.Activity
+  alias Pleroma.Repo
+  alias Pleroma.User
+  alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.CommonAPI.Utils
   alias Pleroma.Web.TwitterAPI.ActivityView
-  alias Pleroma.Web.TwitterAPI.UserView
   alias Pleroma.Web.TwitterAPI.TwitterAPI
-  alias Pleroma.Repo
-  alias Pleroma.Activity
-  alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ActivityPub
+  alias Pleroma.Web.TwitterAPI.UserView
 
   import Pleroma.Factory
   import Tesla.Mock
@@ -56,6 +56,22 @@ defmodule Pleroma.Web.TwitterAPI.ActivityViewTest do
     assert result["user"]["id"] == user.id
   end
 
+  test "tells if the message is muted for some reason" do
+    user = insert(:user)
+    other_user = insert(:user)
+
+    {:ok, user} = User.mute(user, other_user)
+
+    {:ok, activity} = CommonAPI.post(other_user, %{"status" => "test"})
+    status = ActivityView.render("activity.json", %{activity: activity})
+
+    assert status["muted"] == false
+
+    status = ActivityView.render("activity.json", %{activity: activity, for: user})
+
+    assert status["muted"] == true
+  end
+
   test "a create activity with a html status" do
     text = """
     #Bike log - Commute Tuesday\nhttps://pla.bike/posts/20181211/\n#cycling #CHScycling #commute\nMVIMG_20181211_054020.jpg
@@ -66,7 +82,7 @@ defmodule Pleroma.Web.TwitterAPI.ActivityViewTest do
     result = ActivityView.render("activity.json", activity: activity)
 
     assert result["statusnet_html"] ==
-             "<a class=\"hashtag\" data-tag=\"bike\" href=\"http://localhost:4001/tag/bike\">#Bike</a> log - Commute Tuesday<br /><a href=\"https://pla.bike/posts/20181211/\">https://pla.bike/posts/20181211/</a><br /><a class=\"hashtag\" data-tag=\"cycling\" href=\"http://localhost:4001/tag/cycling\">#cycling</a> <a class=\"hashtag\" data-tag=\"chscycling\" href=\"http://localhost:4001/tag/chscycling\">#CHScycling</a> <a class=\"hashtag\" data-tag=\"commute\" href=\"http://localhost:4001/tag/commute\">#commute</a><br />MVIMG_20181211_054020.jpg"
+             "<a class=\"hashtag\" data-tag=\"bike\" href=\"http://localhost:4001/tag/bike\" rel=\"tag\">#Bike</a> log - Commute Tuesday<br /><a href=\"https://pla.bike/posts/20181211/\">https://pla.bike/posts/20181211/</a><br /><a class=\"hashtag\" data-tag=\"cycling\" href=\"http://localhost:4001/tag/cycling\" rel=\"tag\">#cycling</a> <a class=\"hashtag\" data-tag=\"chscycling\" href=\"http://localhost:4001/tag/chscycling\" rel=\"tag\">#CHScycling</a> <a class=\"hashtag\" data-tag=\"commute\" href=\"http://localhost:4001/tag/commute\" rel=\"tag\">#commute</a><br />MVIMG_20181211_054020.jpg"
 
     assert result["text"] ==
              "#Bike log - Commute Tuesday\nhttps://pla.bike/posts/20181211/\n#cycling #CHScycling #commute\nMVIMG_20181211_054020.jpg"
@@ -149,7 +165,8 @@ defmodule Pleroma.Web.TwitterAPI.ActivityViewTest do
       "uri" => activity.data["object"]["id"],
       "user" => UserView.render("show.json", %{user: user}),
       "visibility" => "direct",
-      "card" => nil
+      "card" => nil,
+      "muted" => false
     }
 
     assert result == expected

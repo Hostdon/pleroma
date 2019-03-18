@@ -132,11 +132,12 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
         "client_secret" => app.client_secret
       })
 
-    assert %{"access_token" => token} = json_response(conn, 200)
+    assert %{"access_token" => token, "me" => ap_id} = json_response(conn, 200)
 
     token = Repo.get_by(Token, token: token)
     assert token
     assert token.scopes == auth.scopes
+    assert user.ap_id == ap_id
   end
 
   test "issues a token for `password` grant_type with valid credentials, with full permissions by default" do
@@ -165,10 +166,10 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
   test "issues a token for request with HTTP basic auth client credentials" do
     user = insert(:user)
-    app = insert(:oauth_app, scopes: ["scope1", "scope2"])
+    app = insert(:oauth_app, scopes: ["scope1", "scope2", "scope3"])
 
-    {:ok, auth} = Authorization.create_authorization(app, user, ["scope2"])
-    assert auth.scopes == ["scope2"]
+    {:ok, auth} = Authorization.create_authorization(app, user, ["scope1", "scope2"])
+    assert auth.scopes == ["scope1", "scope2"]
 
     app_encoded =
       (URI.encode_www_form(app.client_id) <> ":" <> URI.encode_www_form(app.client_secret))
@@ -183,11 +184,13 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
         "redirect_uri" => app.redirect_uris
       })
 
-    assert %{"access_token" => token} = json_response(conn, 200)
+    assert %{"access_token" => token, "scope" => scope} = json_response(conn, 200)
+
+    assert scope == "scope1 scope2"
 
     token = Repo.get_by(Token, token: token)
     assert token
-    assert token.scopes == ["scope2"]
+    assert token.scopes == ["scope1", "scope2"]
   end
 
   test "rejects token exchange with invalid client credentials" do

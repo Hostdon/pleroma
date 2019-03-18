@@ -66,9 +66,7 @@ defmodule Pleroma.Web.Metadata.Providers.TwitterCard do
     end
   end
 
-  defp build_attachments(id, z = %{data: %{"attachment" => attachments}}) do
-    IO.puts(inspect(z))
-
+  defp build_attachments(id, %{data: %{"attachment" => attachments}}) do
     Enum.reduce(attachments, [], fn attachment, acc ->
       rendered_tags =
         Enum.reduce(attachment["url"], [], fn url, acc ->
@@ -99,7 +97,8 @@ defmodule Pleroma.Web.Metadata.Providers.TwitterCard do
                 | acc
               ]
 
-            # TODO: Need the true width and height values here or Twitter renders an iFrame with a bad aspect ratio
+            # TODO: Need the true width and height values here or Twitter renders an iFrame with
+            # a bad aspect ratio
             "video" ->
               [
                 {:meta, [property: "twitter:card", content: "player"], []},

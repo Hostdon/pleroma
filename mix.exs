@@ -23,11 +23,14 @@ defmodule Pleroma.Mixfile do
         logo: "priv/static/static/logo.png",
         extras: [
           "README.md",
-          "docs/config.md",
-          "docs/Pleroma-API.md",
           "docs/Admin-API.md",
           "docs/Clients.md",
-          "docs/Differences-in-MastodonAPI-Responses.md"
+          "docs/config.md",
+          "docs/Custom-Emoji.md",
+          "docs/Differences-in-MastodonAPI-Responses.md",
+          "docs/Message-Rewrite-Facility-configuration.md",
+          "docs/Pleroma-API.md",
+          "docs/static_dir.md"
         ],
         main: "readme",
         output: "priv/static/doc"
@@ -55,9 +58,8 @@ defmodule Pleroma.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      # Until Phoenix 1.4.1 is released
-      {:phoenix, github: "phoenixframework/phoenix", branch: "v1.4"},
-      {:plug_cowboy, "~> 1.0"},
+      {:phoenix, "~> 1.4.1"},
+      {:plug_cowboy, "~> 2.0"},
       {:phoenix_pubsub, "~> 1.1"},
       {:phoenix_ecto, "~> 3.3"},
       {:postgrex, ">= 0.13.5"},
@@ -77,7 +79,7 @@ defmodule Pleroma.Mixfile do
       {:ex_aws, "~> 2.0"},
       {:ex_aws_s3, "~> 2.0"},
       {:earmark, "~> 1.3"},
-      {:ex_machina, "~> 2.2", only: :test},
+      {:ex_machina, "~> 2.3", only: :test},
       {:credo, "~> 0.9.3", only: [:dev, :test]},
       {:mock, "~> 0.3.1", only: :test},
       {:crypt,
@@ -90,7 +92,10 @@ defmodule Pleroma.Mixfile do
       {:websocket_client, git: "https://github.com/jeremyong/websocket_client.git", only: :test},
       {:floki, "~> 0.20.0"},
       {:ex_syslogger, github: "slashmili/ex_syslogger", tag: "1.4.0"},
-      {:timex, "~> 3.5"}
+      {:timex, "~> 3.5"},
+      {:auto_linker,
+       git: "https://git.pleroma.social/pleroma/auto_linker.git",
+       ref: "94193ca5f97c1f9fdf3d1469653e2d46fac34bcd"}
     ]
   end
 

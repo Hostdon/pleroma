@@ -102,7 +102,10 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
         website: nil
       },
       language: nil,
-      emojis: []
+      emojis: [],
+      pleroma: %{
+        local: activity.local
+      }
     }
   end
 
@@ -168,7 +171,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
       reblogged: present?(repeated),
       favourited: present?(favorited),
       bookmarked: present?(bookmarked),
-      muted: CommonAPI.thread_muted?(user, activity),
+      muted: CommonAPI.thread_muted?(user, activity) || User.mutes?(opts[:for], user),
       pinned: pinned?(activity, user),
       sensitive: sensitive,
       spoiler_text: object["summary"] || "",
@@ -181,7 +184,10 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
         website: nil
       },
       language: nil,
-      emojis: build_emojis(activity.data["object"]["emoji"])
+      emojis: build_emojis(activity.data["object"]["emoji"]),
+      pleroma: %{
+        local: activity.local
+      }
     }
   end
 
@@ -251,7 +257,8 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
       preview_url: href,
       text_url: href,
       type: type,
-      description: attachment["name"]
+      description: attachment["name"],
+      pleroma: %{mime_type: media_type}
     }
   end
 
