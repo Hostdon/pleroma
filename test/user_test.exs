@@ -146,6 +146,15 @@ defmodule Pleroma.UserTest do
     {:error, _} = User.follow(blockee, blocker)
   end
 
+  test "can't subscribe to a user who blocked us" do
+    blocker = insert(:user)
+    blocked = insert(:user)
+
+    {:ok, blocker} = User.block(blocker, blocked)
+
+    {:error, _} = User.subscribe(blocked, blocker)
+  end
+
   test "local users do not automatically follow local locked accounts" do
     follower = insert(:user, info: %{locked: true})
     followed = insert(:user, info: %{locked: true})
@@ -729,6 +738,22 @@ defmodule Pleroma.UserTest do
       refute User.following?(blocker, blocked)
       refute User.following?(blocked, blocker)
     end
+
+    test "blocks tear down blocked->blocker subscription relationships" do
+      blocker = insert(:user)
+      blocked = insert(:user)
+
+      {:ok, blocker} = User.subscribe(blocked, blocker)
+
+      assert User.subscribed_to?(blocked, blocker)
+      refute User.subscribed_to?(blocker, blocked)
+
+      {:ok, blocker} = User.block(blocker, blocked)
+
+      assert User.blocks?(blocker, blocked)
+      refute User.subscribed_to?(blocker, blocked)
+      refute User.subscribed_to?(blocked, blocker)
+    end
   end
 
   describe "domain blocking" do
@@ -1124,5 +1149,22 @@ defmodule Pleroma.UserTest do
 
     assert {:ok, user_state3} = User.bookmark(user, id2)
     assert user_state3.bookmarks == [id2]
+  end
+
+  test "follower count is updated when a follower is blocked" do
+    user = insert(:user)
+    follower = insert(:user)
+    follower2 = insert(:user)
+    follower3 = insert(:user)
+
+    {:ok, follower} = Pleroma.User.follow(follower, user)
+    {:ok, _follower2} = Pleroma.User.follow(follower2, user)
+    {:ok, _follower3} = Pleroma.User.follow(follower3, user)
+
+    {:ok, _} = Pleroma.User.block(user, follower)
+
+    user_show = Pleroma.Web.TwitterAPI.UserView.render("show.json", %{user: user})
+
+    assert Map.get(user_show, "followers_count") == 2
   end
 end

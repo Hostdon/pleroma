@@ -12,6 +12,7 @@ defmodule Pleroma.Web.CommonAPI.Utils do
   alias Pleroma.Repo
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.Utils
+  alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Web.Endpoint
   alias Pleroma.Web.MediaProxy
 
@@ -293,7 +294,7 @@ defmodule Pleroma.Web.CommonAPI.Utils do
 
   def emoji_from_profile(%{info: _info} = user) do
     (Formatter.get_emoji(user.bio) ++ Formatter.get_emoji(user.name))
-    |> Enum.map(fn {shortcode, url} ->
+    |> Enum.map(fn {shortcode, url, _} ->
       %{
         "type" => "Emoji",
         "icon" => %{"type" => "Image", "url" => "#{Endpoint.url()}#{url}"},
@@ -334,6 +335,24 @@ defmodule Pleroma.Web.CommonAPI.Utils do
   end
 
   def maybe_notify_mentioned_recipients(recipients, _), do: recipients
+
+  def maybe_notify_subscribers(
+        recipients,
+        %Activity{data: %{"actor" => actor, "type" => type}} = activity
+      )
+      when type == "Create" do
+    with %User{} = user <- User.get_cached_by_ap_id(actor) do
+      subscriber_ids =
+        user
+        |> User.subscribers()
+        |> Enum.filter(&Visibility.visible_for_user?(activity, &1))
+        |> Enum.map(& &1.ap_id)
+
+      recipients ++ subscriber_ids
+    end
+  end
+
+  def maybe_notify_subscribers(recipients, _), do: recipients
 
   def maybe_extract_mentions(%{"tag" => tag}) do
     tag
