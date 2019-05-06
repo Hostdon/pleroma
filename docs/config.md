@@ -37,7 +37,7 @@ This filter replaces the filename (not the path) of an upload. For complete obfu
 
 An example for Sendgrid adapter:
 
-```exs
+```elixir
 config :pleroma, Pleroma.Emails.Mailer,
   adapter: Swoosh.Adapters.Sendgrid,
   api_key: "YOUR_API_KEY"
@@ -45,7 +45,7 @@ config :pleroma, Pleroma.Emails.Mailer,
 
 An example for SMTP adapter:
 
-```exs
+```elixir
 config :pleroma, Pleroma.Emails.Mailer,
   adapter: Swoosh.Adapters.SMTP,
   relay: "smtp.gmail.com",
@@ -104,12 +104,13 @@ config :pleroma, Pleroma.Emails.Mailer,
 * `max_report_comment_size`: The maximum size of the report comment (Default: `1000`)
 * `safe_dm_mentions`: If set to true, only mentions at the beginning of a post will be used to address people in direct messages. This is to prevent accidental mentioning of people when talking about them (e.g. "@friend hey i really don't like @enemy"). (Default: `false`)
 * `healthcheck`: if set to true, system data will be shown on ``/api/pleroma/healthcheck``.
+* `repo_batch_size`: Repo batch size. The number of loaded rows from the database to the memory for processing chunks. E.g. deleting user statuses.
 
 ## :logger
 * `backends`: `:console` is used to send logs to stdout, `{ExSyslogger, :ex_syslogger}` to log to syslog, and `Quack.Logger` to log to Slack
 
 An example to enable ONLY ExSyslogger (f/ex in ``prod.secret.exs``) with info and debug suppressed:
-```
+```elixir
 config :logger,
   backends: [{ExSyslogger, :ex_syslogger}]
 
@@ -118,7 +119,7 @@ config :logger, :ex_syslogger,
 ```
 
 Another example, keeping console output and adding the pid to syslog output:
-```
+```elixir
 config :logger,
   backends: [:console, {ExSyslogger, :ex_syslogger}]
 
@@ -130,7 +131,7 @@ config :logger, :ex_syslogger,
 See: [logger’s documentation](https://hexdocs.pm/logger/Logger.html) and [ex_syslogger’s documentation](https://hexdocs.pm/ex_syslogger/)
 
 An example of logging info to local syslog, but warn to a Slack channel:
-```
+```elixir
 config :logger,
   backends: [ {ExSyslogger, :ex_syslogger}, Quack.Logger ],
   level: :info
@@ -156,14 +157,30 @@ Frontends can access these settings at `/api/pleroma/frontend_configurations`
 
 To add your own configuration for PleromaFE, use it like this:
 
-`config :pleroma, :frontend_configurations, pleroma_fe: %{redirectRootNoLogin: "/main/all", ...}`
+```elixir
+config :pleroma, :frontend_configurations,
+  pleroma_fe: %{
+    theme: "pleroma-dark",
+    # ... see /priv/static/static/config.json for the available keys.
+},
+  masto_fe: %{
+    showInstanceSpecificPanel: true
+  }
+```
 
-These settings need to be complete, they will override the defaults. See `priv/static/static/config.json` for the available keys.
+These settings **need to be complete**, they will override the defaults.
+
+NOTE: for versions < 1.0, you need to set [`:fe`](#fe) to false, as shown a few lines below. 
 
 ## :fe
 __THIS IS DEPRECATED__
 
-If you are using this method, please change it to the `frontend_configurations` method. Please set this option to false in your config like this: `config :pleroma, :fe, false`.
+If you are using this method, please change it to the [`frontend_configurations`](#frontend_configurations) method.
+Please **set this option to false** in your config like this: 
+
+```elixir
+config :pleroma, :fe, false
+```
 
 This section is used to configure Pleroma-FE, unless ``:managed_config`` in ``:instance`` is set to false.
 
@@ -274,7 +291,7 @@ their ActivityPub ID.
 
 An example:
 
-```exs
+```elixir
 config :pleroma, :mrf_user_allowlist,
   "example.org": ["https://example.org/users/admin"]
 ```
@@ -303,7 +320,7 @@ the source code is here: https://github.com/koto-bank/kocaptcha. The default end
 
 Allows to set a token that can be used to authenticate with the admin api without using an actual user by giving it as the 'admin_token' parameter. Example:
 
-```exs
+```elixir
 config :pleroma, :admin_token, "somerandomtoken"
 ```
 
@@ -387,7 +404,7 @@ Configuration for the `auto_linker` library:
 
 Example:
 
-```exs
+```elixir
 config :auto_linker,
   opts: [
     scheme: true,
@@ -428,7 +445,28 @@ Pleroma account will be created with the same name as the LDAP user name.
 * `base`: LDAP base, e.g. "dc=example,dc=com"
 * `uid`: LDAP attribute name to authenticate the user, e.g. when "cn", the filter will be "cn=username,base"
 
+## BBS / SSH access
+
+To enable simple command line interface accessible over ssh, add a setting like this to your configuration file:
+
+```exs
+app_dir = File.cwd!
+priv_dir = Path.join([app_dir, "priv/ssh_keys"])
+
+config :esshd,
+  enabled: true,
+  priv_dir: priv_dir,
+  handler: "Pleroma.BBS.Handler",
+  port: 10_022,
+  password_authenticator: "Pleroma.BBS.Authenticator"
+```
+
+Feel free to adjust the priv_dir and port number. Then you will have to create the key for the keys (in the example `priv/ssh_keys`) and create the host keys with `ssh-keygen -N "" -b 2048 -t rsa -f ssh_host_rsa_key`. After restarting, you should be able to connect to your Pleroma instance with `ssh username@server -p $PORT`
+
 ## :auth
+
+* `Pleroma.Web.Auth.PleromaAuthenticator`: default database authenticator
+* `Pleroma.Web.Auth.LDAPAuthenticator`: LDAP authentication
 
 Authentication / authorization settings.
 
@@ -436,7 +474,7 @@ Authentication / authorization settings.
 * `oauth_consumer_template`: OAuth consumer mode authentication form template. By default it's `consumer.html` which corresponds to `lib/pleroma/web/templates/o_auth/o_auth/consumer.html.eex`.
 * `oauth_consumer_strategies`: the list of enabled OAuth consumer strategies; by default it's set by OAUTH_CONSUMER_STRATEGIES environment variable.
 
-# OAuth consumer mode
+## OAuth consumer mode
 
 OAuth consumer mode allows sign in / sign up via external OAuth providers (e.g. Twitter, Facebook, Google, Microsoft, etc.).
 Implementation is based on Ueberauth; see the list of [available strategies](https://github.com/ueberauth/ueberauth/wiki/List-of-Strategies).
@@ -460,7 +498,7 @@ Note: make sure that `"SameSite=Lax"` is set in `extra_cookie_attrs` when you ha
 Once the app is configured on external OAuth provider side, add app's credentials and strategy-specific settings (if any — e.g. see Microsoft below) to `config/prod.secret.exs`,
 per strategy's documentation (e.g. [ueberauth_twitter](https://github.com/ueberauth/ueberauth_twitter)). Example config basing on environment variables:
 
-```
+```elixir
 # Twitter
 config :ueberauth, Ueberauth.Strategy.Twitter.OAuth,
   consumer_key: System.get_env("TWITTER_CONSUMER_KEY"),
@@ -488,6 +526,13 @@ config :ueberauth, Ueberauth,
     microsoft: {Ueberauth.Strategy.Microsoft, [callback_params: []]}
   ]
 ```
+
+## OAuth 2.0 provider - :oauth2
+
+Configure OAuth 2 provider capabilities:
+
+* `token_expires_in` - The lifetime in seconds of the access token.
+* `issue_new_refresh_token` - Keeps old refresh token or generate new refresh token when to obtain an access token.
 
 ## :emoji
 * `shortcode_globs`: Location of custom emoji files. `*` can be used as a wildcard. Example `["/emoji/custom/**/*.png"]`

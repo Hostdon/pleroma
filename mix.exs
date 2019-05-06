@@ -41,7 +41,7 @@ defmodule Pleroma.Mixfile do
   def application do
     [
       mod: {Pleroma.Application, []},
-      extra_applications: [:logger, :runtime_tools, :comeonin, :quack],
+      extra_applications: [:logger, :runtime_tools, :comeonin, :esshd, :quack],
       included_applications: [:ex_syslogger]
     ]
   end
@@ -102,7 +102,7 @@ defmodule Pleroma.Mixfile do
       {:ueberauth, "~> 0.4"},
       {:auto_linker,
        git: "https://git.pleroma.social/pleroma/auto_linker.git",
-       ref: "90613b4bae875a3610c275b7056b61ffdd53210d"},
+       ref: "c00c4e75b35367fa42c95ffd9b8c455bf9995829"},
       {:pleroma_job_queue, "~> 0.2.0"},
       {:telemetry, "~> 0.3"},
       {:prometheus_ex, "~> 3.0"},
@@ -111,7 +111,9 @@ defmodule Pleroma.Mixfile do
       {:prometheus_ecto, "~> 1.4"},
       {:prometheus_process_collector, "~> 1.4"},
       {:recon, github: "ferd/recon", tag: "2.4.0"},
-      {:quack, "~> 0.1.1"}
+      {:quack, "~> 0.1.1"},
+      {:benchee, "~> 1.0"},
+      {:esshd, "~> 0.1.0"}
     ] ++ oauth_deps
   end
 
