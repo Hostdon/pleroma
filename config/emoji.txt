@@ -28,3 +28,4 @@ f_33b00b, /emoji/f_33b00b.png
 f_33b22b, /emoji/f_33b22b.png
 f_33h, /emoji/f_33h.png
 f_33t, /emoji/f_33t.png
+mayushii, /emoji/mayushii.png
