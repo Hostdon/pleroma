@@ -16,11 +16,11 @@ defmodule Pleroma.Mixfile do
 
       # Docs
       name: "Pleroma",
-      source_url: "https://git.pleroma.social/pleroma/pleroma",
-      source_url_pattern:
-        "https://git.pleroma.social/pleroma/pleroma/blob/develop/%{path}#L%{line}",
       homepage_url: "https://pleroma.social/",
+      source_url: "https://git.pleroma.social/pleroma/pleroma",
       docs: [
+        source_url_pattern:
+          "https://git.pleroma.social/pleroma/pleroma/blob/develop/%{path}#L%{line}",
         logo: "priv/static/static/logo.png",
         extras: ["README.md", "CHANGELOG.md"] ++ Path.wildcard("docs/**/*.md"),
         groups_for_extras: [
@@ -87,7 +87,7 @@ defmodule Pleroma.Mixfile do
       {:bbcode, "~> 0.1"},
       {:ex_machina, "~> 2.3", only: :test},
       {:credo, "~> 0.9.3", only: [:dev, :test]},
-      {:mock, "~> 0.3.1", only: :test},
+      {:mock, "~> 0.3.3", only: :test},
       {:crypt,
        git: "https://github.com/msantos/crypt", ref: "1f2b58927ab57e72910191a7ebaeff984382a1d3"},
       {:cors_plug, "~> 1.5"},
@@ -113,7 +113,8 @@ defmodule Pleroma.Mixfile do
       {:recon, github: "ferd/recon", tag: "2.4.0"},
       {:quack, "~> 0.1.1"},
       {:benchee, "~> 1.0"},
-      {:esshd, "~> 0.1.0"}
+      {:esshd, "~> 0.1.0"},
+      {:plug_static_index_html, "~> 1.0.0"}
     ] ++ oauth_deps
   end
 
