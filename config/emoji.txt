@@ -29,3 +29,7 @@ f_33b22b, /emoji/f_33b22b.png
 f_33h, /emoji/f_33h.png
 f_33t, /emoji/f_33t.png
 mayushii, /emoji/mayushii.png
+hahaendme, /emoji/death.png
+stabby, /emoji/stabs.png
+endme, /emoji/end_me.png
+fingerguns, /emoji/fingergun.png
