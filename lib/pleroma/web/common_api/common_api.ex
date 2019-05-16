@@ -71,6 +71,9 @@ defmodule Pleroma.Web.CommonAPI do
          {:ok, _} <- unpin(activity_id, user),
          {:ok, delete} <- ActivityPub.delete(object) do
       {:ok, delete}
+    else
+      _ ->
+        {:error, "Could not delete"}
     end
   end
 
@@ -116,32 +119,34 @@ defmodule Pleroma.Web.CommonAPI do
     end
   end
 
-  def get_visibility(%{"visibility" => visibility})
+  def get_visibility(%{"visibility" => visibility}, in_reply_to)
       when visibility in ~w{public unlisted private direct},
-      do: visibility
+      do: {visibility, get_replied_to_visibility(in_reply_to)}
 
-  def get_visibility(%{"in_reply_to_status_id" => status_id}) when not is_nil(status_id) do
-    case get_replied_to_activity(status_id) do
-      nil ->
-        "public"
+  def get_visibility(_, in_reply_to) when not is_nil(in_reply_to) do
+    visibility = get_replied_to_visibility(in_reply_to)
+    {visibility, visibility}
+  end
 
-      in_reply_to ->
-        # XXX: these heuristics should be moved out of MastodonAPI.
-        with %Object{} = object <- Object.normalize(in_reply_to) do
-          Pleroma.Web.MastodonAPI.StatusView.get_visibility(object)
-        end
+  def get_visibility(_, in_reply_to), do: {"public", get_replied_to_visibility(in_reply_to)}
+
+  def get_replied_to_visibility(nil), do: nil
+
+  def get_replied_to_visibility(activity) do
+    with %Object{} = object <- Object.normalize(activity) do
+      Pleroma.Web.ActivityPub.Visibility.get_visibility(object)
     end
   end
 
-  def get_visibility(_), do: "public"
-
   def post(user, %{"status" => status} = data) do
-    visibility = get_visibility(data)
     limit = Pleroma.Config.get([:instance, :limit])
 
     with status <- String.trim(status),
          attachments <- attachments_from_ids(data),
          in_reply_to <- get_replied_to_activity(data["in_reply_to_status_id"]),
+         {visibility, in_reply_to_visibility} <- get_visibility(data, in_reply_to),
+         {_, false} <-
+           {:private_to_public, in_reply_to_visibility == "direct" && visibility != "direct"},
          {content_html, mentions, tags} <-
            make_content_html(
              status,
@@ -185,6 +190,8 @@ defmodule Pleroma.Web.CommonAPI do
         )
 
       res
+    else
+      e -> {:error, e}
     end
   end
 
@@ -310,6 +317,60 @@ defmodule Pleroma.Web.CommonAPI do
       {:account, nil} -> {:error, "Account not found"}
     end
   end
+
+  def update_report_state(activity_id, state) do
+    with %Activity{} = activity <- Activity.get_by_id(activity_id),
+         {:ok, activity} <- Utils.update_report_state(activity, state) do
+      {:ok, activity}
+    else
+      nil ->
+        {:error, :not_found}
+
+      {:error, reason} ->
+        {:error, reason}
+
+      _ ->
+        {:error, "Could not update state"}
+    end
+  end
+
+  def update_activity_scope(activity_id, opts \\ %{}) do
+    with %Activity{} = activity <- Activity.get_by_id_with_object(activity_id),
+         {:ok, activity} <- toggle_sensitive(activity, opts),
+         {:ok, activity} <- set_visibility(activity, opts) do
+      {:ok, activity}
+    else
+      nil ->
+        {:error, :not_found}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp toggle_sensitive(activity, %{"sensitive" => sensitive}) when sensitive in ~w(true false) do
+    toggle_sensitive(activity, %{"sensitive" => String.to_existing_atom(sensitive)})
+  end
+
+  defp toggle_sensitive(%Activity{object: object} = activity, %{"sensitive" => sensitive})
+       when is_boolean(sensitive) do
+    new_data = Map.put(object.data, "sensitive", sensitive)
+
+    {:ok, object} =
+      object
+      |> Object.change(%{data: new_data})
+      |> Object.update_and_set_cache()
+
+    {:ok, Map.put(activity, :object, object)}
+  end
+
+  defp toggle_sensitive(activity, _), do: {:ok, activity}
+
+  defp set_visibility(activity, %{"visibility" => visibility}) do
+    Utils.update_activity_visibility(activity, visibility)
+  end
+
+  defp set_visibility(activity, _), do: {:ok, activity}
 
   def hide_reblogs(user, muted) do
     ap_id = muted.ap_id
