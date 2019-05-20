@@ -157,6 +157,7 @@ defmodule Pleroma.Web.CommonAPI do
          {to, cc} <- to_for_user_and_mentions(user, mentions, in_reply_to, visibility),
          context <- make_context(in_reply_to),
          cw <- data["spoiler_text"] || "",
+         sensitive <- data["sensitive"] || Enum.member?(tags, {"#nsfw", "nsfw"}),
          full_payload <- String.trim(status <> cw),
          length when length in 1..limit <- String.length(full_payload),
          object <-
@@ -169,7 +170,8 @@ defmodule Pleroma.Web.CommonAPI do
              in_reply_to,
              tags,
              cw,
-             cc
+             cc,
+             sensitive
            ),
          object <-
            Map.put(
@@ -200,7 +202,7 @@ defmodule Pleroma.Web.CommonAPI do
     user =
       with emoji <- emoji_from_profile(user),
            source_data <- (user.info.source_data || %{}) |> Map.put("tag", emoji),
-           info_cng <- Pleroma.User.Info.set_source_data(user.info, source_data),
+           info_cng <- User.Info.set_source_data(user.info, source_data),
            change <- Ecto.Changeset.change(user) |> Ecto.Changeset.put_embed(:info, info_cng),
            {:ok, user} <- User.update_and_set_cache(change) do
         user
@@ -233,7 +235,7 @@ defmodule Pleroma.Web.CommonAPI do
          } = activity <- get_by_id_or_ap_id(id_or_ap_id),
          true <- Enum.member?(object_to, "https://www.w3.org/ns/activitystreams#Public"),
          %{valid?: true} = info_changeset <-
-           Pleroma.User.Info.add_pinnned_activity(user.info, activity),
+           User.Info.add_pinnned_activity(user.info, activity),
          changeset <-
            Ecto.Changeset.change(user) |> Ecto.Changeset.put_embed(:info, info_changeset),
          {:ok, _user} <- User.update_and_set_cache(changeset) do
@@ -250,7 +252,7 @@ defmodule Pleroma.Web.CommonAPI do
   def unpin(id_or_ap_id, user) do
     with %Activity{} = activity <- get_by_id_or_ap_id(id_or_ap_id),
          %{valid?: true} = info_changeset <-
-           Pleroma.User.Info.remove_pinnned_activity(user.info, activity),
+           User.Info.remove_pinnned_activity(user.info, activity),
          changeset <-
            Ecto.Changeset.change(user) |> Ecto.Changeset.put_embed(:info, info_changeset),
          {:ok, _user} <- User.update_and_set_cache(changeset) do

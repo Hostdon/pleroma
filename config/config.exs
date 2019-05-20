@@ -48,7 +48,8 @@ config :pleroma, ecto_repos: [Pleroma.Repo]
 
 config :pleroma, Pleroma.Repo,
   types: Pleroma.PostgresTypes,
-  telemetry_event: [Pleroma.Repo.Instrumenter]
+  telemetry_event: [Pleroma.Repo.Instrumenter],
+  migration_lock: nil
 
 config :pleroma, Pleroma.Captcha,
   enabled: false,
@@ -191,6 +192,7 @@ config :tesla, adapter: Tesla.Adapter.Hackney
 # Configures http settings, upstream proxy etc.
 config :pleroma, :http,
   proxy_url: nil,
+  send_user_agent: true,
   adapter: [
     ssl_options: [
       # We don't support TLS v1.3 yet
@@ -274,6 +276,19 @@ config :pleroma, :frontend_configurations,
     showInstanceSpecificPanel: true
   }
 
+config :pleroma, :assets,
+  mascots: [
+    pleroma_fox_tan: %{
+      url: "/images/pleroma-fox-tan-smol.png",
+      mime_type: "image/png"
+    },
+    pleroma_fox_tan_shy: %{
+      url: "/images/pleroma-fox-tan-shy.png",
+      mime_type: "image/png"
+    }
+  ],
+  default_mascot: :pleroma_fox_tan
+
 config :pleroma, :activitypub,
   accept_blocks: true,
   unfollow_blocked: true,
@@ -296,6 +311,7 @@ config :pleroma, :mrf_simple,
   media_removal: [],
   media_nsfw: [],
   federated_timeline_removal: [],
+  report_removal: [],
   reject: [],
   accept: []
 
@@ -463,6 +479,8 @@ config :pleroma, Pleroma.ScheduledActivity,
 config :pleroma, :oauth2,
   token_expires_in: 600,
   issue_new_refresh_token: true
+
+config :pleroma, :database, rum_enabled: false
 
 config :http_signatures,
   adapter: Pleroma.Signature

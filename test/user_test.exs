@@ -277,7 +277,7 @@ defmodule Pleroma.UserTest do
     end
 
     test "it restricts certain nicknames" do
-      [restricted_name | _] = Pleroma.Config.get([Pleroma.User, :restricted_nicknames])
+      [restricted_name | _] = Pleroma.Config.get([User, :restricted_nicknames])
 
       assert is_bitstring(restricted_name)
 
@@ -623,6 +623,37 @@ defmodule Pleroma.UserTest do
       {:ok, user} = User.update_follower_count(user)
 
       assert user.info.follower_count == 1
+    end
+  end
+
+  describe "remove duplicates from following list" do
+    test "it removes duplicates" do
+      user = insert(:user)
+      follower = insert(:user)
+
+      {:ok, %User{following: following} = follower} = User.follow(follower, user)
+      assert length(following) == 2
+
+      {:ok, follower} =
+        follower
+        |> User.update_changeset(%{following: following ++ following})
+        |> Repo.update()
+
+      assert length(follower.following) == 4
+
+      {:ok, follower} = User.remove_duplicated_following(follower)
+      assert length(follower.following) == 2
+    end
+
+    test "it does nothing when following is uniq" do
+      user = insert(:user)
+      follower = insert(:user)
+
+      {:ok, follower} = User.follow(follower, user)
+      assert length(follower.following) == 2
+
+      {:ok, follower} = User.remove_duplicated_following(follower)
+      assert length(follower.following) == 2
     end
   end
 
@@ -1192,11 +1223,11 @@ defmodule Pleroma.UserTest do
     follower2 = insert(:user)
     follower3 = insert(:user)
 
-    {:ok, follower} = Pleroma.User.follow(follower, user)
-    {:ok, _follower2} = Pleroma.User.follow(follower2, user)
-    {:ok, _follower3} = Pleroma.User.follow(follower3, user)
+    {:ok, follower} = User.follow(follower, user)
+    {:ok, _follower2} = User.follow(follower2, user)
+    {:ok, _follower3} = User.follow(follower3, user)
 
-    {:ok, _} = Pleroma.User.block(user, follower)
+    {:ok, _} = User.block(user, follower)
 
     user_show = Pleroma.Web.TwitterAPI.UserView.render("show.json", %{user: user})
 
