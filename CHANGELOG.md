@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 ### Added
+- Optional SSH access mode. (Needs `erlang-ssh` package on some distributions).
+- [MongooseIM](https://github.com/esl/MongooseIM) http authentication support.
 - LDAP authentication
 - External OAuth provider authentication
 - A [job queue](https://git.pleroma.social/pleroma/pleroma_job_queue) for federation, emails, web push, etc.
@@ -39,6 +41,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Metadata: RelMe provider
 - OAuth: added support for refresh tokens
 - Emoji packs and emoji pack manager
+- Object pruning (`mix pleroma.database prune_objects`)
+- OAuth: added job to clean expired access tokens
+- MRF: Support for rejecting reports from specific instances (`mrf_simple`)
+- MRF: Support for stripping avatars and banner images from specific instances (`mrf_simple`)
 
 ### Changed
 - **Breaking:** Configuration: move from Pleroma.Mailer to Pleroma.Emails.Mailer
@@ -73,6 +79,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Don't ship finmoji by default, they can be installed as an emoji pack
 - Hide deactivated users and their statuses
 - Posts which are marked sensitive or tagged nsfw no longer have link previews.
+- HTTP connection timeout is now set to 10 seconds.
+- Respond with a 404 Not implemented JSON error message when requested API is not implemented
 
 ### Fixed
 - Added an FTS index on objects. Running `vacuum analyze` and setting a larger `work_mem` is recommended.
@@ -105,6 +113,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Mastodon API: Exposing default scope of the user to anyone
 - Mastodon API: Make `irreversible` field default to `false` [`POST /api/v1/filters`]
 - User-Agent is now sent correctly for all HTTP requests.
+- MRF: Simple policy now properly delists imported or relayed statuses
 
 ## Removed
 - Configuration: `config :pleroma, :fe` in favor of the more flexible `config :pleroma, :frontend_configurations`

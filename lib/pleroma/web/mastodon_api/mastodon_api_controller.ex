@@ -11,6 +11,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   alias Pleroma.Conversation.Participation
   alias Pleroma.Filter
   alias Pleroma.Formatter
+  alias Pleroma.HTTP
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.Object.Fetcher
@@ -55,7 +56,6 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     when action in [:account_register]
   )
 
-  @httpoison Application.get_env(:pleroma, :httpoison)
   @local_mastodon_name "Mastodon-Local"
 
   action_fallback(:errors)
@@ -1084,7 +1084,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
       from([a, o] in Activity.with_preloaded_object(Activity),
         where: fragment("?->>'type' = 'Create'", a.data),
         where: "https://www.w3.org/ns/activitystreams#Public" in a.recipients,
-        limit: 20
+        limit: 40
       )
 
     q =
@@ -1691,7 +1691,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
         |> String.replace("{{user}}", user)
 
       with {:ok, %{status: 200, body: body}} <-
-             @httpoison.get(
+             HTTP.get(
                url,
                [],
                adapter: [

@@ -104,6 +104,7 @@ config :pleroma, Pleroma.Emails.Mailer,
 * `max_report_comment_size`: The maximum size of the report comment (Default: `1000`)
 * `safe_dm_mentions`: If set to true, only mentions at the beginning of a post will be used to address people in direct messages. This is to prevent accidental mentioning of people when talking about them (e.g. "@friend hey i really don't like @enemy"). (Default: `false`)
 * `healthcheck`: if set to true, system data will be shown on ``/api/pleroma/healthcheck``.
+* `remote_post_retention_days`: the default amount of days to retain remote posts when pruning the database
 
 ## :app_account_creation
 REST API for creating an account settings
@@ -219,6 +220,9 @@ relates to mascots on the mastodon frontend
 * `federated_timeline_removal`: List of instances to remove from Federated (aka The Whole Known Network) Timeline
 * `reject`: List of instances to reject any activities from
 * `accept`: List of instances to accept any activities from
+* `report_removal`: List of instances to reject reports from
+* `avatar_removal`: List of instances to strip avatars from
+* `banner_removal`: List of instances to strip banners from
 
 ## :mrf_rejectnonpublic
 * `allow_followersonly`: whether to allow followers-only posts
@@ -477,7 +481,7 @@ config :esshd,
   password_authenticator: "Pleroma.BBS.Authenticator"
 ```
 
-Feel free to adjust the priv_dir and port number. Then you will have to create the key for the keys (in the example `priv/ssh_keys`) and create the host keys with `ssh-keygen -N "" -b 2048 -t rsa -f ssh_host_rsa_key`. After restarting, you should be able to connect to your Pleroma instance with `ssh username@server -p $PORT`
+Feel free to adjust the priv_dir and port number. Then you will have to create the key for the keys (in the example `priv/ssh_keys`) and create the host keys with `ssh-keygen -m PEM -N "" -b 2048 -t rsa -f ssh_host_rsa_key`. After restarting, you should be able to connect to your Pleroma instance with `ssh username@server -p $PORT`
 
 ## :auth
 
@@ -549,6 +553,8 @@ Configure OAuth 2 provider capabilities:
 
 * `token_expires_in` - The lifetime in seconds of the access token.
 * `issue_new_refresh_token` - Keeps old refresh token or generate new refresh token when to obtain an access token.
+* `clean_expired_tokens` - Enable a background job to clean expired oauth tokens. Defaults to `false`.
+* `clean_expired_tokens_interval` - Interval to run the job to clean expired tokens. Defaults to `86_400_000` (24 hours).
 
 ## :emoji
 * `shortcode_globs`: Location of custom emoji files. `*` can be used as a wildcard. Example `["/emoji/custom/**/*.png"]`

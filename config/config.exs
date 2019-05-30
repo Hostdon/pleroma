@@ -184,9 +184,6 @@ config :mime, :types, %{
   "application/ld+json" => ["activity+json"]
 }
 
-config :pleroma, :websub, Pleroma.Web.Websub
-config :pleroma, :ostatus, Pleroma.Web.OStatus
-config :pleroma, :httpoison, Pleroma.HTTP
 config :tesla, adapter: Tesla.Adapter.Hackney
 
 # Configures http settings, upstream proxy etc.
@@ -239,7 +236,8 @@ config :pleroma, :instance,
   welcome_message: nil,
   max_report_comment_size: 1000,
   safe_dm_mentions: false,
-  healthcheck: false
+  healthcheck: false,
+  remote_post_retention_days: 90
 
 config :pleroma, :app_account_creation, enabled: true, max_requests: 25, interval: 1800
 
@@ -313,7 +311,9 @@ config :pleroma, :mrf_simple,
   federated_timeline_removal: [],
   report_removal: [],
   reject: [],
-  accept: []
+  accept: [],
+  avatar_removal: [],
+  banner_removal: []
 
 config :pleroma, :mrf_keyword,
   reject: [],
@@ -384,6 +384,7 @@ config :pleroma, Pleroma.User,
     "activities",
     "api",
     "auth",
+    "check_password",
     "dev",
     "friend-requests",
     "inbox",
@@ -404,6 +405,7 @@ config :pleroma, Pleroma.User,
     "status",
     "tag",
     "user-search",
+    "user_exists",
     "users",
     "web"
   ]
@@ -478,7 +480,9 @@ config :pleroma, Pleroma.ScheduledActivity,
 
 config :pleroma, :oauth2,
   token_expires_in: 600,
-  issue_new_refresh_token: true
+  issue_new_refresh_token: true,
+  clean_expired_tokens: false,
+  clean_expired_tokens_interval: 86_400_000
 
 config :pleroma, :database, rum_enabled: false
 
