@@ -33,3 +33,4 @@ hahaendme, /emoji/death.png
 stabby, /emoji/stabs.png
 endme, /emoji/end_me.png
 fingerguns, /emoji/fingergun.png
+marismug, /emoji/marismug.png
