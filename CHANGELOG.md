@@ -112,11 +112,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Mastodon API: Correct `reblogged`, `favourited`, and `bookmarked` values in the reblog status JSON
 - Mastodon API: Exposing default scope of the user to anyone
 - Mastodon API: Make `irreversible` field default to `false` [`POST /api/v1/filters`]
+- Mastodon API: Replace missing non-nullable Card attributes with empty strings
 - User-Agent is now sent correctly for all HTTP requests.
 - MRF: Simple policy now properly delists imported or relayed statuses
 
 ## Removed
 - Configuration: `config :pleroma, :fe` in favor of the more flexible `config :pleroma, :frontend_configurations`
+
+## [0.9.99999] - 2019-05-31
+### Security
+- Mastodon API: Fix lists leaking private posts
 
 ## [0.9.9999] - 2019-04-05
 ### Security
