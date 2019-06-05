@@ -44,6 +44,7 @@ defmodule Pleroma.User.Info do
     field(:pinned_activities, {:array, :string}, default: [])
     field(:mascot, :map, default: nil)
     field(:emoji, {:array, :map}, default: [])
+    field(:pleroma_settings_store, :map, default: %{})
 
     field(:notification_settings, :map,
       default: %{
@@ -53,6 +54,8 @@ defmodule Pleroma.User.Info do
         "non_followers" => true
       }
     )
+
+    field(:skip_thread_containment, :boolean, default: false)
 
     # Found in the wild
     # ap_id -> Where is this used?
@@ -218,7 +221,9 @@ defmodule Pleroma.User.Info do
       :hide_followers,
       :hide_favorites,
       :background,
-      :show_role
+      :show_role,
+      :skip_thread_containment,
+      :pleroma_settings_store
     ])
   end
 
