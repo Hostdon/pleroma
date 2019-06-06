@@ -34,3 +34,10 @@ stabby, /emoji/stabs.png
 endme, /emoji/end_me.png
 fingerguns, /emoji/fingergun.png
 marismug, /emoji/marismug.png
+laffeydrink, /emoji/laffeydrink.png
+kagaangry, /emoji/kagaangry.png
+hammbite, /emoji/hammbite.png
+longislandcry, /emoji/longislandcry.png
+thinktirpitz, /emoji/thinktirpitz.png
+shiratsuyusleep, /emoji/shiratsuyusleep.png
+enterprisequestion, /emoji/enterprisequestion.png
