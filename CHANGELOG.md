@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [unreleased]
 ### Added
 - Add a generic settings store for frontends / clients to use.
+- Explicit addressing option for posting.
 - Optional SSH access mode. (Needs `erlang-ssh` package on some distributions).
 - [MongooseIM](https://github.com/esl/MongooseIM) http authentication support.
 - LDAP authentication
@@ -26,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Configuration: `notify_email` option
 - Configuration: Media proxy `whitelist` option
 - Configuration: `report_uri` option
+- Configuration: `limit_unauthenticated_to_local_content` option
 - Pleroma API: User subscriptions
 - Pleroma API: Healthcheck endpoint
 - Pleroma API: `/api/v1/pleroma/mascot` per-user frontend mascot configuration endpoints
@@ -89,6 +91,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Respond with a 404 Not implemented JSON error message when requested API is not implemented
 
 ### Fixed
+- Follow requests don't get 'stuck' anymore.
 - Added an FTS index on objects. Running `vacuum analyze` and setting a larger `work_mem` is recommended.
 - Followers counter not being updated when a follower is blocked
 - Deactivated users being able to request an access token
