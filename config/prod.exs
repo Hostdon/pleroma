@@ -17,8 +17,10 @@ config :pleroma, Pleroma.Web.Endpoint,
   http: [port: 4000],
   protocol: "http"
 
+config :phoenix, serve_endpoints: true
+
 # Do not print debug messages in production
-config :logger, level: :info
+config :logger, level: :warn
 
 # ## SSL Support
 #

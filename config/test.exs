@@ -27,7 +27,8 @@ config :pleroma, Pleroma.Emails.Mailer, adapter: Swoosh.Adapters.Test
 
 config :pleroma, :instance,
   email: "admin@example.com",
-  notify_email: "noreply@example.com"
+  notify_email: "noreply@example.com",
+  skip_thread_containment: false
 
 # Configure your database
 config :pleroma, Pleroma.Repo,
@@ -59,7 +60,7 @@ config :pleroma, Pleroma.ScheduledActivity,
   total_user_limit: 3,
   enabled: false
 
-config :pleroma, :app_account_creation, max_requests: 5
+config :pleroma, :rate_limit, app_account_creation: {1000, 5}
 
 config :pleroma, :http_security, report_uri: "https://endpoint.com"
 

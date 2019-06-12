@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - [MongooseIM](https://github.com/esl/MongooseIM) http authentication support.
 - LDAP authentication
 - External OAuth provider authentication
+- Support for building a release using [`mix release`](https://hexdocs.pm/mix/master/Mix.Tasks.Release.html)
 - A [job queue](https://git.pleroma.social/pleroma/pleroma_job_queue) for federation, emails, web push, etc.
 - [Prometheus](https://prometheus.io/) metrics
 - Support for Mastodon's remote interaction
@@ -27,7 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Configuration: `notify_email` option
 - Configuration: Media proxy `whitelist` option
 - Configuration: `report_uri` option
-- Configuration: `limit_unauthenticated_to_local_content` option
+- Configuration: `limit_to_local_content` option
 - Pleroma API: User subscriptions
 - Pleroma API: Healthcheck endpoint
 - Pleroma API: `/api/v1/pleroma/mascot` per-user frontend mascot configuration endpoints
@@ -53,9 +54,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - MRF: Support for stripping avatars and banner images from specific instances (`mrf_simple`)
 - MRF: Support for running subchains.
 - Configuration: `skip_thread_containment` option
+- Configuration: `rate_limit` option. See `Pleroma.Plugs.RateLimiter` documentation for details.
 
 ### Changed
 - **Breaking:** Configuration: move from Pleroma.Mailer to Pleroma.Emails.Mailer
+- Thread containment / test for complete visibility will be skipped by default.
 - Enforcement of OAuth scopes
 - Add multiple use/time expiring invite token
 - Restyled OAuth pages to fit with Pleroma's default theme
@@ -64,6 +67,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Federation: Expand the audience of delete activities to all recipients of the deleted object
 - Federation: Removed `inReplyToStatusId` from objects
 - Configuration: Dedupe enabled by default
+- Configuration: Default log level in `prod` environment is now set to `warn`
 - Configuration: Added `extra_cookie_attrs` for setting non-standard cookie attributes. Defaults to ["SameSite=Lax"] so that remote follows work.
 - Timelines: Messages involving people you have blocked will be excluded from the timeline in all cases instead of just repeats.
 - Admin API: Move the user related API to `api/pleroma/admin/users`

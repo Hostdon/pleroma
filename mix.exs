@@ -32,8 +32,20 @@ defmodule Pleroma.Mixfile do
         ],
         main: "readme",
         output: "priv/static/doc"
+      ],
+      releases: [
+        pleroma: [
+          include_executables_for: [:unix],
+          applications: [ex_syslogger: :load, syslog: :load],
+          steps: [:assemble, &copy_pleroma_ctl/1]
+        ]
       ]
     ]
+  end
+
+  def copy_pleroma_ctl(%{path: target_path} = release) do
+    File.cp!("./rel/pleroma_ctl", Path.join([target_path, "bin", "pleroma_ctl"]))
+    release
   end
 
   # Configuration for the OTP application.
@@ -114,7 +126,7 @@ defmodule Pleroma.Mixfile do
       {:ueberauth, "~> 0.4"},
       {:auto_linker,
        git: "https://git.pleroma.social/pleroma/auto_linker.git",
-       ref: "c00c4e75b35367fa42c95ffd9b8c455bf9995829"},
+       ref: "e2385402bcd24fc659fee83b3eb8863b0528ad42"},
       {:http_signatures,
        git: "https://git.pleroma.social/pleroma/http_signatures.git",
        ref: "9789401987096ead65646b52b5a2ca6bf52fc531"},
@@ -129,7 +141,7 @@ defmodule Pleroma.Mixfile do
       {:quack, "~> 0.1.1"},
       {:benchee, "~> 1.0"},
       {:esshd, "~> 0.1.0", runtime: Application.get_env(:esshd, :enabled, false)},
-      {:ex_rated, "~> 1.2"},
+      {:ex_rated, "~> 1.3"},
       {:plug_static_index_html, "~> 1.0.0"},
       {:excoveralls, "~> 0.11.1", only: :test}
     ] ++ oauth_deps()
