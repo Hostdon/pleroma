@@ -125,13 +125,15 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
         hide_follows: user.info.hide_follows,
         hide_favorites: user.info.hide_favorites,
         relationship: relationship,
-        skip_thread_containment: user.info.skip_thread_containment
+        skip_thread_containment: user.info.skip_thread_containment,
+        background_image: image_url(user.info.background) |> MediaProxy.url()
       }
     }
     |> maybe_put_role(user, opts[:for])
     |> maybe_put_settings(user, opts[:for], user_info)
     |> maybe_put_notification_settings(user, opts[:for])
     |> maybe_put_settings_store(user, opts[:for], opts)
+    |> maybe_put_chat_token(user, opts[:for], opts)
   end
 
   defp username_from_nickname(string) when is_binary(string) do
@@ -163,6 +165,15 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
 
   defp maybe_put_settings_store(data, _, _, _), do: data
 
+  defp maybe_put_chat_token(data, %User{id: id}, %User{id: id}, %{
+         with_chat_token: token
+       }) do
+    data
+    |> Kernel.put_in([:pleroma, :chat_token], token)
+  end
+
+  defp maybe_put_chat_token(data, _, _, _), do: data
+
   defp maybe_put_role(data, %User{info: %{show_role: true}} = user, _) do
     data
     |> Kernel.put_in([:pleroma, :is_admin], user.info.is_admin)
@@ -182,4 +193,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
   end
 
   defp maybe_put_notification_settings(data, _, _), do: data
+
+  defp image_url(%{"url" => [%{"href" => href} | _]}), do: href
+  defp image_url(_), do: nil
 end

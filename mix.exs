@@ -85,7 +85,7 @@ defmodule Pleroma.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:phoenix, "~> 1.4.1"},
+      {:phoenix, "~> 1.4.8"},
       {:plug_cowboy, "~> 2.0"},
       {:phoenix_pubsub, "~> 1.1"},
       {:phoenix_ecto, "~> 4.0"},
@@ -136,7 +136,6 @@ defmodule Pleroma.Mixfile do
       {:prometheus_plugs, "~> 1.1"},
       {:prometheus_phoenix, "~> 1.2"},
       {:prometheus_ecto, "~> 1.4"},
-      {:prometheus_process_collector, "~> 1.4"},
       {:recon, github: "ferd/recon", tag: "2.4.0"},
       {:quack, "~> 0.1.1"},
       {:benchee, "~> 1.0"},
@@ -177,7 +176,9 @@ defmodule Pleroma.Mixfile do
            ahead <- String.replace(describe, tag, "") do
         {String.replace_prefix(tag, "v", ""), if(ahead != "", do: String.trim(ahead))}
       else
-        _ -> {nil, nil}
+        _ ->
+          {commit_hash, 0} = System.cmd("git", ["rev-parse", "--short", "HEAD"])
+          {nil, "-0-g" <> String.trim(commit_hash)}
       end
 
     if git_tag && version != git_tag do
@@ -204,7 +205,17 @@ defmodule Pleroma.Mixfile do
             string -> "+" <> string
           end).()
 
-    [version, git_pre_release, build]
+    branch_name =
+      with {branch_name, 0} <- System.cmd("git", ["rev-parse", "--abbrev-ref", "HEAD"]),
+           true <- branch_name != "master" do
+        branch_name =
+          String.trim(branch_name)
+          |> String.replace(~r/\W+/, "-")
+
+        "-" <> branch_name
+      end
+
+    [version, git_pre_release, branch_name, build]
     |> Enum.filter(fn string -> string && string != "" end)
     |> Enum.join()
   end
