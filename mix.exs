@@ -126,7 +126,7 @@ defmodule Pleroma.Mixfile do
       {:ueberauth, "~> 0.4"},
       {:auto_linker,
        git: "https://git.pleroma.social/pleroma/auto_linker.git",
-       ref: "e2385402bcd24fc659fee83b3eb8863b0528ad42"},
+       ref: "95e8188490e97505c56636c1379ffdf036c1fdde"},
       {:http_signatures,
        git: "https://git.pleroma.social/pleroma/http_signatures.git",
        ref: "9789401987096ead65646b52b5a2ca6bf52fc531"},
@@ -154,6 +154,8 @@ defmodule Pleroma.Mixfile do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases do
     [
+      "ecto.migrate": ["pleroma.ecto.migrate"],
+      "ecto.rollback": ["pleroma.ecto.rollback"],
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate", "test"]
