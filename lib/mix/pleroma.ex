@@ -2,11 +2,15 @@
 # Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Mix.Tasks.Pleroma.Common do
+defmodule Mix.Pleroma do
   @doc "Common functions to be reused in mix tasks"
   def start_pleroma do
     Application.put_env(:phoenix, :serve_endpoints, false, persistent: true)
     {:ok, _} = Application.ensure_all_started(:pleroma)
+  end
+
+  def load_pleroma do
+    Application.load(:pleroma)
   end
 
   def get_option(options, opt, prompt, defval \\ nil, defname \\ nil) do
@@ -14,7 +18,7 @@ defmodule Mix.Tasks.Pleroma.Common do
   end
 
   def shell_prompt(prompt, defval \\ nil, defname \\ nil) do
-    prompt_message = "#{prompt} [#{defname || defval}]"
+    prompt_message = "#{prompt} [#{defname || defval}] "
 
     input =
       if mix_shell?(),

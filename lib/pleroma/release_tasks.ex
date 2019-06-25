@@ -17,6 +17,7 @@ defmodule Pleroma.ReleaseTasks do
   end
 
   defp mix_task(task, args) do
+    Application.load(:pleroma)
     {:ok, modules} = :application.get_key(:pleroma, :modules)
 
     module =
@@ -43,6 +44,8 @@ defmodule Pleroma.ReleaseTasks do
   end
 
   def create do
+    Application.load(:pleroma)
+
     case @repo.__adapter__.storage_up(@repo.config) do
       :ok ->
         IO.puts("The database for #{inspect(@repo)} has been created")

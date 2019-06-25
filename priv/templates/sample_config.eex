@@ -3,7 +3,11 @@
 # NOTE: This file should not be committed to a repo or otherwise made public
 # without removing sensitive information.
 
-use Mix.Config
+<%= if Code.ensure_loaded?(Config) or not Code.ensure_loaded?(Mix.Config) do
+  "import Config"
+else
+  "use Mix.Config"
+end %>
 
 config :pleroma, Pleroma.Web.Endpoint,
    url: [host: "<%= domain %>", scheme: "https", port: <%= port %>],
@@ -16,7 +20,6 @@ config :pleroma, :instance,
   notify_email: "<%= notify_email %>",
   limit: 5000,
   registrations_open: true,
-  dedupe_media: false,
   dynamic_configuration: <%= db_configurable? %>
 
 config :pleroma, :media_proxy,
@@ -37,6 +40,10 @@ config :web_push_encryption, :vapid_details,
   subject: "mailto:<%= email %>",
   public_key: "<%= web_push_public_key %>",
   private_key: "<%= web_push_private_key %>"
+
+config :pleroma, :database, rum_enabled: <%= rum_enabled %>
+config :pleroma, :instance, static_dir: "<%= static_dir %>"
+config :pleroma, Pleroma.Uploaders.Local, uploads: "<%= uploads_dir %>"
 
 # Enable Strict-Transport-Security once SSL is working:
 # config :pleroma, :http_security,

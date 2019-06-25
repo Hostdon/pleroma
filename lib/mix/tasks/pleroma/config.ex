@@ -1,6 +1,6 @@
 defmodule Mix.Tasks.Pleroma.Config do
   use Mix.Task
-  alias Mix.Tasks.Pleroma.Common
+  import Mix.Pleroma
   alias Pleroma.Repo
   alias Pleroma.Web.AdminAPI.Config
   @shortdoc "Manages the location of the config"
@@ -17,14 +17,14 @@ defmodule Mix.Tasks.Pleroma.Config do
   """
 
   def run(["migrate_to_db"]) do
-    Common.start_pleroma()
+    start_pleroma()
 
     if Pleroma.Config.get([:instance, :dynamic_configuration]) do
       Application.get_all_env(:pleroma)
       |> Enum.reject(fn {k, _v} -> k in [Pleroma.Repo, :env] end)
       |> Enum.each(fn {k, v} ->
         key = to_string(k) |> String.replace("Elixir.", "")
-        {:ok, _} = Config.update_or_create(%{key: key, value: v})
+        {:ok, _} = Config.update_or_create(%{group: "pleroma", key: key, value: v})
         Mix.shell().info("#{key} is migrated.")
       end)
 
@@ -37,12 +37,13 @@ defmodule Mix.Tasks.Pleroma.Config do
   end
 
   def run(["migrate_from_db", env]) do
-    Common.start_pleroma()
+    start_pleroma()
 
     if Pleroma.Config.get([:instance, :dynamic_configuration]) do
-      config_path = "config/#{env}.migrated.secret.exs"
+      config_path = "config/#{env}.exported_from_db.secret.exs"
 
       {:ok, file} = File.open(config_path, [:write])
+      IO.write(file, "use Mix.Config\r\n")
 
       Repo.all(Config)
       |> Enum.each(fn config ->
@@ -50,7 +51,9 @@ defmodule Mix.Tasks.Pleroma.Config do
 
         IO.write(
           file,
-          "config :pleroma, #{config.key}#{mark} #{inspect(Config.from_binary(config.value))}\r\n"
+          "config :#{config.group}, #{config.key}#{mark} #{
+            inspect(Config.from_binary(config.value))
+          }\r\n"
         )
 
         {:ok, _} = Repo.delete(config)

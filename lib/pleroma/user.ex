@@ -9,12 +9,14 @@ defmodule Pleroma.User do
   import Ecto.Query
 
   alias Comeonin.Pbkdf2
+  alias Ecto.Multi
   alias Pleroma.Activity
   alias Pleroma.Keys
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.Registration
   alias Pleroma.Repo
+  alias Pleroma.RepoStreamer
   alias Pleroma.User
   alias Pleroma.Web
   alias Pleroma.Web.ActivityPub.ActivityPub
@@ -193,27 +195,24 @@ defmodule Pleroma.User do
   end
 
   def password_update_changeset(struct, params) do
-    changeset =
-      struct
-      |> cast(params, [:password, :password_confirmation])
-      |> validate_required([:password, :password_confirmation])
-      |> validate_confirmation(:password)
-
-    OAuth.Token.delete_user_tokens(struct)
-    OAuth.Authorization.delete_user_authorizations(struct)
-
-    if changeset.valid? do
-      hashed = Pbkdf2.hashpwsalt(changeset.changes[:password])
-
-      changeset
-      |> put_change(:password_hash, hashed)
-    else
-      changeset
-    end
+    struct
+    |> cast(params, [:password, :password_confirmation])
+    |> validate_required([:password, :password_confirmation])
+    |> validate_confirmation(:password)
+    |> put_password_hash
   end
 
-  def reset_password(user, data) do
-    update_and_set_cache(password_update_changeset(user, data))
+  def reset_password(%User{id: user_id} = user, data) do
+    multi =
+      Multi.new()
+      |> Multi.update(:user, password_update_changeset(user, data))
+      |> Multi.delete_all(:tokens, OAuth.Token.Query.get_by_user(user_id))
+      |> Multi.delete_all(:auth, OAuth.Authorization.delete_by_user_query(user))
+
+    case Repo.transaction(multi) do
+      {:ok, %{user: user} = _} -> set_cache(user)
+      {:error, _, changeset, _} -> {:error, changeset}
+    end
   end
 
   def register_changeset(struct, params \\ %{}, opts \\ []) do
@@ -249,12 +248,11 @@ defmodule Pleroma.User do
       end
 
     if changeset.valid? do
-      hashed = Pbkdf2.hashpwsalt(changeset.changes[:password])
       ap_id = User.ap_id(%User{nickname: changeset.changes[:nickname]})
       followers = User.ap_followers(%User{nickname: changeset.changes[:nickname]})
 
       changeset
-      |> put_change(:password_hash, hashed)
+      |> put_password_hash
       |> put_change(:ap_id, ap_id)
       |> unique_constraint(:ap_id)
       |> put_change(:following, [followers])
@@ -932,18 +930,24 @@ defmodule Pleroma.User do
 
   @spec perform(atom(), User.t()) :: {:ok, User.t()}
   def perform(:delete, %User{} = user) do
-    {:ok, user} = User.deactivate(user)
-
     # Remove all relationships
     {:ok, followers} = User.get_followers(user)
 
-    Enum.each(followers, fn follower -> User.unfollow(follower, user) end)
+    Enum.each(followers, fn follower ->
+      ActivityPub.unfollow(follower, user)
+      User.unfollow(follower, user)
+    end)
 
     {:ok, friends} = User.get_friends(user)
 
-    Enum.each(friends, fn followed -> User.unfollow(user, followed) end)
+    Enum.each(friends, fn followed ->
+      ActivityPub.unfollow(user, followed)
+      User.unfollow(user, followed)
+    end)
 
     delete_user_activities(user)
+
+    {:ok, _user} = Repo.delete(user)
   end
 
   @spec perform(atom(), User.t()) :: {:ok, User.t()}
@@ -1016,18 +1020,35 @@ defmodule Pleroma.User do
       ])
 
   def delete_user_activities(%User{ap_id: ap_id} = user) do
-    stream =
-      ap_id
-      |> Activity.query_by_actor()
-      |> Repo.stream()
-
-    Repo.transaction(fn -> Enum.each(stream, &delete_activity(&1)) end, timeout: :infinity)
+    ap_id
+    |> Activity.query_by_actor()
+    |> RepoStreamer.chunk_stream(50)
+    |> Stream.each(fn activities ->
+      Enum.each(activities, &delete_activity(&1))
+    end)
+    |> Stream.run()
 
     {:ok, user}
   end
 
   defp delete_activity(%{data: %{"type" => "Create"}} = activity) do
-    Object.normalize(activity) |> ActivityPub.delete()
+    activity
+    |> Object.normalize()
+    |> ActivityPub.delete()
+  end
+
+  defp delete_activity(%{data: %{"type" => "Like"}} = activity) do
+    user = get_cached_by_ap_id(activity.actor)
+    object = Object.normalize(activity)
+
+    ActivityPub.unlike(user, object)
+  end
+
+  defp delete_activity(%{data: %{"type" => "Announce"}} = activity) do
+    user = get_cached_by_ap_id(activity.actor)
+    object = Object.normalize(activity)
+
+    ActivityPub.unannounce(user, object)
   end
 
   defp delete_activity(_activity), do: "Doing nothing"
@@ -1325,4 +1346,12 @@ defmodule Pleroma.User do
   end
 
   defdelegate search(query, opts \\ []), to: User.Search
+
+  defp put_password_hash(
+         %Ecto.Changeset{valid?: true, changes: %{password: password}} = changeset
+       ) do
+    change(changeset, password_hash: Pbkdf2.hashpwsalt(password))
+  end
+
+  defp put_password_hash(changeset), do: changeset
 end
