@@ -417,6 +417,8 @@ This config contains two queues: `federator_incoming` and `federator_outgoing`. 
 
 ## :rich_media
 * `enabled`: if enabled the instance will parse metadata from attached links to generate link previews
+* `ignore_hosts`: list of hosts which will be ignored by the metadata parser. For example `["accounts.google.com", "xss.website"]`, defaults to `[]`.
+* `ignore_tld`: list TLDs (top-level domains) which will ignore for parse metadata. default is ["local", "localdomain", "lan"]
 
 ## :fetch_initial_posts
 * `enabled`: if enabled, when a new user is federated with, fetch some of their latest posts
@@ -604,6 +606,7 @@ Configure OAuth 2 provider capabilities:
 
 ## :emoji
 * `shortcode_globs`: Location of custom emoji files. `*` can be used as a wildcard. Example `["/emoji/custom/**/*.png"]`
+* `pack_extensions`: A list of file extensions for emojis, when no emoji.txt for a pack is present. Example `[".png", ".gif"]`
 * `groups`: Emojis are ordered in groups (tags). This is an array of key-value pairs where the key is the groupname and the value the location or array of locations. `*` can be used as a wildcard. Example `[Custom: ["/emoji/*.png", "/emoji/custom/*.png"]]`
 * `default_manifest`: Location of the JSON-manifest. This manifest contains information about the emoji-packs you can download. Currently only one manifest can be added (no arrays).
 

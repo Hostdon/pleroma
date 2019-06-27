@@ -99,6 +99,7 @@ config :pleroma, Pleroma.Uploaders.MDII,
 
 config :pleroma, :emoji,
   shortcode_globs: ["/emoji/custom/**/*.png"],
+  pack_extensions: [".png", ".gif"],
   groups: [
     # Put groups that have higher priority than defaults here. Example in `docs/config/custom_emoji.md`
     Custom: ["/emoji/*.png", "/emoji/**/*.png"]
@@ -330,7 +331,10 @@ config :pleroma, :mrf_keyword,
 
 config :pleroma, :mrf_subchain, match_actor: %{}
 
-config :pleroma, :rich_media, enabled: true
+config :pleroma, :rich_media,
+  enabled: true,
+  ignore_hosts: [],
+  ignore_tld: ["local", "localdomain", "lan"]
 
 config :pleroma, :media_proxy,
   enabled: false,
