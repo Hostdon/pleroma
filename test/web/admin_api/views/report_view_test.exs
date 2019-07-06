@@ -18,8 +18,16 @@ defmodule Pleroma.Web.AdminAPI.ReportViewTest do
 
     expected = %{
       content: nil,
-      actor: AccountView.render("account.json", %{user: user}),
-      account: AccountView.render("account.json", %{user: other_user}),
+      actor:
+        Map.merge(
+          AccountView.render("account.json", %{user: user}),
+          Pleroma.Web.AdminAPI.AccountView.render("show.json", %{user: user})
+        ),
+      account:
+        Map.merge(
+          AccountView.render("account.json", %{user: other_user}),
+          Pleroma.Web.AdminAPI.AccountView.render("show.json", %{user: other_user})
+        ),
       statuses: [],
       state: "open",
       id: activity.id
@@ -42,8 +50,16 @@ defmodule Pleroma.Web.AdminAPI.ReportViewTest do
 
     expected = %{
       content: nil,
-      actor: AccountView.render("account.json", %{user: user}),
-      account: AccountView.render("account.json", %{user: other_user}),
+      actor:
+        Map.merge(
+          AccountView.render("account.json", %{user: user}),
+          Pleroma.Web.AdminAPI.AccountView.render("show.json", %{user: user})
+        ),
+      account:
+        Map.merge(
+          AccountView.render("account.json", %{user: other_user}),
+          Pleroma.Web.AdminAPI.AccountView.render("show.json", %{user: other_user})
+        ),
       statuses: [StatusView.render("status.json", %{activity: activity})],
       state: "open",
       id: report_activity.id
@@ -94,5 +110,21 @@ defmodule Pleroma.Web.AdminAPI.ReportViewTest do
 
     refute "<script> alert('hecked :D:D:D:D:D:D:D') </script>" ==
              ReportView.render("show.json", %{report: activity})[:content]
+  end
+
+  test "doesn't error out when the user doesn't exists" do
+    user = insert(:user)
+    other_user = insert(:user)
+
+    {:ok, activity} =
+      CommonAPI.report(user, %{
+        "account_id" => other_user.id,
+        "comment" => ""
+      })
+
+    Pleroma.User.delete(other_user)
+    Pleroma.User.invalidate_cache(other_user)
+
+    assert %{} = ReportView.render("show.json", %{report: activity})
   end
 end
