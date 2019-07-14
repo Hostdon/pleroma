@@ -1,3 +1,7 @@
+# Pleroma: A lightweight social networking server
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
+# SPDX-License-Identifier: AGPL-3.0-only
+
 defmodule Pleroma.Object.Fetcher do
   alias Pleroma.HTTP
   alias Pleroma.Object
@@ -28,33 +32,39 @@ defmodule Pleroma.Object.Fetcher do
     else
       Logger.info("Fetching #{id} via AP")
 
-      with {:ok, data} <- fetch_and_contain_remote_object_from_id(id),
-           nil <- Object.normalize(data, false),
+      with {:fetch, {:ok, data}} <- {:fetch, fetch_and_contain_remote_object_from_id(id)},
+           {:normalize, nil} <- {:normalize, Object.normalize(data, false)},
            params <- %{
              "type" => "Create",
              "to" => data["to"],
              "cc" => data["cc"],
+             # Should we seriously keep this attributedTo thing?
              "actor" => data["actor"] || data["attributedTo"],
              "object" => data
            },
-           :ok <- Containment.contain_origin(id, params),
+           {:containment, :ok} <- {:containment, Containment.contain_origin(id, params)},
            {:ok, activity} <- Transmogrifier.handle_incoming(params, options),
            {:object, _data, %Object{} = object} <-
              {:object, data, Object.normalize(activity, false)} do
         {:ok, object}
       else
+        {:containment, _} ->
+          {:error, "Object containment failed."}
+
         {:error, {:reject, nil}} ->
           {:reject, nil}
 
         {:object, data, nil} ->
           reinject_object(data)
 
-        object = %Object{} ->
+        {:normalize, object = %Object{}} ->
           {:ok, object}
 
         _e ->
+          # Only fallback when receiving a fetch/normalization error with ActivityPub
           Logger.info("Couldn't get object via AP, trying out OStatus fetching...")
 
+          # FIXME: OStatus Object Containment?
           case OStatus.fetch_activity_from_url(id) do
             {:ok, [activity | _]} -> {:ok, Object.normalize(activity, false)}
             e -> e

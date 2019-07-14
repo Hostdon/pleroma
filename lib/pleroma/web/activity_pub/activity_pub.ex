@@ -8,6 +8,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   alias Pleroma.Conversation
   alias Pleroma.Notification
   alias Pleroma.Object
+  alias Pleroma.Object.Containment
   alias Pleroma.Object.Fetcher
   alias Pleroma.Pagination
   alias Pleroma.Repo
@@ -126,6 +127,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
          {:ok, map} <- MRF.filter(map),
          {recipients, _, _} = get_recipients(map),
          {:fake, false, map, recipients} <- {:fake, fake, map, recipients},
+         :ok <- Containment.contain_child(map),
          {:ok, map, object} <- insert_full_object(map) do
       {:ok, activity} =
         Repo.insert(%Activity{
@@ -402,6 +404,19 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
          {:ok, activity} <- insert(unfollow_data, local),
          :ok <- maybe_federate(activity) do
       {:ok, activity}
+    end
+  end
+
+  def delete(%User{ap_id: ap_id, follower_address: follower_address} = user) do
+    with data <- %{
+           "to" => [follower_address],
+           "type" => "Delete",
+           "actor" => ap_id,
+           "object" => %{"type" => "Person", "id" => ap_id}
+         },
+         {:ok, activity} <- insert(data, true, true),
+         :ok <- maybe_federate(activity) do
+      {:ok, user}
     end
   end
 
@@ -981,6 +996,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       avatar: avatar,
       name: data["name"],
       follower_address: data["followers"],
+      following_address: data["following"],
       bio: data["summary"]
     }
 

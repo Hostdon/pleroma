@@ -1,3 +1,7 @@
+# Pleroma: A lightweight social networking server
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
+# SPDX-License-Identifier: AGPL-3.0-only
+
 defmodule Pleroma.Object.FetcherTest do
   use Pleroma.DataCase
 
@@ -5,6 +9,7 @@ defmodule Pleroma.Object.FetcherTest do
   alias Pleroma.Object
   alias Pleroma.Object.Fetcher
   import Tesla.Mock
+  import Mock
 
   setup do
     mock(fn
@@ -22,16 +27,31 @@ defmodule Pleroma.Object.FetcherTest do
   end
 
   describe "actor origin containment" do
-    test "it rejects objects with a bogus origin" do
+    test_with_mock "it rejects objects with a bogus origin",
+                   Pleroma.Web.OStatus,
+                   [:passthrough],
+                   [] do
       {:error, _} = Fetcher.fetch_object_from_id("https://info.pleroma.site/activity.json")
+
+      refute called(Pleroma.Web.OStatus.fetch_activity_from_url(:_))
     end
 
-    test "it rejects objects when attributedTo is wrong (variant 1)" do
+    test_with_mock "it rejects objects when attributedTo is wrong (variant 1)",
+                   Pleroma.Web.OStatus,
+                   [:passthrough],
+                   [] do
       {:error, _} = Fetcher.fetch_object_from_id("https://info.pleroma.site/activity2.json")
+
+      refute called(Pleroma.Web.OStatus.fetch_activity_from_url(:_))
     end
 
-    test "it rejects objects when attributedTo is wrong (variant 2)" do
+    test_with_mock "it rejects objects when attributedTo is wrong (variant 2)",
+                   Pleroma.Web.OStatus,
+                   [:passthrough],
+                   [] do
       {:error, _} = Fetcher.fetch_object_from_id("https://info.pleroma.site/activity3.json")
+
+      refute called(Pleroma.Web.OStatus.fetch_activity_from_url(:_))
     end
   end
 
