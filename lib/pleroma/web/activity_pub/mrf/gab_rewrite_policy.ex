@@ -25,7 +25,11 @@ defmodule Pleroma.Web.ActivityPub.MRF.GABRewritePolicy do
     "I called Mr uber",
     "Coconut oil.",
     "price for apple sauce at walmart",
-    "no SWEARING on my timeline!"
+    "no SWEARING on my timeline!",
+    "MILK TRUK JUST ARRIVE",
+    "Also my catheter bag is full.",
+    "Go finish your yoghurt",
+    "I am going to slap your mouth grandson."
   ]
 
   def add(%{"object" => %{"content" => content}} = object) do
