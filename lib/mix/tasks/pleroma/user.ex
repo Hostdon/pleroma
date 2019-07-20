@@ -395,6 +395,28 @@ defmodule Mix.Tasks.Pleroma.User do
     end
   end
 
+  def run(["change_email", nickname, email]) do
+    start_pleroma()
+    with %User{} = user <- User.get_cached_by_nickname(nickname) do
+       user
+       |> User.update_changeset(%{"email" => email})
+       |> User.update_and_set_cache()
+       shell_info("#{nickname}'s email updated")
+    end
+  end
+
+  def run(["send_confirmation", nickname]) do
+    start_pleroma()
+    with %User{} = user <- User.get_cached_by_nickname(nickname) do
+       user
+       |> Pleroma.Emails.UserEmail.account_confirmation_email()
+       |> IO.inspect
+       |> Pleroma.Emails.Mailer.deliver!()
+       shell_info("#{nickname}'s email sent")
+    end
+  end
+  
+
   def run(["toggle_confirmed", nickname]) do
     start_pleroma()
 
