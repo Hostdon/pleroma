@@ -34,7 +34,10 @@ Has these additional fields under the `pleroma` object:
 
 ## Accounts
 
-- `/api/v1/accounts/:id`: The `id` parameter can also be the `nickname` of the user. This only works in this endpoint, not the deeper nested ones for following etc.
+The `id` parameter can also be the `nickname` of the user. This only works in these endpoints, not the deeper nested ones for following etc.
+
+- `/api/v1/accounts/:id`
+- `/api/v1/accounts/:id/statuses`
 
 Has these additional fields under the `pleroma` object:
 
@@ -47,6 +50,7 @@ Has these additional fields under the `pleroma` object:
 - `hide_follows`: boolean, true when the user has follow hiding enabled
 - `settings_store`: A generic map of settings for frontends. Opaque to the backend. Only returned in `verify_credentials` and `update_credentials`
 - `chat_token`: The token needed for Pleroma chat. Only returned in `verify_credentials`
+- `deactivated`: boolean, true when the user is deactivated
 
 ### Source
 
