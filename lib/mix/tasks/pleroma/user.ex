@@ -423,6 +423,13 @@ defmodule Mix.Tasks.Pleroma.User do
     end
   end
 
+  def run(["show", nickname]) do
+    start_pleroma()
+    nickname
+    |> User.get_cached_by_nickname()
+    |> IO.inspect
+  end
+
   def run(["send_confirmation", nickname]) do
     start_pleroma()
     with %User{} = user <- User.get_cached_by_nickname(nickname) do
