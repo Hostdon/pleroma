@@ -23,11 +23,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - ActivityPub C2S: follower/following collection pages being inaccessible even when authentifucated if `hide_followers`/ `hide_follows` was set
 - Existing user id not being preserved on insert conflict
 - Rich Media: Parser failing when no TTL can be found by image TTL setters
+- ActivityPub S2S: sharedInbox usage has been mostly aligned with the rules in the AP specification.
 
 ### Added
 - MRF: Support for priming the mediaproxy cache (`Pleroma.Web.ActivityPub.MRF.MediaProxyWarmingPolicy`)
 - MRF: Support for excluding specific domains from Transparency.
 - MRF: Support for filtering posts based on who they mention (`Pleroma.Web.ActivityPub.MRF.MentionPolicy`)
+- MRF (Simple Policy): Support for wildcard domains.
+- Support for wildcard domains in user domain blocks setting.
+- Configuration: `quarantined_instances` support wildcard domains.
 - Configuration: `federation_incoming_replies_max_depth` option
 - Mastodon API: Support for the [`tagged` filter](https://github.com/tootsuite/mastodon/pull/9755) in [`GET /api/v1/accounts/:id/statuses`](https://docs.joinmastodon.org/api/rest/accounts/#get-api-v1-accounts-id-statuses)
 - Mastodon API, streaming: Add support for passing the token in the `Sec-WebSocket-Protocol` header
