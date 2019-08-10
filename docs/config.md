@@ -18,6 +18,7 @@ Note: `strip_exif` has been replaced by `Pleroma.Upload.Filter.Mogrify`.
 
 ## Pleroma.Uploaders.S3
 * `bucket`: S3 bucket name
+* `bucket_namespace`: S3 bucket namespace
 * `public_endpoint`: S3 endpoint that the user finally accesses(ex. "https://s3.dualstack.ap-northeast-1.amazonaws.com")
 * `truncated_namespace`: If you use S3 compatible service such as Digital Ocean Spaces or CDN, set folder name or "" etc.
 For example, when using CDN to S3 virtual host format, set "".
@@ -535,6 +536,18 @@ Authentication / authorization settings.
 * `auth_template`: authentication form template. By default it's `show.html` which corresponds to `lib/pleroma/web/templates/o_auth/o_auth/show.html.eex`.
 * `oauth_consumer_template`: OAuth consumer mode authentication form template. By default it's `consumer.html` which corresponds to `lib/pleroma/web/templates/o_auth/o_auth/consumer.html.eex`.
 * `oauth_consumer_strategies`: the list of enabled OAuth consumer strategies; by default it's set by `OAUTH_CONSUMER_STRATEGIES` environment variable. Each entry in this space-delimited string should be of format `<strategy>` or `<strategy>:<dependency>` (e.g. `twitter` or `keycloak:ueberauth_keycloak_strategy` in case dependency is named differently than `ueberauth_<strategy>`).
+
+## :email_notifications
+
+Email notifications settings.
+
+  - digest - emails of "what you've missed" for users who have been
+    inactive for a while.
+    - active: globally enable or disable digest emails
+    - schedule: When to send digest email, in [crontab format](https://en.wikipedia.org/wiki/Cron).
+      "0 0 * * 0" is the default, meaning "once a week at midnight on Sunday morning"
+    - interval: Minimum interval between digest emails to one user
+    - inactivity_threshold: Minimum user inactivity threshold
 
 ## OAuth consumer mode
 

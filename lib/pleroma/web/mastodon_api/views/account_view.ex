@@ -28,7 +28,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
       id: to_string(user.id),
       acct: user.nickname,
       username: username_from_nickname(user.nickname),
-      url: user.ap_id
+      url: User.profile_url(user)
     }
   end
 
@@ -72,6 +72,13 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
     image = User.avatar_url(user) |> MediaProxy.url()
     header = User.banner_url(user) |> MediaProxy.url()
     user_info = User.get_cached_user_info(user)
+
+    following_count =
+      ((!user.info.hide_follows or opts[:for] == user) && user_info.following_count) || 0
+
+    followers_count =
+      ((!user.info.hide_followers or opts[:for] == user) && user_info.follower_count) || 0
+
     bot = (user.info.source_data["type"] || "Person") in ["Application", "Service"]
 
     emojis =
@@ -102,11 +109,11 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
       display_name: display_name,
       locked: user_info.locked,
       created_at: Utils.to_masto_date(user.inserted_at),
-      followers_count: user_info.follower_count,
-      following_count: user_info.following_count,
+      followers_count: followers_count,
+      following_count: following_count,
       statuses_count: user_info.note_count,
       note: bio || "",
-      url: user.ap_id,
+      url: User.profile_url(user),
       avatar: image,
       avatar_static: image,
       header: header,

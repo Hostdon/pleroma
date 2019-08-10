@@ -26,6 +26,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Federation/MediaProxy not working with instances that have wrong certificate order
 - Mastodon API: Handling of search timeouts (`/api/v1/search` and `/api/v2/search`)
 - Mastodon API: Embedded relationships not being properly rendered in the Account entity of Status entity
+- Mastodon API: follower/following counters not being nullified, when `hide_follows`/`hide_followers` is set
+- Mastodon API: `muted` in the Status entity, using author's account to determine if the tread was muted
 - Mastodon API: Add `account_id`, `type`, `offset`, and `limit` to search API (`/api/v1/search` and `/api/v2/search`)
 - Mastodon API, streaming: Fix filtering of notifications based on blocks/mutes/thread mutes
 - ActivityPub C2S: follower/following collection pages being inaccessible even when authentifucated if `hide_followers`/ `hide_follows` was set
@@ -38,6 +40,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Invalid SemVer version generation, when the current branch does not have commits ahead of tag/checked out on a tag
 - Pleroma.Upload base_url was not automatically whitelisted by MediaProxy. Now your custom CDN or file hosting will be accessed directly as expected.
 - Report email not being sent to admins when the reporter is a remote user
+- MRF: ensure that subdomain_match calls are case-insensitive
 
 ### Added
 - MRF: Support for priming the mediaproxy cache (`Pleroma.Web.ActivityPub.MRF.MediaProxyWarmingPolicy`)
@@ -72,6 +75,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Admin API: Endpoint for fetching latest user's statuses
 - Pleroma API: Add `/api/v1/pleroma/accounts/confirmation_resend?email=<email>` for resending account confirmation.
 - Relays: Added a task to list relay subscriptions.
+- Mix Tasks: `mix pleroma.database fix_likes_collections`
+- Federation: Remove `likes` from objects.
 
 ### Changed
 - Configuration: Filter.AnonymizeFilename added ability to retain file extension with custom text
@@ -93,6 +98,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Rich media: Do not crawl private IP ranges
 
 ### Added
+- Digest email for inactive users
 - Add a generic settings store for frontends / clients to use.
 - Explicit addressing option for posting.
 - Optional SSH access mode. (Needs `erlang-ssh` package on some distributions).
@@ -119,6 +125,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Configuration: `notify_email` option
 - Configuration: Media proxy `whitelist` option
 - Configuration: `report_uri` option
+- Configuration: `email_notifications` option
 - Configuration: `limit_to_local_content` option
 - Pleroma API: User subscriptions
 - Pleroma API: Healthcheck endpoint
