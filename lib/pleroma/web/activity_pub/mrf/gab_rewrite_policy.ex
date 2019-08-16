@@ -37,6 +37,9 @@ defmodule Pleroma.Web.ActivityPub.MRF.GABRewritePolicy do
   end
 
   @impl true
+  def describe, do: "Appends boomer messages to the end of all statuses coming from gab.com"
+
+  @impl true
   def filter(%{"type" => "Create", "actor" => actor} = object) do
     actor_info = URI.parse(actor)
     if String.contains?(actor_info.host, @domain) do
