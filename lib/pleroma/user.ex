@@ -132,6 +132,28 @@ defmodule Pleroma.User do
     |> Map.put(:follower_count, follower_count)
   end
 
+  def follow_state(%User{} = user, %User{} = target) do
+    follow_activity = Utils.fetch_latest_follow(user, target)
+
+    if follow_activity,
+      do: follow_activity.data["state"],
+      # Ideally this would be nil, but then Cachex does not commit the value
+      else: false
+  end
+
+  def get_cached_follow_state(user, target) do
+    key = "follow_state:#{user.ap_id}|#{target.ap_id}"
+    Cachex.fetch!(:user_cache, key, fn _ -> {:commit, follow_state(user, target)} end)
+  end
+
+  def set_follow_state_cache(user_ap_id, target_ap_id, state) do
+    Cachex.put(
+      :user_cache,
+      "follow_state:#{user_ap_id}|#{target_ap_id}",
+      state
+    )
+  end
+
   def set_info_cache(user, args) do
     Cachex.put(:user_cache, "user_info:#{user.id}", user_info(user, args))
   end
@@ -152,10 +174,10 @@ defmodule Pleroma.User do
   end
 
   def remote_user_creation(params) do
-    params =
-      params
-      |> Map.put(:info, params[:info] || %{})
+    bio_limit = Pleroma.Config.get([:instance, :user_bio_length], 5000)
+    name_limit = Pleroma.Config.get([:instance, :user_name_length], 100)
 
+    params = Map.put(params, :info, params[:info] || %{})
     info_cng = User.Info.remote_user_creation(%User.Info{}, params[:info])
 
     changes =
@@ -164,8 +186,8 @@ defmodule Pleroma.User do
       |> validate_required([:name, :ap_id])
       |> unique_constraint(:nickname)
       |> validate_format(:nickname, @email_regex)
-      |> validate_length(:bio, max: 5000)
-      |> validate_length(:name, max: 100)
+      |> validate_length(:bio, max: bio_limit)
+      |> validate_length(:name, max: name_limit)
       |> put_change(:local, false)
       |> put_embed(:info, info_cng)
 
@@ -188,22 +210,23 @@ defmodule Pleroma.User do
   end
 
   def update_changeset(struct, params \\ %{}) do
+    bio_limit = Pleroma.Config.get([:instance, :user_bio_length], 5000)
+    name_limit = Pleroma.Config.get([:instance, :user_name_length], 100)
+
     struct
     |> cast(params, [:bio, :name, :avatar, :following])
     |> unique_constraint(:nickname)
     |> validate_format(:nickname, local_nickname_regex())
-    |> validate_length(:bio, max: 5000)
-    |> validate_length(:name, min: 1, max: 100)
+    |> validate_length(:bio, max: bio_limit)
+    |> validate_length(:name, min: 1, max: name_limit)
   end
 
   def upgrade_changeset(struct, params \\ %{}) do
-    params =
-      params
-      |> Map.put(:last_refreshed_at, NaiveDateTime.utc_now())
+    bio_limit = Pleroma.Config.get([:instance, :user_bio_length], 5000)
+    name_limit = Pleroma.Config.get([:instance, :user_name_length], 100)
 
-    info_cng =
-      struct.info
-      |> User.Info.user_upgrade(params[:info])
+    params = Map.put(params, :last_refreshed_at, NaiveDateTime.utc_now())
+    info_cng = User.Info.user_upgrade(struct.info, params[:info])
 
     struct
     |> cast(params, [
@@ -216,8 +239,8 @@ defmodule Pleroma.User do
     ])
     |> unique_constraint(:nickname)
     |> validate_format(:nickname, local_nickname_regex())
-    |> validate_length(:bio, max: 5000)
-    |> validate_length(:name, max: 100)
+    |> validate_length(:bio, max: bio_limit)
+    |> validate_length(:name, max: name_limit)
     |> put_embed(:info, info_cng)
   end
 
@@ -244,6 +267,9 @@ defmodule Pleroma.User do
   end
 
   def register_changeset(struct, params \\ %{}, opts \\ []) do
+    bio_limit = Pleroma.Config.get([:instance, :user_bio_length], 5000)
+    name_limit = Pleroma.Config.get([:instance, :user_name_length], 100)
+
     need_confirmation? =
       if is_nil(opts[:need_confirmation]) do
         Pleroma.Config.get([:instance, :account_activation_required])
@@ -264,8 +290,8 @@ defmodule Pleroma.User do
       |> validate_exclusion(:nickname, Pleroma.Config.get([User, :restricted_nicknames]))
       |> validate_format(:nickname, local_nickname_regex())
       |> validate_format(:email, @email_regex)
-      |> validate_length(:bio, max: 1000)
-      |> validate_length(:name, min: 1, max: 100)
+      |> validate_length(:bio, max: bio_limit)
+      |> validate_length(:name, min: 1, max: name_limit)
       |> put_change(:info, info_change)
 
     changeset =

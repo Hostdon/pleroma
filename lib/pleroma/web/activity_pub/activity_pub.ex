@@ -388,7 +388,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   def follow(follower, followed, activity_id \\ nil, local \\ true) do
     with data <- make_follow_data(follower, followed, activity_id),
          {:ok, activity} <- insert(data, local),
-         :ok <- maybe_federate(activity) do
+         :ok <- maybe_federate(activity),
+         _ <- User.set_follow_state_cache(follower.ap_id, followed.ap_id, activity.data["state"]) do
       {:ok, activity}
     end
   end
@@ -518,6 +519,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
     from(activity in Activity)
     |> maybe_preload_objects(opts)
+    |> maybe_preload_bookmarks(opts)
+    |> maybe_set_thread_muted_field(opts)
     |> restrict_blocked(opts)
     |> restrict_recipients(recipients, opts["user"])
     |> where(
@@ -531,6 +534,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       )
     )
     |> exclude_poll_votes(opts)
+    |> exclude_id(opts)
     |> order_by([activity], desc: activity.id)
   end
 
@@ -623,6 +627,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     params =
       params
       |> Map.put("type", ["Create", "Announce"])
+      |> Map.put("user", reading_user)
       |> Map.put("actor_id", user.ap_id)
       |> Map.put("whole_db", true)
       |> Map.put("pinned_activity_ids", user.info.pinned_activities)
@@ -869,6 +874,12 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       query
     end
   end
+
+  defp exclude_id(query, %{"exclude_id" => id}) when is_binary(id) do
+    from(activity in query, where: activity.id != ^id)
+  end
+
+  defp exclude_id(query, _), do: query
 
   defp maybe_preload_objects(query, %{"skip_preload" => true}), do: query
 
