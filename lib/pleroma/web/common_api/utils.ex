@@ -8,6 +8,7 @@ defmodule Pleroma.Web.CommonAPI.Utils do
   alias Calendar.Strftime
   alias Pleroma.Activity
   alias Pleroma.Config
+  alias Pleroma.Conversation.Participation
   alias Pleroma.Formatter
   alias Pleroma.Object
   alias Pleroma.Plugs.AuthenticationPlug
@@ -86,9 +87,20 @@ defmodule Pleroma.Web.CommonAPI.Utils do
     |> Enum.filter(& &1)
   end
 
-  @spec get_to_and_cc(User.t(), list(String.t()), Activity.t() | nil, String.t()) ::
-          {list(String.t()), list(String.t())}
-  def get_to_and_cc(user, mentioned_users, inReplyTo, "public") do
+  @spec get_to_and_cc(
+          User.t(),
+          list(String.t()),
+          Activity.t() | nil,
+          String.t(),
+          Participation.t() | nil
+        ) :: {list(String.t()), list(String.t())}
+
+  def get_to_and_cc(_, _, _, _, %Participation{} = participation) do
+    participation = Repo.preload(participation, :recipients)
+    {Enum.map(participation.recipients, & &1.ap_id), []}
+  end
+
+  def get_to_and_cc(user, mentioned_users, inReplyTo, "public", _) do
     to = [Pleroma.Constants.as_public() | mentioned_users]
     cc = [user.follower_address]
 
@@ -99,7 +111,7 @@ defmodule Pleroma.Web.CommonAPI.Utils do
     end
   end
 
-  def get_to_and_cc(user, mentioned_users, inReplyTo, "unlisted") do
+  def get_to_and_cc(user, mentioned_users, inReplyTo, "unlisted", _) do
     to = [user.follower_address | mentioned_users]
     cc = [Pleroma.Constants.as_public()]
 
@@ -110,12 +122,12 @@ defmodule Pleroma.Web.CommonAPI.Utils do
     end
   end
 
-  def get_to_and_cc(user, mentioned_users, inReplyTo, "private") do
-    {to, cc} = get_to_and_cc(user, mentioned_users, inReplyTo, "direct")
+  def get_to_and_cc(user, mentioned_users, inReplyTo, "private", _) do
+    {to, cc} = get_to_and_cc(user, mentioned_users, inReplyTo, "direct", nil)
     {[user.follower_address | to], cc}
   end
 
-  def get_to_and_cc(_user, mentioned_users, inReplyTo, "direct") do
+  def get_to_and_cc(_user, mentioned_users, inReplyTo, "direct", _) do
     if inReplyTo do
       {Enum.uniq([inReplyTo.data["actor"] | mentioned_users]), []}
     else
@@ -123,7 +135,7 @@ defmodule Pleroma.Web.CommonAPI.Utils do
     end
   end
 
-  def get_to_and_cc(_user, mentions, _inReplyTo, {:list, _}), do: {mentions, []}
+  def get_to_and_cc(_user, mentions, _inReplyTo, {:list, _}, _), do: {mentions, []}
 
   def get_addressed_users(_, to) when is_list(to) do
     User.get_ap_ids_by_nicknames(to)
@@ -253,8 +265,12 @@ defmodule Pleroma.Web.CommonAPI.Utils do
 
   defp maybe_add_nsfw_tag(data, _), do: data
 
-  def make_context(%Activity{data: %{"context" => context}}), do: context
-  def make_context(_), do: Utils.generate_context_id()
+  def make_context(_, %Participation{} = participation) do
+    Repo.preload(participation, :conversation).conversation.ap_id
+  end
+
+  def make_context(%Activity{data: %{"context" => context}}, _), do: context
+  def make_context(_, _), do: Utils.generate_context_id()
 
   def maybe_add_attachments(parsed, _attachments, true = _no_links), do: parsed
 

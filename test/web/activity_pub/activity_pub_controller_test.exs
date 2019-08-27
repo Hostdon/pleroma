@@ -10,23 +10,23 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
   alias Pleroma.Object
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ObjectView
+  alias Pleroma.Web.ActivityPub.Relay
   alias Pleroma.Web.ActivityPub.UserView
   alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.CommonAPI
 
   setup_all do
     Tesla.Mock.mock_global(fn env -> apply(HttpRequestMock, :request, [env]) end)
-
-    config_path = [:instance, :federating]
-    initial_setting = Pleroma.Config.get(config_path)
-
-    Pleroma.Config.put(config_path, true)
-    on_exit(fn -> Pleroma.Config.put(config_path, initial_setting) end)
-
     :ok
   end
 
+  clear_config_all([:instance, :federating],
+    do: Pleroma.Config.put([:instance, :federating], true)
+  )
+
   describe "/relay" do
+    clear_config([:instance, :allow_relay])
+
     test "with the relay active, it returns the relay user", %{conn: conn} do
       res =
         conn
@@ -43,8 +43,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
       |> get(activity_pub_path(conn, :relay))
       |> json_response(404)
       |> assert
-
-      Pleroma.Config.put([:instance, :allow_relay], true)
     end
   end
 
@@ -593,6 +591,34 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
 
       assert object = Object.get_by_ap_id(note_object.data["id"])
       assert object.data["like_count"] == 1
+    end
+  end
+
+  describe "/relay/followers" do
+    test "it returns relay followers", %{conn: conn} do
+      relay_actor = Relay.get_actor()
+      user = insert(:user)
+      User.follow(user, relay_actor)
+
+      result =
+        conn
+        |> assign(:relay, true)
+        |> get("/relay/followers")
+        |> json_response(200)
+
+      assert result["first"]["orderedItems"] == [user.ap_id]
+    end
+  end
+
+  describe "/relay/following" do
+    test "it returns relay following", %{conn: conn} do
+      result =
+        conn
+        |> assign(:relay, true)
+        |> get("/relay/following")
+        |> json_response(200)
+
+      assert result["first"]["orderedItems"] == []
     end
   end
 

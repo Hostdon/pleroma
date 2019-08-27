@@ -22,6 +22,11 @@ defmodule Pleroma.Web.OStatus.OStatusController do
   alias Pleroma.Web.Router
   alias Pleroma.Web.XML
 
+  plug(
+    Pleroma.Plugs.RateLimiter,
+    {:ap_routes, params: ["uuid"]} when action in [:object, :activity]
+  )
+
   plug(Pleroma.Web.FederatingPlug when action in [:salmon_incoming])
 
   plug(
@@ -32,8 +37,7 @@ defmodule Pleroma.Web.OStatus.OStatusController do
   action_fallback(:errors)
 
   def feed_redirect(%{assigns: %{format: "html"}} = conn, %{"nickname" => nickname}) do
-    with {_, %User{} = user} <-
-           {:fetch_user, User.get_cached_by_nickname_or_id(nickname)} do
+    with {_, %User{} = user} <- {:fetch_user, User.get_cached_by_nickname_or_id(nickname)} do
       RedirectController.redirector_with_meta(conn, %{user: user})
     end
   end

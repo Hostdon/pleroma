@@ -133,6 +133,10 @@ defmodule Pleroma.Web.Router do
     })
   end
 
+  pipeline :http_signature do
+    plug(Pleroma.Web.Plugs.HTTPSignaturePlug)
+  end
+
   scope "/api/pleroma", Pleroma.Web.TwitterAPI do
     pipe_through(:pleroma_api)
 
@@ -155,7 +159,7 @@ defmodule Pleroma.Web.Router do
     post("/users/unfollow", AdminAPIController, :user_unfollow)
 
     delete("/users", AdminAPIController, :user_delete)
-    post("/users", AdminAPIController, :user_create)
+    post("/users", AdminAPIController, :users_create)
     patch("/users/:nickname/toggle_activation", AdminAPIController, :user_toggle_activation)
     put("/users/tag", AdminAPIController, :tag_users)
     delete("/users/tag", AdminAPIController, :untag_users)
@@ -198,6 +202,8 @@ defmodule Pleroma.Web.Router do
     post("/config", AdminAPIController, :config_update)
     get("/config/migrate_to_db", AdminAPIController, :migrate_to_db)
     get("/config/migrate_from_db", AdminAPIController, :migrate_from_db)
+
+    get("/moderation_log", AdminAPIController, :list_log)
   end
 
   scope "/", Pleroma.Web.TwitterAPI do
@@ -256,6 +262,21 @@ defmodule Pleroma.Web.Router do
       get("/:provider", OAuthController, :request)
       get("/:provider/callback", OAuthController, :callback)
       post("/register", OAuthController, :register)
+    end
+  end
+
+  scope "/api/v1/pleroma", Pleroma.Web.PleromaAPI do
+    pipe_through(:authenticated_api)
+
+    scope [] do
+      pipe_through(:oauth_read)
+      get("/conversations/:id/statuses", PleromaAPIController, :conversation_statuses)
+      get("/conversations/:id", PleromaAPIController, :conversation)
+    end
+
+    scope [] do
+      pipe_through(:oauth_write)
+      patch("/conversations/:id", PleromaAPIController, :update_conversation)
     end
   end
 
@@ -671,7 +692,14 @@ defmodule Pleroma.Web.Router do
     pipe_through(:ap_service_actor)
 
     get("/", ActivityPubController, :relay)
-    post("/inbox", ActivityPubController, :inbox)
+
+    scope [] do
+      pipe_through(:http_signature)
+      post("/inbox", ActivityPubController, :inbox)
+    end
+
+    get("/following", ActivityPubController, :following, assigns: %{relay: true})
+    get("/followers", ActivityPubController, :followers, assigns: %{relay: true})
   end
 
   scope "/internal/fetch", Pleroma.Web.ActivityPub do

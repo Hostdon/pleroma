@@ -8,7 +8,7 @@ If you run Pleroma with ``MIX_ENV=prod`` the file is ``prod.secret.exs``, otherw
 * `filters`: List of `Pleroma.Upload.Filter` to use.
 * `link_name`: When enabled Pleroma will add a `name` parameter to the url of the upload, for example `https://instance.tld/media/corndog.png?name=corndog.png`. This is needed to provide the correct filename in Content-Disposition headers when using filters like `Pleroma.Upload.Filter.Dedupe`
 * `base_url`: The base URL to access a user-uploaded file. Useful when you want to proxy the media files via another host.
-* `proxy_remote`: If you\'re using a remote uploader, Pleroma will proxy media requests instead of redirecting to it.
+* `proxy_remote`: If you're using a remote uploader, Pleroma will proxy media requests instead of redirecting to it.
 * `proxy_opts`: Proxy options, see `Pleroma.ReverseProxy` documentation.
 
 Note: `strip_exif` has been replaced by `Pleroma.Upload.Filter.Mogrify`.
@@ -132,6 +132,10 @@ config :pleroma, Pleroma.Emails.Mailer,
 * `skip_thread_containment`: Skip filter out broken threads. The default is `false`.
 * `limit_to_local_content`: Limit unauthenticated users to search for local statutes and users only. Possible values: `:unauthenticated`, `:all` and `false`. The default is `:unauthenticated`.
 * `dynamic_configuration`: Allow transferring configuration to DB with the subsequent customization from Admin api.
+* `max_account_fields`: The maximum number of custom fields in the user profile (default: `10`)
+* `max_remote_account_fields`: The maximum number of custom fields in the remote user profile (default: `20`)
+* `account_field_name_length`: An account field name maximum length (default: `512`)
+* `account_field_value_length`: An account field value maximum length (default: `512`)
 * `external_user_synchronization`: Enabling following/followers counters synchronization for external users.
 
 
@@ -491,6 +495,10 @@ config :auto_linker,
 * `total_user_limit`: the number of scheduled activities a user is allowed to create in total (Default: `300`)
 * `enabled`: whether scheduled activities are sent to the job queue to be executed
 
+## Pleroma.ActivityExpiration
+
+# `enabled`: whether expired activities will be sent to the job queue to be deleted
+
 ## Pleroma.Web.Auth.Authenticator
 
 * `Pleroma.Web.Auth.PleromaAuthenticator`: default database authenticator
@@ -554,6 +562,11 @@ Email notifications settings.
       "0 0 * * 0" is the default, meaning "once a week at midnight on Sunday morning"
     - interval: Minimum interval between digest emails to one user
     - inactivity_threshold: Minimum user inactivity threshold
+
+## Pleroma.Emails.UserEmail
+
+- `:logo` - a path to a custom logo. Set it to `nil` to use the default Pleroma logo.
+- `:styling` - a map with color settings for email templates.
 
 ## OAuth consumer mode
 
@@ -657,6 +670,8 @@ To enable them, both the `rum_enabled` flag has to be set and the following spec
 This will probably take a long time.
 
 ## :rate_limit
+
+This is an advanced feature and disabled by default.
 
 A keyword list of rate limiters where a key is a limiter name and value is the limiter configuration. The basic configuration is a tuple where:
 

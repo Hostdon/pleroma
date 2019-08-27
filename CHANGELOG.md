@@ -18,10 +18,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - NodeInfo: Return `mailerEnabled` in `metadata`
 - Mastodon API: Unsubscribe followers when they unfollow a user
 - AdminAPI: Add "godmode" while fetching user statuses (i.e. admin can see private statuses)
+- Improve digest email template
 
 ### Fixed
 - Not being able to pin unlisted posts
 - Objects being re-embedded to activities after being updated (e.g faved/reposted). Running 'mix pleroma.database prune_objects' again is advised.
+- Favorites timeline doing database-intensive queries
 - Metadata rendering errors resulting in the entire page being inaccessible
 - `federation_incoming_replies_max_depth` option being ignored in certain cases
 - Federation/MediaProxy not working with instances that have wrong certificate order
@@ -43,9 +45,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Pleroma.Upload base_url was not automatically whitelisted by MediaProxy. Now your custom CDN or file hosting will be accessed directly as expected.
 - Report email not being sent to admins when the reporter is a remote user
 - MRF: ensure that subdomain_match calls are case-insensitive
+- Reverse Proxy limiting `max_body_length` was incorrectly defined and only checked `Content-Length` headers which may not be sufficient in some circumstances
 - MRF: fix use of unserializable keyword lists in describe() implementations
+- ActivityPub: Deactivated user deletion
 
 ### Added
+- Expiring/ephemeral activites. All activities can have expires_at value set, which controls when they should be deleted automatically.
+- Mastodon API: in post_status, the expires_in parameter lets you set the number of seconds until an activity expires. It must be at least one hour.
+- Mastodon API: all status JSON responses contain a `pleroma.expires_at` item which states when an activity will expire. The value is only shown to the user who created the activity. To everyone else it's empty.
+- Configuration: `ActivityExpiration.enabled` controls whether expired activites will get deleted at the appropriate time. Enabled by default.
+- Conversations: Add Pleroma-specific conversation endpoints and status posting extensions. Run the `bump_all_conversations` task again to create the necessary data.
 - **Breaking:** MRF describe API, which adds support for exposing configuration information about MRF policies to NodeInfo.
   Custom modules will need to be updated by adding, at the very least, `def describe, do: {:ok, %{}}` to the MRF policy modules.
 - MRF: Support for priming the mediaproxy cache (`Pleroma.Web.ActivityPub.MRF.MediaProxyWarmingPolicy`)
@@ -66,6 +75,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Mastodon API: Add `pleroma.deactivated` to the Account entity
 - Mastodon API: added `/auth/password` endpoint for password reset with rate limit.
 - Mastodon API: /api/v1/accounts/:id/statuses now supports nicknames or user id
+- Mastodon API: Improve support for the user profile custom fields
 - Admin API: Return users' tags when querying reports
 - Admin API: Return avatar and display name when querying users
 - Admin API: Allow querying user by ID
@@ -84,6 +94,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Relays: Added a task to list relay subscriptions.
 - Mix Tasks: `mix pleroma.database fix_likes_collections`
 - Federation: Remove `likes` from objects.
+- Admin API: Added moderation log
 
 ### Changed
 - Configuration: Filter.AnonymizeFilename added ability to retain file extension with custom text
@@ -185,6 +196,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Configuration: Added `extra_cookie_attrs` for setting non-standard cookie attributes. Defaults to ["SameSite=Lax"] so that remote follows work.
 - Timelines: Messages involving people you have blocked will be excluded from the timeline in all cases instead of just repeats.
 - Admin API: Move the user related API to `api/pleroma/admin/users`
+- Admin API: `POST /api/pleroma/admin/users` will take list of users
 - Pleroma API: Support for emoji tags in `/api/pleroma/emoji` resulting in a breaking API change
 - Mastodon API: Support for `exclude_types`, `limit` and `min_id` in `/api/v1/notifications`
 - Mastodon API: Add `languages` and `registrations` to `/api/v1/instance`

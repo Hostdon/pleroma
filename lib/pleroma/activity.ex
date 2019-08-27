@@ -6,6 +6,7 @@ defmodule Pleroma.Activity do
   use Ecto.Schema
 
   alias Pleroma.Activity
+  alias Pleroma.ActivityExpiration
   alias Pleroma.Bookmark
   alias Pleroma.Notification
   alias Pleroma.Object
@@ -59,6 +60,8 @@ defmodule Pleroma.Activity do
     # typical case.
     has_one(:object, Object, on_delete: :nothing, foreign_key: :id)
 
+    has_one(:expiration, ActivityExpiration, on_delete: :delete_all)
+
     timestamps()
   end
 
@@ -96,6 +99,7 @@ defmodule Pleroma.Activity do
     from([a] in query,
       left_join: tm in ThreadMute,
       on: tm.user_id == ^user.id and tm.context == fragment("?->>'context'", a.data),
+      as: :thread_mute,
       select: %Activity{a | thread_muted?: not is_nil(tm.id)}
     )
   end

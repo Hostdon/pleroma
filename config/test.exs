@@ -71,7 +71,8 @@ config :pleroma, Pleroma.ScheduledActivity,
 config :pleroma, :rate_limit,
   search: [{1000, 30}, {1000, 30}],
   app_account_creation: {10_000, 5},
-  password_reset: {1000, 30}
+  password_reset: {1000, 30},
+  ap_routes: nil
 
 config :pleroma, :http_security, report_uri: "https://endpoint.com"
 
@@ -85,11 +86,10 @@ config :joken, default_signer: "yU8uHKq+yyAkZ11Hx//jcdacWc8yQ1bxAAGrplzB0Zwwjkp3
 
 config :pleroma, Pleroma.ReverseProxy.Client, Pleroma.ReverseProxy.ClientMock
 
-try do
+if File.exists?("./config/test.secret.exs") do
   import_config "test.secret.exs"
-rescue
-  _ ->
-    IO.puts(
-      "You may want to create test.secret.exs to declare custom database connection parameters."
-    )
+else
+  IO.puts(
+    "You may want to create test.secret.exs to declare custom database connection parameters."
+  )
 end

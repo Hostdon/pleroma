@@ -8,6 +8,9 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
   require Pleroma.Constants
 
   alias Pleroma.Activity
+  alias Pleroma.ActivityExpiration
+  alias Pleroma.Conversation
+  alias Pleroma.Conversation.Participation
   alias Pleroma.HTML
   alias Pleroma.Object
   alias Pleroma.Repo
@@ -175,6 +178,15 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
 
     bookmarked = Activity.get_bookmark(activity, opts[:for]) != nil
 
+    client_posted_this_activity = opts[:for] && user.id == opts[:for].id
+
+    expires_at =
+      with true <- client_posted_this_activity,
+           expiration when not is_nil(expiration) <-
+             ActivityExpiration.get_by_activity_id(activity.id) do
+        expiration.scheduled_at
+      end
+
     thread_muted? =
       case activity.thread_muted? do
         thread_muted? when is_boolean(thread_muted?) -> thread_muted?
@@ -235,6 +247,19 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
         object.data["url"] || object.data["external_url"] || object.data["id"]
       end
 
+    direct_conversation_id =
+      with {_, true} <- {:include_id, opts[:with_direct_conversation_id]},
+           {_, %User{} = for_user} <- {:for_user, opts[:for]},
+           %{data: %{"context" => context}} when is_binary(context) <- activity,
+           %Conversation{} = conversation <- Conversation.get_for_ap_id(context),
+           %Participation{id: participation_id} <-
+             Participation.for_user_and_conversation(for_user, conversation) do
+        participation_id
+      else
+        _e ->
+          nil
+      end
+
     %{
       id: to_string(activity.id),
       uri: object.data["id"],
@@ -272,7 +297,9 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
         conversation_id: get_context_id(activity),
         in_reply_to_account_acct: reply_to_user && reply_to_user.nickname,
         content: %{"text/plain" => content_plaintext},
-        spoiler_text: %{"text/plain" => summary_plaintext}
+        spoiler_text: %{"text/plain" => summary_plaintext},
+        expires_at: expires_at,
+        direct_conversation_id: direct_conversation_id
       }
     }
   end

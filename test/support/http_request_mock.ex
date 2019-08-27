@@ -17,9 +17,12 @@ defmodule HttpRequestMock do
     with {:ok, res} <- apply(__MODULE__, method, [url, query, body, headers]) do
       res
     else
-      {_, _r} = error ->
-        # Logger.warn(r)
-        error
+      error ->
+        with {:error, message} <- error do
+          Logger.warn(message)
+        end
+
+        {_, _r} = error
     end
   end
 
@@ -968,9 +971,25 @@ defmodule HttpRequestMock do
      }}
   end
 
+  def get("http://example.com/rel_me/anchor", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: File.read!("test/fixtures/rel_me_anchor.html")}}
+  end
+
+  def get("http://example.com/rel_me/anchor_nofollow", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: File.read!("test/fixtures/rel_me_anchor_nofollow.html")}}
+  end
+
+  def get("http://example.com/rel_me/link", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: File.read!("test/fixtures/rel_me_link.html")}}
+  end
+
+  def get("http://example.com/rel_me/null", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: File.read!("test/fixtures/rel_me_null.html")}}
+  end
+
   def get(url, query, body, headers) do
     {:error,
-     "Not implemented the mock response for get #{inspect(url)}, #{query}, #{inspect(body)}, #{
+     "Mock response not implemented for GET #{inspect(url)}, #{query}, #{inspect(body)}, #{
        inspect(headers)
      }"}
   end
@@ -1032,7 +1051,10 @@ defmodule HttpRequestMock do
      }}
   end
 
-  def post(url, _query, _body, _headers) do
-    {:error, "Not implemented the mock response for post #{inspect(url)}"}
+  def post(url, query, body, headers) do
+    {:error,
+     "Mock response not implemented for POST #{inspect(url)}, #{query}, #{inspect(body)}, #{
+       inspect(headers)
+     }"}
   end
 end
