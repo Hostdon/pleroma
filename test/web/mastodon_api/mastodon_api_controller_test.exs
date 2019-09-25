@@ -97,6 +97,22 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
            |> json_response(403) == %{"error" => "This resource requires authentication."}
   end
 
+  test "the public timeline includes only public statuses for an authenticated user" do
+    user = insert(:user)
+
+    conn =
+      build_conn()
+      |> assign(:user, user)
+
+    {:ok, _activity} = CommonAPI.post(user, %{"status" => "test"})
+    {:ok, _activity} = CommonAPI.post(user, %{"status" => "test", "visibility" => "private"})
+    {:ok, _activity} = CommonAPI.post(user, %{"status" => "test", "visibility" => "unlisted"})
+    {:ok, _activity} = CommonAPI.post(user, %{"status" => "test", "visibility" => "direct"})
+
+    res_conn = get(conn, "/api/v1/timelines/public")
+    assert length(json_response(res_conn, 200)) == 1
+  end
+
   describe "posting statuses" do
     setup do
       user = insert(:user)
@@ -296,7 +312,9 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
         conn
         |> post("api/v1/statuses", %{"status" => content, "visibility" => "direct"})
 
-      assert %{"id" => id, "visibility" => "direct"} = json_response(conn, 200)
+      assert %{"id" => id} = response = json_response(conn, 200)
+      assert response["visibility"] == "direct"
+      assert response["pleroma"]["direct_conversation_id"]
       assert activity = Activity.get_by_id(id)
       assert activity.recipients == [user2.ap_id, conn.assigns[:user].ap_id]
       assert activity.data["to"] == [user2.ap_id]
@@ -996,9 +1014,9 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
         |> get("/api/v1/notifications")
 
       expected_response =
-        "hi <span class=\"h-card\"><a data-user=\"#{user.id}\" class=\"u-url mention\" href=\"#{
+        ~s(hi <span class="h-card"><a data-user="#{user.id}" class="u-url mention" href="#{
           user.ap_id
-        }\">@<span>#{user.nickname}</span></a></span>"
+        }" rel="ugc">@<span>#{user.nickname}</span></a></span>)
 
       assert [%{"status" => %{"content" => response}} | _rest] = json_response(conn, 200)
       assert response == expected_response
@@ -1018,9 +1036,9 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
         |> get("/api/v1/notifications/#{notification.id}")
 
       expected_response =
-        "hi <span class=\"h-card\"><a data-user=\"#{user.id}\" class=\"u-url mention\" href=\"#{
+        ~s(hi <span class="h-card"><a data-user="#{user.id}" class="u-url mention" href="#{
           user.ap_id
-        }\">@<span>#{user.nickname}</span></a></span>"
+        }" rel="ugc">@<span>#{user.nickname}</span></a></span>)
 
       assert %{"status" => %{"content" => response}} = json_response(conn, 200)
       assert response == expected_response

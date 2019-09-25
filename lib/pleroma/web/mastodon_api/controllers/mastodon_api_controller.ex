@@ -13,8 +13,8 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   alias Pleroma.Bookmark
   alias Pleroma.Config
   alias Pleroma.Conversation.Participation
+  alias Pleroma.Emoji
   alias Pleroma.Filter
-  alias Pleroma.Formatter
   alias Pleroma.HTTP
   alias Pleroma.Notification
   alias Pleroma.Object
@@ -140,13 +140,15 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     user_info_emojis =
       user.info
       |> Map.get(:emoji, [])
-      |> Enum.concat(Formatter.get_emoji_map(emojis_text))
+      |> Enum.concat(Emoji.Formatter.get_emoji_map(emojis_text))
       |> Enum.dedup()
 
     info_params =
       [
         :no_rich_text,
         :locked,
+        :hide_followers_count,
+        :hide_follows_count,
         :hide_followers,
         :hide_follows,
         :hide_favorites,
@@ -331,7 +333,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
   defp mastodonized_emoji do
     Pleroma.Emoji.get_all()
-    |> Enum.map(fn {shortcode, relative_url, tags} ->
+    |> Enum.map(fn {shortcode, %Pleroma.Emoji{file: relative_url, tags: tags}} ->
       url = to_string(URI.merge(Web.base_url(), relative_url))
 
       %{
@@ -379,7 +381,6 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
       |> Map.put("local_only", local_only)
       |> Map.put("blocking_user", user)
       |> Map.put("muting_user", user)
-      |> Map.put("user", user)
       |> ActivityPub.fetch_public_activities()
       |> Enum.reverse()
 
@@ -485,7 +486,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   end
 
   def get_poll(%{assigns: %{user: user}} = conn, %{"id" => id}) do
-    with %Object{} = object <- Object.get_by_id(id),
+    with %Object{} = object <- Object.get_by_id_and_maybe_refetch(id, interval: 60),
          %Activity{} = activity <- Activity.get_create_by_object_ap_id(object.data["id"]),
          true <- Visibility.visible_for_user?(activity, user) do
       conn
@@ -609,7 +610,12 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
         {:ok, activity} ->
           conn
           |> put_view(StatusView)
-          |> try_render("status.json", %{activity: activity, for: user, as: :activity})
+          |> try_render("status.json", %{
+            activity: activity,
+            for: user,
+            as: :activity,
+            with_direct_conversation_id: true
+          })
       end
     end
   end
