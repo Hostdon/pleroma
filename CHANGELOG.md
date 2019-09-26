@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Introduced [quantum](https://github.com/quantum-elixir/quantum-core) job scheduler
 - Admin API: Return `total` when querying for reports
 - Mastodon API: Return `pleroma.direct_conversation_id` when creating a direct message (`POST /api/v1/statuses`)
+- Admin API: Return link alongside with token on password reset
 ### Fixed
 - Mastodon API: Fix private and direct statuses not being filtered out from the public timeline for an authenticated user (`GET /api/v1/timelines/public`)
 
@@ -108,12 +109,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Admin API: Added moderation log
 - Web response cache (currently, enabled for ActivityPub)
 - Mastodon API: Added an endpoint to get multiple statuses by IDs (`GET /api/v1/statuses/?ids[]=1&ids[]=2`)
+- ActivityPub: Add ActivityPub actor's `discoverable` parameter.
+- Admin API: Added moderation log filters (user/start date/end date/search/pagination)
 
 ### Changed
 - Configuration: Filter.AnonymizeFilename added ability to retain file extension with custom text
 - Admin API: changed json structure for saving config settings.
 - RichMedia: parsers and their order are configured in `rich_media` config.
 - RichMedia: add the rich media ttl based on image expiration time.
+
+## [1.0.7] - 2019-09-26
+### Fixed
+- Broken federation on Erlang 22 (previous versions of hackney http client were using an option that got deprecated)
+### Changed
+- ActivityPub: The first page in inboxes/outboxes is no longer embedded.
 
 ## [1.0.6] - 2019-08-14
 ### Fixed

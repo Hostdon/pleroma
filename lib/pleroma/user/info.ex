@@ -54,6 +54,7 @@ defmodule Pleroma.User.Info do
     field(:pleroma_settings_store, :map, default: %{})
     field(:fields, {:array, :map}, default: nil)
     field(:raw_fields, {:array, :map}, default: [])
+    field(:discoverable, :boolean, default: false)
 
     field(:notification_settings, :map,
       default: %{
@@ -187,16 +188,11 @@ defmodule Pleroma.User.Info do
     |> validate_required([:subscribers])
   end
 
-  @spec add_to_mutes(Info.t(), String.t()) :: Changeset.t()
-  def add_to_mutes(info, muted) do
-    set_mutes(info, Enum.uniq([muted | info.mutes]))
-  end
-
-  @spec add_to_muted_notifications(Changeset.t(), Info.t(), String.t(), boolean()) ::
-          Changeset.t()
-  def add_to_muted_notifications(changeset, info, muted, notifications?) do
-    set_notification_mutes(
-      changeset,
+  @spec add_to_mutes(Info.t(), String.t(), boolean()) :: Changeset.t()
+  def add_to_mutes(info, muted, notifications?) do
+    info
+    |> set_mutes(Enum.uniq([muted | info.mutes]))
+    |> set_notification_mutes(
       Enum.uniq([muted | info.muted_notifications]),
       notifications?
     )
@@ -204,12 +200,9 @@ defmodule Pleroma.User.Info do
 
   @spec remove_from_mutes(Info.t(), String.t()) :: Changeset.t()
   def remove_from_mutes(info, muted) do
-    set_mutes(info, List.delete(info.mutes, muted))
-  end
-
-  @spec remove_from_muted_notifications(Changeset.t(), Info.t(), String.t()) :: Changeset.t()
-  def remove_from_muted_notifications(changeset, info, muted) do
-    set_notification_mutes(changeset, List.delete(info.muted_notifications, muted), true)
+    info
+    |> set_mutes(List.delete(info.mutes, muted))
+    |> set_notification_mutes(List.delete(info.muted_notifications, muted), true)
   end
 
   def add_to_block(info, blocked) do
@@ -277,7 +270,8 @@ defmodule Pleroma.User.Info do
       :hide_follows_count,
       :follower_count,
       :fields,
-      :following_count
+      :following_count,
+      :discoverable
     ])
     |> validate_fields(true)
   end
@@ -295,6 +289,7 @@ defmodule Pleroma.User.Info do
       :hide_follows,
       :fields,
       :hide_followers,
+      :discoverable,
       :hide_followers_count,
       :hide_follows_count
     ])
@@ -318,7 +313,8 @@ defmodule Pleroma.User.Info do
       :skip_thread_containment,
       :fields,
       :raw_fields,
-      :pleroma_settings_store
+      :pleroma_settings_store,
+      :discoverable
     ])
     |> validate_fields()
   end
@@ -342,9 +338,7 @@ defmodule Pleroma.User.Info do
     name_limit = Pleroma.Config.get([:instance, :account_field_name_length], 255)
     value_limit = Pleroma.Config.get([:instance, :account_field_value_length], 255)
 
-    is_binary(name) &&
-      is_binary(value) &&
-      String.length(name) <= name_limit &&
+    is_binary(name) && is_binary(value) && String.length(name) <= name_limit &&
       String.length(value) <= value_limit
   end
 

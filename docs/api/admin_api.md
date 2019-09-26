@@ -308,7 +308,15 @@ Note: Available `:permission_group` is currently moderator and admin. 404 is ret
 
 - Methods: `GET`
 - Params: none
-- Response: password reset token (base64 string)
+- Response:
+
+```json
+{
+  "token": "U13DX6muOvpRsj35_ij9wLxUbkU-eFvfKttxs6gIajo=", // password reset token (base64 string)
+  "link": "https://pleroma.social/api/pleroma/password_reset/U13DX6muOvpRsj35_ij9wLxUbkU-eFvfKttxs6gIajo%3D"
+}
+```
+
 
 ## `/api/pleroma/admin/users/:nickname/force_password_reset`
 
@@ -723,7 +731,11 @@ Compile time settings (need instance reboot):
 - Method `GET`
 - Params:
   - *optional* `page`: **integer** page number
-  - *optional* `page_size`: **integer** number of users per page (default is `50`)
+  - *optional* `page_size`: **integer** number of log entries per page (default is `50`)
+  - *optional* `start_date`: **datetime (ISO 8601)** filter logs by creation date, start from `start_date`. Accepts datetime in ISO 8601 format (YYYY-MM-DDThh:mm:ss), e.g. `2005-08-09T18:31:42`
+  - *optional* `end_date`: **datetime (ISO 8601)** filter logs by creation date, end by from `end_date`. Accepts datetime in ISO 8601 format (YYYY-MM-DDThh:mm:ss), e.g. 2005-08-09T18:31:42
+  - *optional* `user_id`: **integer** filter logs by actor's id
+  - *optional* `search`: **string** search logs by the log message
 - Response:
 
 ```json
