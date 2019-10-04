@@ -7,14 +7,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 - Refreshing poll results for remote polls
 - Admin API: Add ability to require password reset
+- Mastodon API: Account entities now include `follow_requests_count` (planned Mastodon 3.x addition)
+- Pleroma API: `GET /api/v1/pleroma/accounts/:id/scrobbles` to get a list of recently scrobbled items
+- Pleroma API: `POST /api/v1/pleroma/scrobble` to scrobble a media item
+- Mastodon API: Add `upload_limit`, `avatar_upload_limit`, `background_upload_limit`, and `banner_upload_limit` to `/api/v1/instance`
 
 ### Changed
 - **Breaking:** Elixir >=1.8 is now required (was >= 1.7)
+- **Breaking:** Admin API: Return link alongside with token on password reset
 - Replaced [pleroma_job_queue](https://git.pleroma.social/pleroma/pleroma_job_queue) and `Pleroma.Web.Federator.RetryQueue` with [Oban](https://github.com/sorentwo/oban) (see [`docs/config.md`](docs/config.md) on migrating customized worker / retry settings)
 - Introduced [quantum](https://github.com/quantum-elixir/quantum-core) job scheduler
 - Admin API: Return `total` when querying for reports
 - Mastodon API: Return `pleroma.direct_conversation_id` when creating a direct message (`POST /api/v1/statuses`)
 - Admin API: Return link alongside with token on password reset
+
 ### Fixed
 - Mastodon API: Fix private and direct statuses not being filtered out from the public timeline for an authenticated user (`GET /api/v1/timelines/public`)
 
@@ -107,10 +113,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Pleroma API: Add `/api/v1/pleroma/accounts/confirmation_resend?email=<email>` for resending account confirmation.
 - Pleroma API: Email change endpoint.
 - Admin API: Added moderation log
+- Support for `X-Forwarded-For` and similar HTTP headers which used by reverse proxies to pass a real user IP address to the backend. Must not be enabled unless your instance is behind at least one reverse proxy (such as Nginx, Apache HTTPD or Varnish Cache).
 - Web response cache (currently, enabled for ActivityPub)
 - Mastodon API: Added an endpoint to get multiple statuses by IDs (`GET /api/v1/statuses/?ids[]=1&ids[]=2`)
 - ActivityPub: Add ActivityPub actor's `discoverable` parameter.
 - Admin API: Added moderation log filters (user/start date/end date/search/pagination)
+- Reverse Proxy: Do not retry failed requests to limit pressure on the peer
 
 ### Changed
 - Configuration: Filter.AnonymizeFilename added ability to retain file extension with custom text

@@ -231,6 +231,18 @@ defmodule Pleroma.Web.CommonAPITest do
       {:ok, %Activity{}, _} = CommonAPI.repeat(activity.id, user)
     end
 
+    test "repeating a status privately" do
+      user = insert(:user)
+      other_user = insert(:user)
+
+      {:ok, activity} = CommonAPI.post(other_user, %{"status" => "cofe"})
+
+      {:ok, %Activity{} = announce_activity, _} =
+        CommonAPI.repeat(activity.id, user, %{"visibility" => "private"})
+
+      assert Visibility.is_private?(announce_activity)
+    end
+
     test "favoriting a status" do
       user = insert(:user)
       other_user = insert(:user)
@@ -508,6 +520,45 @@ defmodule Pleroma.Web.CommonAPITest do
       {:ok, _, object} = CommonAPI.vote(other_user, object, [0])
 
       assert {:error, "Already voted"} == CommonAPI.vote(other_user, object, [1])
+    end
+  end
+
+  describe "listen/2" do
+    test "returns a valid activity" do
+      user = insert(:user)
+
+      {:ok, activity} =
+        CommonAPI.listen(user, %{
+          "title" => "lain radio episode 1",
+          "album" => "lain radio",
+          "artist" => "lain",
+          "length" => 180_000
+        })
+
+      object = Object.normalize(activity)
+
+      assert object.data["title"] == "lain radio episode 1"
+
+      assert Visibility.get_visibility(activity) == "public"
+    end
+
+    test "respects visibility=private" do
+      user = insert(:user)
+
+      {:ok, activity} =
+        CommonAPI.listen(user, %{
+          "title" => "lain radio episode 1",
+          "album" => "lain radio",
+          "artist" => "lain",
+          "length" => 180_000,
+          "visibility" => "private"
+        })
+
+      object = Object.normalize(activity)
+
+      assert object.data["title"] == "lain radio episode 1"
+
+      assert Visibility.get_visibility(activity) == "private"
     end
   end
 end

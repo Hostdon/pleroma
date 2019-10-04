@@ -257,6 +257,42 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
     end
   end
 
+  describe "listen activities" do
+    test "does not increase user note count" do
+      user = insert(:user)
+
+      {:ok, activity} =
+        ActivityPub.listen(%{
+          to: ["https://www.w3.org/ns/activitystreams#Public"],
+          actor: user,
+          context: "",
+          object: %{
+            "actor" => user.ap_id,
+            "to" => ["https://www.w3.org/ns/activitystreams#Public"],
+            "artist" => "lain",
+            "title" => "lain radio episode 1",
+            "length" => 180_000,
+            "type" => "Audio"
+          }
+        })
+
+      assert activity.actor == user.ap_id
+
+      user = User.get_cached_by_id(user.id)
+      assert user.info.note_count == 0
+    end
+
+    test "can be fetched into a timeline" do
+      _listen_activity_1 = insert(:listen)
+      _listen_activity_2 = insert(:listen)
+      _listen_activity_3 = insert(:listen)
+
+      timeline = ActivityPub.fetch_activities([], %{"type" => ["Listen"]})
+
+      assert length(timeline) == 3
+    end
+  end
+
   describe "create activities" do
     test "removes doubled 'to' recipients" do
       user = insert(:user)
@@ -800,6 +836,39 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       assert announce_activity.data["object"] == object.data["id"]
       assert announce_activity.data["actor"] == user.ap_id
       assert announce_activity.data["context"] == object.data["context"]
+    end
+  end
+
+  describe "announcing a private object" do
+    test "adds an announce activity to the db if the audience is not widened" do
+      user = insert(:user)
+      {:ok, note_activity} = CommonAPI.post(user, %{"status" => ".", "visibility" => "private"})
+      object = Object.normalize(note_activity)
+
+      {:ok, announce_activity, object} = ActivityPub.announce(user, object, nil, true, false)
+
+      assert announce_activity.data["to"] == [User.ap_followers(user)]
+
+      assert announce_activity.data["object"] == object.data["id"]
+      assert announce_activity.data["actor"] == user.ap_id
+      assert announce_activity.data["context"] == object.data["context"]
+    end
+
+    test "does not add an announce activity to the db if the audience is widened" do
+      user = insert(:user)
+      {:ok, note_activity} = CommonAPI.post(user, %{"status" => ".", "visibility" => "private"})
+      object = Object.normalize(note_activity)
+
+      assert {:error, _} = ActivityPub.announce(user, object, nil, true, true)
+    end
+
+    test "does not add an announce activity to the db if the announcer is not the author" do
+      user = insert(:user)
+      announcer = insert(:user)
+      {:ok, note_activity} = CommonAPI.post(user, %{"status" => ".", "visibility" => "private"})
+      object = Object.normalize(note_activity)
+
+      assert {:error, _} = ActivityPub.announce(announcer, object, nil, true, false)
     end
   end
 

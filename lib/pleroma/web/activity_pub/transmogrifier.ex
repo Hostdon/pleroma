@@ -431,6 +431,36 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   end
 
   def handle_incoming(
+        %{"type" => "Listen", "object" => %{"type" => "Audio"} = object} = data,
+        options
+      ) do
+    actor = Containment.get_actor(data)
+
+    data =
+      Map.put(data, "actor", actor)
+      |> fix_addressing
+
+    with {:ok, %User{} = user} <- User.get_or_fetch_by_ap_id(data["actor"]) do
+      options = Keyword.put(options, :depth, (options[:depth] || 0) + 1)
+      object = fix_object(object, options)
+
+      params = %{
+        to: data["to"],
+        object: object,
+        actor: user,
+        context: nil,
+        local: false,
+        published: data["published"],
+        additional: Map.take(data, ["cc", "id"])
+      }
+
+      ActivityPub.listen(params)
+    else
+      _e -> :error
+    end
+  end
+
+  def handle_incoming(
         %{"type" => "Follow", "object" => followed, "actor" => follower, "id" => id} = data,
         _options
       ) do
@@ -723,6 +753,24 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     end
   end
 
+  # For Undos that don't have the complete object attached, try to find it in our database.
+  def handle_incoming(
+        %{
+          "type" => "Undo",
+          "object" => object
+        } = activity,
+        options
+      )
+      when is_binary(object) do
+    with %Activity{data: data} <- Activity.get_by_ap_id(object) do
+      activity
+      |> Map.put("object", data)
+      |> handle_incoming(options)
+    else
+      _e -> :error
+    end
+  end
+
   def handle_incoming(_, _), do: :error
 
   @spec get_obj_helper(String.t(), Keyword.t()) :: {:ok, Object.t()} | nil
@@ -765,7 +813,8 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   #  internal -> Mastodon
   #  """
 
-  def prepare_outgoing(%{"type" => "Create", "object" => object_id} = data) do
+  def prepare_outgoing(%{"type" => activity_type, "object" => object_id} = data)
+      when activity_type in ["Create", "Listen"] do
     object =
       object_id
       |> Object.normalize()
@@ -775,6 +824,27 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     data =
       data
       |> Map.put("object", object)
+      |> Map.merge(Utils.make_json_ld_header())
+      |> Map.delete("bcc")
+
+    {:ok, data}
+  end
+
+  def prepare_outgoing(%{"type" => "Announce", "actor" => ap_id, "object" => object_id} = data) do
+    object =
+      object_id
+      |> Object.normalize()
+
+    data =
+      if Visibility.is_private?(object) && object.data["actor"] == ap_id do
+        data |> Map.put("object", object |> Map.get(:data) |> prepare_object)
+      else
+        data |> maybe_fix_object_url
+      end
+
+    data =
+      data
+      |> strip_internal_fields
       |> Map.merge(Utils.make_json_ld_header())
       |> Map.delete("bcc")
 
