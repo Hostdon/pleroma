@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 ### Added
 - Refreshing poll results for remote polls
+- Job queue stats to the healthcheck page
 - Admin API: Add ability to require password reset
 - Mastodon API: Account entities now include `follow_requests_count` (planned Mastodon 3.x addition)
 - Pleroma API: `GET /api/v1/pleroma/accounts/:id/scrobbles` to get a list of recently scrobbled items
@@ -23,6 +24,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 - Mastodon API: Fix private and direct statuses not being filtered out from the public timeline for an authenticated user (`GET /api/v1/timelines/public`)
+- Mastodon API: Inability to get some local users by nickname in `/api/v1/accounts/:id_or_nickname`
+- Added `:instance, extended_nickname_format` setting to the default config
 
 ## [1.1.0] - 2019-??-??
 ### Security
@@ -74,6 +77,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - ActivityPub: Deactivated user deletion
 - ActivityPub: Fix `/users/:nickname/inbox` crashing without an authenticated user
 - MRF: fix ability to follow a relay when AntiFollowbotPolicy was enabled
+- Mastodon API: Blocks are now treated consistently between the Streaming API and the Timeline APIs
 
 ### Added
 - Expiring/ephemeral activites. All activities can have expires_at value set, which controls when they should be deleted automatically.
