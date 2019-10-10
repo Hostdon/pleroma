@@ -12,6 +12,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Pleroma API: `GET /api/v1/pleroma/accounts/:id/scrobbles` to get a list of recently scrobbled items
 - Pleroma API: `POST /api/v1/pleroma/scrobble` to scrobble a media item
 - Mastodon API: Add `upload_limit`, `avatar_upload_limit`, `background_upload_limit`, and `banner_upload_limit` to `/api/v1/instance`
+- Mastodon API: Add `pleroma.unread_conversation_count` to the Account entity
+- OAuth: support for hierarchical permissions / [Mastodon 2.4.3 OAuth permissions](https://docs.joinmastodon.org/api/permissions/)
+- Authentication: Added rate limit for password-authorized actions / login existence checks
+- Metadata Link: Atom syndication Feed
+- Mix task to re-count statuses for all users (`mix pleroma.count_statuses`)
 
 ### Changed
 - **Breaking:** Elixir >=1.8 is now required (was >= 1.7)
@@ -21,11 +26,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Admin API: Return `total` when querying for reports
 - Mastodon API: Return `pleroma.direct_conversation_id` when creating a direct message (`POST /api/v1/statuses`)
 - Admin API: Return link alongside with token on password reset
+- MRF (Simple Policy): Also use `:accept`/`:reject` on the actors rather than only their activities
+- OStatus: Extract RSS functionality
+- Mastodon API: Add `pleroma.direct_conversation_id` to the status endpoint (`GET /api/v1/statuses/:id`)
 
 ### Fixed
 - Mastodon API: Fix private and direct statuses not being filtered out from the public timeline for an authenticated user (`GET /api/v1/timelines/public`)
 - Mastodon API: Inability to get some local users by nickname in `/api/v1/accounts/:id_or_nickname`
 - Added `:instance, extended_nickname_format` setting to the default config
+- Report emails now include functional links to profiles of remote user accounts
 
 ## [1.1.0] - 2019-??-??
 ### Security
@@ -78,6 +87,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - ActivityPub: Fix `/users/:nickname/inbox` crashing without an authenticated user
 - MRF: fix ability to follow a relay when AntiFollowbotPolicy was enabled
 - Mastodon API: Blocks are now treated consistently between the Streaming API and the Timeline APIs
+- Mastodon API: `exclude_replies` is correctly handled again.
 
 ### Added
 - Expiring/ephemeral activites. All activities can have expires_at value set, which controls when they should be deleted automatically.
