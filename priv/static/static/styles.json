@@ -11,9 +11,6 @@
   "redmond-xxi": "/static/themes/redmond-xxi.json",
   "breezy-dark": "/static/themes/breezy-dark.json",
   "breezy-light": "/static/themes/breezy-light.json",
-<<<<<<< HEAD
-  "ihatebeingalive": "/static/themes/ihatebeingalive.json"
-=======
+  "ihatebeingalive": "/static/themes/ihatebeingalive.json",
   "mammal": "/static/themes/mammal.json"
->>>>>>> 8a03ce50ea30df3754f2d9856829b036c878e063
 }
