@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 - **Breaking:** Elixir >=1.8 is now required (was >= 1.7)
+- **Breaking:** attachment links (`config :pleroma, :instance, no_attachment_links` and `config :pleroma, Pleroma.Upload, link_name`) disabled by default
 - Replaced [pleroma_job_queue](https://git.pleroma.social/pleroma/pleroma_job_queue) and `Pleroma.Web.Federator.RetryQueue` with [Oban](https://github.com/sorentwo/oban) (see [`docs/config.md`](docs/config.md) on migrating customized worker / retry settings)
 - Introduced [quantum](https://github.com/quantum-elixir/quantum-core) job scheduler
 - Enabled `:instance, extended_nickname_format` in the default config
@@ -37,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 - Refreshing poll results for remote polls
 - Authentication: Added rate limit for password-authorized actions / login existence checks
+- Static Frontend: Add the ability to render user profiles and notices server-side without requiring JS app.
 - Mix task to re-count statuses for all users (`mix pleroma.count_statuses`)
 - Support for `X-Forwarded-For` and similar HTTP headers which used by reverse proxies to pass a real user IP address to the backend. Must not be enabled unless your instance is behind at least one reverse proxy (such as Nginx, Apache HTTPD or Varnish Cache).
 <details>
@@ -58,10 +60,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Pleroma API: `POST /api/v1/pleroma/conversations/read` to mark all conversations as read
 - Mastodon API: Add `/api/v1/markers` for managing timeline read markers
 - Mastodon API: Add the `recipients` parameter to `GET /api/v1/conversations`
+- Configuration: `feed` option for user atom feed.
 </details>
 
 ### Fixed
 - Report emails now include functional links to profiles of remote user accounts
+- Not being able to log in to some third-party apps when logged in to MastoFE
 <details>
   <summary>API Changes</summary>
 
