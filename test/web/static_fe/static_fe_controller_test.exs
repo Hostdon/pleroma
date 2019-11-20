@@ -1,5 +1,6 @@
 defmodule Pleroma.Web.StaticFE.StaticFEControllerTest do
   use Pleroma.Web.ConnCase
+  alias Pleroma.Activity
   alias Pleroma.Web.ActivityPub.Transmogrifier
   alias Pleroma.Web.CommonAPI
 
@@ -128,6 +129,34 @@ defmodule Pleroma.Web.StaticFE.StaticFEControllerTest do
       assert html =~ "voyages"
     end
 
+    test "redirect by AP object ID", %{conn: conn} do
+      user = insert(:user)
+
+      {:ok, %Activity{data: %{"object" => object_url}}} =
+        CommonAPI.post(user, %{"status" => "beam me up"})
+
+      conn =
+        conn
+        |> put_req_header("accept", "text/html")
+        |> get(URI.parse(object_url).path)
+
+      assert html_response(conn, 302) =~ "redirected"
+    end
+
+    test "redirect by activity ID", %{conn: conn} do
+      user = insert(:user)
+
+      {:ok, %Activity{data: %{"id" => id}}} =
+        CommonAPI.post(user, %{"status" => "I'm a doctor, not a devops!"})
+
+      conn =
+        conn
+        |> put_req_header("accept", "text/html")
+        |> get(URI.parse(id).path)
+
+      assert html_response(conn, 302) =~ "redirected"
+    end
+
     test "404 when notice not found", %{conn: conn} do
       conn =
         conn
@@ -151,7 +180,7 @@ defmodule Pleroma.Web.StaticFE.StaticFEControllerTest do
       assert html_response(conn, 404) =~ "not found"
     end
 
-    test "404 for remote cached status", %{conn: conn} do
+    test "302 for remote cached status", %{conn: conn} do
       user = insert(:user)
 
       message = %{
@@ -175,7 +204,7 @@ defmodule Pleroma.Web.StaticFE.StaticFEControllerTest do
         |> put_req_header("accept", "text/html")
         |> get("/notice/#{activity.id}")
 
-      assert html_response(conn, 404) =~ "not found"
+      assert html_response(conn, 302) =~ "redirected"
     end
   end
 end
