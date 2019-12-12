@@ -33,8 +33,11 @@ defmodule Pleroma.Web.Nodeinfo.NodeinfoController do
   # under software.
   def raw_nodeinfo do
     stats = Stats.get_stats()
-
-    quarantined = Config.get([:instance, :quarantined_instances], [])
+    exclusions = Config.get([:instance, :mrf_transparency_exclusions], [])
+ 
+    quarantined =
+      Config.get([:instance, :quarantined_instances], [])
+      |> Enum.filter(fn x -> !Enum.member?(exclusions, x) end)
 
     staff_accounts =
       User.all_superusers()
