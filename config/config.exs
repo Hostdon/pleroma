@@ -67,7 +67,7 @@ config :pleroma, Pleroma.Scheduler,
 
 config :pleroma, Pleroma.Captcha,
   enabled: true,
-  seconds_valid: 3000,
+  seconds_valid: 300,
   method: Pleroma.Captcha.Native
 
 config :pleroma, Pleroma.Captcha.Kocaptcha, endpoint: "https://captcha.kotobank.ch"
@@ -107,10 +107,6 @@ config :pleroma, Pleroma.Uploaders.S3,
   bucket: nil,
   streaming_enabled: true,
   public_endpoint: "https://s3.amazonaws.com"
-
-config :pleroma, Pleroma.Uploaders.MDII,
-  cgi: "https://mdii.sakura.ne.jp/mdii-post.cgi",
-  files: "https://mdii.sakura.ne.jp"
 
 config :pleroma, :emoji,
   shortcode_globs: ["/emoji/custom/**/*.png"],
@@ -566,7 +562,7 @@ config :ueberauth,
 
 config :pleroma,
        :auth,
-       enforce_oauth_admin_scope_usage: false,
+       enforce_oauth_admin_scope_usage: true,
        oauth_consumer_strategies: oauth_consumer_strategies
 
 config :pleroma, Pleroma.Emails.Mailer, adapter: Swoosh.Adapters.Sendmail, enabled: false
