@@ -166,7 +166,8 @@ defmodule Pleroma.Mixfile do
       {:captcha,
        git: "https://git.pleroma.social/pleroma/elixir-libraries/elixir-captcha.git",
        ref: "e0f16822d578866e186a0974d65ad58cddc1e2ab"},
-      {:mox, "~> 0.5", only: :test}
+      {:mox, "~> 0.5", only: :test},
+      {:mrfcontrib, git: "https://github.com/FloatingGhost/pleroma-mrf-contrib.git", tag: "v0.0.5"}
     ] ++ oauth_deps()
   end
 

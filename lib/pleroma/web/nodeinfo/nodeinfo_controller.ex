@@ -42,6 +42,7 @@ defmodule Pleroma.Web.Nodeinfo.NodeinfoController do
     staff_accounts =
       User.all_superusers()
       |> Enum.map(fn u -> u.ap_id end)
+      |> Enum.filter(fn u -> not Enum.member?(Config.get([:instance, :staff_transparency]), u) end)
 
     federation_response =
       if Config.get([:instance, :mrf_transparency]) do

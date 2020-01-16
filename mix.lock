@@ -66,6 +66,7 @@
   "mock": {:hex, :mock, "0.3.3", "42a433794b1291a9cf1525c6d26b38e039e0d3a360732b5e467bfc77ef26c914", [:mix], [{:meck, "~> 0.8.13", [hex: :meck, repo: "hexpm", optional: false]}], "hexpm"},
   "mogrify": {:hex, :mogrify, "0.6.1", "de1b527514f2d95a7bbe9642eb556061afb337e220cf97adbf3a4e6438ed70af", [:mix], [], "hexpm"},
   "mox": {:hex, :mox, "0.5.1", "f86bb36026aac1e6f924a4b6d024b05e9adbed5c63e8daa069bd66fb3292165b", [:mix], [], "hexpm"},
+  "mrfcontrib": {:git, "https://github.com/FloatingGhost/pleroma-mrf-contrib.git", "8cecf964b6f9686ab11687e8267bc238a19bd3b6", [tag: "v0.0.5"]},
   "myhtmlex": {:git, "https://git.pleroma.social/pleroma/myhtmlex.git", "ad0097e2f61d4953bfef20fb6abddf23b87111e6", [ref: "ad0097e2f61d4953bfef20fb6abddf23b87111e6", submodules: true]},
   "nimble_parsec": {:hex, :nimble_parsec, "0.5.1", "c90796ecee0289dbb5ad16d3ad06f957b0cd1199769641c961cfe0b97db190e0", [:mix], [], "hexpm"},
   "nodex": {:git, "https://git.pleroma.social/pleroma/nodex", "cb6730f943cfc6aad674c92161be23a8411f15d1", [ref: "cb6730f943cfc6aad674c92161be23a8411f15d1"]},
