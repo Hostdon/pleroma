@@ -8,7 +8,7 @@ defmodule Pleroma.Mixfile do
       elixir: "~> 1.8",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
-      elixirc_options: [warnings_as_errors: true],
+      elixirc_options: [warnings_as_errors: warnings_as_errors(Mix.env())],
       xref: [exclude: [:eldap]],
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
@@ -72,6 +72,11 @@ defmodule Pleroma.Mixfile do
   defp elixirc_paths(:benchmark), do: ["lib", "benchmarks"]
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
+
+  defp warnings_as_errors(:prod), do: false
+  # Uncomment this if you need testing configurable_from_database logic
+  # defp warnings_as_errors(:dev), do: false
+  defp warnings_as_errors(_), do: true
 
   # Specifies OAuth dependencies.
   defp oauth_deps do
@@ -167,7 +172,7 @@ defmodule Pleroma.Mixfile do
        git: "https://git.pleroma.social/pleroma/elixir-libraries/elixir-captcha.git",
        ref: "e0f16822d578866e186a0974d65ad58cddc1e2ab"},
       {:mox, "~> 0.5", only: :test},
-      {:mrfcontrib, git: "https://github.com/FloatingGhost/pleroma-mrf-contrib.git", tag: "v0.0.5"}
+      {:restarter, path: "./restarter"}
     ] ++ oauth_deps()
   end
 
