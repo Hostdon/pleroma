@@ -143,10 +143,11 @@ config :pleroma, :mrf_user_allowlist,
   * `:reject` rejects the message entirely
 
 ### :activitypub
-* ``unfollow_blocked``: Whether blocks result in people getting unfollowed
-* ``outgoing_blocks``: Whether to federate blocks to other instances
-* ``deny_follow_blocked``: Whether to disallow following an account that has blocked the user in question
-* ``sign_object_fetches``: Sign object fetches with HTTP signatures
+* `unfollow_blocked`: Whether blocks result in people getting unfollowed
+* `outgoing_blocks`: Whether to federate blocks to other instances
+* `deny_follow_blocked`: Whether to disallow following an account that has blocked the user in question
+* `sign_object_fetches`: Sign object fetches with HTTP signatures
+* `authorized_fetch_mode`: Require HTTP signatures for AP fetches
 
 ### :fetch_initial_posts
 * `enabled`: if enabled, when a new user is federated with, fetch some of their latest posts
@@ -501,6 +502,10 @@ Email notifications settings.
 - `:logo` - a path to a custom logo. Set it to `nil` to use the default Pleroma logo.
 - `:styling` - a map with color settings for email templates.
 
+### Pleroma.Emails.NewUsersDigestEmail
+
+- `:enabled` - a boolean, enables new users admin digest email when `true`. Defaults to `false`.
+
 ## Background jobs
 
 ### Oban
@@ -513,6 +518,7 @@ Configuration options described in [Oban readme](https://github.com/sorentwo/oba
 * `verbose` - logs verbosity
 * `prune` - non-retryable jobs [pruning settings](https://github.com/sorentwo/oban#pruning) (`:disabled` / `{:maxlen, value}` / `{:maxage, value}`)
 * `queues` - job queues (see below)
+* `crontab` - periodic jobs, see [`Oban.Cron`](#obancron)
 
 Pleroma has the following queues:
 
@@ -524,6 +530,12 @@ Pleroma has the following queues:
 * `web_push` - Web push notifications
 * `scheduled_activities` - Scheduled activities, see [`Pleroma.ScheduledActivity`](#pleromascheduledactivity)
 
+#### Oban.Cron
+
+Pleroma has these periodic job workers:
+
+`Pleroma.Workers.Cron.ClearOauthTokenWorker` - a job worker to cleanup expired oauth tokens.
+
 Example:
 
 ```elixir
@@ -534,6 +546,9 @@ config :pleroma, Oban,
   queues: [
     federator_incoming: 50,
     federator_outgoing: 50
+  ],
+  crontab: [
+    {"0 0 * * *", Pleroma.Workers.Cron.ClearOauthTokenWorker}
   ]
 ```
 
@@ -816,8 +831,7 @@ Configure OAuth 2 provider capabilities:
 
 * `token_expires_in` - The lifetime in seconds of the access token.
 * `issue_new_refresh_token` - Keeps old refresh token or generate new refresh token when to obtain an access token.
-* `clean_expired_tokens` - Enable a background job to clean expired oauth tokens. Defaults to `false`.
-* `clean_expired_tokens_interval` - Interval to run the job to clean expired tokens. Defaults to `86_400_000` (24 hours).
+* `clean_expired_tokens` - Enable a background job to clean expired oauth tokens. Defaults to `false`. Interval settings sets in configuration periodic jobs [`Oban.Cron`](#obancron)
 
 ## Link parsing
 
