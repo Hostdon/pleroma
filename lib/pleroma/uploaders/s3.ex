@@ -13,25 +13,25 @@ defmodule Pleroma.Uploaders.S3 do
   @impl true
   def get_file(file) do
     config = Config.get([__MODULE__])
-    bucket = Keyword.fetch!(config, :bucket)
+    #bucket = Keyword.fetch!(config, :bucket)
 
-    bucket_with_namespace =
-      cond do
-        truncated_namespace = Keyword.get(config, :truncated_namespace) ->
-          truncated_namespace
+    #bucket_with_namespace =
+    #  cond do
+    #    truncated_namespace = Keyword.get(config, :truncated_namespace) ->
+    #      truncated_namespace
 
-        namespace = Keyword.get(config, :bucket_namespace) ->
-          namespace <> ":" <> bucket
+    #    namespace = Keyword.get(config, :bucket_namespace) ->
+    #      namespace <> ":" <> bucket
 
-        true ->
-          bucket
-      end
+    #    true ->
+    #      bucket
+    #  end
 
     {:ok,
      {:url,
       Path.join([
         Keyword.fetch!(config, :public_endpoint),
-        bucket_with_namespace,
+        #bucket_with_namespace,
         strict_encode(URI.decode(file))
       ])}}
   end
@@ -42,7 +42,7 @@ defmodule Pleroma.Uploaders.S3 do
     bucket = Keyword.get(config, :bucket)
     streaming = Keyword.get(config, :streaming_enabled)
 
-    s3_name = strict_encode(upload.path)
+    s3_name = Keyword.get(config, :upload_path) <> strict_encode(upload.path)
 
     op =
       if streaming do
