@@ -537,7 +537,7 @@ defmodule Pleroma.NotificationTest do
           "status" => "hey @#{other_user.nickname}!"
         })
 
-      {:ok, activity_two, _} = CommonAPI.favorite(activity_one.id, third_user)
+      {:ok, activity_two} = CommonAPI.favorite(third_user, activity_one.id)
 
       {enabled_receivers, _disabled_receivers} =
         Notification.get_notified_from_activity(activity_two)
@@ -620,7 +620,7 @@ defmodule Pleroma.NotificationTest do
 
       assert Enum.empty?(Notification.for_user(user))
 
-      {:ok, _, _} = CommonAPI.favorite(activity.id, other_user)
+      {:ok, _} = CommonAPI.favorite(other_user, activity.id)
 
       assert length(Notification.for_user(user)) == 1
 
@@ -637,7 +637,7 @@ defmodule Pleroma.NotificationTest do
 
       assert Enum.empty?(Notification.for_user(user))
 
-      {:ok, _, _} = CommonAPI.favorite(activity.id, other_user)
+      {:ok, _} = CommonAPI.favorite(other_user, activity.id)
 
       assert length(Notification.for_user(user)) == 1
 
@@ -692,7 +692,7 @@ defmodule Pleroma.NotificationTest do
 
       assert Enum.empty?(Notification.for_user(user))
 
-      {:error, _} = CommonAPI.favorite(activity.id, other_user)
+      {:error, :not_found} = CommonAPI.favorite(other_user, activity.id)
 
       assert Enum.empty?(Notification.for_user(user))
     end
@@ -784,12 +784,20 @@ defmodule Pleroma.NotificationTest do
         "object" => remote_user.ap_id
       }
 
+      remote_user_url = remote_user.ap_id
+
+      Tesla.Mock.mock(fn
+        %{method: :get, url: ^remote_user_url} ->
+          %Tesla.Env{status: 404, body: ""}
+      end)
+
       {:ok, _delete_activity} = Transmogrifier.handle_incoming(delete_user_message)
       ObanHelpers.perform_all()
 
       assert Enum.empty?(Notification.for_user(local_user))
     end
 
+    @tag capture_log: true
     test "move activity generates a notification" do
       %{ap_id: old_ap_id} = old_user = insert(:user)
       %{ap_id: new_ap_id} = new_user = insert(:user, also_known_as: [old_ap_id])
@@ -798,6 +806,18 @@ defmodule Pleroma.NotificationTest do
 
       User.follow(follower, old_user)
       User.follow(other_follower, old_user)
+
+      old_user_url = old_user.ap_id
+
+      body =
+        File.read!("test/fixtures/users_mock/localhost.json")
+        |> String.replace("{{nickname}}", old_user.nickname)
+        |> Jason.encode!()
+
+      Tesla.Mock.mock(fn
+        %{method: :get, url: ^old_user_url} ->
+          %Tesla.Env{status: 200, body: body}
+      end)
 
       Pleroma.Web.ActivityPub.ActivityPub.move(old_user, new_user)
       ObanHelpers.perform_all()

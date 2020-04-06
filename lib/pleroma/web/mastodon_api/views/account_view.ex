@@ -13,16 +13,18 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
   alias Pleroma.Web.MediaProxy
 
   def render("index.json", %{users: users} = opts) do
+    reading_user = opts[:for]
+
     relationships_opt =
       cond do
         Map.has_key?(opts, :relationships) ->
           opts[:relationships]
 
-        is_nil(opts[:for]) ->
+        is_nil(reading_user) ->
           UserRelationship.view_relationships_option(nil, [])
 
         true ->
-          UserRelationship.view_relationships_option(opts[:for], users)
+          UserRelationship.view_relationships_option(reading_user, users)
       end
 
     opts = Map.put(opts, :relationships, relationships_opt)
@@ -43,7 +45,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
       id: to_string(user.id),
       acct: user.nickname,
       username: username_from_nickname(user.nickname),
-      url: User.profile_url(user)
+      url: user.uri || user.ap_id
     }
   end
 
@@ -143,7 +145,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
         Map.has_key?(opts, :relationships) ->
           opts[:relationships]
 
-        is_nil(opts[:for]) ->
+        is_nil(user) ->
           UserRelationship.view_relationships_option(nil, [])
 
         true ->
@@ -207,7 +209,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
       following_count: following_count,
       statuses_count: user.note_count,
       note: user.bio || "",
-      url: User.profile_url(user),
+      url: user.uri || user.ap_id,
       avatar: image,
       avatar_static: image,
       header: header,

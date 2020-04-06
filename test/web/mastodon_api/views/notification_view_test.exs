@@ -54,7 +54,7 @@ defmodule Pleroma.Web.MastodonAPI.NotificationViewTest do
     user = insert(:user)
     another_user = insert(:user)
     {:ok, create_activity} = CommonAPI.post(user, %{"status" => "hey"})
-    {:ok, favorite_activity, _object} = CommonAPI.favorite(create_activity.id, another_user)
+    {:ok, favorite_activity} = CommonAPI.favorite(another_user, create_activity.id)
     {:ok, [notification]} = Notification.create_notifications(favorite_activity)
     create_activity = Activity.get_by_id(create_activity.id)
 
@@ -112,10 +112,23 @@ defmodule Pleroma.Web.MastodonAPI.NotificationViewTest do
     test_notifications_rendering([notification], followed, [])
   end
 
+  @tag capture_log: true
   test "Move notification" do
     old_user = insert(:user)
     new_user = insert(:user, also_known_as: [old_user.ap_id])
     follower = insert(:user)
+
+    old_user_url = old_user.ap_id
+
+    body =
+      File.read!("test/fixtures/users_mock/localhost.json")
+      |> String.replace("{{nickname}}", old_user.nickname)
+      |> Jason.encode!()
+
+    Tesla.Mock.mock(fn
+      %{method: :get, url: ^old_user_url} ->
+        %Tesla.Env{status: 200, body: body}
+    end)
 
     User.follow(follower, old_user)
     Pleroma.Web.ActivityPub.ActivityPub.move(old_user, new_user)
