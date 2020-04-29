@@ -4,7 +4,7 @@ A Pleroma instance can be identified by "<Mastodon version> (compatible; Pleroma
 
 ## Flake IDs
 
-Pleroma uses 128-bit ids as opposed to Mastodon's 64 bits. However just like Mastodon's ids they are sortable strings
+Pleroma uses 128-bit ids as opposed to Mastodon's 64 bits. However just like Mastodon's ids they are lexically sortable strings
 
 ## Attachment cap
 
@@ -119,6 +119,18 @@ Accepts additional parameters:
 
 - `exclude_visibilities`: will exclude the notifications for activities with the given visibilities. The parameter accepts an array of visibility types (`public`, `unlisted`, `private`, `direct`). Usage example: `GET /api/v1/notifications?exclude_visibilities[]=direct&exclude_visibilities[]=private`.
 - `include_types`: will include the notifications for activities with the given types. The parameter accepts an array of types (`mention`, `follow`, `reblog`, `favourite`, `move`, `pleroma:emoji_reaction`). Usage example: `GET /api/v1/notifications?include_types[]=mention&include_types[]=reblog`.
+
+## DELETE `/api/v1/notifications/destroy_multiple`
+
+An endpoint to delete multiple statuses by IDs.
+
+Required parameters:
+
+- `ids`: array of activity ids
+
+Usage example: `DELETE /api/v1/notifications/destroy_multiple/?ids[]=1&ids[]=2`.
+
+Returns on success: 200 OK `{}`
 
 ## POST `/api/v1/statuses`
 
