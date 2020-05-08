@@ -402,6 +402,7 @@ defmodule Pleroma.Web.CommonAPI.Utils do
     end
   end
 
+  @spec confirm_current_password(User.t(), String.t()) :: {:ok, User.t()} | {:error, String.t()}
   def confirm_current_password(user, password) do
     with %User{local: true} = db_user <- User.get_cached_by_id(user.id),
          true <- AuthenticationPlug.checkpw(password, db_user.password_hash) do
@@ -504,7 +505,8 @@ defmodule Pleroma.Web.CommonAPI.Utils do
     end
   end
 
-  def get_report_statuses(%User{ap_id: actor}, %{"status_ids" => status_ids}) do
+  def get_report_statuses(%User{ap_id: actor}, %{status_ids: status_ids})
+      when is_list(status_ids) do
     {:ok, Activity.all_by_actor_and_id(actor, status_ids)}
   end
 

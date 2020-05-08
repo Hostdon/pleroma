@@ -16,6 +16,7 @@ defmodule Mix.Tasks.Pleroma.Activity do
   """
   def run(["get", id | _rest]) do
     start_pleroma()
+
     id
     |> Activity.get_by_id()
     |> IO.inspect()

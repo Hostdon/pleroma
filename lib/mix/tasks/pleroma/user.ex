@@ -8,6 +8,8 @@ defmodule Mix.Tasks.Pleroma.User do
   alias Ecto.Changeset
   alias Pleroma.User
   alias Pleroma.UserInviteToken
+  alias Pleroma.Web.ActivityPub.Builder
+  alias Pleroma.Web.ActivityPub.Pipeline
 
   @shortdoc "Manages Pleroma users"
   @moduledoc File.read!("docs/administration/CLI_tasks/user.md")
@@ -96,8 +98,9 @@ defmodule Mix.Tasks.Pleroma.User do
   def run(["rm", nickname]) do
     start_pleroma()
 
-    with %User{local: true} = user <- User.get_cached_by_nickname(nickname) do
-      User.perform(:delete, user)
+    with %User{local: true} = user <- User.get_cached_by_nickname(nickname),
+         {:ok, delete_data, _} <- Builder.delete(user, user.ap_id),
+         {:ok, _delete, _} <- Pipeline.common_pipeline(delete_data, local: true) do
       shell_info("User #{nickname} deleted.")
     else
       _ -> shell_error("No local user #{nickname}")
@@ -335,32 +338,36 @@ defmodule Mix.Tasks.Pleroma.User do
 
   def run(["change_email", nickname, email]) do
     start_pleroma()
+
     with %User{} = user <- User.get_cached_by_nickname(nickname) do
-       user
-       |> User.update_changeset(%{"email" => email})
-       |> User.update_and_set_cache()
-       shell_info("#{nickname}'s email updated")
+      user
+      |> User.update_changeset(%{"email" => email})
+      |> User.update_and_set_cache()
+
+      shell_info("#{nickname}'s email updated")
     end
   end
 
   def run(["show", nickname]) do
     start_pleroma()
+
     nickname
     |> User.get_cached_by_nickname()
-    |> IO.inspect
+    |> IO.inspect()
   end
 
   def run(["send_confirmation", nickname]) do
     start_pleroma()
+
     with %User{} = user <- User.get_cached_by_nickname(nickname) do
-       user
-       |> Pleroma.Emails.UserEmail.account_confirmation_email()
-       |> IO.inspect
-       |> Pleroma.Emails.Mailer.deliver!()
-       shell_info("#{nickname}'s email sent")
+      user
+      |> Pleroma.Emails.UserEmail.account_confirmation_email()
+      |> IO.inspect()
+      |> Pleroma.Emails.Mailer.deliver!()
+
+      shell_info("#{nickname}'s email sent")
     end
   end
-  
 
   def run(["toggle_confirmed", nickname]) do
     start_pleroma()

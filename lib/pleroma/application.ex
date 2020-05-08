@@ -73,7 +73,6 @@ defmodule Pleroma.Application do
         Pleroma.Repo,
         Config.TransferTask,
         Pleroma.Emoji,
-        Pleroma.Captcha,
         Pleroma.Plugs.RateLimiter.Supervisor
       ] ++
         cachex_children() ++
@@ -174,7 +173,14 @@ defmodule Pleroma.Application do
   defp streamer_child(env) when env in [:test, :benchmark], do: []
 
   defp streamer_child(_) do
-    [Pleroma.Web.Streamer.supervisor()]
+    [
+      {Registry,
+       [
+         name: Pleroma.Web.Streamer.registry(),
+         keys: :duplicate,
+         partitions: System.schedulers_online()
+       ]}
+    ]
   end
 
   defp chat_child(_env, true) do
