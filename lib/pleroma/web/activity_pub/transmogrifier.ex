@@ -9,12 +9,15 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   alias Pleroma.Activity
   alias Pleroma.EarmarkRenderer
   alias Pleroma.FollowingRelationship
+  alias Pleroma.Maps
   alias Pleroma.Object
   alias Pleroma.Object.Containment
   alias Pleroma.Repo
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
+  alias Pleroma.Web.ActivityPub.Builder
   alias Pleroma.Web.ActivityPub.ObjectValidator
+  alias Pleroma.Web.ActivityPub.ObjectValidators.Types
   alias Pleroma.Web.ActivityPub.Pipeline
   alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.ActivityPub.Visibility
@@ -206,12 +209,6 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     |> Map.put("conversation", context)
   end
 
-  defp add_if_present(map, _key, nil), do: map
-
-  defp add_if_present(map, key, value) do
-    Map.put(map, key, value)
-  end
-
   def fix_attachments(%{"attachment" => attachment} = object) when is_list(attachment) do
     attachments =
       Enum.map(attachment, fn data ->
@@ -239,13 +236,13 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
 
         attachment_url =
           %{"href" => href}
-          |> add_if_present("mediaType", media_type)
-          |> add_if_present("type", Map.get(url || %{}, "type"))
+          |> Maps.put_if_present("mediaType", media_type)
+          |> Maps.put_if_present("type", Map.get(url || %{}, "type"))
 
         %{"url" => [attachment_url]}
-        |> add_if_present("mediaType", media_type)
-        |> add_if_present("type", data["type"])
-        |> add_if_present("name", data["name"])
+        |> Maps.put_if_present("mediaType", media_type)
+        |> Maps.put_if_present("type", data["type"])
+        |> Maps.put_if_present("name", data["name"])
       end)
 
     Map.put(object, "attachment", attachments)
@@ -590,6 +587,9 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
          {:ok, follow_activity} <- Utils.update_follow_state_for_all(follow_activity, "accept"),
          %User{local: true} = follower <- User.get_cached_by_ap_id(follow_activity.data["actor"]),
          {:ok, _relationship} <- FollowingRelationship.update(follower, followed, :follow_accept) do
+      User.update_follower_count(followed)
+      User.update_following_count(follower)
+
       ActivityPub.accept(%{
         to: follow_activity.data["to"],
         type: "Accept",
@@ -599,7 +599,8 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
         activity_id: id
       })
     else
-      _e -> :error
+      _e ->
+        :error
     end
   end
 
@@ -656,28 +657,14 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     |> handle_incoming(options)
   end
 
-  def handle_incoming(%{"type" => type} = data, _options) when type in ["Like", "EmojiReact"] do
+  def handle_incoming(%{"type" => type} = data, _options)
+      when type in ["Like", "EmojiReact", "Announce"] do
     with :ok <- ObjectValidator.fetch_actor_and_object(data),
          {:ok, activity, _meta} <-
            Pipeline.common_pipeline(data, local: false) do
       {:ok, activity}
     else
       e -> {:error, e}
-    end
-  end
-
-  def handle_incoming(
-        %{"type" => "Announce", "object" => object_id, "actor" => _actor, "id" => id} = data,
-        _options
-      ) do
-    with actor <- Containment.get_actor(data),
-         {:ok, %User{} = actor} <- User.get_or_fetch_by_ap_id(actor),
-         {:ok, object} <- get_embedded_obj_helper(object_id, actor),
-         public <- Visibility.is_public?(data),
-         {:ok, activity, _object} <- ActivityPub.announce(actor, object, id, false, public) do
-      {:ok, activity}
-    else
-      _e -> :error
     end
   end
 
@@ -720,6 +707,19 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
       ) do
     with {:ok, activity, _} <- Pipeline.common_pipeline(data, local: false) do
       {:ok, activity}
+    else
+      {:error, {:validate_object, _}} = e ->
+        # Check if we have a create activity for this
+        with {:ok, object_id} <- Types.ObjectID.cast(data["object"]),
+             %Activity{data: %{"actor" => actor}} <-
+               Activity.create_by_object_ap_id(object_id) |> Repo.one(),
+             # We have one, insert a tombstone and retry
+             {:ok, tombstone_data, _} <- Builder.tombstone(actor, object_id),
+             {:ok, _tombstone} <- Object.create(tombstone_data) do
+          handle_incoming(data)
+        else
+          _ -> e
+        end
     end
   end
 
@@ -1040,10 +1040,14 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     Map.put(object, "tag", tags)
   end
 
+  # TODO These should be added on our side on insertion, it doesn't make much
+  # sense to regenerate these all the time
   def add_mention_tags(object) do
-    {enabled_receivers, disabled_receivers} = Utils.get_notified_from_object(object)
-    potential_receivers = enabled_receivers ++ disabled_receivers
-    mentions = Enum.map(potential_receivers, &build_mention_tag/1)
+    to = object["to"] || []
+    cc = object["cc"] || []
+    mentioned = User.get_users_from_set(to ++ cc, local_only: false)
+
+    mentions = Enum.map(mentioned, &build_mention_tag/1)
 
     tags = object["tag"] || []
     Map.put(object, "tag", tags ++ mentions)

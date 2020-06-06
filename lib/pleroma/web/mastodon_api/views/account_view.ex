@@ -15,13 +15,12 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
   def render("index.json", %{users: users} = opts) do
     reading_user = opts[:for]
 
-    # Note: :skip_relationships option is currently intentionally not supported for accounts
     relationships_opt =
       cond do
         Map.has_key?(opts, :relationships) ->
           opts[:relationships]
 
-        is_nil(reading_user) ->
+        is_nil(reading_user) || !opts[:embed_relationships] ->
           UserRelationship.view_relationships_option(nil, [])
 
         true ->
@@ -183,24 +182,26 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
     bot = user.actor_type in ["Application", "Service"]
 
     emojis =
-      Enum.map(user.emoji, fn {shortcode, url} ->
+      Enum.map(user.emoji, fn {shortcode, raw_url} ->
+        url = MediaProxy.url(raw_url)
+
         %{
-          "shortcode" => shortcode,
-          "url" => url,
-          "static_url" => url,
-          "visible_in_picker" => false
+          shortcode: shortcode,
+          url: url,
+          static_url: url,
+          visible_in_picker: false
         }
       end)
 
     relationship =
-      if opts[:skip_relationships] do
-        %{}
-      else
+      if opts[:embed_relationships] do
         render("relationship.json", %{
           user: opts[:for],
           target: user,
           relationships: opts[:relationships]
         })
+      else
+        %{}
       end
 
     %{
@@ -261,7 +262,10 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
   defp prepare_user_bio(%User{bio: ""}), do: ""
 
   defp prepare_user_bio(%User{bio: bio}) when is_binary(bio) do
-    bio |> String.replace(~r(<br */?>), "\n") |> Pleroma.HTML.strip_tags()
+    bio
+    |> String.replace(~r(<br */?>), "\n")
+    |> Pleroma.HTML.strip_tags()
+    |> HtmlEntities.decode()
   end
 
   defp prepare_user_bio(_), do: ""
@@ -334,7 +338,11 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
   defp maybe_put_role(data, _, _), do: data
 
   defp maybe_put_notification_settings(data, %User{id: user_id} = user, %User{id: user_id}) do
-    Kernel.put_in(data, [:pleroma, :notification_settings], user.notification_settings)
+    Kernel.put_in(
+      data,
+      [:pleroma, :notification_settings],
+      Map.from_struct(user.notification_settings)
+    )
   end
 
   defp maybe_put_notification_settings(data, _, _), do: data

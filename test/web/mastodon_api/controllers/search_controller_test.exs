@@ -13,7 +13,7 @@ defmodule Pleroma.Web.MastodonAPI.SearchControllerTest do
   import Tesla.Mock
   import Mock
 
-  setup do
+  setup_all do
     mock_global(fn env -> apply(HttpRequestMock, :request, [env]) end)
     :ok
   end
@@ -42,15 +42,15 @@ defmodule Pleroma.Web.MastodonAPI.SearchControllerTest do
       user_two = insert(:user, %{nickname: "shp@shitposter.club"})
       user_three = insert(:user, %{nickname: "shp@heldscal.la", name: "I love 2hu"})
 
-      {:ok, activity} = CommonAPI.post(user, %{"status" => "This is about 2hu private 天子"})
+      {:ok, activity} = CommonAPI.post(user, %{status: "This is about 2hu private 天子"})
 
       {:ok, _activity} =
         CommonAPI.post(user, %{
-          "status" => "This is about 2hu, but private",
-          "visibility" => "private"
+          status: "This is about 2hu, but private",
+          visibility: "private"
         })
 
-      {:ok, _} = CommonAPI.post(user_two, %{"status" => "This isn't"})
+      {:ok, _} = CommonAPI.post(user_two, %{status: "This isn't"})
 
       results =
         conn
@@ -71,8 +71,46 @@ defmodule Pleroma.Web.MastodonAPI.SearchControllerTest do
         get(conn, "/api/v2/search?q=天子")
         |> json_response_and_validate_schema(200)
 
+      assert results["hashtags"] == [
+               %{"name" => "天子", "url" => "#{Web.base_url()}/tag/天子"}
+             ]
+
       [status] = results["statuses"]
       assert status["id"] == to_string(activity.id)
+    end
+
+    test "constructs hashtags from search query", %{conn: conn} do
+      results =
+        conn
+        |> get("/api/v2/search?#{URI.encode_query(%{q: "some text with #explicit #hashtags"})}")
+        |> json_response_and_validate_schema(200)
+
+      assert results["hashtags"] == [
+               %{"name" => "explicit", "url" => "#{Web.base_url()}/tag/explicit"},
+               %{"name" => "hashtags", "url" => "#{Web.base_url()}/tag/hashtags"}
+             ]
+
+      results =
+        conn
+        |> get("/api/v2/search?#{URI.encode_query(%{q: "john doe JOHN DOE"})}")
+        |> json_response_and_validate_schema(200)
+
+      assert results["hashtags"] == [
+               %{"name" => "john", "url" => "#{Web.base_url()}/tag/john"},
+               %{"name" => "doe", "url" => "#{Web.base_url()}/tag/doe"},
+               %{"name" => "JohnDoe", "url" => "#{Web.base_url()}/tag/JohnDoe"}
+             ]
+
+      results =
+        conn
+        |> get("/api/v2/search?#{URI.encode_query(%{q: "accident-prone"})}")
+        |> json_response_and_validate_schema(200)
+
+      assert results["hashtags"] == [
+               %{"name" => "accident", "url" => "#{Web.base_url()}/tag/accident"},
+               %{"name" => "prone", "url" => "#{Web.base_url()}/tag/prone"},
+               %{"name" => "AccidentProne", "url" => "#{Web.base_url()}/tag/AccidentProne"}
+             ]
     end
 
     test "excludes a blocked users from search results", %{conn: conn} do
@@ -80,9 +118,9 @@ defmodule Pleroma.Web.MastodonAPI.SearchControllerTest do
       user_smith = insert(:user, %{nickname: "Agent", name: "I love 2hu"})
       user_neo = insert(:user, %{nickname: "Agent Neo", name: "Agent"})
 
-      {:ok, act1} = CommonAPI.post(user, %{"status" => "This is about 2hu private 天子"})
-      {:ok, act2} = CommonAPI.post(user_smith, %{"status" => "Agent Smith"})
-      {:ok, act3} = CommonAPI.post(user_neo, %{"status" => "Agent Smith"})
+      {:ok, act1} = CommonAPI.post(user, %{status: "This is about 2hu private 天子"})
+      {:ok, act2} = CommonAPI.post(user_smith, %{status: "Agent Smith"})
+      {:ok, act3} = CommonAPI.post(user_neo, %{status: "Agent Smith"})
       Pleroma.User.block(user, user_smith)
 
       results =
@@ -161,15 +199,15 @@ defmodule Pleroma.Web.MastodonAPI.SearchControllerTest do
       user_two = insert(:user, %{nickname: "shp@shitposter.club"})
       user_three = insert(:user, %{nickname: "shp@heldscal.la", name: "I love 2hu"})
 
-      {:ok, activity} = CommonAPI.post(user, %{"status" => "This is about 2hu"})
+      {:ok, activity} = CommonAPI.post(user, %{status: "This is about 2hu"})
 
       {:ok, _activity} =
         CommonAPI.post(user, %{
-          "status" => "This is about 2hu, but private",
-          "visibility" => "private"
+          status: "This is about 2hu, but private",
+          visibility: "private"
         })
 
-      {:ok, _} = CommonAPI.post(user_two, %{"status" => "This isn't"})
+      {:ok, _} = CommonAPI.post(user_two, %{status: "This isn't"})
 
       results =
         conn
@@ -179,7 +217,7 @@ defmodule Pleroma.Web.MastodonAPI.SearchControllerTest do
       [account | _] = results["accounts"]
       assert account["id"] == to_string(user_three.id)
 
-      assert results["hashtags"] == []
+      assert results["hashtags"] == ["2hu"]
 
       [status] = results["statuses"]
       assert status["id"] == to_string(activity.id)
@@ -189,7 +227,7 @@ defmodule Pleroma.Web.MastodonAPI.SearchControllerTest do
       capture_log(fn ->
         {:ok, %{id: activity_id}} =
           CommonAPI.post(insert(:user), %{
-            "status" => "check out https://shitposter.club/notice/2827873"
+            status: "check out https://shitposter.club/notice/2827873"
           })
 
         results =
@@ -207,8 +245,8 @@ defmodule Pleroma.Web.MastodonAPI.SearchControllerTest do
     test "search doesn't show statuses that it shouldn't", %{conn: conn} do
       {:ok, activity} =
         CommonAPI.post(insert(:user), %{
-          "status" => "This is about 2hu, but private",
-          "visibility" => "private"
+          status: "This is about 2hu, but private",
+          visibility: "private"
         })
 
       capture_log(fn ->
@@ -251,8 +289,8 @@ defmodule Pleroma.Web.MastodonAPI.SearchControllerTest do
       _user_two = insert(:user, %{nickname: "shp@shitposter.club"})
       _user_three = insert(:user, %{nickname: "shp@heldscal.la", name: "I love 2hu"})
 
-      {:ok, _activity1} = CommonAPI.post(user, %{"status" => "This is about 2hu"})
-      {:ok, _activity2} = CommonAPI.post(user, %{"status" => "This is also about 2hu"})
+      {:ok, _activity1} = CommonAPI.post(user, %{status: "This is about 2hu"})
+      {:ok, _activity2} = CommonAPI.post(user, %{status: "This is also about 2hu"})
 
       result =
         conn
@@ -277,7 +315,7 @@ defmodule Pleroma.Web.MastodonAPI.SearchControllerTest do
       user = insert(:user)
       _user_two = insert(:user, %{nickname: "shp@heldscal.la", name: "I love 2hu"})
 
-      {:ok, _activity} = CommonAPI.post(user, %{"status" => "This is about 2hu"})
+      {:ok, _activity} = CommonAPI.post(user, %{status: "This is about 2hu"})
 
       assert %{"statuses" => [_activity], "accounts" => [], "hashtags" => []} =
                conn
@@ -294,8 +332,8 @@ defmodule Pleroma.Web.MastodonAPI.SearchControllerTest do
       user = insert(:user, %{nickname: "shp@shitposter.club"})
       user_two = insert(:user, %{nickname: "shp@heldscal.la", name: "I love 2hu"})
 
-      {:ok, activity1} = CommonAPI.post(user, %{"status" => "This is about 2hu"})
-      {:ok, activity2} = CommonAPI.post(user_two, %{"status" => "This is also about 2hu"})
+      {:ok, activity1} = CommonAPI.post(user, %{status: "This is about 2hu"})
+      {:ok, activity2} = CommonAPI.post(user_two, %{status: "This is also about 2hu"})
 
       results =
         conn

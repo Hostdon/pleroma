@@ -29,12 +29,13 @@ defmodule Pleroma.Factory do
       name: sequence(:name, &"Test テスト User #{&1}"),
       email: sequence(:email, &"user#{&1}@example.com"),
       nickname: sequence(:nickname, &"nick#{&1}"),
-      password_hash: Comeonin.Pbkdf2.hashpwsalt("test"),
+      password_hash: Pbkdf2.hash_pwd_salt("test"),
       bio: sequence(:bio, &"Tester Number #{&1}"),
       last_digest_emailed_at: NaiveDateTime.utc_now(),
       last_refreshed_at: NaiveDateTime.utc_now(),
       notification_settings: %Pleroma.User.NotificationSetting{},
-      multi_factor_authentication_settings: %Pleroma.MFA.Settings{}
+      multi_factor_authentication_settings: %Pleroma.MFA.Settings{},
+      ap_enabled: true
     }
 
     %{

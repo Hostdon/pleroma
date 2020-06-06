@@ -6,6 +6,8 @@ defmodule Pleroma.Web.ActivityPub.Utils do
   alias Ecto.Changeset
   alias Ecto.UUID
   alias Pleroma.Activity
+  alias Pleroma.Config
+  alias Pleroma.Maps
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.Repo
@@ -169,8 +171,11 @@ defmodule Pleroma.Web.ActivityPub.Utils do
   Enqueues an activity for federation if it's local
   """
   @spec maybe_federate(any()) :: :ok
-  def maybe_federate(%Activity{local: true} = activity) do
-    if Pleroma.Config.get!([:instance, :federating]) do
+  def maybe_federate(%Activity{local: true, data: %{"type" => type}} = activity) do
+    outgoing_blocks = Config.get([:activitypub, :outgoing_blocks])
+
+    with true <- Config.get!([:instance, :federating]),
+         true <- type != "Block" || outgoing_blocks do
       Pleroma.Web.Federator.publish(activity)
     end
 
@@ -303,7 +308,7 @@ defmodule Pleroma.Web.ActivityPub.Utils do
       "cc" => cc,
       "context" => object.data["context"]
     }
-    |> maybe_put("id", activity_id)
+    |> Maps.put_if_present("id", activity_id)
   end
 
   def make_emoji_reaction_data(user, object, emoji, activity_id) do
@@ -473,7 +478,7 @@ defmodule Pleroma.Web.ActivityPub.Utils do
       "object" => followed_id,
       "state" => "pending"
     }
-    |> maybe_put("id", activity_id)
+    |> Maps.put_if_present("id", activity_id)
   end
 
   def fetch_latest_follow(%User{ap_id: follower_id}, %User{ap_id: followed_id}) do
@@ -542,7 +547,7 @@ defmodule Pleroma.Web.ActivityPub.Utils do
       "cc" => [],
       "context" => object.data["context"]
     }
-    |> maybe_put("id", activity_id)
+    |> Maps.put_if_present("id", activity_id)
   end
 
   def make_announce_data(
@@ -559,7 +564,7 @@ defmodule Pleroma.Web.ActivityPub.Utils do
       "cc" => [Pleroma.Constants.as_public()],
       "context" => object.data["context"]
     }
-    |> maybe_put("id", activity_id)
+    |> Maps.put_if_present("id", activity_id)
   end
 
   def make_undo_data(
@@ -578,7 +583,7 @@ defmodule Pleroma.Web.ActivityPub.Utils do
       "cc" => [Pleroma.Constants.as_public()],
       "context" => context
     }
-    |> maybe_put("id", activity_id)
+    |> Maps.put_if_present("id", activity_id)
   end
 
   @spec add_announce_to_object(Activity.t(), Object.t()) ::
@@ -623,7 +628,7 @@ defmodule Pleroma.Web.ActivityPub.Utils do
       "to" => [followed.ap_id],
       "object" => follow_activity.data
     }
-    |> maybe_put("id", activity_id)
+    |> Maps.put_if_present("id", activity_id)
   end
 
   #### Block-related helpers
@@ -646,7 +651,7 @@ defmodule Pleroma.Web.ActivityPub.Utils do
       "to" => [blocked.ap_id],
       "object" => blocked.ap_id
     }
-    |> maybe_put("id", activity_id)
+    |> Maps.put_if_present("id", activity_id)
   end
 
   #### Create-related helpers
@@ -736,6 +741,7 @@ defmodule Pleroma.Web.ActivityPub.Utils do
   def get_reports(params, page, page_size) do
     params =
       params
+      |> Map.new(fn {key, value} -> {to_string(key), value} end)
       |> Map.put("type", "Flag")
       |> Map.put("skip_preload", true)
       |> Map.put("preload_report_notes", true)
@@ -866,7 +872,4 @@ defmodule Pleroma.Web.ActivityPub.Utils do
     |> where([a, object: o], fragment("(?)->>'type' = 'Answer'", o.data))
     |> Repo.all()
   end
-
-  def maybe_put(map, _key, nil), do: map
-  def maybe_put(map, key, value), do: Map.put(map, key, value)
 end

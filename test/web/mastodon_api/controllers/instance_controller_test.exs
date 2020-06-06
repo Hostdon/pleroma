@@ -31,7 +31,8 @@ defmodule Pleroma.Web.MastodonAPI.InstanceControllerTest do
              "upload_limit" => _,
              "avatar_upload_limit" => _,
              "background_upload_limit" => _,
-             "banner_upload_limit" => _
+             "banner_upload_limit" => _,
+             "background_image" => _
            } = result
 
     assert result["pleroma"]["metadata"]["features"]
@@ -50,7 +51,7 @@ defmodule Pleroma.Web.MastodonAPI.InstanceControllerTest do
     insert(:user, %{local: false, nickname: "u@peer1.com"})
     insert(:user, %{local: false, nickname: "u@peer2.com"})
 
-    {:ok, _} = Pleroma.Web.CommonAPI.post(user, %{"status" => "cofe"})
+    {:ok, _} = Pleroma.Web.CommonAPI.post(user, %{status: "cofe"})
 
     Pleroma.Stats.force_update()
 

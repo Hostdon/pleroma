@@ -7,6 +7,7 @@ defmodule Pleroma.Web.ApiSpec.SubscriptionOperation do
   alias OpenApiSpex.Schema
   alias Pleroma.Web.ApiSpec.Helpers
   alias Pleroma.Web.ApiSpec.Schemas.ApiError
+  alias Pleroma.Web.ApiSpec.Schemas.BooleanLike
   alias Pleroma.Web.ApiSpec.Schemas.PushSubscription
 
   def open_api_operation(action) do
@@ -109,19 +110,38 @@ defmodule Pleroma.Web.ApiSpec.SubscriptionOperation do
           required: [:endpoint, :keys]
         },
         data: %Schema{
+          nullable: true,
           type: :object,
           properties: %{
             alerts: %Schema{
+              nullable: true,
               type: :object,
               properties: %{
-                follow: %Schema{type: :boolean, description: "Receive follow notifications?"},
+                follow: %Schema{
+                  allOf: [BooleanLike],
+                  nullable: true,
+                  description: "Receive follow notifications?"
+                },
                 favourite: %Schema{
-                  type: :boolean,
+                  allOf: [BooleanLike],
+                  nullable: true,
                   description: "Receive favourite notifications?"
                 },
-                reblog: %Schema{type: :boolean, description: "Receive reblog notifications?"},
-                mention: %Schema{type: :boolean, description: "Receive mention notifications?"},
-                poll: %Schema{type: :boolean, description: "Receive poll notifications?"}
+                reblog: %Schema{
+                  allOf: [BooleanLike],
+                  nullable: true,
+                  description: "Receive reblog notifications?"
+                },
+                mention: %Schema{
+                  allOf: [BooleanLike],
+                  nullable: true,
+                  description: "Receive mention notifications?"
+                },
+                poll: %Schema{
+                  allOf: [BooleanLike],
+                  nullable: true,
+                  description: "Receive poll notifications?"
+                }
               }
             }
           }
@@ -154,19 +174,38 @@ defmodule Pleroma.Web.ApiSpec.SubscriptionOperation do
       type: :object,
       properties: %{
         data: %Schema{
+          nullable: true,
           type: :object,
           properties: %{
             alerts: %Schema{
+              nullable: true,
               type: :object,
               properties: %{
-                follow: %Schema{type: :boolean, description: "Receive follow notifications?"},
+                follow: %Schema{
+                  allOf: [BooleanLike],
+                  nullable: true,
+                  description: "Receive follow notifications?"
+                },
                 favourite: %Schema{
-                  type: :boolean,
+                  allOf: [BooleanLike],
+                  nullable: true,
                   description: "Receive favourite notifications?"
                 },
-                reblog: %Schema{type: :boolean, description: "Receive reblog notifications?"},
-                mention: %Schema{type: :boolean, description: "Receive mention notifications?"},
-                poll: %Schema{type: :boolean, description: "Receive poll notifications?"}
+                reblog: %Schema{
+                  allOf: [BooleanLike],
+                  nullable: true,
+                  description: "Receive reblog notifications?"
+                },
+                mention: %Schema{
+                  allOf: [BooleanLike],
+                  nullable: true,
+                  description: "Receive mention notifications?"
+                },
+                poll: %Schema{
+                  allOf: [BooleanLike],
+                  nullable: true,
+                  description: "Receive poll notifications?"
+                }
               }
             }
           }

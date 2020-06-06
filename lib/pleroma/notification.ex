@@ -92,8 +92,9 @@ defmodule Pleroma.Notification do
     |> join(:left, [n, a], object in Object,
       on:
         fragment(
-          "(?->>'id') = COALESCE((? -> 'object'::text) ->> 'id'::text)",
+          "(?->>'id') = COALESCE(?->'object'->>'id', ?->>'object')",
           object.data,
+          a.data,
           a.data
         )
     )
@@ -224,18 +225,8 @@ defmodule Pleroma.Notification do
       |> Marker.multi_set_last_read_id(user, "notifications")
       |> Repo.transaction()
 
-    Notification
+    for_user_query(user)
     |> where([n], n.id in ^notification_ids)
-    |> join(:inner, [n], activity in assoc(n, :activity))
-    |> join(:left, [n, a], object in Object,
-      on:
-        fragment(
-          "(?->>'id') = COALESCE((? -> 'object'::text) ->> 'id'::text)",
-          object.data,
-          a.data
-        )
-    )
-    |> preload([n, a, o], activity: {a, object: o})
     |> Repo.all()
   end
 
@@ -368,15 +359,10 @@ defmodule Pleroma.Notification do
 
   def get_notified_from_activity(%Activity{data: %{"type" => type}} = activity, local_only)
       when type in ["Create", "Like", "Announce", "Follow", "Move", "EmojiReact"] do
-    potential_receiver_ap_ids =
-      []
-      |> Utils.maybe_notify_to_recipients(activity)
-      |> Utils.maybe_notify_mentioned_recipients(activity)
-      |> Utils.maybe_notify_subscribers(activity)
-      |> Utils.maybe_notify_followers(activity)
-      |> Enum.uniq()
+    potential_receiver_ap_ids = get_potential_receiver_ap_ids(activity)
 
-    potential_receivers = User.get_users_from_set(potential_receiver_ap_ids, local_only)
+    potential_receivers =
+      User.get_users_from_set(potential_receiver_ap_ids, local_only: local_only)
 
     notification_enabled_ap_ids =
       potential_receiver_ap_ids
@@ -391,6 +377,27 @@ defmodule Pleroma.Notification do
   end
 
   def get_notified_from_activity(_, _local_only), do: {[], []}
+
+  # For some activities, only notify the author of the object
+  def get_potential_receiver_ap_ids(%{data: %{"type" => type, "object" => object_id}})
+      when type in ~w{Like Announce EmojiReact} do
+    case Object.get_cached_by_ap_id(object_id) do
+      %Object{data: %{"actor" => actor}} ->
+        [actor]
+
+      _ ->
+        []
+    end
+  end
+
+  def get_potential_receiver_ap_ids(activity) do
+    []
+    |> Utils.maybe_notify_to_recipients(activity)
+    |> Utils.maybe_notify_mentioned_recipients(activity)
+    |> Utils.maybe_notify_subscribers(activity)
+    |> Utils.maybe_notify_followers(activity)
+    |> Enum.uniq()
+  end
 
   @doc "Filters out AP IDs domain-blocking and not following the activity's actor"
   def exclude_domain_blocker_ap_ids(ap_ids, activity, preloaded_users \\ [])

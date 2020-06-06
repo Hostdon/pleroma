@@ -25,17 +25,58 @@ defmodule Pleroma.Web.ActivityPub.SideEffectsTest do
       user = insert(:user)
       other_user = insert(:user)
 
-      {:ok, op} = CommonAPI.post(other_user, %{"status" => "big oof"})
-      {:ok, post} = CommonAPI.post(user, %{"status" => "hey", "in_reply_to_id" => op})
+      {:ok, op} = CommonAPI.post(other_user, %{status: "big oof"})
+      {:ok, post} = CommonAPI.post(user, %{status: "hey", in_reply_to_id: op})
+      {:ok, favorite} = CommonAPI.favorite(user, post.id)
       object = Object.normalize(post)
       {:ok, delete_data, _meta} = Builder.delete(user, object.data["id"])
       {:ok, delete_user_data, _meta} = Builder.delete(user, user.ap_id)
       {:ok, delete, _meta} = ActivityPub.persist(delete_data, local: true)
       {:ok, delete_user, _meta} = ActivityPub.persist(delete_user_data, local: true)
-      %{user: user, delete: delete, post: post, object: object, delete_user: delete_user, op: op}
+
+      %{
+        user: user,
+        delete: delete,
+        post: post,
+        object: object,
+        delete_user: delete_user,
+        op: op,
+        favorite: favorite
+      }
     end
 
     test "it handles object deletions", %{
+      delete: delete,
+      post: post,
+      object: object,
+      user: user,
+      op: op,
+      favorite: favorite
+    } do
+      with_mock Pleroma.Web.ActivityPub.ActivityPub, [:passthrough],
+        stream_out: fn _ -> nil end,
+        stream_out_participations: fn _, _ -> nil end do
+        {:ok, delete, _} = SideEffects.handle(delete)
+        user = User.get_cached_by_ap_id(object.data["actor"])
+
+        assert called(Pleroma.Web.ActivityPub.ActivityPub.stream_out(delete))
+        assert called(Pleroma.Web.ActivityPub.ActivityPub.stream_out_participations(object, user))
+      end
+
+      object = Object.get_by_id(object.id)
+      assert object.data["type"] == "Tombstone"
+      refute Activity.get_by_id(post.id)
+      refute Activity.get_by_id(favorite.id)
+
+      user = User.get_by_id(user.id)
+      assert user.note_count == 0
+
+      object = Object.normalize(op.data["object"], false)
+
+      assert object.data["repliesCount"] == 0
+    end
+
+    test "it handles object deletions when the object itself has been pruned", %{
       delete: delete,
       post: post,
       object: object,
@@ -77,7 +118,7 @@ defmodule Pleroma.Web.ActivityPub.SideEffectsTest do
       poster = insert(:user)
       user = insert(:user)
 
-      {:ok, post} = CommonAPI.post(poster, %{"status" => "hey"})
+      {:ok, post} = CommonAPI.post(poster, %{status: "hey"})
 
       {:ok, emoji_react_data, []} = Builder.emoji_react(user, post.object, "👌")
       {:ok, emoji_react, _meta} = ActivityPub.persist(emoji_react_data, local: true)
@@ -99,14 +140,39 @@ defmodule Pleroma.Web.ActivityPub.SideEffectsTest do
     end
   end
 
+  describe "delete users with confirmation pending" do
+    setup do
+      user = insert(:user, confirmation_pending: true)
+      {:ok, delete_user_data, _meta} = Builder.delete(user, user.ap_id)
+      {:ok, delete_user, _meta} = ActivityPub.persist(delete_user_data, local: true)
+      {:ok, delete: delete_user, user: user}
+    end
+
+    test "when activation is not required", %{delete: delete, user: user} do
+      clear_config([:instance, :account_activation_required], false)
+      {:ok, _, _} = SideEffects.handle(delete)
+      ObanHelpers.perform_all()
+
+      assert User.get_cached_by_id(user.id).deactivated
+    end
+
+    test "when activation is required", %{delete: delete, user: user} do
+      clear_config([:instance, :account_activation_required], true)
+      {:ok, _, _} = SideEffects.handle(delete)
+      ObanHelpers.perform_all()
+
+      refute User.get_cached_by_id(user.id)
+    end
+  end
+
   describe "Undo objects" do
     setup do
       poster = insert(:user)
       user = insert(:user)
-      {:ok, post} = CommonAPI.post(poster, %{"status" => "hey"})
+      {:ok, post} = CommonAPI.post(poster, %{status: "hey"})
       {:ok, like} = CommonAPI.favorite(user, post.id)
       {:ok, reaction} = CommonAPI.react_with_emoji(post.id, user, "👍")
-      {:ok, announce, _} = CommonAPI.repeat(post.id, user)
+      {:ok, announce} = CommonAPI.repeat(post.id, user)
       {:ok, block} = ActivityPub.block(user, poster)
       User.block(user, poster)
 
@@ -203,7 +269,7 @@ defmodule Pleroma.Web.ActivityPub.SideEffectsTest do
     setup do
       poster = insert(:user)
       user = insert(:user)
-      {:ok, post} = CommonAPI.post(poster, %{"status" => "hey"})
+      {:ok, post} = CommonAPI.post(poster, %{status: "hey"})
 
       {:ok, like_data, _meta} = Builder.like(user, post.object)
       {:ok, like, _meta} = ActivityPub.persist(like_data, local: true)
@@ -221,6 +287,63 @@ defmodule Pleroma.Web.ActivityPub.SideEffectsTest do
     test "creates a notification", %{like: like, poster: poster} do
       {:ok, like, _} = SideEffects.handle(like)
       assert Repo.get_by(Notification, user_id: poster.id, activity_id: like.id)
+    end
+  end
+
+  describe "announce objects" do
+    setup do
+      poster = insert(:user)
+      user = insert(:user)
+      {:ok, post} = CommonAPI.post(poster, %{status: "hey"})
+      {:ok, private_post} = CommonAPI.post(poster, %{status: "hey", visibility: "private"})
+
+      {:ok, announce_data, _meta} = Builder.announce(user, post.object, public: true)
+
+      {:ok, private_announce_data, _meta} =
+        Builder.announce(user, private_post.object, public: false)
+
+      {:ok, relay_announce_data, _meta} =
+        Builder.announce(Pleroma.Web.ActivityPub.Relay.get_actor(), post.object, public: true)
+
+      {:ok, announce, _meta} = ActivityPub.persist(announce_data, local: true)
+      {:ok, private_announce, _meta} = ActivityPub.persist(private_announce_data, local: true)
+      {:ok, relay_announce, _meta} = ActivityPub.persist(relay_announce_data, local: true)
+
+      %{
+        announce: announce,
+        user: user,
+        poster: poster,
+        private_announce: private_announce,
+        relay_announce: relay_announce
+      }
+    end
+
+    test "adds the announce to the original object", %{announce: announce, user: user} do
+      {:ok, announce, _} = SideEffects.handle(announce)
+      object = Object.get_by_ap_id(announce.data["object"])
+      assert object.data["announcement_count"] == 1
+      assert user.ap_id in object.data["announcements"]
+    end
+
+    test "does not add the announce to the original object if the actor is a service actor", %{
+      relay_announce: announce
+    } do
+      {:ok, announce, _} = SideEffects.handle(announce)
+      object = Object.get_by_ap_id(announce.data["object"])
+      assert object.data["announcement_count"] == nil
+    end
+
+    test "creates a notification", %{announce: announce, poster: poster} do
+      {:ok, announce, _} = SideEffects.handle(announce)
+      assert Repo.get_by(Notification, user_id: poster.id, activity_id: announce.id)
+    end
+
+    test "it streams out the announce", %{announce: announce} do
+      with_mock Pleroma.Web.ActivityPub.ActivityPub, [:passthrough], stream_out: fn _ -> nil end do
+        {:ok, announce, _} = SideEffects.handle(announce)
+
+        assert called(Pleroma.Web.ActivityPub.ActivityPub.stream_out(announce))
+      end
     end
   end
 end

@@ -13,7 +13,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidatorTest do
   describe "EmojiReacts" do
     setup do
       user = insert(:user)
-      {:ok, post_activity} = CommonAPI.post(user, %{"status" => "uguu"})
+      {:ok, post_activity} = CommonAPI.post(user, %{status: "uguu"})
 
       object = Pleroma.Object.get_by_ap_id(post_activity.data["object"])
 
@@ -53,7 +53,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidatorTest do
   describe "Undos" do
     setup do
       user = insert(:user)
-      {:ok, post_activity} = CommonAPI.post(user, %{"status" => "uguu"})
+      {:ok, post_activity} = CommonAPI.post(user, %{status: "uguu"})
       {:ok, like} = CommonAPI.favorite(user, post_activity.id)
       {:ok, valid_like_undo, []} = Builder.undo(user, like)
 
@@ -93,7 +93,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidatorTest do
   describe "deletes" do
     setup do
       user = insert(:user)
-      {:ok, post_activity} = CommonAPI.post(user, %{"status" => "cancel me daddy"})
+      {:ok, post_activity} = CommonAPI.post(user, %{status: "cancel me daddy"})
 
       {:ok, valid_post_delete, _} = Builder.delete(user, post_activity.data["object"])
       {:ok, valid_user_delete, _} = Builder.delete(user, user.ap_id)
@@ -185,7 +185,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidatorTest do
   describe "likes" do
     setup do
       user = insert(:user)
-      {:ok, post_activity} = CommonAPI.post(user, %{"status" => "uguu"})
+      {:ok, post_activity} = CommonAPI.post(user, %{status: "uguu"})
 
       valid_like = %{
         "to" => [user.ap_id],
@@ -278,6 +278,98 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidatorTest do
 
       assert {:actor, valid_like["actor"]} in validated.changes
       assert {:object, valid_like["object"]} in validated.changes
+    end
+  end
+
+  describe "announces" do
+    setup do
+      user = insert(:user)
+      announcer = insert(:user)
+      {:ok, post_activity} = CommonAPI.post(user, %{status: "uguu"})
+
+      object = Object.normalize(post_activity, false)
+      {:ok, valid_announce, []} = Builder.announce(announcer, object)
+
+      %{
+        valid_announce: valid_announce,
+        user: user,
+        post_activity: post_activity,
+        announcer: announcer
+      }
+    end
+
+    test "returns ok for a valid announce", %{valid_announce: valid_announce} do
+      assert {:ok, _object, _meta} = ObjectValidator.validate(valid_announce, [])
+    end
+
+    test "returns an error if the object can't be found", %{valid_announce: valid_announce} do
+      without_object =
+        valid_announce
+        |> Map.delete("object")
+
+      {:error, cng} = ObjectValidator.validate(without_object, [])
+
+      assert {:object, {"can't be blank", [validation: :required]}} in cng.errors
+
+      nonexisting_object =
+        valid_announce
+        |> Map.put("object", "https://gensokyo.2hu/objects/99999999")
+
+      {:error, cng} = ObjectValidator.validate(nonexisting_object, [])
+
+      assert {:object, {"can't find object", []}} in cng.errors
+    end
+
+    test "returns an error if we don't have the actor", %{valid_announce: valid_announce} do
+      nonexisting_actor =
+        valid_announce
+        |> Map.put("actor", "https://gensokyo.2hu/users/raymoo")
+
+      {:error, cng} = ObjectValidator.validate(nonexisting_actor, [])
+
+      assert {:actor, {"can't find user", []}} in cng.errors
+    end
+
+    test "returns an error if the actor already announced the object", %{
+      valid_announce: valid_announce,
+      announcer: announcer,
+      post_activity: post_activity
+    } do
+      _announce = CommonAPI.repeat(post_activity.id, announcer)
+
+      {:error, cng} = ObjectValidator.validate(valid_announce, [])
+
+      assert {:actor, {"already announced this object", []}} in cng.errors
+      assert {:object, {"already announced by this actor", []}} in cng.errors
+    end
+
+    test "returns an error if the actor can't announce the object", %{
+      announcer: announcer,
+      user: user
+    } do
+      {:ok, post_activity} =
+        CommonAPI.post(user, %{status: "a secret post", visibility: "private"})
+
+      object = Object.normalize(post_activity, false)
+
+      # Another user can't announce it
+      {:ok, announce, []} = Builder.announce(announcer, object, public: false)
+
+      {:error, cng} = ObjectValidator.validate(announce, [])
+
+      assert {:actor, {"can not announce this object", []}} in cng.errors
+
+      # The actor of the object can announce it
+      {:ok, announce, []} = Builder.announce(user, object, public: false)
+
+      assert {:ok, _, _} = ObjectValidator.validate(announce, [])
+
+      # The actor of the object can not announce it publicly
+      {:ok, announce, []} = Builder.announce(user, object, public: true)
+
+      {:error, cng} = ObjectValidator.validate(announce, [])
+
+      assert {:actor, {"can not announce this object publicly", []}} in cng.errors
     end
   end
 end

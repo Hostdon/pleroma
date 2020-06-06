@@ -6,6 +6,7 @@ defmodule Pleroma.Web.ApiSpec.FilterOperation do
   alias OpenApiSpex.Operation
   alias OpenApiSpex.Schema
   alias Pleroma.Web.ApiSpec.Helpers
+  alias Pleroma.Web.ApiSpec.Schemas.BooleanLike
 
   def open_api_operation(action) do
     operation = String.to_existing_atom("#{action}_operation")
@@ -171,7 +172,7 @@ defmodule Pleroma.Web.ApiSpec.FilterOperation do
           type: :object,
           properties: %{
             irreversible: %Schema{
-              type: :bolean,
+              allOf: [BooleanLike],
               description:
                 "Should the server irreversibly drop matching entities from home and notifications?",
               default: false
@@ -199,12 +200,14 @@ defmodule Pleroma.Web.ApiSpec.FilterOperation do
             "Array of enumerable strings `home`, `notifications`, `public`, `thread`. At least one context must be specified."
         },
         irreversible: %Schema{
-          type: :bolean,
+          allOf: [BooleanLike],
+          nullable: true,
           description:
             "Should the server irreversibly drop matching entities from home and notifications?"
         },
         whole_word: %Schema{
-          type: :bolean,
+          allOf: [BooleanLike],
+          nullable: true,
           description: "Consider word boundaries?",
           default: true
         }

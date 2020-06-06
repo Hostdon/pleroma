@@ -36,6 +36,7 @@ defmodule Pleroma.LoadTesting.Fetcher do
     fetch_home_timeline(user)
     fetch_direct_timeline(user)
     fetch_public_timeline(user)
+    fetch_public_timeline(user, :with_blocks)
     fetch_public_timeline(user, :local)
     fetch_public_timeline(user, :tag)
     fetch_notifications(user)
@@ -227,6 +228,58 @@ defmodule Pleroma.LoadTesting.Fetcher do
     fetch_public_timeline(opts, "public timeline only media")
   end
 
+  defp fetch_public_timeline(user, :with_blocks) do
+    opts = opts_for_public_timeline(user)
+
+    remote_non_friends = Agent.get(:non_friends_remote, & &1)
+
+    Benchee.run(%{
+      "public timeline without blocks" => fn ->
+        ActivityPub.fetch_public_activities(opts)
+      end
+    })
+
+    Enum.each(remote_non_friends, fn non_friend ->
+      {:ok, _} = User.block(user, non_friend)
+    end)
+
+    user = User.get_by_id(user.id)
+
+    opts = Map.put(opts, "blocking_user", user)
+
+    Benchee.run(
+      %{
+        "public timeline with user block" => fn ->
+          ActivityPub.fetch_public_activities(opts)
+        end
+      },
+    )
+
+    domains =
+      Enum.reduce(remote_non_friends, [], fn non_friend, domains ->
+        {:ok, _user} = User.unblock(user, non_friend)
+        %{host: host} = URI.parse(non_friend.ap_id)
+        [host | domains]
+      end)
+
+    domains = Enum.uniq(domains)
+
+    Enum.each(domains, fn domain ->
+      {:ok, _} = User.block_domain(user, domain)
+    end)
+
+    user = User.get_by_id(user.id)
+    opts = Map.put(opts, "blocking_user", user)
+
+    Benchee.run(
+      %{
+        "public timeline with domain block" => fn opts ->
+          ActivityPub.fetch_public_activities(opts)
+        end
+      }
+    )
+  end
+
   defp fetch_public_timeline(opts, title) when is_binary(title) do
     first_page_last = ActivityPub.fetch_public_activities(opts) |> List.last()
 
@@ -387,56 +440,47 @@ defmodule Pleroma.LoadTesting.Fetcher do
 
     favourites = ActivityPub.fetch_favourites(user)
 
-    output_relationships =
-      !!Pleroma.Config.get([:extensions, :output_relationships_in_statuses_by_default])
-
     Benchee.run(
       %{
         "Rendering home timeline" => fn ->
           StatusView.render("index.json", %{
             activities: home_activities,
             for: user,
-            as: :activity,
-            skip_relationships: !output_relationships
+            as: :activity
           })
         end,
         "Rendering direct timeline" => fn ->
           StatusView.render("index.json", %{
             activities: direct_activities,
             for: user,
-            as: :activity,
-            skip_relationships: !output_relationships
+            as: :activity
           })
         end,
         "Rendering public timeline" => fn ->
           StatusView.render("index.json", %{
             activities: public_activities,
             for: user,
-            as: :activity,
-            skip_relationships: !output_relationships
+            as: :activity
           })
         end,
         "Rendering tag timeline" => fn ->
           StatusView.render("index.json", %{
             activities: tag_activities,
             for: user,
-            as: :activity,
-            skip_relationships: !output_relationships
+            as: :activity
           })
         end,
         "Rendering notifications" => fn ->
           Pleroma.Web.MastodonAPI.NotificationView.render("index.json", %{
             notifications: notifications,
-            for: user,
-            skip_relationships: !output_relationships
+            for: user
           })
         end,
         "Rendering favourites timeline" => fn ->
           StatusView.render("index.json", %{
             activities: favourites,
             for: user,
-            as: :activity,
-            skip_relationships: !output_relationships
+            as: :activity
           })
         end
       },
