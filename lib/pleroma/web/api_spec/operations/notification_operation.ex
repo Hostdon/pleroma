@@ -183,8 +183,8 @@ defmodule Pleroma.Web.ApiSpec.NotificationOperation do
         "favourite",
         "reblog",
         "mention",
-        "poll",
         "pleroma:emoji_reaction",
+        "pleroma:chat_mention",
         "move",
         "follow_request"
       ],

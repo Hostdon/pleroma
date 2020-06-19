@@ -14,6 +14,7 @@ defmodule Pleroma.User do
   alias Pleroma.Config
   alias Pleroma.Conversation.Participation
   alias Pleroma.Delivery
+  alias Pleroma.EctoType.ActivityPub.ObjectValidators
   alias Pleroma.Emoji
   alias Pleroma.FollowingRelationship
   alias Pleroma.Formatter
@@ -30,7 +31,6 @@ defmodule Pleroma.User do
   alias Pleroma.Web
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Builder
-  alias Pleroma.Web.ActivityPub.ObjectValidators.Types
   alias Pleroma.Web.ActivityPub.Pipeline
   alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.CommonAPI
@@ -79,6 +79,7 @@ defmodule Pleroma.User do
 
   schema "users" do
     field(:bio, :string)
+    field(:raw_bio, :string)
     field(:email, :string)
     field(:name, :string)
     field(:nickname, :string)
@@ -115,7 +116,7 @@ defmodule Pleroma.User do
     field(:is_admin, :boolean, default: false)
     field(:show_role, :boolean, default: true)
     field(:settings, :map, default: nil)
-    field(:uri, Types.Uri, default: nil)
+    field(:uri, ObjectValidators.Uri, default: nil)
     field(:hide_followers_count, :boolean, default: false)
     field(:hide_follows_count, :boolean, default: false)
     field(:hide_followers, :boolean, default: false)
@@ -432,6 +433,7 @@ defmodule Pleroma.User do
       params,
       [
         :bio,
+        :raw_bio,
         :name,
         :emoji,
         :avatar,
@@ -607,7 +609,16 @@ defmodule Pleroma.User do
 
     struct
     |> confirmation_changeset(need_confirmation: need_confirmation?)
-    |> cast(params, [:bio, :email, :name, :nickname, :password, :password_confirmation, :emoji])
+    |> cast(params, [
+      :bio,
+      :raw_bio,
+      :email,
+      :name,
+      :nickname,
+      :password,
+      :password_confirmation,
+      :emoji
+    ])
     |> validate_required([:name, :nickname, :password, :password_confirmation])
     |> validate_confirmation(:password)
     |> unique_constraint(:email)
@@ -1488,6 +1499,9 @@ defmodule Pleroma.User do
     end)
 
     delete_user_activities(user)
+    delete_notifications_from_user_activities(user)
+
+    delete_outgoing_pending_follow_requests(user)
 
     delete_or_deactivate(user)
   end
@@ -1574,6 +1588,13 @@ defmodule Pleroma.User do
     })
   end
 
+  def delete_notifications_from_user_activities(%User{ap_id: ap_id}) do
+    Notification
+    |> join(:inner, [n], activity in assoc(n, :activity))
+    |> where([n, a], fragment("? = ?", a.actor, ^ap_id))
+    |> Repo.delete_all()
+  end
+
   def delete_user_activities(%User{ap_id: ap_id} = user) do
     ap_id
     |> Activity.Queries.by_actor()
@@ -1610,6 +1631,12 @@ defmodule Pleroma.User do
   end
 
   defp delete_activity(_activity, _user), do: "Doing nothing"
+
+  defp delete_outgoing_pending_follow_requests(user) do
+    user
+    |> FollowingRelationship.outgoing_pending_follow_requests_query()
+    |> Repo.delete_all()
+  end
 
   def html_filter_policy(%User{no_rich_text: true}) do
     Pleroma.HTML.Scrubber.TwitterText

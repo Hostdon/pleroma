@@ -16,7 +16,6 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Builder
   alias Pleroma.Web.ActivityPub.Pipeline
-  alias Pleroma.Web.ActivityPub.Relay
   alias Pleroma.Web.AdminAPI
   alias Pleroma.Web.AdminAPI.AccountView
   alias Pleroma.Web.AdminAPI.ModerationLogView
@@ -59,7 +58,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   plug(
     OAuthScopesPlug,
     %{scopes: ["write:follows"], admin: true}
-    when action in [:user_follow, :user_unfollow, :relay_follow, :relay_unfollow]
+    when action in [:user_follow, :user_unfollow]
   )
 
   plug(
@@ -74,7 +73,6 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     when action in [
            :list_log,
            :stats,
-           :relay_list,
            :need_reboot
          ]
   )
@@ -228,10 +226,10 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
     activities =
       ActivityPub.fetch_statuses(nil, %{
-        "instance" => instance,
-        "limit" => page_size,
-        "offset" => (page - 1) * page_size,
-        "exclude_reblogs" => !with_reblogs && "true"
+        instance: instance,
+        limit: page_size,
+        offset: (page - 1) * page_size,
+        exclude_reblogs: not with_reblogs
       })
 
     conn
@@ -248,9 +246,9 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
       activities =
         ActivityPub.fetch_user_activities(user, nil, %{
-          "limit" => page_size,
-          "godmode" => godmode,
-          "exclude_reblogs" => !with_reblogs && "true"
+          limit: page_size,
+          godmode: godmode,
+          exclude_reblogs: not with_reblogs
         })
 
       conn
@@ -489,50 +487,6 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
   def right_delete(%{assigns: %{user: %{nickname: nickname}}} = conn, %{"nickname" => nickname}) do
     render_error(conn, :forbidden, "You can't revoke your own admin status.")
-  end
-
-  def relay_list(conn, _params) do
-    with {:ok, list} <- Relay.list() do
-      json(conn, %{relays: list})
-    else
-      _ ->
-        conn
-        |> put_status(500)
-    end
-  end
-
-  def relay_follow(%{assigns: %{user: admin}} = conn, %{"relay_url" => target}) do
-    with {:ok, _message} <- Relay.follow(target) do
-      ModerationLog.insert_log(%{
-        action: "relay_follow",
-        actor: admin,
-        target: target
-      })
-
-      json(conn, target)
-    else
-      _ ->
-        conn
-        |> put_status(500)
-        |> json(target)
-    end
-  end
-
-  def relay_unfollow(%{assigns: %{user: admin}} = conn, %{"relay_url" => target}) do
-    with {:ok, _message} <- Relay.unfollow(target) do
-      ModerationLog.insert_log(%{
-        action: "relay_unfollow",
-        actor: admin,
-        target: target
-      })
-
-      json(conn, target)
-    else
-      _ ->
-        conn
-        |> put_status(500)
-        |> json(target)
-    end
   end
 
   @doc "Get a password reset token (base64 string) for given nickname"

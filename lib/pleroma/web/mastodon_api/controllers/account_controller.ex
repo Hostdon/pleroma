@@ -165,6 +165,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
       end)
       |> Maps.put_if_present(:name, params[:display_name])
       |> Maps.put_if_present(:bio, params[:note])
+      |> Maps.put_if_present(:raw_bio, params[:note])
       |> Maps.put_if_present(:avatar, params[:avatar])
       |> Maps.put_if_present(:banner, params[:header])
       |> Maps.put_if_present(:background, params[:pleroma_background_image])
@@ -244,9 +245,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
       params =
         params
         |> Map.delete(:tagged)
-        |> Enum.filter(&(not is_nil(&1)))
-        |> Map.new(fn {key, value} -> {to_string(key), value} end)
-        |> Map.put("tag", params[:tagged])
+        |> Map.put(:tag, params[:tagged])
 
       activities = ActivityPub.fetch_user_activities(user, reading_user, params)
 

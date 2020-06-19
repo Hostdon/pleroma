@@ -160,9 +160,9 @@ defmodule Pleroma.Web.Router do
       :right_delete_multiple
     )
 
-    get("/relay", AdminAPIController, :relay_list)
-    post("/relay", AdminAPIController, :relay_follow)
-    delete("/relay", AdminAPIController, :relay_unfollow)
+    get("/relay", RelayController, :index)
+    post("/relay", RelayController, :follow)
+    delete("/relay", RelayController, :unfollow)
 
     post("/users/invite_token", InviteController, :create)
     get("/users/invites", InviteController, :index)
@@ -305,6 +305,15 @@ defmodule Pleroma.Web.Router do
   scope "/api/v1/pleroma", Pleroma.Web.PleromaAPI do
     scope [] do
       pipe_through(:authenticated_api)
+
+      post("/chats/by-account-id/:id", ChatController, :create)
+      get("/chats", ChatController, :index)
+      get("/chats/:id", ChatController, :show)
+      get("/chats/:id/messages", ChatController, :messages)
+      post("/chats/:id/messages", ChatController, :post_chat_message)
+      delete("/chats/:id/messages/:message_id", ChatController, :delete_message)
+      post("/chats/:id/read", ChatController, :mark_as_read)
+      post("/chats/:id/messages/:message_id/read", ChatController, :mark_message_as_read)
 
       get("/conversations/:id/statuses", ConversationController, :statuses)
       get("/conversations/:id", ConversationController, :show)
