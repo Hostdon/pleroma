@@ -199,6 +199,16 @@ defmodule Pleroma.UserTest do
     assert [^pending_follower] = User.get_follow_requests(locked)
   end
 
+  test "doesn't return follow requests for deactivated accounts" do
+    locked = insert(:user, locked: true)
+    pending_follower = insert(:user, %{deactivated: true})
+
+    CommonAPI.follow(pending_follower, locked)
+
+    assert true == pending_follower.deactivated
+    assert [] = User.get_follow_requests(locked)
+  end
+
   test "clears follow requests when requester is blocked" do
     followed = insert(:user, locked: true)
     follower = insert(:user)
@@ -585,6 +595,31 @@ defmodule Pleroma.UserTest do
       assert user.inbox
 
       refute user.last_refreshed_at == orig_user.last_refreshed_at
+    end
+
+    test "if nicknames clash, the old user gets a prefix with the old id to the nickname" do
+      a_week_ago = NaiveDateTime.add(NaiveDateTime.utc_now(), -604_800)
+
+      orig_user =
+        insert(
+          :user,
+          local: false,
+          nickname: "admin@mastodon.example.org",
+          ap_id: "http://mastodon.example.org/users/harinezumigari",
+          last_refreshed_at: a_week_ago
+        )
+
+      assert orig_user.last_refreshed_at == a_week_ago
+
+      {:ok, user} = User.get_or_fetch_by_ap_id("http://mastodon.example.org/users/admin")
+
+      assert user.inbox
+
+      refute user.id == orig_user.id
+
+      orig_user = User.get_by_id(orig_user.id)
+
+      assert orig_user.nickname == "#{orig_user.id}.admin@mastodon.example.org"
     end
 
     @tag capture_log: true
@@ -1342,11 +1377,11 @@ defmodule Pleroma.UserTest do
     end
   end
 
-  describe "visible_for?/2" do
+  describe "visible_for/2" do
     test "returns true when the account is itself" do
       user = insert(:user, local: true)
 
-      assert User.visible_for?(user, user)
+      assert User.visible_for(user, user) == :visible
     end
 
     test "returns false when the account is unauthenticated and auth is required" do
@@ -1355,14 +1390,14 @@ defmodule Pleroma.UserTest do
       user = insert(:user, local: true, confirmation_pending: true)
       other_user = insert(:user, local: true)
 
-      refute User.visible_for?(user, other_user)
+      refute User.visible_for(user, other_user) == :visible
     end
 
     test "returns true when the account is unauthenticated and auth is not required" do
       user = insert(:user, local: true, confirmation_pending: true)
       other_user = insert(:user, local: true)
 
-      assert User.visible_for?(user, other_user)
+      assert User.visible_for(user, other_user) == :visible
     end
 
     test "returns true when the account is unauthenticated and being viewed by a privileged account (auth required)" do
@@ -1371,7 +1406,7 @@ defmodule Pleroma.UserTest do
       user = insert(:user, local: true, confirmation_pending: true)
       other_user = insert(:user, local: true, is_admin: true)
 
-      assert User.visible_for?(user, other_user)
+      assert User.visible_for(user, other_user) == :visible
     end
   end
 

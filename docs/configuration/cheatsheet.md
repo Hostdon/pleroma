@@ -18,6 +18,7 @@ To add configuration to your config file, you can copy it from the base config. 
 * `notify_email`: Email used for notifications.
 * `description`: The instance’s description, can be seen in nodeinfo and ``/api/v1/instance``.
 * `limit`: Posts character limit (CW/Subject included in the counter).
+* `discription_limit`: The character limit for image descriptions.
 * `chat_limit`: Character limit of the instance chat messages.
 * `remote_limit`: Hard character limit beyond which remote posts will be dropped.
 * `upload_limit`: File size limit of uploads (except for avatar, background, banner).
@@ -36,31 +37,15 @@ To add configuration to your config file, you can copy it from the base config. 
 * `federation_incoming_replies_max_depth`: Max. depth of reply-to activities fetching on incoming federation, to prevent out-of-memory situations while fetching very long threads. If set to `nil`, threads of any depth will be fetched. Lower this value if you experience out-of-memory crashes.
 * `federation_reachability_timeout_days`: Timeout (in days) of each external federation target being unreachable prior to pausing federating to it.
 * `allow_relay`: Enable Pleroma’s Relay, which makes it possible to follow a whole instance.
-* `rewrite_policy`: Message Rewrite Policy, either one or a list. Here are the ones available by default:
-    * `Pleroma.Web.ActivityPub.MRF.NoOpPolicy`: Doesn’t modify activities (default).
-    * `Pleroma.Web.ActivityPub.MRF.DropPolicy`: Drops all activities. It generally doesn’t makes sense to use in production.
-    * `Pleroma.Web.ActivityPub.MRF.SimplePolicy`: Restrict the visibility of activities from certain instances (See [`:mrf_simple`](#mrf_simple)).
-    * `Pleroma.Web.ActivityPub.MRF.TagPolicy`: Applies policies to individual users based on tags, which can be set using pleroma-fe/admin-fe/any other app that supports Pleroma Admin API. For example it allows marking posts from individual users nsfw (sensitive).
-    * `Pleroma.Web.ActivityPub.MRF.SubchainPolicy`: Selectively runs other MRF policies when messages match (See [`:mrf_subchain`](#mrf_subchain)).
-    * `Pleroma.Web.ActivityPub.MRF.RejectNonPublic`: Drops posts with non-public visibility settings (See [`:mrf_rejectnonpublic`](#mrf_rejectnonpublic)).
-    * `Pleroma.Web.ActivityPub.MRF.EnsureRePrepended`: Rewrites posts to ensure that replies to posts with subjects do not have an identical subject and instead begin with re:.
-    * `Pleroma.Web.ActivityPub.MRF.AntiLinkSpamPolicy`: Rejects posts from likely spambots by rejecting posts from new users that contain links.
-    * `Pleroma.Web.ActivityPub.MRF.MediaProxyWarmingPolicy`: Crawls attachments using their MediaProxy URLs so that the MediaProxy cache is primed.
-    * `Pleroma.Web.ActivityPub.MRF.MentionPolicy`: Drops posts mentioning configurable users. (See [`:mrf_mention`](#mrf_mention)).
-    * `Pleroma.Web.ActivityPub.MRF.VocabularyPolicy`: Restricts activities to a configured set of vocabulary. (See [`:mrf_vocabulary`](#mrf_vocabulary)).
-    * `Pleroma.Web.ActivityPub.MRF.ObjectAgePolicy`: Rejects or delists posts based on their age when received. (See [`:mrf_object_age`](#mrf_object_age)).
-    * `Pleroma.Web.ActivityPub.MRF.ActivityExpirationPolicy`: Adds expiration to all local Create activities (see [`:mrf_activity_expiration`](#mrf_activity_expiration)).
-* `public`: Makes the client API in authenticated mode-only except for user-profiles. Useful for disabling the Local Timeline and The Whole Known Network.
+* `public`: Makes the client API in authenticated mode-only except for user-profiles. Useful for disabling the Local Timeline and The Whole Known Network. See also: `restrict_unauthenticated`.
 * `quarantined_instances`: List of ActivityPub instances where private(DMs, followers-only) activities will not be send.
 * `managed_config`: Whenether the config for pleroma-fe is configured in [:frontend_configurations](#frontend_configurations) or in ``static/config.json``.
 * `allowed_post_formats`: MIME-type list of formats allowed to be posted (transformed into HTML).
-* `mrf_transparency`: Make the content of your Message Rewrite Facility settings public (via nodeinfo).
-* `mrf_transparency_exclusions`: Exclude specific instance names from MRF transparency.  The use of the exclusions feature will be disclosed in nodeinfo as a boolean value.
 * `extended_nickname_format`: Set to `true` to use extended local nicknames format (allows underscores/dashes). This will break federation with
     older software for theses nicknames.
 * `max_pinned_statuses`: The maximum number of pinned statuses. `0` will disable the feature.
 * `autofollowed_nicknames`: Set to nicknames of (local) users that every new user should automatically follow.
-* `no_attachment_links`: Set to true to disable automatically adding attachment link text to statuses.
+* `attachment_links`: Set to true to enable automatically adding attachment link text to statuses.
 * `welcome_message`: A message that will be send to a newly registered users as a direct message.
 * `welcome_user_nickname`: The nickname of the local user that sends the welcome message.
 * `max_report_comment_size`: The maximum size of the report comment (Default: `1000`).
@@ -78,11 +63,30 @@ To add configuration to your config file, you can copy it from the base config. 
 * `external_user_synchronization`: Enabling following/followers counters synchronization for external users.
 * `cleanup_attachments`: Remove attachments along with statuses. Does not affect duplicate files and attachments without status. Enabling this will increase load to database when deleting statuses on larger instances.
 
+## Message rewrite facility
+
+### :mrf
+* `policies`: Message Rewrite Policy, either one or a list. Here are the ones available by default:
+    * `Pleroma.Web.ActivityPub.MRF.NoOpPolicy`: Doesn’t modify activities (default).
+    * `Pleroma.Web.ActivityPub.MRF.DropPolicy`: Drops all activities. It generally doesn’t makes sense to use in production.
+    * `Pleroma.Web.ActivityPub.MRF.SimplePolicy`: Restrict the visibility of activities from certains instances (See [`:mrf_simple`](#mrf_simple)).
+    * `Pleroma.Web.ActivityPub.MRF.TagPolicy`: Applies policies to individual users based on tags, which can be set using pleroma-fe/admin-fe/any other app that supports Pleroma Admin API. For example it allows marking posts from individual users nsfw (sensitive).
+    * `Pleroma.Web.ActivityPub.MRF.SubchainPolicy`: Selectively runs other MRF policies when messages match (See [`:mrf_subchain`](#mrf_subchain)).
+    * `Pleroma.Web.ActivityPub.MRF.RejectNonPublic`: Drops posts with non-public visibility settings (See [`:mrf_rejectnonpublic`](#mrf_rejectnonpublic)).
+    * `Pleroma.Web.ActivityPub.MRF.EnsureRePrepended`: Rewrites posts to ensure that replies to posts with subjects do not have an identical subject and instead begin with re:.
+    * `Pleroma.Web.ActivityPub.MRF.AntiLinkSpamPolicy`: Rejects posts from likely spambots by rejecting posts from new users that contain links.
+    * `Pleroma.Web.ActivityPub.MRF.MediaProxyWarmingPolicy`: Crawls attachments using their MediaProxy URLs so that the MediaProxy cache is primed.
+    * `Pleroma.Web.ActivityPub.MRF.MentionPolicy`: Drops posts mentioning configurable users. (See [`:mrf_mention`](#mrf_mention)).
+    * `Pleroma.Web.ActivityPub.MRF.VocabularyPolicy`: Restricts activities to a configured set of vocabulary. (See [`:mrf_vocabulary`](#mrf_vocabulary)).
+    * `Pleroma.Web.ActivityPub.MRF.ObjectAgePolicy`: Rejects or delists posts based on their age when received. (See [`:mrf_object_age`](#mrf_object_age)).
+* `transparency`: Make the content of your Message Rewrite Facility settings public (via nodeinfo).
+* `transparency_exclusions`: Exclude specific instance names from MRF transparency.  The use of the exclusions feature will be disclosed in nodeinfo as a boolean value.
+
 ## Federation
 ### MRF policies
 
 !!! note
-    Configuring MRF policies is not enough for them to take effect. You have to enable them by specifying their module in `rewrite_policy` under [:instance](#instance) section.
+    Configuring MRF policies is not enough for them to take effect. You have to enable them by specifying their module in `policies` under [:mrf](#mrf) section.
 
 #### :mrf_simple
 * `media_removal`: List of instances to remove media from.
@@ -151,7 +155,7 @@ config :pleroma, :mrf_user_allowlist, %{
   * `:strip_followers` removes followers from the ActivityPub recipient list, ensuring they won't be delivered to home timelines
   * `:reject` rejects the message entirely
 
-#### mrf_steal_emoji
+#### :mrf_steal_emoji
 * `hosts`: List of hosts to steal emojis from
 * `rejected_shortcodes`: Regex-list of shortcodes to reject
 * `size_limit`: File size limit (in bytes), checked before an emoji is saved to the disk
@@ -268,7 +272,7 @@ This section describe PWA manifest instance-specific values. Currently this opti
 
 #### Pleroma.Web.MediaProxy.Invalidation.Script
 
-This strategy allow perform external bash script to purge cache.
+This strategy allow perform external shell script to purge cache.
 Urls of attachments pass to script as arguments.
 
 * `script_path`: path to external script.
@@ -284,8 +288,8 @@ config :pleroma, Pleroma.Web.MediaProxy.Invalidation.Script,
 This strategy allow perform custom http request to purge cache.
 
 * `method`: http method. default is `purge`
-* `headers`: http headers. default is empty
-* `options`: request options. default is empty
+* `headers`: http headers.
+* `options`: request options.
 
 Example:
 ```elixir
@@ -967,19 +971,26 @@ config :pleroma, :database_config_whitelist, [
 
 ### :restrict_unauthenticated
 
-Restrict access for unauthenticated users to timelines (public and federate), user profiles and statuses.
+Restrict access for unauthenticated users to timelines (public and federated), user profiles and statuses.
 
-* `timelines` - public and federated timelines
-  * `local` - public timeline
-  * `federated`
-* `profiles` - user profiles
+* `timelines`: public and federated timelines
+  * `local`: public timeline
+  * `federated`: federated timeline (includes public timeline)
+* `profiles`: user profiles
   * `local`
   * `remote`
-* `activities` - statuses
+* `activities`: statuses
   * `local`
   * `remote`
 
+Note: setting `restrict_unauthenticated/timelines/local` to `true` has no practical sense if `restrict_unauthenticated/timelines/federated` is set to `false` (since local public activities will still be delivered to unauthenticated users as part of federated timeline). 
 
 ## Pleroma.Web.ApiSpec.CastAndValidate
 
 * `:strict` a boolean, enables strict input validation (useful in development, not recommended in production). Defaults to `false`.
+
+## :instances_favicons
+
+Control favicons for instances.
+
+* `enabled`: Allow/disallow displaying and getting instances favicons

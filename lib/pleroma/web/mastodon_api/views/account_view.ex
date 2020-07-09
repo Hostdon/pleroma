@@ -35,7 +35,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
   end
 
   def render("show.json", %{user: user} = opts) do
-    if User.visible_for?(user, opts[:for]) do
+    if User.visible_for(user, opts[:for]) == :visible do
       do_render("show.json", opts)
     else
       %{}
@@ -179,7 +179,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
         0
       end
 
-    bot = user.actor_type in ["Application", "Service"]
+    bot = user.actor_type == "Service"
 
     emojis =
       Enum.map(user.emoji, fn {shortcode, raw_url} ->
@@ -202,6 +202,18 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
         })
       else
         %{}
+      end
+
+    favicon =
+      if Pleroma.Config.get([:instances_favicons, :enabled]) do
+        user
+        |> Map.get(:ap_id, "")
+        |> URI.parse()
+        |> URI.merge("/")
+        |> Pleroma.Instances.Instance.get_or_update_favicon()
+        |> MediaProxy.url()
+      else
+        nil
       end
 
     %{
@@ -245,7 +257,8 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
         hide_favorites: user.hide_favorites,
         relationship: relationship,
         skip_thread_containment: user.skip_thread_containment,
-        background_image: image_url(user.background) |> MediaProxy.url()
+        background_image: image_url(user.background) |> MediaProxy.url(),
+        favicon: favicon
       }
     }
     |> maybe_put_role(user, opts[:for])

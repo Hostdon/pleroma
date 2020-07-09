@@ -102,6 +102,7 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
       parameters: [%Reference{"$ref": "#/components/parameters/accountIdOrNickname"}],
       responses: %{
         200 => Operation.response("Account", "application/json", Account),
+        401 => Operation.response("Error", "application/json", ApiError),
         404 => Operation.response("Error", "application/json", ApiError)
       }
     }
@@ -142,6 +143,7 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
         ] ++ pagination_params(),
       responses: %{
         200 => Operation.response("Statuses", "application/json", array_of_statuses()),
+        401 => Operation.response("Error", "application/json", ApiError),
         404 => Operation.response("Error", "application/json", ApiError)
       }
     }
@@ -201,14 +203,23 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
       security: [%{"oAuth" => ["follow", "write:follows"]}],
       description: "Follow the given account",
       parameters: [
-        %Reference{"$ref": "#/components/parameters/accountIdOrNickname"},
-        Operation.parameter(
-          :reblogs,
-          :query,
-          BooleanLike,
-          "Receive this account's reblogs in home timeline? Defaults to true."
-        )
+        %Reference{"$ref": "#/components/parameters/accountIdOrNickname"}
       ],
+      requestBody:
+        request_body(
+          "Parameters",
+          %Schema{
+            type: :object,
+            properties: %{
+              reblogs: %Schema{
+                type: :boolean,
+                description: "Receive this account's reblogs in home timeline? Defaults to true.",
+                default: true
+              }
+            }
+          },
+          required: false
+        ),
       responses: %{
         200 => Operation.response("Relationship", "application/json", AccountRelationship),
         400 => Operation.response("Error", "application/json", ApiError),
@@ -436,6 +447,7 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
     }
   end
 
+  # TODO: This is actually a token respone, but there's no oauth operation file yet.
   defp create_response do
     %Schema{
       title: "AccountCreateResponse",
@@ -444,14 +456,20 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
       properties: %{
         token_type: %Schema{type: :string},
         access_token: %Schema{type: :string},
-        scope: %Schema{type: :array, items: %Schema{type: :string}},
-        created_at: %Schema{type: :integer, format: :"date-time"}
+        refresh_token: %Schema{type: :string},
+        scope: %Schema{type: :string},
+        created_at: %Schema{type: :integer, format: :"date-time"},
+        me: %Schema{type: :string},
+        expires_in: %Schema{type: :integer}
       },
       example: %{
+        "token_type" => "Bearer",
         "access_token" => "i9hAVVzGld86Pl5JtLtizKoXVvtTlSCJvwaugCxvZzk",
+        "refresh_token" => "i9hAVVzGld86Pl5JtLtizKoXVvtTlSCJvwaugCxvZzz",
         "created_at" => 1_585_918_714,
-        "scope" => ["read", "write", "follow", "push"],
-        "token_type" => "Bearer"
+        "expires_in" => 600,
+        "scope" => "read write follow push",
+        "me" => "https://gensokyo.2hu/users/raymoo"
       }
     }
   end

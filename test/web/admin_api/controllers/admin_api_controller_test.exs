@@ -1599,14 +1599,14 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       assert patch(conn, "/api/pleroma/admin/users/#{user.nickname}/credentials", %{
                "actor_type" => "Application"
              })
-             |> json_response(200) == %{"errors" => %{"actor_type" => "is invalid"}}
+             |> json_response(400) == %{"errors" => %{"actor_type" => "is invalid"}}
     end
 
     test "update non existing user", %{conn: conn} do
       assert patch(conn, "/api/pleroma/admin/users/non-existing/credentials", %{
                "password" => "new_password"
              })
-             |> json_response(200) == %{"error" => "Unable to update user."}
+             |> json_response(404) == %{"error" => "Not found"}
     end
   end
 
@@ -1730,6 +1730,26 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
         |> json_response(200)
 
       assert %{"direct" => 0, "private" => 0, "public" => 1, "unlisted" => 2} =
+               response["status_visibility"]
+    end
+
+    test "by instance", %{conn: conn} do
+      admin = insert(:user, is_admin: true)
+      user1 = insert(:user)
+      instance2 = "instance2.tld"
+      user2 = insert(:user, %{ap_id: "https://#{instance2}/@actor"})
+
+      CommonAPI.post(user1, %{visibility: "public", status: "hey"})
+      CommonAPI.post(user2, %{visibility: "unlisted", status: "hey"})
+      CommonAPI.post(user2, %{visibility: "private", status: "hey"})
+
+      response =
+        conn
+        |> assign(:user, admin)
+        |> get("/api/pleroma/admin/stats", instance: instance2)
+        |> json_response(200)
+
+      assert %{"direct" => 0, "private" => 1, "public" => 0, "unlisted" => 1} =
                response["status_visibility"]
     end
   end

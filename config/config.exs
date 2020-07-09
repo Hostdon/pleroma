@@ -97,6 +97,7 @@ config :pleroma, :uri_schemes,
     "dat",
     "dweb",
     "gopher",
+    "hyper",
     "ipfs",
     "ipns",
     "irc",
@@ -186,7 +187,9 @@ config :pleroma, :instance,
   notify_email: "noreply@example.com",
   description: "Pleroma: An efficient and flexible fediverse server",
   background_image: "/images/city.jpg",
+  instance_thumbnail: "/instance/thumbnail.jpeg",
   limit: 5_000,
+  description_limit: 5_000,
   chat_limit: 5_000,
   remote_limit: 100_000,
   upload_limit: 16_000_000,
@@ -209,7 +212,6 @@ config :pleroma, :instance,
     Pleroma.Web.ActivityPub.Publisher
   ],
   allow_relay: true,
-  rewrite_policy: Pleroma.Web.ActivityPub.MRF.NoOpPolicy,
   public: true,
   quarantined_instances: [],
   managed_config: true,
@@ -408,6 +410,13 @@ config :pleroma, :media_proxy,
   ],
   whitelist: []
 
+config :pleroma, Pleroma.Web.MediaProxy.Invalidation.Http,
+  method: :purge,
+  headers: [],
+  options: []
+
+config :pleroma, Pleroma.Web.MediaProxy.Invalidation.Script, script_path: nil
+
 config :pleroma, :chat, enabled: true
 
 config :phoenix, :format_encoders, json: Jason
@@ -429,6 +438,11 @@ config :pleroma, Pleroma.Web.Metadata,
     Pleroma.Web.Metadata.Providers.Feed
   ],
   unfurl_nsfw: false
+
+config :pleroma, Pleroma.Web.Preload,
+  providers: [
+    Pleroma.Web.Preload.Providers.Instance
+  ]
 
 config :pleroma, :http_security,
   enabled: true,
@@ -685,6 +699,17 @@ config :pleroma, :restrict_unauthenticated,
   activities: %{local: false, remote: false}
 
 config :pleroma, Pleroma.Web.ApiSpec.CastAndValidate, strict: false
+
+config :pleroma, :mrf,
+  policies: Pleroma.Web.ActivityPub.MRF.NoOpPolicy,
+  transparency: true,
+  transparency_exclusions: []
+
+config :tzdata, :http_client, Pleroma.HTTP.Tzdata
+
+config :ex_aws, http_client: Pleroma.HTTP.ExAws
+
+config :pleroma, :instances_favicons, enabled: false
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

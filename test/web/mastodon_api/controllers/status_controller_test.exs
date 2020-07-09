@@ -760,13 +760,18 @@ defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
     test "when you created it" do
       %{user: author, conn: conn} = oauth_access(["write:statuses"])
       activity = insert(:note_activity, user: author)
+      object = Object.normalize(activity)
 
-      conn =
+      content = object.data["content"]
+      source = object.data["source"]
+
+      result =
         conn
         |> assign(:user, author)
         |> delete("/api/v1/statuses/#{activity.id}")
+        |> json_response_and_validate_schema(200)
 
-      assert %{} = json_response_and_validate_schema(conn, 200)
+      assert match?(%{"content" => ^content, "text" => ^source}, result)
 
       refute Activity.get_by_id(activity.id)
     end
@@ -789,7 +794,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
 
       conn = delete(conn, "/api/v1/statuses/#{activity.id}")
 
-      assert %{"error" => _} = json_response_and_validate_schema(conn, 403)
+      assert %{"error" => "Record not found"} == json_response_and_validate_schema(conn, 404)
 
       assert Activity.get_by_id(activity.id) == activity
     end
@@ -1561,7 +1566,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
 
     # Using the header for pagination works correctly
     [next, _] = get_resp_header(result, "link") |> hd() |> String.split(", ")
-    [_, max_id] = Regex.run(~r/max_id=(.*)>;/, next)
+    [_, max_id] = Regex.run(~r/max_id=([^&]+)/, next)
 
     assert max_id == third_favorite.id
 
