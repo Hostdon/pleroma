@@ -6,6 +6,7 @@ secret
 /*.ez
 /test/uploads
 /.elixir_ls
+/test/fixtures/DSCN0010_tmp.jpg
 /test/fixtures/test_tmp.txt
 /test/fixtures/image_tmp.jpg
 /test/tmp/
@@ -27,6 +28,8 @@ erl_crash.dump
 # variables.
 /config/*.secret.exs
 /config/generated_config.exs
+/config/*.env
+
 
 # Database setup file, some may forget to delete it
 /config/setup_db.psql

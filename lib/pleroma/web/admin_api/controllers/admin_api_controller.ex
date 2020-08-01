@@ -44,6 +44,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
            :user_toggle_activation,
            :user_activate,
            :user_deactivate,
+           :user_approve,
            :tag_users,
            :untag_users,
            :right_add,
@@ -206,8 +207,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     end
   end
 
-  def user_show(conn, %{"nickname" => nickname}) do
-    with %User{} = user <- User.get_cached_by_nickname_or_id(nickname) do
+  def user_show(%{assigns: %{user: admin}} = conn, %{"nickname" => nickname}) do
+    with %User{} = user <- User.get_cached_by_nickname_or_id(nickname, for: admin) do
       conn
       |> put_view(AccountView)
       |> render("show.json", %{user: user})
@@ -233,11 +234,11 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     |> render("index.json", %{activities: activities, as: :activity})
   end
 
-  def list_user_statuses(conn, %{"nickname" => nickname} = params) do
+  def list_user_statuses(%{assigns: %{user: admin}} = conn, %{"nickname" => nickname} = params) do
     with_reblogs = params["with_reblogs"] == "true" || params["with_reblogs"] == true
     godmode = params["godmode"] == "true" || params["godmode"] == true
 
-    with %User{} = user <- User.get_cached_by_nickname_or_id(nickname) do
+    with %User{} = user <- User.get_cached_by_nickname_or_id(nickname, for: admin) do
       {_, page_size} = page_params(params)
 
       activities =
@@ -303,6 +304,21 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     |> render("index.json", %{users: Keyword.values(updated_users)})
   end
 
+  def user_approve(%{assigns: %{user: admin}} = conn, %{"nicknames" => nicknames}) do
+    users = Enum.map(nicknames, &User.get_cached_by_nickname/1)
+    {:ok, updated_users} = User.approve(users)
+
+    ModerationLog.insert_log(%{
+      actor: admin,
+      subject: users,
+      action: "approve"
+    })
+
+    conn
+    |> put_view(AccountView)
+    |> render("index.json", %{users: updated_users})
+  end
+
   def tag_users(%{assigns: %{user: admin}} = conn, %{"nicknames" => nicknames, "tags" => tags}) do
     with {:ok, _} <- User.tag(nicknames, tags) do
       ModerationLog.insert_log(%{
@@ -345,12 +361,16 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     with {:ok, users, count} <- Search.user(Map.merge(search_params, filters)) do
       json(
         conn,
-        AccountView.render("index.json", users: users, count: count, page_size: page_size)
+        AccountView.render("index.json",
+          users: users,
+          count: count,
+          page_size: page_size
+        )
       )
     end
   end
 
-  @filters ~w(local external active deactivated is_admin is_moderator)
+  @filters ~w(local external active deactivated need_approval is_admin is_moderator)
 
   @spec maybe_parse_filters(String.t()) :: %{required(String.t()) => true} | %{}
   defp maybe_parse_filters(filters) when is_nil(filters) or filters == "", do: %{}
@@ -526,7 +546,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
   @doc "Show a given user's credentials"
   def show_user_credentials(%{assigns: %{user: admin}} = conn, %{"nickname" => nickname}) do
-    with %User{} = user <- User.get_cached_by_nickname_or_id(nickname) do
+    with %User{} = user <- User.get_cached_by_nickname_or_id(nickname, for: admin) do
       conn
       |> put_view(AccountView)
       |> render("credentials.json", %{user: user, for: admin})
@@ -616,29 +636,24 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   end
 
   def confirm_email(%{assigns: %{user: admin}} = conn, %{"nicknames" => nicknames}) do
-    users = nicknames |> Enum.map(&User.get_cached_by_nickname/1)
+    users = Enum.map(nicknames, &User.get_cached_by_nickname/1)
 
     User.toggle_confirmation(users)
 
-    ModerationLog.insert_log(%{
-      actor: admin,
-      subject: users,
-      action: "confirm_email"
-    })
+    ModerationLog.insert_log(%{actor: admin, subject: users, action: "confirm_email"})
 
     json(conn, "")
   end
 
   def resend_confirmation_email(%{assigns: %{user: admin}} = conn, %{"nicknames" => nicknames}) do
-    users = nicknames |> Enum.map(&User.get_cached_by_nickname/1)
+    users =
+      Enum.map(nicknames, fn nickname ->
+        nickname
+        |> User.get_cached_by_nickname()
+        |> User.send_confirmation_email()
+      end)
 
-    User.try_send_confirmation_email(users)
-
-    ModerationLog.insert_log(%{
-      actor: admin,
-      subject: users,
-      action: "resend_confirmation_email"
-    })
+    ModerationLog.insert_log(%{actor: admin, subject: users, action: "resend_confirmation_email"})
 
     json(conn, "")
   end

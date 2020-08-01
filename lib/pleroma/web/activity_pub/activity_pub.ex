@@ -1226,6 +1226,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       end)
 
     locked = data["manuallyApprovesFollowers"] || false
+    capabilities = data["capabilities"] || %{}
+    accepts_chat_messages = capabilities["acceptsChatMessages"]
     data = Transmogrifier.maybe_fix_user_object(data)
     discoverable = data["discoverable"] || false
     invisible = data["invisible"] || false
@@ -1264,7 +1266,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       also_known_as: Map.get(data, "alsoKnownAs", []),
       public_key: public_key,
       inbox: data["inbox"],
-      shared_inbox: shared_inbox
+      shared_inbox: shared_inbox,
+      accepts_chat_messages: accepts_chat_messages
     }
 
     # nickname can be nil because of virtual actors
@@ -1367,19 +1370,38 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
         Logger.debug("Could not decode user at fetch #{ap_id}, #{inspect(e)}")
         {:error, e}
 
+      {:error, {:reject, reason} = e} ->
+        Logger.info("Rejected user #{ap_id}: #{inspect(reason)}")
+        {:error, e}
+
       {:error, e} ->
         Logger.error("Could not decode user at fetch #{ap_id}, #{inspect(e)}")
         {:error, e}
     end
   end
 
-  def maybe_handle_clashing_nickname(nickname) do
-    with %User{} = old_user <- User.get_by_nickname(nickname) do
-      Logger.info("Found an old user for #{nickname}, ap id is #{old_user.ap_id}, renaming.")
+  def maybe_handle_clashing_nickname(data) do
+    nickname = data[:nickname]
+
+    with %User{} = old_user <- User.get_by_nickname(nickname),
+         {_, false} <- {:ap_id_comparison, data[:ap_id] == old_user.ap_id} do
+      Logger.info(
+        "Found an old user for #{nickname}, the old ap id is #{old_user.ap_id}, new one is #{
+          data[:ap_id]
+        }, renaming."
+      )
 
       old_user
       |> User.remote_user_changeset(%{nickname: "#{old_user.id}.#{old_user.nickname}"})
       |> User.update_and_set_cache()
+    else
+      {:ap_id_comparison, true} ->
+        Logger.info(
+          "Found an old user for #{nickname}, but the ap id #{data[:ap_id]} is the same as the new user. Race condition? Not changing anything."
+        )
+
+      _ ->
+        nil
     end
   end
 
@@ -1395,7 +1417,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
           |> User.remote_user_changeset(data)
           |> User.update_and_set_cache()
         else
-          maybe_handle_clashing_nickname(data[:nickname])
+          maybe_handle_clashing_nickname(data)
 
           data
           |> User.remote_user_changeset()

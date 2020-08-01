@@ -160,7 +160,7 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
 
       assert capture_log(fn ->
                {:ok, _returned_activity} = Transmogrifier.handle_incoming(data)
-             end) =~ "[error] Couldn't fetch \"https://404.site/whatever\", error: nil"
+             end) =~ "[warn] Couldn't fetch \"https://404.site/whatever\", error: nil"
     end
 
     test "it works for incoming notices" do
@@ -710,7 +710,7 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
         "id" => activity.data["id"],
         "content" => "test post",
         "published" => object.data["published"],
-        "actor" => AccountView.render("show.json", %{user: user})
+        "actor" => AccountView.render("show.json", %{user: user, skip_visibility_check: true})
       }
 
       message = %{
@@ -761,6 +761,29 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
         "type" => "Create",
         "object" => %{
           "content" => "blah blah blah",
+          "type" => "Note",
+          "attributedTo" => user.ap_id,
+          "inReplyTo" => nil
+        },
+        "actor" => user.ap_id
+      }
+
+      assert {:ok, activity} = Transmogrifier.handle_incoming(message)
+
+      assert ["https://www.w3.org/ns/activitystreams#Public"] == activity.data["cc"]
+      assert [user.follower_address] == activity.data["to"]
+    end
+
+    test "it correctly processes messages with weirdness in address fields" do
+      user = insert(:user)
+
+      message = %{
+        "@context" => "https://www.w3.org/ns/activitystreams",
+        "to" => [nil, user.follower_address],
+        "cc" => ["https://www.w3.org/ns/activitystreams#Public", ["¿"]],
+        "type" => "Create",
+        "object" => %{
+          "content" => "…",
           "type" => "Note",
           "attributedTo" => user.ap_id,
           "inReplyTo" => nil

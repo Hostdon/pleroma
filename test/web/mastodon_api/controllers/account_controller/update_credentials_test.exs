@@ -108,6 +108,13 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController.UpdateCredentialsTest do
       assert user_data["locked"] == true
     end
 
+    test "updates the user's chat acceptance status", %{conn: conn} do
+      conn = patch(conn, "/api/v1/accounts/update_credentials", %{accepts_chat_messages: "false"})
+
+      assert user_data = json_response_and_validate_schema(conn, 200)
+      assert user_data["pleroma"]["accepts_chat_messages"] == false
+    end
+
     test "updates the user's allow_following_move", %{user: user, conn: conn} do
       assert user.allow_following_move == true
 
@@ -342,6 +349,30 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController.UpdateCredentialsTest do
                },
                %{"name" => "link.io", "value" => "cofe.io"}
              ]
+    end
+
+    test "emojis in fields labels", %{conn: conn} do
+      fields = [
+        %{"name" => ":firefox:", "value" => "is best 2hu"},
+        %{"name" => "they wins", "value" => ":blank:"}
+      ]
+
+      account_data =
+        conn
+        |> patch("/api/v1/accounts/update_credentials", %{"fields_attributes" => fields})
+        |> json_response_and_validate_schema(200)
+
+      assert account_data["fields"] == [
+               %{"name" => ":firefox:", "value" => "is best 2hu"},
+               %{"name" => "they wins", "value" => ":blank:"}
+             ]
+
+      assert account_data["source"]["fields"] == [
+               %{"name" => ":firefox:", "value" => "is best 2hu"},
+               %{"name" => "they wins", "value" => ":blank:"}
+             ]
+
+      assert [%{"shortcode" => "blank"}, %{"shortcode" => "firefox"}] = account_data["emojis"]
     end
 
     test "update fields via x-www-form-urlencoded", %{conn: conn} do

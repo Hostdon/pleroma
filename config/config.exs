@@ -205,6 +205,7 @@ config :pleroma, :instance,
   registrations_open: true,
   invites_enabled: false,
   account_activation_required: false,
+  account_approval_required: false,
   federating: true,
   federation_incoming_replies_max_depth: 100,
   federation_reachability_timeout_days: 7,
@@ -228,8 +229,6 @@ config :pleroma, :instance,
   autofollowed_nicknames: [],
   max_pinned_statuses: 1,
   attachment_links: false,
-  welcome_user_nickname: nil,
-  welcome_message: nil,
   max_report_comment_size: 1000,
   safe_dm_mentions: false,
   healthcheck: false,
@@ -242,6 +241,7 @@ config :pleroma, :instance,
   max_remote_account_fields: 20,
   account_field_name_length: 512,
   account_field_value_length: 2048,
+  registration_reason_length: 500,
   external_user_synchronization: true,
   extended_nickname_format: true,
   cleanup_attachments: false,
@@ -255,6 +255,21 @@ config :pleroma, :instance,
       number: 5,
       length: 16
     ]
+  ],
+  show_reactions: true
+
+config :pleroma, :welcome,
+  direct_message: [
+    enabled: false,
+    sender_nickname: nil,
+    message: nil
+  ],
+  email: [
+    enabled: false,
+    sender: nil,
+    subject: "Welcome to <%= instance_name %>",
+    html: "Welcome to <%= instance_name %>",
+    text: "Welcome to <%= instance_name %>"
   ]
 
 config :pleroma, :feed,
@@ -501,8 +516,7 @@ config :pleroma, Pleroma.User,
 
 config :pleroma, Oban,
   repo: Pleroma.Repo,
-  verbose: false,
-  prune: {:maxlen, 1500},
+  log: false,
   queues: [
     activity_expiration: 10,
     federator_incoming: 50,
@@ -516,6 +530,7 @@ config :pleroma, Oban,
     attachments_cleanup: 5,
     new_users_digest: 1
   ],
+  plugins: [Oban.Plugins.Pruner],
   crontab: [
     {"0 0 * * *", Pleroma.Workers.Cron.ClearOauthTokenWorker},
     {"0 * * * *", Pleroma.Workers.Cron.StatsWorker},
@@ -530,16 +545,14 @@ config :pleroma, :workers,
     federator_outgoing: 5
   ]
 
-config :auto_linker,
-  opts: [
-    extra: true,
-    # TODO: Set to :no_scheme when it works properly
-    validate_tld: true,
-    class: false,
-    strip_prefix: false,
-    new_window: false,
-    rel: "ugc"
-  ]
+config :pleroma, Pleroma.Formatter,
+  class: false,
+  rel: "ugc",
+  new_window: false,
+  truncate: false,
+  strip_prefix: false,
+  extra: true,
+  validate_tld: :no_scheme
 
 config :pleroma, :ldap,
   enabled: System.get_env("LDAP_ENABLED") == "true",
@@ -638,6 +651,16 @@ config :pleroma, Pleroma.Plugs.RemoteIp, enabled: true
 
 config :pleroma, :static_fe, enabled: false
 
+# Example of frontend configuration
+# This example will make us serve the primary frontend from the
+# frontends directory within your `:pleroma, :instance, static_dir`.
+# e.g., instance/static/frontends/pleroma/develop/
+#
+# With no frontend configuration, the bundled files from the `static` directory will
+# be used.
+#
+# config :pleroma, :frontends, primary: %{"name" => "pleroma", "ref" => "develop"}
+
 config :pleroma, :web_cache_ttl,
   activity_pub: nil,
   activity_pub_question: 30_000
@@ -651,32 +674,30 @@ config :pleroma, Pleroma.Repo,
   prepare: :unnamed
 
 config :pleroma, :connections_pool,
-  checkin_timeout: 250,
+  reclaim_multiplier: 0.1,
+  connection_acquisition_wait: 250,
+  connection_acquisition_retries: 5,
   max_connections: 250,
-  retry: 1,
-  retry_timeout: 1000,
+  max_idle_time: 30_000,
+  retry: 0,
   await_up_timeout: 5_000
 
 config :pleroma, :pools,
   federation: [
     size: 50,
-    max_overflow: 10,
-    timeout: 150_000
+    max_waiting: 10
   ],
   media: [
     size: 50,
-    max_overflow: 10,
-    timeout: 150_000
+    max_waiting: 10
   ],
   upload: [
     size: 25,
-    max_overflow: 5,
-    timeout: 300_000
+    max_waiting: 5
   ],
   default: [
     size: 10,
-    max_overflow: 2,
-    timeout: 10_000
+    max_waiting: 2
   ]
 
 config :pleroma, :hackney_pools,
