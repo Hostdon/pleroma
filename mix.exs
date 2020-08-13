@@ -127,7 +127,7 @@ defmodule Pleroma.Mixfile do
       {:pbkdf2_elixir, "~> 1.2"},
       {:bcrypt_elixir, "~> 2.2"},
       {:trailing_format_plug, "~> 0.0.7"},
-      {:fast_sanitize, "~> 0.1"},
+      {:fast_sanitize, "~> 0.2.0"},
       {:html_entities, "~> 0.5", override: true},
       {:phoenix_html, "~> 2.14"},
       {:calendar, "~> 1.0"},
@@ -214,7 +214,8 @@ defmodule Pleroma.Mixfile do
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate", "test"],
-      docs: ["pleroma.docs", "docs"]
+      docs: ["pleroma.docs", "docs"],
+      analyze: ["credo --strict --only=warnings,todo,fixme,consistency,readability"]
     ]
   end
 
@@ -228,10 +229,10 @@ defmodule Pleroma.Mixfile do
   defp version(version) do
     identifier_filter = ~r/[^0-9a-z\-]+/i
 
-    {_cmdgit, cmdgit_err} = System.cmd("sh", ["-c", "command -v git"])
+    git_available? = match?({_output, 0}, System.cmd("sh", ["-c", "command -v git"]))
 
     git_pre_release =
-      if cmdgit_err == 0 do
+      if git_available? do
         {tag, tag_err} =
           System.cmd("git", ["describe", "--tags", "--abbrev=0"], stderr_to_stdout: true)
 
@@ -257,7 +258,7 @@ defmodule Pleroma.Mixfile do
 
     # Branch name as pre-release version component, denoted with a dot
     branch_name =
-      with 0 <- cmdgit_err,
+      with true <- git_available?,
            {branch_name, 0} <- System.cmd("git", ["rev-parse", "--abbrev-ref", "HEAD"]),
            branch_name <- String.trim(branch_name),
            branch_name <- System.get_env("PLEROMA_BUILD_BRANCH") || branch_name,

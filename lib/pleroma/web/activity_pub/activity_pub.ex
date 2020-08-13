@@ -66,7 +66,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   defp check_remote_limit(_), do: true
 
-  defp increase_note_count_if_public(actor, object) do
+  def increase_note_count_if_public(actor, object) do
     if is_public?(object), do: User.increase_note_count(actor), else: {:ok, actor}
   end
 
@@ -85,17 +85,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   defp increase_replies_count_if_reply(_create_data), do: :noop
 
-  defp increase_poll_votes_if_vote(%{
-         "object" => %{"inReplyTo" => reply_ap_id, "name" => name},
-         "type" => "Create",
-         "actor" => actor
-       }) do
-    Object.increase_vote_count(reply_ap_id, name, actor)
-  end
-
-  defp increase_poll_votes_if_vote(_create_data), do: :noop
-
-  @object_types ["ChatMessage"]
+  @object_types ["ChatMessage", "Question", "Answer"]
   @spec persist(map(), keyword()) :: {:ok, Activity.t() | Object.t()}
   def persist(%{"type" => type} = object, meta) when type in @object_types do
     with {:ok, object} <- Object.create(object) do
@@ -258,7 +248,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     with {:ok, activity} <- insert(create_data, local, fake),
          {:fake, false, activity} <- {:fake, fake, activity},
          _ <- increase_replies_count_if_reply(create_data),
-         _ <- increase_poll_votes_if_vote(create_data),
          {:quick_insert, false, activity} <- {:quick_insert, quick_insert?, activity},
          {:ok, _actor} <- increase_note_count_if_public(actor, activity),
          _ <- notify_and_stream(activity),
@@ -290,32 +279,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       )
 
     with {:ok, activity} <- insert(listen_data, local),
-         _ <- notify_and_stream(activity),
-         :ok <- maybe_federate(activity) do
-      {:ok, activity}
-    end
-  end
-
-  @spec accept(map()) :: {:ok, Activity.t()} | {:error, any()}
-  def accept(params) do
-    accept_or_reject("Accept", params)
-  end
-
-  @spec reject(map()) :: {:ok, Activity.t()} | {:error, any()}
-  def reject(params) do
-    accept_or_reject("Reject", params)
-  end
-
-  @spec accept_or_reject(String.t(), map()) :: {:ok, Activity.t()} | {:error, any()}
-  defp accept_or_reject(type, %{to: to, actor: actor, object: object} = params) do
-    local = Map.get(params, :local, true)
-    activity_id = Map.get(params, :activity_id, nil)
-
-    data =
-      %{"to" => to, "type" => type, "actor" => actor.ap_id, "object" => object}
-      |> Maps.put_if_present("id", activity_id)
-
-    with {:ok, activity} <- insert(data, local),
          _ <- notify_and_stream(activity),
          :ok <- maybe_federate(activity) do
       {:ok, activity}

@@ -69,6 +69,10 @@ To add configuration to your config file, you can copy it from the base config. 
   * `enabled`: Enables the send a direct message to a newly registered user. Defaults to `false`.
   * `sender_nickname`: The nickname of the local user that sends the welcome message.
   * `message`: A message that will be send to a newly registered users as a direct message.
+* `chat_message`: - welcome message sent as a chat message.
+  * `enabled`: Enables the send a chat message to a newly registered user. Defaults to `false`.
+  * `sender_nickname`: The nickname of the local user that sends the welcome message.
+  * `message`: A message that will be send to a newly registered users as a chat message.
 * `email`: - welcome message sent as a email.
   * `enabled`: Enables the send a welcome email to a newly registered user. Defaults to `false`.
   * `sender`: The email address or tuple with `{nickname, email}` that will use as sender to the welcome email.
@@ -110,6 +114,7 @@ To add configuration to your config file, you can copy it from the base config. 
     * `Pleroma.Web.ActivityPub.MRF.MentionPolicy`: Drops posts mentioning configurable users. (See [`:mrf_mention`](#mrf_mention)).
     * `Pleroma.Web.ActivityPub.MRF.VocabularyPolicy`: Restricts activities to a configured set of vocabulary. (See [`:mrf_vocabulary`](#mrf_vocabulary)).
     * `Pleroma.Web.ActivityPub.MRF.ObjectAgePolicy`: Rejects or delists posts based on their age when received. (See [`:mrf_object_age`](#mrf_object_age)).
+    * `Pleroma.Web.ActivityPub.MRF.ActivityExpirationPolicy`: Sets a default expiration on all posts made by users of the local instance. Requires `Pleroma.ActivityExpiration` to be enabled for processing the scheduled delections.
 * `transparency`: Make the content of your Message Rewrite Facility settings public (via nodeinfo).
 * `transparency_exclusions`: Exclude specific instance names from MRF transparency.  The use of the exclusions feature will be disclosed in nodeinfo as a boolean value.
 
@@ -125,6 +130,7 @@ To add configuration to your config file, you can copy it from the base config. 
 * `federated_timeline_removal`: List of instances to remove from Federated (aka The Whole Known Network) Timeline.
 * `reject`: List of instances to reject any activities from.
 * `accept`: List of instances to accept any activities from.
+* `followers_only`: List of instances to decrease post visibility to only the followers, including for DM mentions.
 * `report_removal`: List of instances to reject reports from.
 * `avatar_removal`: List of instances to strip avatars from.
 * `banner_removal`: List of instances to strip banners from.
@@ -202,6 +208,11 @@ config :pleroma, :mrf_user_allowlist, %{
 * `sign_object_fetches`: Sign object fetches with HTTP signatures
 * `authorized_fetch_mode`: Require HTTP signatures for AP fetches
 
+## Pleroma.User
+
+* `restricted_nicknames`: List of nicknames users may not register with.
+* `email_blacklist`: List of email domains users may not register with.
+
 ## Pleroma.ScheduledActivity
 
 * `daily_user_limit`: the number of scheduled activities a user is allowed to create in a single day (Default: `25`)
@@ -209,6 +220,8 @@ config :pleroma, :mrf_user_allowlist, %{
 * `enabled`: whether scheduled activities are sent to the job queue to be executed
 
 ## Pleroma.ActivityExpiration
+
+Enables the worker which processes posts scheduled for deletion. Pinned posts are exempt from expiration.
 
 * `enabled`: whether expired activities will be sent to the job queue to be deleted
 
@@ -848,9 +861,6 @@ Warning: it's discouraged to use this feature because of the associated security
 
 ### :auth
 
-* `Pleroma.Web.Auth.PleromaAuthenticator`: default database authenticator.
-* `Pleroma.Web.Auth.LDAPAuthenticator`: LDAP authentication.
-
 Authentication / authorization settings.
 
 * `auth_template`: authentication form template. By default it's `show.html` which corresponds to `lib/pleroma/web/templates/o_auth/o_auth/show.html.eex`.
@@ -879,6 +889,9 @@ Pleroma account will be created with the same name as the LDAP user name.
 * `tlsopts`: additional TLS options
 * `base`: LDAP base, e.g. "dc=example,dc=com"
 * `uid`: LDAP attribute name to authenticate the user, e.g. when "cn", the filter will be "cn=username,base"
+
+Note, if your LDAP server is an Active Directory server the correct value is commonly `uid: "cn"`, but if you use an
+OpenLDAP server the value may be `uid: "uid"`.
 
 ### OAuth consumer mode
 

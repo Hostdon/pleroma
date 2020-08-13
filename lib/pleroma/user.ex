@@ -638,6 +638,34 @@ defmodule Pleroma.User do
   @spec force_password_reset(User.t()) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
   def force_password_reset(user), do: update_password_reset_pending(user, true)
 
+  # Used to auto-register LDAP accounts which won't have a password hash stored locally
+  def register_changeset_ldap(struct, params = %{password: password})
+      when is_nil(password) do
+    params = Map.put_new(params, :accepts_chat_messages, true)
+
+    params =
+      if Map.has_key?(params, :email) do
+        Map.put_new(params, :email, params[:email])
+      else
+        params
+      end
+
+    struct
+    |> cast(params, [
+      :name,
+      :nickname,
+      :email,
+      :accepts_chat_messages
+    ])
+    |> validate_required([:name, :nickname])
+    |> unique_constraint(:nickname)
+    |> validate_exclusion(:nickname, Config.get([User, :restricted_nicknames]))
+    |> validate_format(:nickname, local_nickname_regex())
+    |> put_ap_id()
+    |> unique_constraint(:ap_id)
+    |> put_following_and_follower_address()
+  end
+
   def register_changeset(struct, params \\ %{}, opts \\ []) do
     bio_limit = Config.get([:instance, :user_bio_length], 5000)
     name_limit = Config.get([:instance, :user_name_length], 100)
@@ -676,10 +704,19 @@ defmodule Pleroma.User do
     |> validate_required([:name, :nickname, :password, :password_confirmation])
     |> validate_confirmation(:password)
     |> unique_constraint(:email)
+    |> validate_format(:email, @email_regex)
+    |> validate_change(:email, fn :email, email ->
+      valid? =
+        Config.get([User, :email_blacklist])
+        |> Enum.all?(fn blacklisted_domain ->
+          !String.ends_with?(email, ["@" <> blacklisted_domain, "." <> blacklisted_domain])
+        end)
+
+      if valid?, do: [], else: [email: "Invalid email"]
+    end)
     |> unique_constraint(:nickname)
     |> validate_exclusion(:nickname, Config.get([User, :restricted_nicknames]))
     |> validate_format(:nickname, local_nickname_regex())
-    |> validate_format(:email, @email_regex)
     |> validate_length(:bio, max: bio_limit)
     |> validate_length(:name, min: 1, max: name_limit)
     |> validate_length(:registration_reason, max: reason_limit)
@@ -734,6 +771,7 @@ defmodule Pleroma.User do
          {:ok, user} <- set_cache(user),
          {:ok, _} <- send_welcome_email(user),
          {:ok, _} <- send_welcome_message(user),
+         {:ok, _} <- send_welcome_chat_message(user),
          {:ok, _} <- try_send_confirmation_email(user) do
       {:ok, user}
     end
@@ -742,6 +780,15 @@ defmodule Pleroma.User do
   def send_welcome_message(user) do
     if User.WelcomeMessage.enabled?() do
       User.WelcomeMessage.post_message(user)
+      {:ok, :enqueued}
+    else
+      {:ok, :noop}
+    end
+  end
+
+  def send_welcome_chat_message(user) do
+    if User.WelcomeChatMessage.enabled?() do
+      User.WelcomeChatMessage.post_message(user)
       {:ok, :enqueued}
     else
       {:ok, :noop}
