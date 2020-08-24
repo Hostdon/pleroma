@@ -38,8 +38,8 @@ To add configuration to your config file, you can copy it from the base config. 
 * `federation_incoming_replies_max_depth`: Max. depth of reply-to activities fetching on incoming federation, to prevent out-of-memory situations while fetching very long threads. If set to `nil`, threads of any depth will be fetched. Lower this value if you experience out-of-memory crashes.
 * `federation_reachability_timeout_days`: Timeout (in days) of each external federation target being unreachable prior to pausing federating to it.
 * `allow_relay`: Enable Pleroma’s Relay, which makes it possible to follow a whole instance.
-* `public`: Makes the client API in authenticated mode-only except for user-profiles. Useful for disabling the Local Timeline and The Whole Known Network. See also: `restrict_unauthenticated`.
-* `quarantined_instances`: List of ActivityPub instances where private(DMs, followers-only) activities will not be send.
+* `public`: Makes the client API in authenticated mode-only except for user-profiles. Useful for disabling the Local Timeline and The Whole Known Network. Note that there is a dependent setting restricting or allowing unauthenticated access to specific resources, see `restrict_unauthenticated` for more details.
+* `quarantined_instances`: List of ActivityPub instances where private (DMs, followers-only) activities will not be send.
 * `managed_config`: Whenether the config for pleroma-fe is configured in [:frontend_configurations](#frontend_configurations) or in ``static/config.json``.
 * `allowed_post_formats`: MIME-type list of formats allowed to be posted (transformed into HTML).
 * `extended_nickname_format`: Set to `true` to use extended local nicknames format (allows underscores/dashes). This will break federation with
@@ -552,6 +552,7 @@ the source code is here: [kocaptcha](https://github.com/koto-bank/kocaptcha). Th
 * `proxy_remote`: If you're using a remote uploader, Pleroma will proxy media requests instead of redirecting to it.
 * `proxy_opts`: Proxy options, see `Pleroma.ReverseProxy` documentation.
 * `filename_display_max_length`: Set max length of a filename to display. 0 = no limit. Default: 30.
+* `default_description`: Sets which default description an image has if none is set explicitly. Options: nil (default) - Don't set a default, :filename - use the filename of the file, a string (e.g. "attachment") - Use this string
 
 !!! warning
     `strip_exif` has been replaced by `Pleroma.Upload.Filter.Mogrify`.
@@ -1050,6 +1051,8 @@ Restrict access for unauthenticated users to timelines (public and federated), u
 * `activities`: statuses
   * `local`
   * `remote`
+
+Note: when `:instance, :public` is set to `false`, all `:restrict_unauthenticated` items be effectively set to `true` by default. If you'd like to allow unauthenticated access to specific API endpoints on a private instance, please explicitly set `:restrict_unauthenticated` to non-default value in `config/prod.secret.exs`.
 
 Note: setting `restrict_unauthenticated/timelines/local` to `true` has no practical sense if `restrict_unauthenticated/timelines/federated` is set to `false` (since local public activities will still be delivered to unauthenticated users as part of federated timeline).
 

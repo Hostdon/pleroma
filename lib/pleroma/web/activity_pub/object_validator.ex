@@ -16,12 +16,14 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidator do
   alias Pleroma.Web.ActivityPub.ObjectValidators.AcceptRejectValidator
   alias Pleroma.Web.ActivityPub.ObjectValidators.AnnounceValidator
   alias Pleroma.Web.ActivityPub.ObjectValidators.AnswerValidator
+  alias Pleroma.Web.ActivityPub.ObjectValidators.AudioValidator
   alias Pleroma.Web.ActivityPub.ObjectValidators.BlockValidator
   alias Pleroma.Web.ActivityPub.ObjectValidators.ChatMessageValidator
   alias Pleroma.Web.ActivityPub.ObjectValidators.CreateChatMessageValidator
   alias Pleroma.Web.ActivityPub.ObjectValidators.CreateGenericValidator
   alias Pleroma.Web.ActivityPub.ObjectValidators.DeleteValidator
   alias Pleroma.Web.ActivityPub.ObjectValidators.EmojiReactValidator
+  alias Pleroma.Web.ActivityPub.ObjectValidators.EventValidator
   alias Pleroma.Web.ActivityPub.ObjectValidators.FollowValidator
   alias Pleroma.Web.ActivityPub.ObjectValidators.LikeValidator
   alias Pleroma.Web.ActivityPub.ObjectValidators.QuestionValidator
@@ -36,6 +38,16 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidator do
     with {:ok, object} <-
            object
            |> AcceptRejectValidator.cast_and_validate()
+           |> Ecto.Changeset.apply_action(:insert) do
+      object = stringify_keys(object)
+      {:ok, object, meta}
+    end
+  end
+
+  def validate(%{"type" => "Event"} = object, meta) do
+    with {:ok, object} <-
+           object
+           |> EventValidator.cast_and_validate()
            |> Ecto.Changeset.apply_action(:insert) do
       object = stringify_keys(object)
       {:ok, object, meta}
@@ -137,6 +149,16 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidator do
     end
   end
 
+  def validate(%{"type" => "Audio"} = object, meta) do
+    with {:ok, object} <-
+           object
+           |> AudioValidator.cast_and_validate()
+           |> Ecto.Changeset.apply_action(:insert) do
+      object = stringify_keys(object)
+      {:ok, object, meta}
+    end
+  end
+
   def validate(%{"type" => "Answer"} = object, meta) do
     with {:ok, object} <-
            object
@@ -176,7 +198,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidator do
         %{"type" => "Create", "object" => %{"type" => objtype} = object} = create_activity,
         meta
       )
-      when objtype in ["Question", "Answer"] do
+      when objtype in ~w[Question Answer Audio Event] do
     with {:ok, object_data} <- cast_and_apply(object),
          meta = Keyword.put(meta, :object_data, object_data |> stringify_keys),
          {:ok, create_activity} <-
@@ -208,6 +230,14 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidator do
 
   def cast_and_apply(%{"type" => "Answer"} = object) do
     AnswerValidator.cast_and_apply(object)
+  end
+
+  def cast_and_apply(%{"type" => "Audio"} = object) do
+    AudioValidator.cast_and_apply(object)
+  end
+
+  def cast_and_apply(%{"type" => "Event"} = object) do
+    EventValidator.cast_and_apply(object)
   end
 
   def cast_and_apply(o), do: {:error, {:validator_not_set, o}}
