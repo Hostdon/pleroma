@@ -216,7 +216,6 @@ config :pleroma, :instance,
   allow_relay: true,
   public: true,
   quarantined_instances: [],
-  managed_config: true,
   static_dir: "instance/static/",
   allowed_post_formats: [
     "text/plain",
@@ -533,6 +532,7 @@ config :pleroma, Oban,
   log: false,
   queues: [
     activity_expiration: 10,
+    token_expiration: 5,
     federator_incoming: 50,
     federator_outgoing: 50,
     web_push: 50,
@@ -546,8 +546,6 @@ config :pleroma, Oban,
   ],
   plugins: [Oban.Plugins.Pruner],
   crontab: [
-    {"0 0 * * *", Pleroma.Workers.Cron.ClearOauthTokenWorker},
-    {"* * * * *", Pleroma.Workers.Cron.PurgeExpiredActivitiesWorker},
     {"0 0 * * 0", Pleroma.Workers.Cron.DigestEmailsWorker},
     {"0 0 * * *", Pleroma.Workers.Cron.NewUsersDigestWorker}
   ]
@@ -658,7 +656,7 @@ config :pleroma, :rate_limit,
   account_confirmation_resend: {8_640_000, 5},
   ap_routes: {60_000, 15}
 
-config :pleroma, Pleroma.ActivityExpiration, enabled: true
+config :pleroma, Pleroma.Workers.PurgeExpiredActivity, enabled: true, min_lifetime: 600
 
 config :pleroma, Pleroma.Plugs.RemoteIp, enabled: true
 

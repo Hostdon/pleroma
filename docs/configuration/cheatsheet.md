@@ -18,7 +18,7 @@ To add configuration to your config file, you can copy it from the base config. 
 * `notify_email`: Email used for notifications.
 * `description`: The instance’s description, can be seen in nodeinfo and ``/api/v1/instance``.
 * `limit`: Posts character limit (CW/Subject included in the counter).
-* `discription_limit`: The character limit for image descriptions.
+* `description_limit`: The character limit for image descriptions.
 * `chat_limit`: Character limit of the instance chat messages.
 * `remote_limit`: Hard character limit beyond which remote posts will be dropped.
 * `upload_limit`: File size limit of uploads (except for avatar, background, banner).
@@ -40,7 +40,6 @@ To add configuration to your config file, you can copy it from the base config. 
 * `allow_relay`: Enable Pleroma’s Relay, which makes it possible to follow a whole instance.
 * `public`: Makes the client API in authenticated mode-only except for user-profiles. Useful for disabling the Local Timeline and The Whole Known Network. Note that there is a dependent setting restricting or allowing unauthenticated access to specific resources, see `restrict_unauthenticated` for more details.
 * `quarantined_instances`: List of ActivityPub instances where private (DMs, followers-only) activities will not be send.
-* `managed_config`: Whenether the config for pleroma-fe is configured in [:frontend_configurations](#frontend_configurations) or in ``static/config.json``.
 * `allowed_post_formats`: MIME-type list of formats allowed to be posted (transformed into HTML).
 * `extended_nickname_format`: Set to `true` to use extended local nicknames format (allows underscores/dashes). This will break federation with
     older software for theses nicknames.
@@ -691,9 +690,8 @@ Pleroma has the following queues:
 
 Pleroma has these periodic job workers:
 
-`Pleroma.Workers.Cron.ClearOauthTokenWorker` - a job worker to cleanup expired oauth tokens.
-
-Example:
+* `Pleroma.Workers.Cron.DigestEmailsWorker` - digest emails for users with new mentions and follows
+* `Pleroma.Workers.Cron.NewUsersDigestWorker` - digest emails for admins with new registrations
 
 ```elixir
 config :pleroma, Oban,
@@ -705,7 +703,8 @@ config :pleroma, Oban,
     federator_outgoing: 50
   ],
   crontab: [
-    {"0 0 * * *", Pleroma.Workers.Cron.ClearOauthTokenWorker}
+    {"0 0 * * 0", Pleroma.Workers.Cron.DigestEmailsWorker},
+    {"0 0 * * *", Pleroma.Workers.Cron.NewUsersDigestWorker}
   ]
 ```
 
@@ -972,7 +971,7 @@ Configure OAuth 2 provider capabilities:
 
 * `token_expires_in` - The lifetime in seconds of the access token.
 * `issue_new_refresh_token` - Keeps old refresh token or generate new refresh token when to obtain an access token.
-* `clean_expired_tokens` - Enable a background job to clean expired oauth tokens. Defaults to `false`. Interval settings sets in configuration periodic jobs [`Oban.Cron`](#obancron)
+* `clean_expired_tokens` - Enable a background job to clean expired oauth tokens. Defaults to `false`.
 
 ## Link parsing
 
@@ -1091,3 +1090,10 @@ config :pleroma, :frontends,
 ```
 
 This would serve the frontend from the the folder at `$instance_static/frontends/pleroma/stable`. You have to copy the frontend into this folder yourself. You can choose the name and ref any way you like, but they will be used by mix tasks to automate installation in the future, the name referring to the project and the ref referring to a commit.
+
+## Ephemeral activities (Pleroma.Workers.PurgeExpiredActivity)
+
+Settings to enable and configure expiration for ephemeral activities
+
+* `:enabled` - enables ephemeral activities creation
+* `:min_lifetime` - minimum lifetime for ephemeral activities (in seconds). Default: 10 minutes.
