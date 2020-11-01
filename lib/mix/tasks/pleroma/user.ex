@@ -452,7 +452,7 @@ defmodule Mix.Tasks.Pleroma.User do
       |> Enum.each(fn user ->
         shell_info(
           "#{user.nickname} moderator: #{user.is_moderator}, admin: #{user.is_admin}, locked: #{
-            user.locked
+            user.is_locked
           }, deactivated: #{user.deactivated}"
         )
       end)
@@ -480,10 +480,10 @@ defmodule Mix.Tasks.Pleroma.User do
   defp set_locked(user, value) do
     {:ok, user} =
       user
-      |> Changeset.change(%{locked: value})
+      |> Changeset.change(%{is_locked: value})
       |> User.update_and_set_cache()
 
-    shell_info("Locked status of #{user.nickname}: #{user.locked}")
+    shell_info("Locked status of #{user.nickname}: #{user.is_locked}")
     user
   end
 
