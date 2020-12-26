@@ -5,21 +5,19 @@
 defmodule Pleroma.Web.Feed.UserController do
   use Pleroma.Web, :controller
 
-  alias Fallback.RedirectController
+  alias Pleroma.Config
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.ActivityPubController
   alias Pleroma.Web.Feed.FeedView
 
-  import Pleroma.Web.ControllerHelper, only: [put_in_if_exist: 3]
-
-  plug(Pleroma.Plugs.SetFormatPlug when action in [:feed_redirect])
+  plug(Pleroma.Web.Plugs.SetFormatPlug when action in [:feed_redirect])
 
   action_fallback(:errors)
 
   def feed_redirect(%{assigns: %{format: "html"}} = conn, %{"nickname" => nickname}) do
     with {_, %User{} = user} <- {:fetch_user, User.get_cached_by_nickname_or_id(nickname)} do
-      RedirectController.redirector_with_meta(conn, %{user: user})
+      Pleroma.Web.Fallback.RedirectController.redirector_with_meta(conn, %{user: user})
     end
   end
 
@@ -35,22 +33,32 @@ defmodule Pleroma.Web.Feed.UserController do
   end
 
   def feed(conn, %{"nickname" => nickname} = params) do
-    with {_, %User{} = user} <- {:fetch_user, User.get_cached_by_nickname(nickname)} do
+    format = get_format(conn)
+
+    format =
+      if format in ["atom", "rss"] do
+        format
+      else
+        "atom"
+      end
+
+    with {_, %User{local: true} = user} <- {:fetch_user, User.get_cached_by_nickname(nickname)},
+         {_, :visible} <- {:visibility, User.visible_for(user, _reading_user = nil)} do
       activities =
         %{
-          "type" => ["Create"],
-          "actor_id" => user.ap_id
+          type: ["Create"],
+          actor_id: user.ap_id
         }
-        |> put_in_if_exist("max_id", params["max_id"])
-        |> ActivityPub.fetch_public_activities()
+        |> Pleroma.Maps.put_if_present(:max_id, params["max_id"])
+        |> ActivityPub.fetch_public_or_unlisted_activities()
 
       conn
-      |> put_resp_content_type("application/atom+xml")
+      |> put_resp_content_type("application/#{format}+xml")
       |> put_view(FeedView)
-      |> render("user.xml",
+      |> render("user.#{format}",
         user: user,
         activities: activities,
-        feed_config: Pleroma.Config.get([:feed])
+        feed_config: Config.get([:feed])
       )
     end
   end
@@ -59,7 +67,10 @@ defmodule Pleroma.Web.Feed.UserController do
     render_error(conn, :not_found, "Not found")
   end
 
+  def errors(conn, {:fetch_user, %User{local: false}}), do: errors(conn, {:error, :not_found})
   def errors(conn, {:fetch_user, nil}), do: errors(conn, {:error, :not_found})
+
+  def errors(conn, {:visibility, _}), do: errors(conn, {:error, :not_found})
 
   def errors(conn, _) do
     render_error(conn, :internal_server_error, "Something went wrong")

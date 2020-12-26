@@ -44,25 +44,33 @@ defmodule Pleroma.Web.ActivityPub.Visibility do
   def is_list?(%{data: %{"listMessage" => _}}), do: true
   def is_list?(_), do: false
 
-  def visible_for_user?(%{actor: ap_id}, %User{ap_id: ap_id}), do: true
+  @spec visible_for_user?(Activity.t() | nil, User.t() | nil) :: boolean()
+  def visible_for_user?(%Activity{actor: ap_id}, %User{ap_id: ap_id}), do: true
 
-  def visible_for_user?(%{data: %{"listMessage" => list_ap_id}} = activity, %User{} = user) do
+  def visible_for_user?(nil, _), do: false
+
+  def visible_for_user?(%Activity{data: %{"listMessage" => _}}, nil), do: false
+
+  def visible_for_user?(
+        %Activity{data: %{"listMessage" => list_ap_id}} = activity,
+        %User{} = user
+      ) do
     user.ap_id in activity.data["to"] ||
       list_ap_id
       |> Pleroma.List.get_by_ap_id()
       |> Pleroma.List.member?(user)
   end
 
-  def visible_for_user?(%{data: %{"listMessage" => _}}, nil), do: false
-
-  def visible_for_user?(activity, nil) do
-    is_public?(activity)
+  def visible_for_user?(%Activity{} = activity, nil) do
+    if restrict_unauthenticated_access?(activity),
+      do: false,
+      else: is_public?(activity)
   end
 
-  def visible_for_user?(activity, user) do
+  def visible_for_user?(%Activity{} = activity, user) do
     x = [user.ap_id | User.following(user)]
     y = [activity.actor] ++ activity.data["to"] ++ (activity.data["cc"] || [])
-    visible_for_user?(activity, nil) || Enum.any?(x, &(&1 in y))
+    is_public?(activity) || Enum.any?(x, &(&1 in y))
   end
 
   def entire_thread_visible_for_user?(%Activity{} = activity, %User{} = user) do
@@ -73,6 +81,26 @@ defmodule Pleroma.Web.ActivityPub.Visibility do
       ])
 
     result
+  end
+
+  def restrict_unauthenticated_access?(%Activity{local: local}) do
+    restrict_unauthenticated_access_to_activity?(local)
+  end
+
+  def restrict_unauthenticated_access?(%Object{} = object) do
+    object
+    |> Object.local?()
+    |> restrict_unauthenticated_access_to_activity?()
+  end
+
+  def restrict_unauthenticated_access?(%User{} = user) do
+    User.visible_for(user, _reading_user = nil)
+  end
+
+  defp restrict_unauthenticated_access_to_activity?(local?) when is_boolean(local?) do
+    cfg_key = if local?, do: :local, else: :remote
+
+    Pleroma.Config.restrict_unauthenticated_access?(:activities, cfg_key)
   end
 
   def get_visibility(object) do

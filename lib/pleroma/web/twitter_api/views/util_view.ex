@@ -5,4 +5,24 @@
 defmodule Pleroma.Web.TwitterAPI.UtilView do
   use Pleroma.Web, :view
   import Phoenix.HTML.Form
+  alias Pleroma.Config
+  alias Pleroma.Web
+
+  def status_net_config(instance) do
+    """
+    <config>
+    <site>
+    <name>#{Keyword.get(instance, :name)}</name>
+    <site>#{Web.base_url()}</site>
+    <textlimit>#{Keyword.get(instance, :limit)}</textlimit>
+    <closed>#{!Keyword.get(instance, :registrations_open)}</closed>
+    </site>
+    </config>
+    """
+  end
+
+  def render("frontend_configurations.json", _) do
+    Config.get(:frontend_configurations, %{})
+    |> Enum.into(%{})
+  end
 end

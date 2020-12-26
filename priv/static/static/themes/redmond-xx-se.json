@@ -267,6 +267,7 @@
     },
     "colors": {
       "bg": "#c0c0c0",
+      "wallpaper": "#008080",
       "text": "#000000",
       "link": "#0000ff",
       "accent": "#000080",
@@ -286,7 +287,9 @@
       "cGreen": "#008000",
       "cOrange": "#808000",
       "highlight": "--accent",
-      "selectedPost": "--bg,-10"
+      "selectedPost": "--bg,-10",
+      "selectedMenu": "--accent",
+      "selectedMenuPopover": "--accent"
     },
     "radii": {
       "btn": "0",

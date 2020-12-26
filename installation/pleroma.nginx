@@ -9,6 +9,12 @@
 proxy_cache_path /tmp/pleroma-media-cache levels=1:2 keys_zone=pleroma_media_cache:10m max_size=10g
                  inactive=720m use_temp_path=off;
 
+# this is explicitly IPv4 since Pleroma.Web.Endpoint binds on IPv4 only
+# and `localhost.` resolves to [::0] on some systems: see issue #930
+upstream phoenix {
+    server 127.0.0.1:4000 max_fails=5 fail_timeout=60s;
+}
+
 server {
     server_name    example.tld;
 
@@ -37,18 +43,17 @@ server {
 
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
-    ssl_session_timeout 5m;
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:MozSSL:10m;  # about 40000 sessions
+    ssl_session_tickets off;
 
     ssl_trusted_certificate   /etc/letsencrypt/live/example.tld/chain.pem;
     ssl_certificate           /etc/letsencrypt/live/example.tld/fullchain.pem;
     ssl_certificate_key       /etc/letsencrypt/live/example.tld/privkey.pem;
 
-    # Add TLSv1.0 to support older devices
-    ssl_protocols TLSv1.2;
-    # Uncomment line below if you want to support older devices (Before Android 4.4.2, IE 8, etc.)
-    # ssl_ciphers "HIGH:!aNULL:!MD5 or HIGH:!aNULL:!MD5:!3DES";
+    ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:!aNULL:!eNULL:!EXPORT:!DES:!MD5:!PSK:!RC4";
-    ssl_prefer_server_ciphers on;
+    ssl_prefer_server_ciphers off;
     # In case of an old server with an OpenSSL version of 1.0.2 or below,
     # leave only prime256v1 or comment out the following line.
     ssl_ecdh_curve X25519:prime256v1:secp384r1:secp521r1;
@@ -64,19 +69,16 @@ server {
 
     # the nginx default is 1m, not enough for large media uploads
     client_max_body_size 16m;
+    ignore_invalid_headers off;
+
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 
     location / {
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $http_host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-
-        # this is explicitly IPv4 since Pleroma.Web.Endpoint binds on IPv4 only
-        # and `localhost.` resolves to [::0] on some systems: see issue #930
-        proxy_pass http://127.0.0.1:4000;
-
-        client_max_body_size 16m;
+        proxy_pass http://phoenix;
     }
 
     location ~ ^/(media|proxy) {
@@ -84,14 +86,16 @@ server {
         slice              1m;
         proxy_cache_key    $host$uri$is_args$args$slice_range;
         proxy_set_header   Range $slice_range;
-        proxy_http_version 1.1;
         proxy_cache_valid  200 206 301 304 1h;
         proxy_cache_lock   on;
         proxy_ignore_client_abort on;
         proxy_buffering    on;
         chunked_transfer_encoding on;
-        proxy_ignore_headers Cache-Control;
-        proxy_hide_header  Cache-Control;
-        proxy_pass         http://127.0.0.1:4000;
+        proxy_pass         http://phoenix;
+    }
+
+    location /api/fedsocket/v1 {
+        proxy_request_buffering off;
+        proxy_pass http://phoenix/api/fedsocket/v1;
     }
 }

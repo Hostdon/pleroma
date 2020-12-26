@@ -3,11 +3,10 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.RelMe do
-  @hackney_options [
+  @options [
     pool: :media,
-    recv_timeout: 2_000,
     max_body: 2_000_000,
-    with_body: true
+    recv_timeout: 2_000
   ]
 
   if Pleroma.Config.get(:env) == :test do
@@ -26,7 +25,7 @@ defmodule Pleroma.Web.RelMe do
 
   defp parse_url(url) do
     with {:ok, %Tesla.Env{body: html, status: status}} when status in 200..299 <-
-           Pleroma.HTTP.get(url, [], adapter: @hackney_options),
+           Pleroma.HTTP.get(url, [], @options),
          {:ok, html_tree} <- Floki.parse_document(html),
          data <-
            Floki.attribute(html_tree, "link[rel~=me]", "href") ++

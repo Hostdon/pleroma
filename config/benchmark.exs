@@ -39,7 +39,7 @@ config :pleroma, Pleroma.Repo,
   adapter: Ecto.Adapters.Postgres,
   username: "postgres",
   password: "postgres",
-  database: "pleroma_test",
+  database: "pleroma_benchmark",
   hostname: System.get_env("DB_HOST") || "localhost",
   pool_size: 10
 
@@ -58,10 +58,6 @@ config :web_push_encryption, :vapid_details,
   public_key:
     "BLH1qVhJItRGCfxgTtONfsOKDc9VRAraXw-3NsmjMngWSh7NxOizN6bkuRA7iLTMPS82PjwJAr3UoK9EC1IFrz4",
   private_key: "_-XZ0iebPrRfZ_o0-IatTdszYa8VCH1yLN-JauK7HHA"
-
-config :web_push_encryption, :http_client, Pleroma.Web.WebPushHttpClientMock
-
-config :pleroma_job_queue, disabled: true
 
 config :pleroma, Pleroma.ScheduledActivity,
   daily_user_limit: 2,

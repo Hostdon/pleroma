@@ -56,17 +56,32 @@ defmodule Pleroma.Upload do
         }
   defstruct [:id, :name, :tempfile, :content_type, :path]
 
+  defp get_description(opts, upload) do
+    case {opts[:description], Pleroma.Config.get([Pleroma.Upload, :default_description])} do
+      {description, _} when is_binary(description) -> description
+      {_, :filename} -> upload.name
+      {_, str} when is_binary(str) -> str
+      _ -> ""
+    end
+  end
+
   @spec store(source, options :: [option()]) :: {:ok, Map.t()} | {:error, any()}
+  @doc "Store a file. If using a `Plug.Upload{}` as the source, be sure to use `Majic.Plug` to ensure its content_type and filename is correct."
   def store(upload, opts \\ []) do
     opts = get_opts(opts)
 
     with {:ok, upload} <- prepare_upload(upload, opts),
          upload = %__MODULE__{upload | path: upload.path || "#{upload.id}/#{upload.name}"},
          {:ok, upload} <- Pleroma.Upload.Filter.filter(opts.filters, upload),
+         description = get_description(opts, upload),
+         {_, true} <-
+           {:description_limit,
+            String.length(description) <= Pleroma.Config.get([:instance, :description_limit])},
          {:ok, url_spec} <- Pleroma.Uploaders.Uploader.put_file(opts.uploader, upload) do
       {:ok,
        %{
          "type" => opts.activity_type,
+         "mediaType" => upload.content_type,
          "url" => [
            %{
              "type" => "Link",
@@ -74,9 +89,12 @@ defmodule Pleroma.Upload do
              "href" => url_from_spec(upload, opts.base_url, url_spec)
            }
          ],
-         "name" => Map.get(opts, :description) || upload.name
+         "name" => description
        }}
     else
+      {:description_limit, _} ->
+        {:error, :description_too_long}
+
       {:error, error} ->
         Logger.error(
           "#{__MODULE__} store (using #{inspect(opts.uploader)}) failed: #{inspect(error)}"
@@ -122,31 +140,31 @@ defmodule Pleroma.Upload do
   end
 
   defp prepare_upload(%Plug.Upload{} = file, opts) do
-    with :ok <- check_file_size(file.path, opts.size_limit),
-         {:ok, content_type, name} <- Pleroma.MIME.file_mime_type(file.path, file.filename) do
+    with :ok <- check_file_size(file.path, opts.size_limit) do
       {:ok,
        %__MODULE__{
          id: UUID.generate(),
-         name: name,
+         name: file.filename,
          tempfile: file.path,
-         content_type: content_type
+         content_type: file.content_type
        }}
     end
   end
 
-  defp prepare_upload(%{"img" => "data:image/" <> image_data}, opts) do
+  defp prepare_upload(%{img: "data:image/" <> image_data}, opts) do
     parsed = Regex.named_captures(~r/(?<filetype>jpeg|png|gif);base64,(?<data>.*)/, image_data)
     data = Base.decode64!(parsed["data"], ignore: :whitespace)
-    hash = String.downcase(Base.encode16(:crypto.hash(:sha256, data)))
+    hash = Base.encode16(:crypto.hash(:sha256, data), lower: true)
 
     with :ok <- check_binary_size(data, opts.size_limit),
          tmp_path <- tempfile_for_image(data),
-         {:ok, content_type, name} <-
-           Pleroma.MIME.bin_mime_type(data, hash <> "." <> parsed["filetype"]) do
+         {:ok, %{mime_type: content_type}} <-
+           Majic.perform({:bytes, data}, pool: Pleroma.MajicPool),
+         [ext | _] <- MIME.extensions(content_type) do
       {:ok,
        %__MODULE__{
          id: UUID.generate(),
-         name: name,
+         name: hash <> "." <> ext,
          tempfile: tmp_path,
          content_type: content_type
        }}
@@ -155,7 +173,7 @@ defmodule Pleroma.Upload do
 
   # For Mix.Tasks.MigrateLocalUploads
   defp prepare_upload(%__MODULE__{tempfile: path} = upload, _opts) do
-    with {:ok, content_type} <- Pleroma.MIME.file_mime_type(path) do
+    with {:ok, %{mime_type: content_type}} <- Majic.perform(path, pool: Pleroma.MajicPool) do
       {:ok, %__MODULE__{upload | content_type: content_type}}
     end
   end

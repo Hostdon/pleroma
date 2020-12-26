@@ -8,6 +8,8 @@ defmodule Mix.Tasks.Pleroma.User do
   alias Ecto.Changeset
   alias Pleroma.User
   alias Pleroma.UserInviteToken
+  alias Pleroma.Web.ActivityPub.Builder
+  alias Pleroma.Web.ActivityPub.Pipeline
 
   @shortdoc "Manages Pleroma users"
   @moduledoc File.read!("docs/administration/CLI_tasks/user.md")
@@ -96,8 +98,9 @@ defmodule Mix.Tasks.Pleroma.User do
   def run(["rm", nickname]) do
     start_pleroma()
 
-    with %User{local: true} = user <- User.get_cached_by_nickname(nickname) do
-      User.perform(:delete, user)
+    with %User{local: true} = user <- User.get_cached_by_nickname(nickname),
+         {:ok, delete_data, _} <- Builder.delete(user, user.ap_id),
+         {:ok, _delete, _} <- Pipeline.common_pipeline(delete_data, local: true) do
       shell_info("User #{nickname} deleted.")
     else
       _ -> shell_error("No local user #{nickname}")
@@ -141,28 +144,30 @@ defmodule Mix.Tasks.Pleroma.User do
     end
   end
 
-  def run(["unsubscribe", nickname]) do
+  def run(["reset_mfa", nickname]) do
+    start_pleroma()
+
+    with %User{local: true} = user <- User.get_cached_by_nickname(nickname),
+         {:ok, _token} <- Pleroma.MFA.disable(user) do
+      shell_info("Multi-Factor Authentication disabled for #{user.nickname}")
+    else
+      _ ->
+        shell_error("No local user #{nickname}")
+    end
+  end
+
+  def run(["deactivate", nickname]) do
     start_pleroma()
 
     with %User{} = user <- User.get_cached_by_nickname(nickname) do
       shell_info("Deactivating #{user.nickname}")
       User.deactivate(user)
-
-      user
-      |> User.get_friends()
-      |> Enum.each(fn friend ->
-        user = User.get_cached_by_id(user.id)
-
-        shell_info("Unsubscribing #{friend.nickname} from #{user.nickname}")
-        User.unfollow(user, friend)
-      end)
-
       :timer.sleep(500)
 
       user = User.get_cached_by_id(user.id)
 
-      if Enum.empty?(User.get_friends(user)) do
-        shell_info("Successfully unsubscribed all followers from #{user.nickname}")
+      if Enum.empty?(Enum.filter(User.get_friends(user), & &1.local)) do
+        shell_info("Successfully unsubscribed all local followers from #{user.nickname}")
       end
     else
       _ ->
@@ -170,15 +175,15 @@ defmodule Mix.Tasks.Pleroma.User do
     end
   end
 
-  def run(["unsubscribe_all_from_instance", instance]) do
+  def run(["deactivate_all_from_instance", instance]) do
     start_pleroma()
 
     Pleroma.User.Query.build(%{nickname: "@#{instance}"})
-    |> Pleroma.RepoStreamer.chunk_stream(500)
+    |> Pleroma.Repo.chunk_stream(500, :batches)
     |> Stream.each(fn users ->
       users
       |> Enum.each(fn user ->
-        run(["unsubscribe", user.nickname])
+        run(["deactivate", user.nickname])
       end)
     end)
     |> Stream.run()
@@ -191,17 +196,24 @@ defmodule Mix.Tasks.Pleroma.User do
       OptionParser.parse(
         rest,
         strict: [
-          moderator: :boolean,
           admin: :boolean,
-          locked: :boolean
+          confirmed: :boolean,
+          locked: :boolean,
+          moderator: :boolean
         ]
       )
 
     with %User{local: true} = user <- User.get_cached_by_nickname(nickname) do
       user =
-        case Keyword.get(options, :moderator) do
+        case Keyword.get(options, :admin) do
           nil -> user
-          value -> set_moderator(user, value)
+          value -> set_admin(user, value)
+        end
+
+      user =
+        case Keyword.get(options, :confirmed) do
+          nil -> user
+          value -> set_confirmed(user, value)
         end
 
       user =
@@ -211,9 +223,9 @@ defmodule Mix.Tasks.Pleroma.User do
         end
 
       _user =
-        case Keyword.get(options, :admin) do
+        case Keyword.get(options, :moderator) do
           nil -> user
-          value -> set_admin(user, value)
+          value -> set_moderator(user, value)
         end
     else
       _ ->
@@ -227,7 +239,7 @@ defmodule Mix.Tasks.Pleroma.User do
     with %User{} = user <- User.get_cached_by_nickname(nickname) do
       user = user |> User.tag(tags)
 
-      shell_info("Tags of #{user.nickname}: #{inspect(tags)}")
+      shell_info("Tags of #{user.nickname}: #{inspect(user.tags)}")
     else
       _ ->
         shell_error("Could not change user tags for #{nickname}")
@@ -240,7 +252,7 @@ defmodule Mix.Tasks.Pleroma.User do
     with %User{} = user <- User.get_cached_by_nickname(nickname) do
       user = user |> User.untag(tags)
 
-      shell_info("Tags of #{user.nickname}: #{inspect(tags)}")
+      shell_info("Tags of #{user.nickname}: #{inspect(user.tags)}")
     else
       _ ->
         shell_error("Could not change user tags for #{nickname}")
@@ -348,6 +360,42 @@ defmodule Mix.Tasks.Pleroma.User do
     end
   end
 
+  def run(["confirm_all"]) do
+    start_pleroma()
+
+    Pleroma.User.Query.build(%{
+      local: true,
+      deactivated: false,
+      is_moderator: false,
+      is_admin: false,
+      invisible: false
+    })
+    |> Pleroma.Repo.chunk_stream(500, :batches)
+    |> Stream.each(fn users ->
+      users
+      |> Enum.each(fn user -> User.need_confirmation(user, false) end)
+    end)
+    |> Stream.run()
+  end
+
+  def run(["unconfirm_all"]) do
+    start_pleroma()
+
+    Pleroma.User.Query.build(%{
+      local: true,
+      deactivated: false,
+      is_moderator: false,
+      is_admin: false,
+      invisible: false
+    })
+    |> Pleroma.Repo.chunk_stream(500, :batches)
+    |> Stream.each(fn users ->
+      users
+      |> Enum.each(fn user -> User.need_confirmation(user, true) end)
+    end)
+    |> Stream.run()
+  end
+
   def run(["sign_out", nickname]) do
     start_pleroma()
 
@@ -365,13 +413,13 @@ defmodule Mix.Tasks.Pleroma.User do
     start_pleroma()
 
     Pleroma.User.Query.build(%{local: true})
-    |> Pleroma.RepoStreamer.chunk_stream(500)
+    |> Pleroma.Repo.chunk_stream(500, :batches)
     |> Stream.each(fn users ->
       users
       |> Enum.each(fn user ->
         shell_info(
           "#{user.nickname} moderator: #{user.is_moderator}, admin: #{user.is_admin}, locked: #{
-            user.locked
+            user.is_locked
           }, deactivated: #{user.deactivated}"
         )
       end)
@@ -399,10 +447,17 @@ defmodule Mix.Tasks.Pleroma.User do
   defp set_locked(user, value) do
     {:ok, user} =
       user
-      |> Changeset.change(%{locked: value})
+      |> Changeset.change(%{is_locked: value})
       |> User.update_and_set_cache()
 
-    shell_info("Locked status of #{user.nickname}: #{user.locked}")
+    shell_info("Locked status of #{user.nickname}: #{user.is_locked}")
+    user
+  end
+
+  defp set_confirmed(user, value) do
+    {:ok, user} = User.need_confirmation(user, !value)
+
+    shell_info("Confirmation pending status of #{user.nickname}: #{user.confirmation_pending}")
     user
   end
 end

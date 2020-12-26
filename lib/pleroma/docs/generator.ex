@@ -1,3 +1,7 @@
+# Pleroma: A lightweight social networking server
+# Copyright © 2017-2020 Pleroma Authors <https://pleroma.social/>
+# SPDX-License-Identifier: AGPL-3.0-only
+
 defmodule Pleroma.Docs.Generator do
   @callback process(keyword()) :: {:ok, String.t()}
 
@@ -6,16 +10,21 @@ defmodule Pleroma.Docs.Generator do
     implementation.process(descriptions)
   end
 
-  @spec list_modules_in_dir(String.t(), String.t()) :: [module()]
-  def list_modules_in_dir(dir, start) do
-    with {:ok, files} <- File.ls(dir) do
-      files
-      |> Enum.filter(&String.ends_with?(&1, ".ex"))
-      |> Enum.map(fn filename ->
-        module = filename |> String.trim_trailing(".ex") |> Macro.camelize()
-        String.to_atom(start <> module)
-      end)
-    end
+  @spec list_behaviour_implementations(behaviour :: module()) :: [module()]
+  def list_behaviour_implementations(behaviour) do
+    :code.all_loaded()
+    |> Enum.filter(fn {module, _} ->
+      # This shouldn't be needed as all modules are expected to have module_info/1,
+      # but in test enviroments some transient modules `:elixir_compiler_XX`
+      # are loaded for some reason (where XX is a random integer).
+      if function_exported?(module, :module_info, 1) do
+        module.module_info(:attributes)
+        |> Keyword.get_values(:behaviour)
+        |> List.flatten()
+        |> Enum.member?(behaviour)
+      end
+    end)
+    |> Enum.map(fn {module, _} -> module end)
   end
 
   @doc """
@@ -85,6 +94,12 @@ defmodule Pleroma.Docs.Generator do
     if String.starts_with?(string, ":"),
       do: Phoenix.Naming.humanize(entity),
       else: string
+  end
+
+  defp format_suggestions({:list_behaviour_implementations, behaviour}) do
+    behaviour
+    |> list_behaviour_implementations()
+    |> format_suggestions()
   end
 
   defp format_suggestions([]), do: []

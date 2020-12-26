@@ -19,9 +19,17 @@ config :logger, :console,
   level: :warn,
   format: "\n[$level] $message\n"
 
+config :pleroma, :fed_sockets,
+  enabled: false,
+  connection_duration: 5,
+  rejection_duration: 5
+
 config :pleroma, :auth, oauth_consumer_strategies: []
 
-config :pleroma, Pleroma.Upload, filters: [], link_name: false
+config :pleroma, Pleroma.Upload,
+  filters: [],
+  link_name: false,
+  default_description: :filename
 
 config :pleroma, Pleroma.Uploaders.Local, uploads: "test/uploads"
 
@@ -56,18 +64,29 @@ config :pleroma, :rich_media,
   ignore_hosts: [],
   ignore_tld: ["local", "localdomain", "lan"]
 
+config :pleroma, :instance,
+  multi_factor_authentication: [
+    totp: [
+      # digits 6 or 8
+      digits: 6,
+      period: 30
+    ],
+    backup_codes: [
+      number: 2,
+      length: 6
+    ]
+  ]
+
 config :web_push_encryption, :vapid_details,
   subject: "mailto:administrator@example.com",
   public_key:
     "BLH1qVhJItRGCfxgTtONfsOKDc9VRAraXw-3NsmjMngWSh7NxOizN6bkuRA7iLTMPS82PjwJAr3UoK9EC1IFrz4",
   private_key: "_-XZ0iebPrRfZ_o0-IatTdszYa8VCH1yLN-JauK7HHA"
 
-config :web_push_encryption, :http_client, Pleroma.Web.WebPushHttpClientMock
-
 config :pleroma, Oban,
   queues: false,
-  prune: :disabled,
-  crontab: false
+  crontab: false,
+  plugins: false
 
 config :pleroma, Pleroma.ScheduledActivity,
   daily_user_limit: 2,
@@ -90,7 +109,22 @@ config :pleroma, Pleroma.ReverseProxy.Client, Pleroma.ReverseProxy.ClientMock
 
 config :pleroma, :modules, runtime_dir: "test/fixtures/modules"
 
+config :pleroma, Pleroma.Gun, Pleroma.GunMock
+
 config :pleroma, Pleroma.Emails.NewUsersDigestEmail, enabled: true
+
+config :pleroma, Pleroma.Web.Plugs.RemoteIp, enabled: false
+
+config :pleroma, Pleroma.Web.ApiSpec.CastAndValidate, strict: true
+
+config :pleroma, Pleroma.Uploaders.S3,
+  bucket: nil,
+  streaming_enabled: true,
+  public_endpoint: nil
+
+config :tzdata, :autoupdate, :disabled
+
+config :pleroma, :mrf, policies: []
 
 if File.exists?("./config/test.secret.exs") do
   import_config "test.secret.exs"

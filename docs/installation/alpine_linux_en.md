@@ -13,12 +13,17 @@ It assumes that you have administrative rights, either as root or a user with [s
 * `erlang-parsetools`
 * `erlang-xmerl`
 * `git`
+* `file-dev`
 * Development Tools
+* `cmake`
 
 #### Optional packages used in this guide
 
 * `nginx` (preferred, example configs for other reverse proxies can be found in the repo)
 * `certbot` (or any other ACME client for Let’s Encrypt certificates)
+* `ImageMagick`
+* `ffmpeg`
+* `exiftool`
 
 ### Prepare the system
 
@@ -27,7 +32,6 @@ It assumes that you have administrative rights, either as root or a user with [s
 ```shell
 awk 'NR==2' /etc/apk/repositories | sed 's/main/community/' | tee -a /etc/apk/repositories
 ```
-
 
 * Then update the system, if not already done:
 
@@ -39,7 +43,7 @@ sudo apk upgrade
 * Install some tools, which are needed later:
 
 ```shell
-sudo apk add git build-base
+sudo apk add git build-base cmake file-dev
 ```
 
 ### Install Elixir and Erlang
@@ -55,6 +59,7 @@ sudo apk add erlang erlang-runtime-tools erlang-xmerl elixir
 ```shell
 sudo apk add erlang-eldap
 ```
+
 ### Install PostgreSQL
 
 * Install Postgresql server:
@@ -73,6 +78,12 @@ sudo /etc/init.d/postgresql start
 
 ```shell
 sudo rc-update add postgresql
+```
+
+### Install media / graphics packages (optional, see [`docs/installation/optional/media_graphics_packages.md`](docs/installation/optional/media_graphics_packages.md))
+
+```shell
+sudo apk add ffmpeg imagemagick exiftool
 ```
 
 ### Install PleromaBE
@@ -225,10 +236,7 @@ sudo -Hu pleroma MIX_ENV=prod mix pleroma.user new <username> <your@emailaddress
 
 #### Further reading
 
-* [Backup your instance](../administration/backup.md)
-* [Hardening your instance](../configuration/hardening.md)
-* [How to activate mediaproxy](../configuration/howto_mediaproxy.md)
-* [Updating your instance](../administration/updating.md)
+{! backend/installation/further_reading.include !}
 
 ## Questions
 

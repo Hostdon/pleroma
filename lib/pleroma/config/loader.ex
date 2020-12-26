@@ -12,33 +12,34 @@ defmodule Pleroma.Config.Loader do
     :swarm
   ]
 
-  if Code.ensure_loaded?(Config.Reader) do
-    @spec load(Path.t()) :: keyword()
-    def load(path), do: Config.Reader.read!(path)
+  @reject_groups [
+    :postgrex,
+    :tesla
+  ]
 
-    defp do_merge(conf1, conf2), do: Config.Reader.merge(conf1, conf2)
+  if Code.ensure_loaded?(Config.Reader) do
+    @reader Config.Reader
+
+    def read(path), do: @reader.read!(path)
   else
     # support for Elixir less than 1.9
-    @spec load(Path.t()) :: keyword()
-    def load(path) do
+    @reader Mix.Config
+    def read(path) do
       path
-      |> Mix.Config.eval!()
+      |> @reader.eval!()
       |> elem(0)
     end
-
-    defp do_merge(conf1, conf2), do: Mix.Config.merge(conf1, conf2)
   end
 
-  @spec load_and_merge() :: keyword()
-  def load_and_merge do
-    all_paths =
-      if Pleroma.Config.get(:release),
-        do: ["config/config.exs", "config/releases.exs"],
-        else: ["config/config.exs"]
+  @spec read(Path.t()) :: keyword()
 
-    all_paths
-    |> Enum.map(&load(&1))
-    |> Enum.reduce([], &do_merge(&2, &1))
+  @spec merge(keyword(), keyword()) :: keyword()
+  def merge(c1, c2), do: @reader.merge(c1, c2)
+
+  @spec default_config() :: keyword()
+  def default_config do
+    "config/config.exs"
+    |> read()
     |> filter()
   end
 
@@ -51,7 +52,8 @@ defmodule Pleroma.Config.Loader do
   @spec filter_group(atom(), keyword()) :: keyword()
   def filter_group(group, configs) do
     Enum.reject(configs[group], fn {key, _v} ->
-      key in @reject_keys or (group == :phoenix and key == :serve_endpoints)
+      key in @reject_keys or group in @reject_groups or
+        (group == :phoenix and key == :serve_endpoints)
     end)
   end
 end

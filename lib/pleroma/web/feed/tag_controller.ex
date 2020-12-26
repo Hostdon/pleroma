@@ -9,18 +9,24 @@ defmodule Pleroma.Web.Feed.TagController do
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.Feed.FeedView
 
-  import Pleroma.Web.ControllerHelper, only: [put_in_if_exist: 3]
+  def feed(conn, params) do
+    if Config.get!([:instance, :public]) do
+      render_feed(conn, params)
+    else
+      render_error(conn, :not_found, "Not found")
+    end
+  end
 
-  def feed(conn, %{"tag" => raw_tag} = params) do
+  defp render_feed(conn, %{"tag" => raw_tag} = params) do
     {format, tag} = parse_tag(raw_tag)
 
     activities =
-      %{"type" => ["Create"], "tag" => tag}
-      |> put_in_if_exist("max_id", params["max_id"])
+      %{type: ["Create"], tag: tag}
+      |> Pleroma.Maps.put_if_present(:max_id, params["max_id"])
       |> ActivityPub.fetch_public_activities()
 
     conn
-    |> put_resp_content_type("application/atom+xml")
+    |> put_resp_content_type("application/#{format}+xml")
     |> put_view(FeedView)
     |> render("tag.#{format}",
       activities: activities,
@@ -30,12 +36,13 @@ defmodule Pleroma.Web.Feed.TagController do
   end
 
   @spec parse_tag(binary() | any()) :: {format :: String.t(), tag :: String.t()}
-  defp parse_tag(raw_tag) when is_binary(raw_tag) do
-    case Enum.reverse(String.split(raw_tag, ".")) do
-      [format | tag] when format in ["atom", "rss"] -> {format, Enum.join(tag, ".")}
-      _ -> {"rss", raw_tag}
+  defp parse_tag(raw_tag) do
+    case is_binary(raw_tag) && Enum.reverse(String.split(raw_tag, ".")) do
+      [format | tag] when format in ["rss", "atom"] ->
+        {format, Enum.join(tag, ".")}
+
+      _ ->
+        {"atom", raw_tag}
     end
   end
-
-  defp parse_tag(raw_tag), do: {"rss", raw_tag}
 end

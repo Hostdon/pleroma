@@ -22,9 +22,12 @@ defmodule Pleroma.Web.ConnCase do
   using do
     quote do
       # Import conveniences for testing with connections
-      use Phoenix.ConnTest
+      import Plug.Conn
+      import Phoenix.ConnTest
       use Pleroma.Tests.Helpers
       import Pleroma.Web.Router.Helpers
+
+      alias Pleroma.Config
 
       # The default endpoint for testing
       @endpoint Pleroma.Web.Endpoint
@@ -48,6 +51,67 @@ defmodule Pleroma.Web.ConnCase do
 
         %{user: user, token: token, conn: conn}
       end
+
+      defp request_content_type(%{conn: conn}) do
+        conn = put_req_header(conn, "content-type", "multipart/form-data")
+        [conn: conn]
+      end
+
+      defp empty_json_response(conn) do
+        body = response(conn, 204)
+        response_content_type(conn, :json)
+
+        body
+      end
+
+      defp json_response_and_validate_schema(
+             %{
+               private: %{
+                 open_api_spex: %{operation_id: op_id, operation_lookup: lookup, spec: spec}
+               }
+             } = conn,
+             status
+           ) do
+        content_type =
+          conn
+          |> Plug.Conn.get_resp_header("content-type")
+          |> List.first()
+          |> String.split(";")
+          |> List.first()
+
+        status = Plug.Conn.Status.code(status)
+
+        unless lookup[op_id].responses[status] do
+          err = "Response schema not found for #{status} #{conn.method} #{conn.request_path}"
+          flunk(err)
+        end
+
+        schema = lookup[op_id].responses[status].content[content_type].schema
+        json = if status == 204, do: empty_json_response(conn), else: json_response(conn, status)
+
+        case OpenApiSpex.cast_value(json, schema, spec) do
+          {:ok, _data} ->
+            json
+
+          {:error, errors} ->
+            errors =
+              Enum.map(errors, fn error ->
+                message = OpenApiSpex.Cast.Error.message(error)
+                path = OpenApiSpex.Cast.Error.path_to_string(error)
+                "#{message} at #{path}"
+              end)
+
+            flunk(
+              "Response does not conform to schema of #{op_id} operation: #{
+                Enum.join(errors, "\n")
+              }\n#{inspect(json)}"
+            )
+        end
+      end
+
+      defp json_response_and_validate_schema(conn, _status) do
+        flunk("Response schema not found for #{conn.method} #{conn.request_path} #{conn.status}")
+      end
     end
   end
 
@@ -61,7 +125,11 @@ defmodule Pleroma.Web.ConnCase do
     end
 
     if tags[:needs_streamer] do
-      start_supervised(Pleroma.Web.Streamer.supervisor())
+      start_supervised(%{
+        id: Pleroma.Web.Streamer.registry(),
+        start:
+          {Registry, :start_link, [[keys: :duplicate, name: Pleroma.Web.Streamer.registry()]]}
+      })
     end
 
     {:ok, conn: Phoenix.ConnTest.build_conn()}

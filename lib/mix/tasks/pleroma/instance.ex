@@ -33,7 +33,10 @@ defmodule Mix.Tasks.Pleroma.Instance do
           uploads_dir: :string,
           static_dir: :string,
           listen_ip: :string,
-          listen_port: :string
+          listen_port: :string,
+          strip_uploads: :string,
+          anonymize_uploads: :string,
+          dedupe_uploads: :string
         ],
         aliases: [
           o: :output,
@@ -145,16 +148,42 @@ defmodule Mix.Tasks.Pleroma.Instance do
           options,
           :uploads_dir,
           "What directory should media uploads go in (when using the local uploader)?",
-          Pleroma.Config.get([Pleroma.Uploaders.Local, :uploads])
+          Config.get([Pleroma.Uploaders.Local, :uploads])
         )
+        |> Path.expand()
 
       static_dir =
         get_option(
           options,
           :static_dir,
           "What directory should custom public files be read from (custom emojis, frontend bundle overrides, robots.txt, etc.)?",
-          Pleroma.Config.get([:instance, :static_dir])
+          Config.get([:instance, :static_dir])
         )
+        |> Path.expand()
+
+      strip_uploads =
+        get_option(
+          options,
+          :strip_uploads,
+          "Do you want to strip location (GPS) data from uploaded images? (y/n)",
+          "y"
+        ) === "y"
+
+      anonymize_uploads =
+        get_option(
+          options,
+          :anonymize_uploads,
+          "Do you want to anonymize the filenames of uploads? (y/n)",
+          "n"
+        ) === "y"
+
+      dedupe_uploads =
+        get_option(
+          options,
+          :dedupe_uploads,
+          "Do you want to deduplicate uploaded files? (y/n)",
+          "n"
+        ) === "y"
 
       Config.put([:instance, :static_dir], static_dir)
 
@@ -186,7 +215,13 @@ defmodule Mix.Tasks.Pleroma.Instance do
           uploads_dir: uploads_dir,
           rum_enabled: rum_enabled,
           listen_ip: listen_ip,
-          listen_port: listen_port
+          listen_port: listen_port,
+          upload_filters:
+            upload_filters(%{
+              strip: strip_uploads,
+              anonymize: anonymize_uploads,
+              dedupe: dedupe_uploads
+            })
         )
 
       result_psql =
@@ -204,7 +239,7 @@ defmodule Mix.Tasks.Pleroma.Instance do
       shell_info("Writing the postgres script to #{psql_path}.")
       File.write(psql_path, result_psql)
 
-      write_robots_txt(indexable, template_dir)
+      write_robots_txt(static_dir, indexable, template_dir)
 
       shell_info(
         "\n All files successfully written! Refer to the installation instructions for your platform for next steps."
@@ -224,14 +259,12 @@ defmodule Mix.Tasks.Pleroma.Instance do
     end
   end
 
-  defp write_robots_txt(indexable, template_dir) do
+  defp write_robots_txt(static_dir, indexable, template_dir) do
     robots_txt =
       EEx.eval_file(
         template_dir <> "/robots_txt.eex",
         indexable: indexable
       )
-
-    static_dir = Pleroma.Config.get([:instance, :static_dir], "instance/static/")
 
     unless File.exists?(static_dir) do
       File.mkdir_p!(static_dir)
@@ -247,4 +280,31 @@ defmodule Mix.Tasks.Pleroma.Instance do
     File.write(robots_txt_path, robots_txt)
     shell_info("Writing #{robots_txt_path}.")
   end
+
+  defp upload_filters(filters) when is_map(filters) do
+    enabled_filters =
+      if filters.strip do
+        [Pleroma.Upload.Filter.Exiftool]
+      else
+        []
+      end
+
+    enabled_filters =
+      if filters.anonymize do
+        enabled_filters ++ [Pleroma.Upload.Filter.AnonymizeFilename]
+      else
+        enabled_filters
+      end
+
+    enabled_filters =
+      if filters.dedupe do
+        enabled_filters ++ [Pleroma.Upload.Filter.Dedupe]
+      else
+        enabled_filters
+      end
+
+    enabled_filters
+  end
+
+  defp upload_filters(_), do: []
 end
