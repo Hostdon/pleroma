@@ -25,7 +25,6 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
   alias Pleroma.Web.MastodonAPI.MastodonAPIController
   alias Pleroma.Web.MastodonAPI.StatusView
   alias Pleroma.Web.OAuth.OAuthController
-  alias Pleroma.Web.OAuth.OAuthView
   alias Pleroma.Web.Plugs.EnsurePublicOrAuthenticatedPlug
   alias Pleroma.Web.Plugs.OAuthScopesPlug
   alias Pleroma.Web.Plugs.RateLimiter
@@ -103,7 +102,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
          {:ok, user} <- TwitterAPI.register_user(params),
          {_, {:ok, token}} <-
            {:login, OAuthController.login(user, app, app.scopes)} do
-      json(conn, OAuthView.render("token.json", %{user: user, token: token}))
+      OAuthController.after_token_exchange(conn, %{user: user, token: token})
     else
       {:login, {:account_status, :confirmation_pending}} ->
         json_response(conn, :ok, %{
@@ -208,7 +207,9 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
         if bot, do: {:ok, "Service"}, else: {:ok, "Person"}
       end)
       |> Maps.put_if_present(:actor_type, params[:actor_type])
+      # Note: param name is indeed :locked (not an error)
       |> Maps.put_if_present(:is_locked, params[:locked])
+      # Note: param name is indeed :discoverable (not an error)
       |> Maps.put_if_present(:is_discoverable, params[:discoverable])
 
     # What happens here:
@@ -292,7 +293,8 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
       |> render("index.json",
         activities: activities,
         for: reading_user,
-        as: :activity
+        as: :activity,
+        with_muted: Map.get(params, :with_muted, false)
       )
     else
       error -> user_visibility_error(conn, error)

@@ -55,6 +55,19 @@ defmodule Pleroma.Web.Endpoint do
     }
   )
 
+  plug(Plug.Static.IndexHtml, at: "/pleroma/fedife/")
+
+  plug(Pleroma.Web.Plugs.FrontendStatic,
+    at: "/pleroma/fedife",
+    frontend_type: :fedife,
+    gzip: true,
+    cache_control_for_etags: @static_cache_control,
+    headers: %{
+      "cache-control" => @static_cache_control
+    }
+  )
+
+
   # Serve at "/" the static files from "priv/static" directory.
   #
   # You should set gzip to true if you are running phoenix.digest

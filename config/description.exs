@@ -274,19 +274,6 @@ config :pleroma, :config_description, [
   },
   %{
     group: :pleroma,
-    key: :fed_sockets,
-    type: :group,
-    description: "Websocket based federation",
-    children: [
-      %{
-        key: :enabled,
-        type: :boolean,
-        description: "Enable FedSockets"
-      }
-    ]
-  },
-  %{
-    group: :pleroma,
     key: Pleroma.Emails.Mailer,
     type: :group,
     description: "Mailer-related settings",
@@ -1267,7 +1254,7 @@ config :pleroma, :config_description, [
             hideSitename: false,
             hideUserStats: false,
             loginMethod: "password",
-            logo: "/static/logo.png",
+            logo: "/static/logo.svg",
             logoMargin: ".1em",
             logoMask: true,
             minimalScopesMode: false,
@@ -1353,7 +1340,7 @@ config :pleroma, :config_description, [
             key: :logo,
             type: {:string, :image},
             description: "URL of the logo, defaults to Pleroma's logo",
-            suggestions: ["/static/logo.png"]
+            suggestions: ["/static/logo.svg"]
           },
           %{
             key: :logoMargin,
@@ -1966,14 +1953,8 @@ config :pleroma, :config_description, [
     group: :pleroma,
     key: Oban,
     type: :group,
-    description: """
-    [Oban](https://github.com/sorentwo/oban) asynchronous job processor configuration.
-
-    Note: if you are running PostgreSQL in [`silent_mode`](https://postgresqlco.nf/en/doc/param/silent_mode?version=9.1),
-      it's advised to set [`log_destination`](https://postgresqlco.nf/en/doc/param/log_destination?version=9.1) to `syslog`,
-      otherwise `postmaster.log` file may grow because of "you don't own a lock of type ShareLock" warnings
-      (see https://github.com/sorentwo/oban/issues/52).
-    """,
+    description:
+      "[Oban](https://github.com/sorentwo/oban) asynchronous job processor configuration.",
     children: [
       %{
         key: :log,
@@ -2553,7 +2534,7 @@ config :pleroma, :config_description, [
         key: :token_expires_in,
         type: :integer,
         description: "The lifetime in seconds of the access token",
-        suggestions: [600]
+        suggestions: [2_592_000]
       },
       %{
         key: :issue_new_refresh_token,
