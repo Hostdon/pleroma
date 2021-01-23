@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2020 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2021 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Config.DeprecationWarningsTest do
@@ -92,6 +92,15 @@ defmodule Pleroma.Config.DeprecationWarningsTest do
     assert capture_log(fn ->
              DeprecationWarnings.check_activity_expiration_config()
            end) =~ "Your config is using old namespace for activity expiration configuration."
+  end
+
+  test "check_uploders_s3_public_endpoint/0" do
+    clear_config(Pleroma.Uploaders.S3, public_endpoint: "https://fake.amazonaws.com/bucket/")
+
+    assert capture_log(fn ->
+             DeprecationWarnings.check_uploders_s3_public_endpoint()
+           end) =~
+             "Your config is using the old setting for controlling the URL of media uploaded to your S3 bucket."
   end
 
   describe "check_gun_pool_options/0" do

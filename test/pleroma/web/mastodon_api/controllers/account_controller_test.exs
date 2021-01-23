@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2020 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2021 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
@@ -468,6 +468,21 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
                  }
                }
              ] = result
+    end
+
+    test "paginates a user's statuses", %{user: user, conn: conn} do
+      {:ok, post_1} = CommonAPI.post(user, %{status: "first post"})
+      {:ok, post_2} = CommonAPI.post(user, %{status: "second post"})
+
+      response_1 = get(conn, "/api/v1/accounts/#{user.id}/statuses?limit=1")
+      assert [res] = json_response(response_1, 200)
+      assert res["id"] == post_2.id
+
+      response_2 = get(conn, "/api/v1/accounts/#{user.id}/statuses?limit=1&max_id=#{res["id"]}")
+      assert [res] = json_response(response_2, 200)
+      assert res["id"] == post_1.id
+
+      refute response_1 == response_2
     end
   end
 
@@ -1012,8 +1027,8 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
       user = Repo.preload(token_from_db, :user).user
 
       assert user
-      refute user.confirmation_pending
-      refute user.approval_pending
+      assert user.is_confirmed
+      assert user.is_approved
     end
 
     test "registers but does not log in with :account_activation_required", %{conn: conn} do
@@ -1073,7 +1088,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
       refute response["token_type"]
 
       user = Repo.get_by(User, email: "lain@example.org")
-      assert user.confirmation_pending
+      refute user.is_confirmed
     end
 
     test "registers but does not log in with :account_approval_required", %{conn: conn} do
@@ -1135,7 +1150,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
 
       user = Repo.get_by(User, email: "lain@example.org")
 
-      assert user.approval_pending
+      refute user.is_approved
       assert user.registration_reason == "I'm a cool dude, bro"
     end
 

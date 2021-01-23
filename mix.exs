@@ -123,9 +123,8 @@ defmodule Pleroma.Mixfile do
       {:ecto_enum, "~> 1.4"},
       {:ecto_sql, "~> 3.4.4"},
       {:postgrex, ">= 0.15.5"},
-      {:oban, "~> 2.1.0"},
+      {:oban, "~> 2.3.4"},
       {:gettext, "~> 0.18"},
-      {:pbkdf2_elixir, "~> 1.2"},
       {:bcrypt_elixir, "~> 2.2"},
       {:trailing_format_plug, "~> 0.0.7"},
       {:fast_sanitize, "~> 0.2.0"},
@@ -147,8 +146,8 @@ defmodule Pleroma.Mixfile do
       {:earmark, "1.4.3"},
       {:bbcode_pleroma, "~> 0.2.0"},
       {:crypt,
-       git: "https://github.com/msantos/crypt.git",
-       ref: "f63a705f92c26955977ee62a313012e309a4d77a"},
+       git: "https://git.pleroma.social/pleroma/elixir-libraries/crypt.git",
+       ref: "cf2aa3f11632e8b0634810a15b3e612c7526f6a3"},
       {:cors_plug, "~> 2.0"},
       {:web_push_encryption, "~> 0.3"},
       {:swoosh, "~> 1.0"},
@@ -230,7 +229,9 @@ defmodule Pleroma.Mixfile do
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate", "test"],
       docs: ["pleroma.docs", "docs"],
-      analyze: ["credo --strict --only=warnings,todo,fixme,consistency,readability"]
+      analyze: ["credo --strict --only=warnings,todo,fixme,consistency,readability"],
+      copyright: &add_copyright/1,
+      "copyright.bump": &bump_copyright/1
     ]
   end
 
@@ -332,5 +333,31 @@ defmodule Pleroma.Mixfile do
     [version, pre_release, build_metadata]
     |> Enum.filter(fn string -> string && string != "" end)
     |> Enum.join()
+  end
+
+  defp add_copyright(_) do
+    year = NaiveDateTime.utc_now().year
+    template = ~s[\
+# Pleroma: A lightweight social networking server
+# Copyright © 2017-#{year} Pleroma Authors <https://pleroma.social/>
+# SPDX-License-Identifier: AGPL-3.0-only
+
+] |> String.replace("\n", "\\n")
+
+    find = "find lib test priv -type f \\( -name '*.ex' -or -name '*.exs' \\) -exec "
+    grep = "grep -L '# Copyright © [0-9\-]* Pleroma' {} \\;"
+    xargs = "xargs -n1 sed -i'' '1s;^;#{template};'"
+
+    :os.cmd(String.to_charlist("#{find}#{grep} | #{xargs}"))
+  end
+
+  defp bump_copyright(_) do
+    year = NaiveDateTime.utc_now().year
+    find = "find lib test priv -type f \\( -name '*.ex' -or -name '*.exs' \\)"
+
+    xargs =
+      "xargs sed -i'' 's;# Copyright © [0-9\-]* Pleroma.*$;# Copyright © 2017-#{year} Pleroma Authors <https://pleroma.social/>;'"
+
+    :os.cmd(String.to_charlist("#{find} | #{xargs}"))
   end
 end

@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2020 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2021 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.TwitterAPI.TwitterAPITest do
@@ -65,7 +65,7 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPITest do
     {:ok, user} = TwitterAPI.register_user(data)
     ObanHelpers.perform_all()
 
-    assert user.confirmation_pending
+    refute user.is_confirmed
 
     email = Pleroma.Emails.UserEmail.account_confirmation_email(user)
 
@@ -97,7 +97,7 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPITest do
     {:ok, user} = TwitterAPI.register_user(data)
     ObanHelpers.perform_all()
 
-    assert user.approval_pending
+    refute user.is_approved
 
     user_email = Pleroma.Emails.UserEmail.approval_pending_email(user)
     admin_email = Pleroma.Emails.AdminEmail.new_unapproved_registration(admin, user)

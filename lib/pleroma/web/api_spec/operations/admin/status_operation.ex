@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2020 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2021 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.ApiSpec.Admin.StatusOperation do
@@ -142,7 +142,7 @@ defmodule Pleroma.Web.ApiSpec.Admin.StatusOperation do
           }
         },
         tags: %Schema{type: :string},
-        confirmation_pending: %Schema{type: :string}
+        is_confirmed: %Schema{type: :string}
       }
     }
   end

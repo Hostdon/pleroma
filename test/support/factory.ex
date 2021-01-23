@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2020 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2021 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Factory do
@@ -29,7 +29,7 @@ defmodule Pleroma.Factory do
       name: sequence(:name, &"Test テスト User #{&1}"),
       email: sequence(:email, &"user#{&1}@example.com"),
       nickname: sequence(:nickname, &"nick#{&1}"),
-      password_hash: Pbkdf2.hash_pwd_salt("test"),
+      password_hash: Pleroma.Password.Pbkdf2.hash_pwd_salt("test"),
       bio: sequence(:bio, &"Tester Number #{&1}"),
       is_discoverable: true,
       last_digest_emailed_at: NaiveDateTime.utc_now(),
@@ -259,7 +259,7 @@ defmodule Pleroma.Factory do
 
   def like_activity_factory(attrs \\ %{}) do
     note_activity = attrs[:note_activity] || insert(:note_activity)
-    object = Object.normalize(note_activity)
+    object = Object.normalize(note_activity, fetch: false)
     user = insert(:user)
 
     data =

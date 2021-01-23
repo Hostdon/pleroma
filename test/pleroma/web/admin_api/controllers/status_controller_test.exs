@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2020 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2021 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.AdminAPI.StatusControllerTest do
@@ -48,7 +48,7 @@ defmodule Pleroma.Web.AdminAPI.StatusControllerTest do
       assert account["id"] == actor.id
       assert account["nickname"] == actor.nickname
       assert account["deactivated"] == actor.deactivated
-      assert account["confirmation_pending"] == actor.confirmation_pending
+      assert account["is_confirmed"] == actor.is_confirmed
     end
   end
 

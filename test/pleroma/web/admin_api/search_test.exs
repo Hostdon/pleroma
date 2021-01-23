@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2020 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2021 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.AdminAPI.SearchTest do
@@ -182,7 +182,7 @@ defmodule Pleroma.Web.AdminAPI.SearchTest do
     end
 
     test "it returns unapproved user" do
-      unapproved = insert(:user, approval_pending: true)
+      unapproved = insert(:user, is_approved: false)
       insert(:user)
       insert(:user)
 
@@ -193,7 +193,7 @@ defmodule Pleroma.Web.AdminAPI.SearchTest do
     end
 
     test "it returns unconfirmed user" do
-      unconfirmed = insert(:user, confirmation_pending: true)
+      unconfirmed = insert(:user, is_confirmed: false)
       insert(:user)
       insert(:user)
 

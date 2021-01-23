@@ -53,7 +53,7 @@ config :pleroma, Pleroma.Repo,
 config :pleroma, :dangerzone, override_repo_pool_size: true
 
 # Reduce hash rounds for testing
-config :pbkdf2_elixir, rounds: 1
+config :pleroma, :password, iterations: 1
 
 config :tesla, adapter: Tesla.Mock
 
@@ -115,11 +115,6 @@ config :pleroma, Pleroma.Web.Plugs.RemoteIp, enabled: false
 
 config :pleroma, Pleroma.Web.ApiSpec.CastAndValidate, strict: true
 
-config :pleroma, Pleroma.Uploaders.S3,
-  bucket: nil,
-  streaming_enabled: true,
-  public_endpoint: nil
-
 config :tzdata, :autoupdate, :disabled
 
 config :pleroma, :mrf, policies: []
@@ -133,6 +128,10 @@ config :pleroma, :pipeline,
   config: Pleroma.ConfigMock
 
 config :pleroma, :cachex, provider: Pleroma.CachexMock
+
+config :pleroma, :side_effects,
+  ap_streamer: Pleroma.Web.ActivityPub.ActivityPubMock,
+  logger: Pleroma.LoggerMock
 
 if File.exists?("./config/test.secret.exs") do
   import_config "test.secret.exs"

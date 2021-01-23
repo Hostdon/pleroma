@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2020 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2021 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Application do
@@ -297,7 +297,16 @@ defmodule Pleroma.Application do
 
   @spec limiters_setup() :: :ok
   def limiters_setup do
-    [Pleroma.Web.RichMedia.Helpers, Pleroma.Web.MediaProxy]
-    |> Enum.each(&ConcurrentLimiter.new(&1, 1, 0))
+    config = Config.get(ConcurrentLimiter, [])
+
+    [Pleroma.Web.RichMedia.Helpers, Pleroma.Web.ActivityPub.MRF.MediaProxyWarmingPolicy]
+    |> Enum.each(fn module ->
+      mod_config = Keyword.get(config, module, [])
+
+      max_running = Keyword.get(mod_config, :max_running, 5)
+      max_waiting = Keyword.get(mod_config, :max_waiting, 5)
+
+      ConcurrentLimiter.new(module, max_running, max_waiting)
+    end)
   end
 end

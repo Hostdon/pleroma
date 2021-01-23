@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2020 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2021 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.MongooseIMControllerTest do
@@ -41,13 +41,13 @@ defmodule Pleroma.Web.MongooseIMControllerTest do
   end
 
   test "/check_password", %{conn: conn} do
-    user = insert(:user, password_hash: Pbkdf2.hash_pwd_salt("cool"))
+    user = insert(:user, password_hash: Pleroma.Password.Pbkdf2.hash_pwd_salt("cool"))
 
     _deactivated_user =
       insert(:user,
         nickname: "konata",
         deactivated: true,
-        password_hash: Pbkdf2.hash_pwd_salt("cool")
+        password_hash: Pleroma.Password.Pbkdf2.hash_pwd_salt("cool")
       )
 
     res =

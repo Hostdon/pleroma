@@ -1,18 +1,17 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2020 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2021 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.ScheduledActivityTest do
   use Pleroma.DataCase
-  alias Pleroma.DataCase
+
   alias Pleroma.ScheduledActivity
+
   import Pleroma.Factory
 
   setup do: clear_config([ScheduledActivity, :enabled])
 
-  setup context do
-    DataCase.ensure_local_uploader(context)
-  end
+  setup [:ensure_local_uploader]
 
   describe "creation" do
     test "scheduled activities with jobs when ScheduledActivity enabled" do

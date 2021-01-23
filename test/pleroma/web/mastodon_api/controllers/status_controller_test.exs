@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2020 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2021 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
@@ -800,7 +800,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
     test "when you created it" do
       %{user: author, conn: conn} = oauth_access(["write:statuses"])
       activity = insert(:note_activity, user: author)
-      object = Object.normalize(activity)
+      object = Object.normalize(activity, fetch: false)
 
       content = object.data["content"]
       source = object.data["source"]
@@ -951,6 +951,23 @@ defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
                "favourited" => true,
                "bookmarked" => true
              } = json_response_and_validate_schema(conn_res, 200)
+
+      assert to_string(activity.id) == id
+    end
+
+    test "author can reblog own private status", %{conn: conn, user: user} do
+      {:ok, activity} = CommonAPI.post(user, %{status: "cofe", visibility: "private"})
+
+      conn =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> post("/api/v1/statuses/#{activity.id}/reblog")
+
+      assert %{
+               "reblog" => %{"id" => id, "reblogged" => true, "reblogs_count" => 1},
+               "reblogged" => true,
+               "visibility" => "private"
+             } = json_response_and_validate_schema(conn, 200)
 
       assert to_string(activity.id) == id
     end
@@ -1374,7 +1391,9 @@ defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
 
     activity = Activity.get_by_id_with_object(id)
 
-    assert Object.normalize(activity).data["inReplyTo"] == Object.normalize(replied_to).data["id"]
+    assert Object.normalize(activity, fetch: false).data["inReplyTo"] ==
+             Object.normalize(replied_to, fetch: false).data["id"]
+
     assert Activity.get_in_reply_to_activity(activity).id == replied_to.id
 
     # Reblog from the third user

@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2020 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2021 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
@@ -422,10 +422,20 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       assert json_response(conn, 200) |> length() == 3
     end
 
-    test "renders user's statuses with a limit", %{conn: conn, user: user} do
-      conn = get(conn, "/api/pleroma/admin/users/#{user.nickname}/statuses?page_size=2")
+    test "renders user's statuses with pagination", %{conn: conn, user: user} do
+      conn1 = get(conn, "/api/pleroma/admin/users/#{user.nickname}/statuses?page_size=1&page=1")
 
-      assert json_response(conn, 200) |> length() == 2
+      response1 = json_response(conn1, 200)
+
+      assert response1 |> length() == 1
+
+      conn2 = get(conn, "/api/pleroma/admin/users/#{user.nickname}/statuses?page_size=1&page=2")
+
+      response2 = json_response(conn2, 200)
+
+      assert response2 |> length() == 1
+
+      refute response1 == response2
     end
 
     test "doesn't return private statuses by default", %{conn: conn, user: user} do
@@ -881,10 +891,10 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   describe "PATCH /confirm_email" do
     test "it confirms emails of two users", %{conn: conn, admin: admin} do
-      [first_user, second_user] = insert_pair(:user, confirmation_pending: true)
+      [first_user, second_user] = insert_pair(:user, is_confirmed: false)
 
-      assert first_user.confirmation_pending == true
-      assert second_user.confirmation_pending == true
+      refute first_user.is_confirmed
+      refute second_user.is_confirmed
 
       ret_conn =
         patch(conn, "/api/pleroma/admin/users/confirm_email", %{
@@ -896,8 +906,11 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
       assert ret_conn.status == 200
 
-      assert first_user.confirmation_pending == true
-      assert second_user.confirmation_pending == true
+      first_user = User.get_by_id(first_user.id)
+      second_user = User.get_by_id(second_user.id)
+
+      assert first_user.is_confirmed
+      assert second_user.is_confirmed
 
       log_entry = Repo.one(ModerationLog)
 
@@ -910,7 +923,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   describe "PATCH /resend_confirmation_email" do
     test "it resend emails for two users", %{conn: conn, admin: admin} do
-      [first_user, second_user] = insert_pair(:user, confirmation_pending: true)
+      [first_user, second_user] = insert_pair(:user, is_confirmed: false)
 
       ret_conn =
         patch(conn, "/api/pleroma/admin/users/resend_confirmation_email", %{
