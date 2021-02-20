@@ -441,7 +441,9 @@ config :pleroma, Pleroma.Web.MediaProxy.Invalidation.Http,
   headers: [],
   options: []
 
-config :pleroma, Pleroma.Web.MediaProxy.Invalidation.Script, script_path: nil
+config :pleroma, Pleroma.Web.MediaProxy.Invalidation.Script,
+  script_path: nil,
+  url_format: nil
 
 # Note: media preview proxy depends on media proxy to be enabled
 config :pleroma, :media_preview_proxy,
@@ -544,6 +546,7 @@ config :pleroma, Oban,
   queues: [
     activity_expiration: 10,
     token_expiration: 5,
+    filter_expiration: 1,
     backup: 1,
     federator_incoming: 50,
     federator_outgoing: 50,
@@ -611,10 +614,7 @@ config :ueberauth,
        base_path: "/oauth",
        providers: ueberauth_providers
 
-config :pleroma,
-       :auth,
-       enforce_oauth_admin_scope_usage: true,
-       oauth_consumer_strategies: oauth_consumer_strategies
+config :pleroma, :auth, oauth_consumer_strategies: oauth_consumer_strategies
 
 config :pleroma, Pleroma.Emails.Mailer, adapter: Swoosh.Adapters.Sendmail, enabled: false
 
@@ -726,7 +726,10 @@ config :pleroma, :frontends,
       "git" => "https://git.pleroma.social/pleroma/fedi-fe",
       "build_url" =>
         "https://git.pleroma.social/pleroma/fedi-fe/-/jobs/artifacts/${ref}/download?job=build",
-      "ref" => "master"
+      "ref" => "master",
+      "custom-http-headers" => [
+        {"service-worker-allowed", "/"}
+      ]
     },
     "admin-fe" => %{
       "name" => "admin-fe",
