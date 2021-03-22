@@ -7,7 +7,6 @@ defmodule Pleroma.Activity do
 
   alias Pleroma.Activity
   alias Pleroma.Activity.Queries
-  alias Pleroma.ActivityExpiration
   alias Pleroma.Bookmark
   alias Pleroma.Notification
   alias Pleroma.Object
@@ -24,26 +23,16 @@ defmodule Pleroma.Activity do
 
   @primary_key {:id, FlakeId.Ecto.CompatType, autogenerate: true}
 
-  # https://github.com/tootsuite/mastodon/blob/master/app/models/notification.rb#L19
-  @mastodon_notification_types %{
-    "Create" => "mention",
-    "Follow" => "follow",
-    "Announce" => "reblog",
-    "Like" => "favourite",
-    "Move" => "move",
-    "EmojiReact" => "pleroma:emoji_reaction"
-  }
-
-  @mastodon_to_ap_notification_types for {k, v} <- @mastodon_notification_types,
-                                         into: %{},
-                                         do: {v, k}
-
   schema "activities" do
     field(:data, :map)
     field(:local, :boolean, default: true)
     field(:actor, :string)
     field(:recipients, {:array, :string}, default: [])
     field(:thread_muted?, :boolean, virtual: true)
+
+    # A field that can be used if you need to join some kind of other
+    # id to order / paginate this field by
+    field(:pagination_id, :string, virtual: true)
 
     # This is a fake relation,
     # do not use outside of with_preloaded_user_actor/with_joined_user_actor
@@ -70,8 +59,6 @@ defmodule Pleroma.Activity do
     # typical case.
     has_one(:object, Object, on_delete: :nothing, foreign_key: :id)
 
-    has_one(:expiration, ActivityExpiration, on_delete: :delete_all)
-
     timestamps()
   end
 
@@ -93,6 +80,17 @@ defmodule Pleroma.Activity do
     |> has_named_binding?(:object)
     |> if(do: query, else: with_joined_object(query, join_type))
     |> preload([activity, object: object], object: object)
+  end
+
+  # Note: applies to fake activities (ActivityPub.Utils.get_notified_from_object/1 etc.)
+  def user_actor(%Activity{actor: nil}), do: nil
+
+  def user_actor(%Activity{} = activity) do
+    with %User{} <- activity.user_actor do
+      activity.user_actor
+    else
+      _ -> User.get_cached_by_ap_id(activity.actor)
+    end
   end
 
   def with_joined_user_actor(query, join_type \\ :inner) do
@@ -280,16 +278,18 @@ defmodule Pleroma.Activity do
 
   defp purge_web_resp_cache(nil), do: nil
 
-  for {ap_type, type} <- @mastodon_notification_types do
-    def mastodon_notification_type(%Activity{data: %{"type" => unquote(ap_type)}}),
-      do: unquote(type)
+  def follow_accepted?(
+        %Activity{data: %{"type" => "Follow", "object" => followed_ap_id}} = activity
+      ) do
+    with %User{} = follower <- Activity.user_actor(activity),
+         %User{} = followed <- User.get_cached_by_ap_id(followed_ap_id) do
+      Pleroma.FollowingRelationship.following?(follower, followed)
+    else
+      _ -> false
+    end
   end
 
-  def mastodon_notification_type(%Activity{}), do: nil
-
-  def from_mastodon_notification_type(type) do
-    Map.get(@mastodon_to_ap_notification_types, type)
-  end
+  def follow_accepted?(_), do: false
 
   def all_by_actor_and_id(actor, status_ids \\ [])
   def all_by_actor_and_id(_actor, []), do: []
@@ -301,14 +301,14 @@ defmodule Pleroma.Activity do
     |> Repo.all()
   end
 
-  def follow_requests_for_actor(%Pleroma.User{ap_id: ap_id}) do
+  def follow_requests_for_actor(%User{ap_id: ap_id}) do
     ap_id
     |> Queries.by_object_id()
     |> Queries.by_type("Follow")
     |> where([a], fragment("? ->> 'state' = 'pending'", a.data))
   end
 
-  def following_requests_for_actor(%Pleroma.User{ap_id: ap_id}) do
+  def following_requests_for_actor(%User{ap_id: ap_id}) do
     Queries.by_type("Follow")
     |> where([a], fragment("?->>'state' = 'pending'", a.data))
     |> where([a], a.actor == ^ap_id)
@@ -337,4 +337,21 @@ defmodule Pleroma.Activity do
       _ -> nil
     end
   end
+
+  @spec pinned_by_actor?(Activity.t()) :: boolean()
+  def pinned_by_actor?(%Activity{} = activity) do
+    actor = user_actor(activity)
+    activity.id in actor.pinned_activities
+  end
+
+  @spec get_by_object_ap_id_with_object(String.t()) :: t() | nil
+  def get_by_object_ap_id_with_object(ap_id) when is_binary(ap_id) do
+    ap_id
+    |> Queries.by_object_id()
+    |> with_preloaded_object()
+    |> first()
+    |> Repo.one()
+  end
+
+  def get_by_object_ap_id_with_object(_), do: nil
 end

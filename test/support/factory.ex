@@ -24,23 +24,44 @@ defmodule Pleroma.Factory do
     }
   end
 
-  def user_factory do
+  def user_factory(attrs \\ %{}) do
     user = %User{
       name: sequence(:name, &"Test テスト User #{&1}"),
       email: sequence(:email, &"user#{&1}@example.com"),
       nickname: sequence(:nickname, &"nick#{&1}"),
-      password_hash: Comeonin.Pbkdf2.hashpwsalt("test"),
+      password_hash: Pbkdf2.hash_pwd_salt("test"),
       bio: sequence(:bio, &"Tester Number #{&1}"),
+      discoverable: true,
       last_digest_emailed_at: NaiveDateTime.utc_now(),
-      notification_settings: %Pleroma.User.NotificationSetting{}
+      last_refreshed_at: NaiveDateTime.utc_now(),
+      notification_settings: %Pleroma.User.NotificationSetting{},
+      multi_factor_authentication_settings: %Pleroma.MFA.Settings{},
+      ap_enabled: true
     }
 
-    %{
-      user
-      | ap_id: User.ap_id(user),
-        follower_address: User.ap_followers(user),
-        following_address: User.ap_following(user)
-    }
+    urls =
+      if attrs[:local] == false do
+        base_domain = Enum.random(["domain1.com", "domain2.com", "domain3.com"])
+
+        ap_id = "https://#{base_domain}/users/#{user.nickname}"
+
+        %{
+          ap_id: ap_id,
+          follower_address: ap_id <> "/followers",
+          following_address: ap_id <> "/following"
+        }
+      else
+        %{
+          ap_id: User.ap_id(user),
+          follower_address: User.ap_followers(user),
+          following_address: User.ap_following(user)
+        }
+      end
+
+    user
+    |> Map.put(:raw_bio, user.bio)
+    |> Map.merge(urls)
+    |> merge_attributes(attrs)
   end
 
   def user_relationship_factory(attrs \\ %{}) do
@@ -63,6 +84,7 @@ defmodule Pleroma.Factory do
     data = %{
       "type" => "Note",
       "content" => text,
+      "source" => text,
       "id" => Pleroma.Web.ActivityPub.Utils.generate_object_id(),
       "actor" => user.ap_id,
       "to" => ["https://www.w3.org/ns/activitystreams#Public"],
@@ -195,25 +217,6 @@ defmodule Pleroma.Factory do
     |> Map.merge(attrs)
   end
 
-  defp expiration_offset_by_minutes(attrs, minutes) do
-    scheduled_at =
-      NaiveDateTime.utc_now()
-      |> NaiveDateTime.add(:timer.minutes(minutes), :millisecond)
-      |> NaiveDateTime.truncate(:second)
-
-    %Pleroma.ActivityExpiration{}
-    |> Map.merge(attrs)
-    |> Map.put(:scheduled_at, scheduled_at)
-  end
-
-  def expiration_in_the_past_factory(attrs \\ %{}) do
-    expiration_offset_by_minutes(attrs, -60)
-  end
-
-  def expiration_in_the_future_factory(attrs \\ %{}) do
-    expiration_offset_by_minutes(attrs, 61)
-  end
-
   def article_activity_factory do
     article = insert(:article)
 
@@ -292,9 +295,33 @@ defmodule Pleroma.Factory do
     }
   end
 
+  def report_activity_factory(attrs \\ %{}) do
+    user = attrs[:user] || insert(:user)
+    activity = attrs[:activity] || insert(:note_activity)
+    state = attrs[:state] || "open"
+
+    data = %{
+      "id" => Pleroma.Web.ActivityPub.Utils.generate_activity_id(),
+      "actor" => user.ap_id,
+      "type" => "Flag",
+      "object" => [activity.actor, activity.data["id"]],
+      "published" => DateTime.utc_now() |> DateTime.to_iso8601(),
+      "to" => [],
+      "cc" => [activity.actor],
+      "context" => activity.data["context"],
+      "state" => state
+    }
+
+    %Pleroma.Activity{
+      data: data,
+      actor: data["actor"],
+      recipients: data["to"] ++ data["cc"]
+    }
+  end
+
   def oauth_app_factory do
     %Pleroma.Web.OAuth.App{
-      client_name: "Some client",
+      client_name: sequence(:client_name, &"Some client #{&1}"),
       redirect_uris: "https://example.com/callback",
       scopes: ["read", "write", "follow", "push", "admin"],
       website: "https://example.com",
@@ -393,24 +420,17 @@ defmodule Pleroma.Factory do
     }
   end
 
-  def config_factory do
+  def config_factory(attrs \\ %{}) do
     %Pleroma.ConfigDB{
-      key:
-        sequence(:key, fn key ->
-          # Atom dynamic registration hack in tests
-          "some_key_#{key}"
-          |> String.to_atom()
-          |> inspect()
-        end),
-      group: ":pleroma",
+      key: sequence(:key, &String.to_atom("some_key_#{&1}")),
+      group: :pleroma,
       value:
         sequence(
           :value,
-          fn key ->
-            :erlang.term_to_binary(%{another_key: "#{key}somevalue", another: "#{key}somevalue"})
-          end
+          &%{another_key: "#{&1}somevalue", another: "#{&1}somevalue"}
         )
     }
+    |> merge_attributes(attrs)
   end
 
   def marker_factory do
@@ -419,6 +439,23 @@ defmodule Pleroma.Factory do
       timeline: "notifications",
       lock_version: 0,
       last_read_id: "1"
+    }
+  end
+
+  def mfa_token_factory do
+    %Pleroma.MFA.Token{
+      token: :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false),
+      authorization: build(:oauth_authorization),
+      valid_until: NaiveDateTime.add(NaiveDateTime.utc_now(), 60 * 10),
+      user: build(:user)
+    }
+  end
+
+  def filter_factory do
+    %Pleroma.Filter{
+      user: build(:user),
+      filter_id: sequence(:filter_id, & &1),
+      phrase: "cofe"
     }
   end
 end

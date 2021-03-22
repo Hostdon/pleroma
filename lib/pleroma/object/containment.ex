@@ -32,18 +32,23 @@ defmodule Pleroma.Object.Containment do
     get_actor(%{"actor" => actor})
   end
 
-  # TODO: We explicitly allow 'tag' URIs through, due to references to legacy OStatus
-  # objects being present in the test suite environment.  Once these objects are
-  # removed, please also remove this.
-  if Mix.env() == :test do
-    defp compare_uris(_, %URI{scheme: "tag"}), do: :ok
+  def get_object(%{"object" => id}) when is_binary(id) do
+    id
+  end
+
+  def get_object(%{"object" => %{"id" => id}}) when is_binary(id) do
+    id
+  end
+
+  def get_object(_) do
+    nil
   end
 
   defp compare_uris(%URI{host: host} = _id_uri, %URI{host: host} = _other_uri), do: :ok
   defp compare_uris(_id_uri, _other_uri), do: :error
 
   @doc """
-  Checks that an imported AP object's actor matches the domain it came from.
+  Checks that an imported AP object's actor matches the host it came from.
   """
   def contain_origin(_id, %{"actor" => nil}), do: :error
 

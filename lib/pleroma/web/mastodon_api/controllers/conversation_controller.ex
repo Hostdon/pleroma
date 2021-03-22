@@ -8,15 +8,16 @@ defmodule Pleroma.Web.MastodonAPI.ConversationController do
   import Pleroma.Web.ControllerHelper, only: [add_link_headers: 2]
 
   alias Pleroma.Conversation.Participation
-  alias Pleroma.Plugs.OAuthScopesPlug
   alias Pleroma.Repo
+  alias Pleroma.Web.Plugs.OAuthScopesPlug
 
   action_fallback(Pleroma.Web.MastodonAPI.FallbackController)
 
+  plug(Pleroma.Web.ApiSpec.CastAndValidate)
   plug(OAuthScopesPlug, %{scopes: ["read:statuses"]} when action == :index)
-  plug(OAuthScopesPlug, %{scopes: ["write:conversations"]} when action == :read)
+  plug(OAuthScopesPlug, %{scopes: ["write:conversations"]} when action != :index)
 
-  plug(Pleroma.Plugs.EnsurePublicOrAuthenticatedPlug)
+  defdelegate open_api_operation(action), to: Pleroma.Web.ApiSpec.ConversationOperation
 
   @doc "GET /api/v1/conversations"
   def index(%{assigns: %{user: user}} = conn, params) do
@@ -28,7 +29,7 @@ defmodule Pleroma.Web.MastodonAPI.ConversationController do
   end
 
   @doc "POST /api/v1/conversations/:id/read"
-  def read(%{assigns: %{user: user}} = conn, %{"id" => participation_id}) do
+  def mark_as_read(%{assigns: %{user: user}} = conn, %{id: participation_id}) do
     with %Participation{} = participation <-
            Repo.get_by(Participation, id: participation_id, user_id: user.id),
          {:ok, participation} <- Participation.mark_as_read(participation) do

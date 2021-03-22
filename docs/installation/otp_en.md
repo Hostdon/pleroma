@@ -27,16 +27,38 @@ Other than things bundled in the OTP release Pleroma depends on:
 * PostgreSQL (also utilizes extensions in postgresql-contrib)
 * nginx (could be swapped with another reverse proxy but this guide covers only it)
 * certbot (for Let's Encrypt certificates, could be swapped with another ACME client, but this guide covers only it)
+* libmagic/file
 
-```sh tab="Alpine"
-echo "http://nl.alpinelinux.org/alpine/latest-stable/community" >> /etc/apk/repositories
-apk update
-apk add curl unzip ncurses postgresql postgresql-contrib nginx certbot
-```
+=== "Alpine"
+    ```
+    echo "http://nl.alpinelinux.org/alpine/latest-stable/community" >> /etc/apk/repositories
+    apk update
+    apk add curl unzip ncurses postgresql postgresql-contrib nginx certbot file-dev
+    ```
 
-```sh tab="Debian/Ubuntu"
-apt install curl unzip libncurses5 postgresql postgresql-contrib nginx certbot
-```
+=== "Debian/Ubuntu"
+    ```
+    apt install curl unzip libncurses5 postgresql postgresql-contrib nginx certbot libmagic-dev
+    ```
+
+### Installing optional packages
+
+Per [`docs/installation/optional/media_graphics_packages.md`](docs/installation/optional/media_graphics_packages.md):
+  * ImageMagick
+  * ffmpeg
+  * exiftool
+
+=== "Alpine"
+    ```
+    echo "http://nl.alpinelinux.org/alpine/latest-stable/community" >> /etc/apk/repositories
+    apk update
+    apk add imagemagick ffmpeg exiftool
+    ```
+
+=== "Debian/Ubuntu"
+    ```
+    apt install imagemagick ffmpeg libimage-exiftool-perl
+    ```
 
 ## Setup
 ### Configuring PostgreSQL
@@ -47,35 +69,41 @@ apt install curl unzip libncurses5 postgresql postgresql-contrib nginx certbot
 
 RUM indexes are an alternative indexing scheme that is not included in PostgreSQL by default. You can read more about them on the [Configuration page](../configuration/cheatsheet.md#rum-indexing-for-full-text-search). They are completely optional and most of the time are not worth it, especially if you are running a single user instance (unless you absolutely need ordered search results).
 
-```sh tab="Alpine"
-apk add git build-base postgresql-dev
-git clone https://github.com/postgrespro/rum /tmp/rum
-cd /tmp/rum
-make USE_PGXS=1
-make USE_PGXS=1 install
-cd
-rm -r /tmp/rum
-```
+=== "Alpine"
+    ```
+    apk add git build-base postgresql-dev
+    git clone https://github.com/postgrespro/rum /tmp/rum
+    cd /tmp/rum
+    make USE_PGXS=1
+    make USE_PGXS=1 install
+    cd
+    rm -r /tmp/rum
+    ```
 
-```sh tab="Debian/Ubuntu"
-# Available only on Buster/19.04
-apt install postgresql-11-rum
-```
+=== "Debian/Ubuntu"
+    ```
+    # Available only on Buster/19.04
+    apt install postgresql-11-rum
+    ```
 
 #### (Optional) Performance configuration
-For optimal performance, you may use [PGTune](https://pgtune.leopard.in.ua), don't forget to restart postgresql after editing the configuration
+It is encouraged to check [Optimizing your PostgreSQL performance](../configuration/postgresql.md) document, for tips on PostgreSQL tuning.
 
-```sh tab="Alpine"
-rc-service postgresql restart
-```
+=== "Alpine"
+    ```
+    rc-service postgresql restart
+    ```
 
-```sh tab="Debian/Ubuntu"
-systemctl restart postgresql
-```
+=== "Debian/Ubuntu"
+    ```
+    systemctl restart postgresql
+    ```
 
 If you are using PostgreSQL 12 or higher, add this to your Ecto database configuration
 
 ```elixir
+#
+config :pleroma, Pleroma.Repo,
 prepare: :named,
 parameters: [
   plan_cache_mode: "force_custom_plan"
@@ -151,14 +179,16 @@ certbot certonly --standalone --preferred-challenges http -d yourinstance.tld
 
 The location of nginx configs is dependent on the distro
 
-```sh tab="Alpine"
-cp /opt/pleroma/installation/pleroma.nginx /etc/nginx/conf.d/pleroma.conf
-```
+=== "Alpine"
+    ```
+    cp /opt/pleroma/installation/pleroma.nginx /etc/nginx/conf.d/pleroma.conf
+    ```
 
-```sh tab="Debian/Ubuntu"
-cp /opt/pleroma/installation/pleroma.nginx /etc/nginx/sites-available/pleroma.conf
-ln -s /etc/nginx/sites-available/pleroma.conf /etc/nginx/sites-enabled/pleroma.conf
-```
+=== "Debian/Ubuntu"
+    ```
+    cp /opt/pleroma/installation/pleroma.nginx /etc/nginx/sites-available/pleroma.conf
+    ln -s /etc/nginx/sites-available/pleroma.conf /etc/nginx/sites-enabled/pleroma.conf
+    ```
 
 If your distro does not have either of those you can append `include /etc/nginx/pleroma.conf` to the end of the http section in /etc/nginx/nginx.conf and
 ```sh
@@ -175,35 +205,39 @@ nginx -t
 ```
 #### Start nginx
 
-```sh tab="Alpine"
-rc-service nginx start
-```
+=== "Alpine"
+    ```
+    rc-service nginx start
+    ```
 
-```sh tab="Debian/Ubuntu"
-systemctl start nginx
-```
+=== "Debian/Ubuntu"
+    ```
+    systemctl start nginx
+    ```
 
 At this point if you open your (sub)domain in a browser you should see a 502 error, that's because Pleroma is not started yet.
 
 ### Setting up a system service
 
-```sh tab="Alpine"
-# Copy the service into a proper directory
-cp /opt/pleroma/installation/init.d/pleroma /etc/init.d/pleroma
+=== "Alpine"
+    ```
+    # Copy the service into a proper directory
+    cp /opt/pleroma/installation/init.d/pleroma /etc/init.d/pleroma
 
-# Start pleroma and enable it on boot
-rc-service pleroma start
-rc-update add pleroma
-```
+    # Start pleroma and enable it on boot
+    rc-service pleroma start
+    rc-update add pleroma
+    ```
 
-```sh tab="Debian/Ubuntu"
-# Copy the service into a proper directory
-cp /opt/pleroma/installation/pleroma.service /etc/systemd/system/pleroma.service
+=== "Debian/Ubuntu"
+    ```
+    # Copy the service into a proper directory
+    cp /opt/pleroma/installation/pleroma.service /etc/systemd/system/pleroma.service
 
-# Start pleroma and enable it on boot
-systemctl start pleroma
-systemctl enable pleroma
-```
+    # Start pleroma and enable it on boot
+    systemctl start pleroma
+    systemctl enable pleroma
+    ```
 
 If everything worked, you should see Pleroma-FE when visiting your domain. If that didn't happen, try reviewing the installation steps, starting Pleroma in the foreground and seeing if there are any errrors.
 
@@ -223,43 +257,45 @@ $EDITOR path-to-nginx-config
 nginx -t
 ```
 
-```sh tab="Alpine"
-# Restart nginx
-rc-service nginx restart
+=== "Alpine"
+    ```
+    # Restart nginx
+    rc-service nginx restart
 
-# Start the cron daemon and make it start on boot
-rc-service crond start
-rc-update add crond
+    # Start the cron daemon and make it start on boot
+    rc-service crond start
+    rc-update add crond
 
-# Ensure the webroot menthod and post hook is working
-certbot renew --cert-name yourinstance.tld --webroot -w /var/lib/letsencrypt/ --dry-run --post-hook 'rc-service nginx reload'
+    # Ensure the webroot menthod and post hook is working
+    certbot renew --cert-name yourinstance.tld --webroot -w /var/lib/letsencrypt/ --dry-run --post-hook 'rc-service nginx reload'
 
-# Add it to the daily cron
-echo '#!/bin/sh
-certbot renew --cert-name yourinstance.tld --webroot -w /var/lib/letsencrypt/ --post-hook "rc-service nginx reload"
-' > /etc/periodic/daily/renew-pleroma-cert
-chmod +x /etc/periodic/daily/renew-pleroma-cert
+    # Add it to the daily cron
+    echo '#!/bin/sh
+    certbot renew --cert-name yourinstance.tld --webroot -w /var/lib/letsencrypt/ --post-hook "rc-service nginx reload"
+    ' > /etc/periodic/daily/renew-pleroma-cert
+    chmod +x /etc/periodic/daily/renew-pleroma-cert
 
-# If everything worked the output should contain /etc/cron.daily/renew-pleroma-cert
-run-parts --test /etc/periodic/daily
-```
+    # If everything worked the output should contain /etc/cron.daily/renew-pleroma-cert
+    run-parts --test /etc/periodic/daily
+    ```
 
-```sh tab="Debian/Ubuntu"
-# Restart nginx
-systemctl restart nginx
+=== "Debian/Ubuntu"
+    ```
+    # Restart nginx
+    systemctl restart nginx
 
-# Ensure the webroot menthod and post hook is working
-certbot renew --cert-name yourinstance.tld --webroot -w /var/lib/letsencrypt/ --dry-run --post-hook 'systemctl reload nginx'
+    # Ensure the webroot menthod and post hook is working
+    certbot renew --cert-name yourinstance.tld --webroot -w /var/lib/letsencrypt/ --dry-run --post-hook 'systemctl reload nginx'
 
-# Add it to the daily cron
-echo '#!/bin/sh
-certbot renew --cert-name yourinstance.tld --webroot -w /var/lib/letsencrypt/ --post-hook "systemctl reload nginx"
-' > /etc/cron.daily/renew-pleroma-cert
-chmod +x /etc/cron.daily/renew-pleroma-cert
+    # Add it to the daily cron
+    echo '#!/bin/sh
+    certbot renew --cert-name yourinstance.tld --webroot -w /var/lib/letsencrypt/ --post-hook "systemctl reload nginx"
+    ' > /etc/cron.daily/renew-pleroma-cert
+    chmod +x /etc/cron.daily/renew-pleroma-cert
 
-# If everything worked the output should contain /etc/cron.daily/renew-pleroma-cert
-run-parts --test /etc/cron.daily
-```
+    # If everything worked the output should contain /etc/cron.daily/renew-pleroma-cert
+    run-parts --test /etc/cron.daily
+    ```
 
 ## Create your first user and set as admin
 ```sh
@@ -270,10 +306,7 @@ This will create an account withe the username of 'joeuser' with the email addre
 
 ## Further reading
 
-* [Backup your instance](../administration/backup.md)
-* [Hardening your instance](../configuration/hardening.md)
-* [How to activate mediaproxy](../configuration/howto_mediaproxy.md)
-* [Updating your instance](../administration/updating.md)
+{! backend/installation/further_reading.include !}
 
 ## Questions
 

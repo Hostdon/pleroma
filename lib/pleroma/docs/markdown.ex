@@ -1,3 +1,7 @@
+# Pleroma: A lightweight social networking server
+# Copyright © 2017-2020 Pleroma Authors <https://pleroma.social/>
+# SPDX-License-Identifier: AGPL-3.0-only
+
 defmodule Pleroma.Docs.Markdown do
   @behaviour Pleroma.Docs.Generator
 
@@ -66,6 +70,11 @@ defmodule Pleroma.Docs.Markdown do
   defp print_suggestion(file, suggestion, as_list \\ false) do
     list_mark = if as_list, do: "- ", else: ""
     IO.write(file, "  #{list_mark}`#{inspect(suggestion)}`\n")
+  end
+
+  defp print_suggestions(file, {:list_behaviour_implementations, behaviour}) do
+    suggestions = Pleroma.Docs.Generator.list_behaviour_implementations(behaviour)
+    print_suggestions(file, suggestions)
   end
 
   defp print_suggestions(_file, nil), do: nil

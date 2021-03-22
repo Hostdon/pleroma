@@ -1,5 +1,10 @@
+# Pleroma: A lightweight social networking server
+# Copyright © 2017-2020 Pleroma Authors <https://pleroma.social/>
+# SPDX-License-Identifier: AGPL-3.0-only
+
 defmodule Mix.Tasks.Pleroma.Digest do
   use Mix.Task
+  import Mix.Pleroma
 
   @shortdoc "Manages digest emails"
   @moduledoc File.read!("docs/administration/CLI_tasks/digest.md")
@@ -22,12 +27,10 @@ defmodule Mix.Tasks.Pleroma.Digest do
     with %Swoosh.Email{} = email <- Pleroma.Emails.UserEmail.digest_email(patched_user) do
       {:ok, _} = Pleroma.Emails.Mailer.deliver(email)
 
-      Mix.shell().info("Digest email have been sent to #{nickname} (#{user.email})")
+      shell_info("Digest email have been sent to #{nickname} (#{user.email})")
     else
       _ ->
-        Mix.shell().info(
-          "Cound't find any mentions for #{nickname} since #{last_digest_emailed_at}"
-        )
+        shell_info("Cound't find any mentions for #{nickname} since #{last_digest_emailed_at}")
     end
   end
 end
