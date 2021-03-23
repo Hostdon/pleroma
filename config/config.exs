@@ -394,6 +394,11 @@ config :pleroma, :mrf_keyword,
   federated_timeline_removal: [],
   replace: []
 
+config :pleroma, :mrf_hashtag,
+  sensitive: ["nsfw"],
+  reject: [],
+  federated_timeline_removal: []
+
 config :pleroma, :mrf_subchain, match_actor: %{}
 
 config :pleroma, :mrf_activity_expiration, days: 365
@@ -656,6 +661,10 @@ config :pleroma, :oauth2,
   clean_expired_tokens: false
 
 config :pleroma, :database, rum_enabled: false
+
+config :pleroma, :features, improved_hashtag_timeline: :auto
+
+config :pleroma, :populate_hashtags_table, fault_rate_allowance: 0.01
 
 config :pleroma, :env, Mix.env()
 

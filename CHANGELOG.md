@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+- The `application` metadata returned with statuses is no longer hardcoded. Apps that want to display these details will now have valid data for new posts after this change.
+
+## Unreleased (Patch)
+
+### Fixed
+
+- Try to save exported ConfigDB settings (migrate_from_db) in the system temp directory if default location is not writable.
+
+## [2.3.0] - 2020-03-01
+
+### Security
+
+- Fixed client user agent leaking through MediaProxy
+
 ### Removed
 
 - `:auth, :enforce_oauth_admin_scope_usage` configuration option.
@@ -14,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - **Breaking**: Changed `mix pleroma.user toggle_confirmed` to `mix pleroma.user confirm`
 - **Breaking**: Changed `mix pleroma.user toggle_activated` to `mix pleroma.user activate/deactivate`
+- **Breaking:** NSFW hashtag is no longer added on sensitive posts
 - Polls now always return a `voters_count`, even if they are single-choice.
 - Admin Emails: The ap id is used as the user link in emails now.
 - Improved registration workflow for email confirmation and account approval modes.
@@ -40,6 +55,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Pleroma API: Reroute `/api/pleroma/*` to `/api/v1/pleroma/*`
 
 </details>
+- Improved hashtag timeline performance (requires a background migration).
 
 ### Added
 
@@ -59,11 +75,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Ability to define custom HTTP headers per each frontend
 - MRF (`NoEmptyPolicy`): New MRF Policy which will deny empty statuses or statuses of only mentions from being created by local users
 - New users will receive a simple email confirming their registration if no other emails will be dispatched. (e.g., Welcome, Confirmation, or Approval Required)
-- The `application` metadata returned with statuses is no longer hardcoded. Apps that want to display these details will now have valid data for new posts after this change.
 
 <details>
   <summary>API Changes</summary>
 - Admin API: (`GET /api/pleroma/admin/users`) filter users by `unconfirmed` status and `actor_type`.
+- Admin API: OpenAPI spec for the user-related operations
 - Pleroma API: `GET /api/v2/pleroma/chats` added. It is exactly like `GET /api/v1/pleroma/chats` except supports pagination.
 - Pleroma API: Add `idempotency_key` to the chat message entity that can be used for optimistic message sending.
 - Pleroma API: (`GET /api/v1/pleroma/federation_status`) Add a way to get a list of unreachable instances.
@@ -98,9 +114,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Mastodon API: Fixed creation of scheduled posts with polls.
   - Mastodon API: Support for expires_in/expires_at in the Filters.
 </details>
-
-## Unreleased (Patch)
-
 
 ## [2.2.2] - 2020-01-18
 
@@ -498,7 +511,6 @@ switched to a new configuration mechanism, however it was not officially removed
 - Static-FE: Fix remote posts not being sanitized
 
 ### Fixed
-=======
 - Rate limiter crashes when there is no explicitly specified ip in the config
 - 500 errors when no `Accept` header is present if Static-FE is enabled
 - Instance panel not being updated immediately due to wrong `Cache-Control` headers

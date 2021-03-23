@@ -4,7 +4,7 @@ defmodule Pleroma.Mixfile do
   def project do
     [
       app: :pleroma,
-      version: version("2.2.50"),
+      version: version("2.3.50"),
       elixir: "~> 1.9",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
@@ -121,6 +121,7 @@ defmodule Pleroma.Mixfile do
       {:phoenix_pubsub, "~> 2.0"},
       {:phoenix_ecto, "~> 4.0"},
       {:ecto_enum, "~> 1.4"},
+      {:ecto_explain, "~> 0.1.2"},
       {:ecto_sql, "~> 3.4.4"},
       {:postgrex, ">= 0.15.5"},
       {:oban, "~> 2.3.4"},
@@ -157,7 +158,7 @@ defmodule Pleroma.Mixfile do
       {:floki, "~> 0.27"},
       {:timex, "~> 3.6"},
       {:ueberauth, "~> 0.4"},
-      {:linkify, "~> 0.4.1"},
+      {:linkify, "~> 0.5.0"},
       {:http_signatures, "~> 0.1.0"},
       {:telemetry, "~> 0.3"},
       {:poolboy, "~> 1.5"},
@@ -195,9 +196,7 @@ defmodule Pleroma.Mixfile do
       {:majic,
        git: "https://git.pleroma.social/pleroma/elixir-libraries/majic.git",
        ref: "289cda1b6d0d70ccb2ba508a2b0bd24638db2880"},
-      {:open_api_spex,
-       git: "https://git.pleroma.social/pleroma/elixir-libraries/open_api_spex.git",
-       ref: "f296ac0924ba3cf79c7a588c4c252889df4c2edd"},
+      {:open_api_spex, "~> 3.10"},
 
       ## dev & test
       {:ex_doc, "~> 0.22", only: :dev, runtime: false},
