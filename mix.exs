@@ -38,7 +38,7 @@ defmodule Pleroma.Mixfile do
           include_executables_for: [:unix],
           applications: [ex_syslogger: :load, syslog: :load, eldap: :transient],
           steps: [:assemble, &put_otp_version/1, &copy_files/1, &copy_nginx_config/1],
-          config_providers: [{Pleroma.Config.ReleaseRuntimeProvider, nil}]
+          config_providers: [{Pleroma.Config.ReleaseRuntimeProvider, []}]
         ]
       ]
     ]
@@ -144,7 +144,7 @@ defmodule Pleroma.Mixfile do
       {:ex_aws, "~> 2.1.6"},
       {:ex_aws_s3, "~> 2.0"},
       {:sweet_xml, "~> 0.6.6"},
-      {:earmark, "1.4.3"},
+      {:earmark, "1.4.15"},
       {:bbcode_pleroma, "~> 0.2.0"},
       {:crypt,
        git: "https://git.pleroma.social/pleroma/elixir-libraries/crypt.git",
