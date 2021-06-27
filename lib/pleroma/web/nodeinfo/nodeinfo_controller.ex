@@ -11,17 +11,19 @@ defmodule Pleroma.Web.Nodeinfo.NodeinfoController do
   alias Pleroma.Web
   alias Pleroma.Web.Federator.Publisher
   alias Pleroma.Web.MastodonAPI.InstanceView
+  alias Pleroma.Web.Endpoint
+  alias Pleroma.Web.Nodeinfo.Nodeinfo
 
   def schemas(conn, _params) do
     response = %{
       links: [
         %{
           rel: "http://nodeinfo.diaspora.software/ns/schema/2.0",
-          href: Web.base_url() <> "/nodeinfo/2.0.json"
+          href: Endpoint.url() <> "/nodeinfo/2.0.json"
         },
         %{
           rel: "http://nodeinfo.diaspora.software/ns/schema/2.1",
-          href: Web.base_url() <> "/nodeinfo/2.1.json"
+          href: Endpoint.url() <> "/nodeinfo/2.1.json"
         }
       ]
     }

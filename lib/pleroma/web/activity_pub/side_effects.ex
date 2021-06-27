@@ -28,10 +28,11 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
   require Logger
 
   @cachex Pleroma.Config.get([:cachex, :provider], Cachex)
-  @ap_streamer Pleroma.Config.get([:side_effects, :ap_streamer], ActivityPub)
   @logger Pleroma.Config.get([:side_effects, :logger], Logger)
 
   @behaviour Pleroma.Web.ActivityPub.SideEffects.Handling
+
+  defp ap_streamer, do: Pleroma.Config.get([:side_effects, :ap_streamer], ActivityPub)
 
   @impl true
   def handle(object, meta \\ [])
@@ -203,6 +204,19 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
         Object.increase_replies_count(in_reply_to)
       end
 
+      reply_depth = (meta[:depth] || 0) + 1
+
+      # FIXME: Force inReplyTo to replies
+      if Pleroma.Web.Federator.allowed_thread_distance?(reply_depth) and
+           object.data["replies"] != nil do
+        for reply_id <- object.data["replies"] do
+          Pleroma.Workers.RemoteFetcherWorker.enqueue("fetch_remote", %{
+            "id" => reply_id,
+            "depth" => reply_depth
+          })
+        end
+      end
+
       ConcurrentLimiter.limit(Pleroma.Web.RichMedia.Helpers, fn ->
         Task.start(fn -> Pleroma.Web.RichMedia.Helpers.fetch_data_for_activity(activity) end)
       end)
@@ -289,8 +303,8 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
 
             MessageReference.delete_for_object(deleted_object)
 
-            @ap_streamer.stream_out(object)
-            @ap_streamer.stream_out_participations(deleted_object, user)
+            ap_streamer().stream_out(object)
+            ap_streamer().stream_out_participations(deleted_object, user)
             :ok
           else
             {:actor, _} ->
@@ -423,7 +437,7 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
   end
 
   def handle_object_creation(%{"type" => objtype} = object, meta)
-      when objtype in ~w[Audio Video Question Event Article] do
+      when objtype in ~w[Audio Video Question Event Article Note] do
     with {:ok, object, meta} <- Pipeline.common_pipeline(object, meta) do
       {:ok, object, meta}
     end
