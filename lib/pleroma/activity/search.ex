@@ -57,7 +57,7 @@ defmodule Pleroma.Activity.Search do
 
   def maybe_restrict_blocked(query, _), do: query
 
-  defp restrict_public(q) do
+  def restrict_public(q) do
     from([a, o] in q,
       where: fragment("?->>'type' = 'Create'", a.data),
       where: ^Pleroma.Constants.as_public() in a.recipients
@@ -124,7 +124,7 @@ defmodule Pleroma.Activity.Search do
     )
   end
 
-  defp maybe_restrict_local(q, user) do
+  def maybe_restrict_local(q, user) do
     limit = Pleroma.Config.get([:instance, :limit_to_local_content], :unauthenticated)
 
     case {limit, user} do
@@ -137,7 +137,7 @@ defmodule Pleroma.Activity.Search do
 
   defp restrict_local(q), do: where(q, local: true)
 
-  defp maybe_fetch(activities, user, search_query) do
+  def maybe_fetch(activities, user, search_query) do
     with true <- Regex.match?(~r/https?:/, search_query),
          {:ok, object} <- Fetcher.fetch_object_from_id(search_query),
          %Activity{} = activity <- Activity.get_create_by_object_ap_id(object.data["id"]),
