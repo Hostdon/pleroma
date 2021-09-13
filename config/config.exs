@@ -221,8 +221,6 @@ config :pleroma, :instance,
     "text/markdown",
     "text/bbcode"
   ],
-  mrf_transparency: true,
-  mrf_transparency_exclusions: [],
   staff_transparency: [],
   autofollowed_nicknames: [],
   autofollowing_nicknames: [],
