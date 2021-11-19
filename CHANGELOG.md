@@ -59,6 +59,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - MRF (`FollowBotPolicy`): New MRF Policy which makes a designated local Bot account attempt to follow all users in public Notes received by your instance. Users who require approving follower requests or have #nobot in their profile are excluded.
 - Return OAuth token `id` (primary key) in POST `/oauth/token`.
 - AdminAPI: return `created_at` date with users.
+- AdminAPI: add DELETE `/api/v1/pleroma/admin/instances/:instance` to delete all content from a remote instance.
 - `AnalyzeMetadata` upload filter for extracting image/video attachment dimensions and generating blurhashes for images. Blurhashes for videos are not generated at this time.
 - Attachment dimensions and blurhashes are federated when available.
 - Mastodon API: support `poll` notification.
@@ -69,6 +70,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Checking activated Upload Filters for required commands.
 - Remote users can no longer reappear after being deleted.
 - Deactivated users may now be deleted.
+- Deleting an activity with a lot of likes/boosts no longer causes a database timeout.
 - Mix task `pleroma.database prune_objects`
 - Fixed rendering of JSON errors on ActivityPub endpoints.
 - Linkify: Parsing crash with URLs ending in unbalanced closed paren, no path separator, and no query parameters
@@ -133,6 +135,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Support pagination of blocks and mutes.
 - Account backup.
 - Configuration: Add `:instance, autofollowing_nicknames` setting to provide a way to make accounts automatically follow new users that register on the local Pleroma instance.
+- `[:activitypub, :blockers_visible]` config to control visibility of blockers.
 - Ability to view remote timelines, with ex. `/api/v1/timelines/public?instance=lain.com` and streams `public:remote` and `public:remote:media`.
 - The site title is now injected as a `title` tag like preloads or metadata.
 - Password reset tokens now are not accepted after a certain age.
