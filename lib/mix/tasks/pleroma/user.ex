@@ -7,6 +7,7 @@ defmodule Mix.Tasks.Pleroma.User do
   import Mix.Pleroma
   alias Ecto.Changeset
   alias Pleroma.User
+  alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.UserInviteToken
   alias Pleroma.Web.ActivityPub.Builder
   alias Pleroma.Web.ActivityPub.Pipeline
@@ -435,6 +436,36 @@ defmodule Mix.Tasks.Pleroma.User do
     else
       _ ->
         shell_error("No local user #{nickname}")
+    end
+  end
+
+  def run(["blocking", nickname]) do
+    start_pleroma()
+    with %User{local: true} = user <- User.get_cached_by_nickname(nickname) do
+      blocks = User.following_ap_ids(user)
+      IO.inspect(blocks, limit: :infinity)
+    end
+  end
+
+  def run(["timeline_query", nickname]) do
+    start_pleroma()
+    params = %{ local: true }
+    with %User{local: true} = user <- User.get_cached_by_nickname(nickname) do
+      params =
+        params
+        |> Map.put(:type, ["Create", "Announce"])
+	|> Map.put(:limit, 20)
+        |> Map.put(:blocking_user, user)
+        |> Map.put(:muting_user, user)
+        |> Map.put(:reply_filtering_user, user)
+        |> Map.put(:announce_filtering_user, user)
+        |> Map.put(:user, user)
+        |> Map.put(:local_only, params[:local])
+        |> Map.delete(:local)
+      activities =
+      [user.ap_id | User.following(user)]
+      |> ActivityPub.fetch_activities_secret(params)
+      IO.inspect(activities, limit: :infinity)
     end
   end
 

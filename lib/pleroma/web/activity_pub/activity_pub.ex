@@ -494,6 +494,15 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     |> maybe_update_cc(list_memberships, opts[:user])
   end
 
+  def fetch_activities_secret(recipients, opts \\ %{}, pagination \\ :keyset) do
+    list_memberships = Pleroma.List.memberships(opts[:user])
+
+    fetch_activities_query_secret(recipients ++ list_memberships, opts)
+    |> fetch_paginated_optimized(opts, pagination)
+    |> Enum.reverse()
+  end
+
+
   @spec fetch_public_or_unlisted_activities(map(), Pagination.type()) :: [Activity.t()]
   def fetch_public_or_unlisted_activities(opts \\ %{}, pagination \\ :keyset) do
     opts = Map.delete(opts, :user)
@@ -1307,6 +1316,64 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       Map.merge(%{reblog_muted_users_ap_ids: preloaded_ap_ids[:reblog_mute]}, opts)
 
     {restrict_blocked_opts, restrict_muted_opts, restrict_muted_reblogs_opts}
+  end
+
+  def fetch_activities_query_secret(recipients, opts \\ %{}) do
+    opts = normalize_fetch_activities_query_opts(opts)
+
+    {restrict_blocked_opts, restrict_muted_opts, restrict_muted_reblogs_opts} =
+      fetch_activities_query_ap_ids_ops(opts)
+
+    config = %{
+      skip_thread_containment: true
+    }
+
+    query =
+      Activity
+      |> maybe_preload_objects(opts)
+      |> maybe_preload_bookmarks(opts)
+      |> maybe_preload_report_notes(opts)
+      |> maybe_set_thread_muted_field(opts)
+      |> maybe_order(opts)
+      |> restrict_recipients(recipients, opts[:user])
+      |> restrict_replies(opts)
+      |> restrict_since(opts)
+      |> restrict_local(opts)
+      |> restrict_remote(opts)
+      |> restrict_actor(opts)
+      |> restrict_type(opts)
+      |> restrict_state(opts)
+      |> restrict_favorited_by(opts)
+      |> restrict_blocked(restrict_blocked_opts)
+      |> restrict_blockers_visibility(opts)
+      |> restrict_muted(restrict_muted_opts)
+      |> restrict_filtered(opts)
+      |> restrict_media(opts)
+      |> restrict_visibility(opts)
+      |> restrict_thread_visibility(opts, config)
+      |> restrict_reblogs(opts)
+      |> restrict_pinned(opts)
+      |> restrict_muted_reblogs(restrict_muted_reblogs_opts)
+      |> restrict_instance(opts)
+      |> restrict_announce_object_actor(opts)
+      |> restrict_filtered(opts)
+      |> Activity.restrict_deactivated_users()
+      |> exclude_poll_votes(opts)
+      |> exclude_chat_messages(opts)
+      |> exclude_invisible_actors(opts)
+      |> exclude_visibility(opts)
+
+    if Config.feature_enabled?(:improved_hashtag_timeline) do
+      query
+      |> restrict_hashtag_any(opts)
+      |> restrict_hashtag_all(opts)
+      |> restrict_hashtag_reject_any(opts)
+    else
+      query
+      |> restrict_embedded_tag_any(opts)
+      |> restrict_embedded_tag_all(opts)
+      |> restrict_embedded_tag_reject_any(opts)
+    end
   end
 
   def fetch_activities_query(recipients, opts \\ %{}) do
