@@ -15,6 +15,7 @@ secret
 /doc
 /instance
 /priv/ssh_keys
+vm.args
 
 # Prevent committing custom emojis
 /priv/static/emoji/custom/*
