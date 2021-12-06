@@ -1357,7 +1357,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       |> restrict_instance(opts)
       |> restrict_announce_object_actor(opts)
       |> restrict_filtered(opts)
-      |> Activity.restrict_deactivated_users()
       |> exclude_poll_votes(opts)
       |> exclude_chat_messages(opts)
       |> exclude_invisible_actors(opts)
@@ -1383,7 +1382,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       fetch_activities_query_ap_ids_ops(opts)
 
     config = %{
-      skip_thread_containment: Config.get([:instance, :skip_thread_containment])
+      skip_thread_containment: true
     }
 
     query =
@@ -1415,7 +1414,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       |> restrict_instance(opts)
       |> restrict_announce_object_actor(opts)
       |> restrict_filtered(opts)
-      |> Activity.restrict_deactivated_users()
       |> exclude_poll_votes(opts)
       |> exclude_chat_messages(opts)
       |> exclude_invisible_actors(opts)

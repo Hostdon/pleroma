@@ -1,4 +1,5 @@
 # App artifacts
+*.sw*
 secret
 /_build
 /db

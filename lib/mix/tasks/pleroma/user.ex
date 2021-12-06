@@ -465,7 +465,6 @@ defmodule Mix.Tasks.Pleroma.User do
       activities =
       [user.ap_id | User.following(user)]
       |> ActivityPub.fetch_activities_secret(params)
-      IO.inspect(activities, limit: :infinity)
     end
   end
 
