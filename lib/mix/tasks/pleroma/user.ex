@@ -462,9 +462,9 @@ defmodule Mix.Tasks.Pleroma.User do
         |> Map.put(:user, user)
         |> Map.put(:local_only, params[:local])
         |> Map.delete(:local)
-      activities =
+      _activities =
       [user.ap_id | User.following(user)]
-      |> ActivityPub.fetch_activities_secret(params)
+      |> ActivityPub.fetch_activities(params)
     end
   end
 
