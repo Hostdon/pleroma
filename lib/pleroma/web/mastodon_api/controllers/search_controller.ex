@@ -46,6 +46,43 @@ defmodule Pleroma.Web.MastodonAPI.SearchController do
   defp do_search(version, %{assigns: %{user: user}} = conn, %{q: query} = params) do
     query = String.trim(query)
     options = search_options(params, user)
+    if Pleroma.Config.get([:search, :provider]) == :elasticsearch do
+      elasticsearch_search(conn, query, options)
+    else
+      builtin_search(version, conn, params)
+    end
+  end
+
+  defp elasticsearch_search(%{assigns: %{user: user}} = conn, query, options) do
+    with {:ok, raw_results} <- Pleroma.Elasticsearch.search(query) do
+      results = raw_results
+      |> Map.get(:body)
+      |> Map.get("hits")
+      |> Map.get("hits")
+      |> Enum.map(fn result -> result["_id"] end)
+      |> Pleroma.Activity.all_by_ids_with_object()
+      
+      json(
+        conn,
+        %{
+          accounts: [],
+          hashtags: [],
+          statuses: StatusView.render("index.json",
+            activities: results,
+            for: user,
+            as: :activity
+        )}
+      )
+    else
+      {:error, _} ->
+        conn
+        |> put_status(:internal_server_error)
+        |> json(%{error: "Search failed"})
+    end
+  end
+
+  defp builtin_search(version, %{assigns: %{user: user}} = conn, %{q: query} = params) do
+    options = search_options(params, user)
     timeout = Keyword.get(Repo.config(), :timeout, 15_000)
     default_values = %{"statuses" => [], "accounts" => [], "hashtags" => []}
 

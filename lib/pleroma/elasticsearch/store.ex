@@ -26,11 +26,20 @@ defmodule Pleroma.Elasticsearch do
     end)
     |> List.flatten()
 
-    IO.inspect Elastix.Bulk.post(
+    Elastix.Bulk.post(
         url(),
         d,
         index: "activities",
         type: "activity"
+    )
+  end
+
+  def search(query) do
+    Elastix.Search.search(
+        url(),
+        "activities",
+        ["activity"],
+        %{query: %{term: %{content: query}}}
     )
   end
 end
