@@ -91,7 +91,7 @@ defmodule Pleroma.Mixfile do
   defp elixirc_paths(_), do: ["lib"]
 
   defp warnings_as_errors(:prod), do: false
-  defp warnings_as_errors(_), do: true
+  defp warnings_as_errors(_), do: false
 
   # Specifies OAuth dependencies.
   defp oauth_deps do
@@ -197,6 +197,7 @@ defmodule Pleroma.Mixfile do
        ref: "289cda1b6d0d70ccb2ba508a2b0bd24638db2880"},
       {:eblurhash, "~> 1.1.0"},
       {:open_api_spex, "~> 3.10"},
+      {:elastix, ">= 0.0.0"},
 
       # indirect dependency version override
       {:plug, "~> 1.10.4", override: true},
