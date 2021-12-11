@@ -56,9 +56,9 @@ defmodule Pleroma.Web.MastodonAPI.SearchController do
   defp elasticsearch_search(%{assigns: %{user: user}} = conn, query, options) do
     with {:ok, raw_results} <- Pleroma.Elasticsearch.search(query) do
       results = raw_results
-      |> Map.get(:body)
-      |> Map.get("hits")
-      |> Map.get("hits")
+      |> Map.get(:body, %{})
+      |> Map.get("hits", %{})
+      |> Map.get("hits", [])
       |> Enum.map(fn result -> result["_id"] end)
       |> Pleroma.Activity.all_by_ids_with_object()
       
