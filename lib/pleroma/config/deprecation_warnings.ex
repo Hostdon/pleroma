@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2020 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2021 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Config.DeprecationWarnings do
@@ -40,7 +40,9 @@ defmodule Pleroma.Config.DeprecationWarnings do
          :ok <- check_welcome_message_config(),
          :ok <- check_gun_pool_options(),
          :ok <- check_activity_expiration_config(),
-         :ok <- check_remote_ip_plug_name() do
+         :ok <- check_remote_ip_plug_name(),
+         :ok <- check_uploders_s3_public_endpoint(),
+         :ok <- check_old_chat_shoutbox() do
       :ok
     else
       _ ->
@@ -192,5 +194,49 @@ defmodule Pleroma.Config.DeprecationWarnings do
       ],
       warning_preface
     )
+  end
+
+  @spec check_uploders_s3_public_endpoint() :: :ok | nil
+  def check_uploders_s3_public_endpoint do
+    s3_config = Pleroma.Config.get([Pleroma.Uploaders.S3])
+
+    use_old_config = Keyword.has_key?(s3_config, :public_endpoint)
+
+    if use_old_config do
+      Logger.error("""
+      !!!DEPRECATION WARNING!!!
+      Your config is using the old setting for controlling the URL of media uploaded to your S3 bucket.\n
+      Please make the following change at your earliest convenience.\n
+      \n* `config :pleroma, Pleroma.Uploaders.S3, public_endpoint` is now equal to:
+      \n* `config :pleroma, Pleroma.Upload, base_url`
+      """)
+
+      :error
+    else
+      :ok
+    end
+  end
+
+  @spec check_old_chat_shoutbox() :: :ok | nil
+  def check_old_chat_shoutbox do
+    instance_config = Pleroma.Config.get([:instance])
+    chat_config = Pleroma.Config.get([:chat]) || []
+
+    use_old_config =
+      Keyword.has_key?(instance_config, :chat_limit) or
+        Keyword.has_key?(chat_config, :enabled)
+
+    if use_old_config do
+      Logger.error("""
+      !!!DEPRECATION WARNING!!!
+      Your config is using the old namespace for the Shoutbox configuration. You need to convert to the new namespace. e.g.,
+      \n* `config :pleroma, :chat, enabled` and `config :pleroma, :instance, chat_limit` are now equal to:
+      \n* `config :pleroma, :shout, enabled` and `config :pleroma, :shout, limit`
+      """)
+
+      :error
+    else
+      :ok
+    end
   end
 end

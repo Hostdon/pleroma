@@ -1,5 +1,9 @@
 # Installing on Linux using OTP releases
 
+{! backend/installation/otp_vs_from_source.include !}
+
+This guide covers a installation using an OTP release. To install Pleroma from source, please check out the corresponding guide for your distro.
+
 ## Pre-requisites
 * A machine running Linux with GNU (e.g. Debian, Ubuntu) or musl (e.g. Alpine) libc and `x86_64`, `aarch64` or `armv7l` CPU, you have root access to. If you are not sure if it's compatible see [Detecting flavour section](#detecting-flavour) below
 * A (sub)domain pointed to the machine
@@ -31,7 +35,7 @@ Other than things bundled in the OTP release Pleroma depends on:
 
 === "Alpine"
     ```
-    echo "http://nl.alpinelinux.org/alpine/latest-stable/community" >> /etc/apk/repositories
+    awk 'NR==2' /etc/apk/repositories | sed 's/main/community/' | tee -a /etc/apk/repositories
     apk update
     apk add curl unzip ncurses postgresql postgresql-contrib nginx certbot file-dev
     ```
@@ -43,14 +47,13 @@ Other than things bundled in the OTP release Pleroma depends on:
 
 ### Installing optional packages
 
-Per [`docs/installation/optional/media_graphics_packages.md`](docs/installation/optional/media_graphics_packages.md):
+Per [`docs/installation/optional/media_graphics_packages.md`](optional/media_graphics_packages.md):
   * ImageMagick
   * ffmpeg
   * exiftool
 
 === "Alpine"
     ```
-    echo "http://nl.alpinelinux.org/alpine/latest-stable/community" >> /etc/apk/repositories
     apk update
     apk add imagemagick ffmpeg exiftool
     ```
@@ -89,6 +92,8 @@ RUM indexes are an alternative indexing scheme that is not included in PostgreSQ
 #### (Optional) Performance configuration
 It is encouraged to check [Optimizing your PostgreSQL performance](../configuration/postgresql.md) document, for tips on PostgreSQL tuning.
 
+Restart PostgreSQL to apply configuration changes:
+
 === "Alpine"
     ```
     rc-service postgresql restart
@@ -98,17 +103,6 @@ It is encouraged to check [Optimizing your PostgreSQL performance](../configurat
     ```
     systemctl restart postgresql
     ```
-
-If you are using PostgreSQL 12 or higher, add this to your Ecto database configuration
-
-```elixir
-#
-config :pleroma, Pleroma.Repo,
-prepare: :named,
-parameters: [
-  plan_cache_mode: "force_custom_plan"
-]
-```
 
 ### Installing Pleroma
 ```sh
@@ -241,7 +235,7 @@ At this point if you open your (sub)domain in a browser you should see a 502 err
 
 If everything worked, you should see Pleroma-FE when visiting your domain. If that didn't happen, try reviewing the installation steps, starting Pleroma in the foreground and seeing if there are any errrors.
 
-Still doesn't work? Feel free to contact us on [#pleroma on freenode](https://irc.pleroma.social) or via matrix at <https://matrix.heldscal.la/#/room/#freenode_#pleroma:matrix.org>, you can also [file an issue on our Gitlab](https://git.pleroma.social/pleroma/pleroma-support/issues/new)
+Questions about the installation or didn’t it work as it should be, ask in [#pleroma:libera.chat](https://matrix.to/#/#pleroma:libera.chat) via Matrix or **#pleroma** on **libera.chat** via IRC, you can also [file an issue on our Gitlab](https://git.pleroma.social/pleroma/pleroma-support/issues/new).
 
 ## Post installation
 
@@ -299,7 +293,7 @@ nginx -t
 
 ## Create your first user and set as admin
 ```sh
-cd /opt/pleroma/bin
+cd /opt/pleroma
 su pleroma -s $SHELL -lc "./bin/pleroma_ctl user new joeuser joeuser@sld.tld --admin"
 ```
 This will create an account withe the username of 'joeuser' with the email address of joeuser@sld.tld, and set that user's account as an admin. This will result in a link that you can paste into the browser, which logs you in and enables you to set the password.
@@ -310,5 +304,4 @@ This will create an account withe the username of 'joeuser' with the email addre
 
 ## Questions
 
-Questions about the installation or didn’t it work as it should be, ask in [#pleroma:matrix.org](https://matrix.heldscal.la/#/room/#freenode_#pleroma:matrix.org) or IRC Channel **#pleroma** on **Freenode**.
-
+Questions about the installation or didn’t it work as it should be, ask in [#pleroma:libera.chat](https://matrix.to/#/#pleroma:libera.chat) via Matrix or **#pleroma** on **libera.chat** via IRC, you can also [file an issue on our Gitlab](https://git.pleroma.social/pleroma/pleroma-support/issues/new).

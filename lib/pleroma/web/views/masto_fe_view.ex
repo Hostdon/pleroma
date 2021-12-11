@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2020 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2021 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.MastoFEView do
@@ -78,8 +78,8 @@ defmodule Pleroma.Web.MastoFEView do
       theme_color: Config.get([:manifest, :theme_color]),
       background_color: Config.get([:manifest, :background_color]),
       display: "standalone",
-      scope: Pleroma.Web.base_url(),
-      start_url: masto_fe_path(Pleroma.Web.Endpoint, :index, ["getting-started"]),
+      scope: Pleroma.Web.Endpoint.url(),
+      start_url: Routes.masto_fe_path(Pleroma.Web.Endpoint, :index, ["getting-started"]),
       categories: [
         "social"
       ],

@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2020 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2021 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.StaticFE.StaticFEController do
@@ -14,7 +14,6 @@ defmodule Pleroma.Web.StaticFE.StaticFEController do
   alias Pleroma.Web.Router.Helpers
 
   plug(:put_layout, :static_fe)
-  plug(:put_view, Pleroma.Web.StaticFE.StaticFEView)
   plug(:assign_id)
 
   @page_keys ["max_id", "min_id", "limit", "since_id", "order"]
@@ -122,7 +121,7 @@ defmodule Pleroma.Web.StaticFE.StaticFEController do
   end
 
   defp get_counts(%Activity{} = activity) do
-    %Object{data: data} = Object.normalize(activity)
+    %Object{data: data} = Object.normalize(activity, fetch: false)
 
     %{
       likes: data["like_count"] || 0,

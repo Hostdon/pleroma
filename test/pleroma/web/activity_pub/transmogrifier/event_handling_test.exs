@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2020 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2021 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.ActivityPub.Transmogrifier.EventHandlingTest do
@@ -31,7 +31,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier.EventHandlingTest do
              )
 
     assert object.data["to"] == ["https://www.w3.org/ns/activitystreams#Public"]
-    assert object.data["cc"] == []
+    assert object.data["cc"] == ["https://mobilizon.org/@tcit/followers"]
 
     assert object.data["url"] ==
              "https://mobilizon.org/events/252d5816-00a3-4a89-a66f-15bf65c33e39"

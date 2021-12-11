@@ -1,10 +1,10 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2020 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2021 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
   @moduledoc "Filter activities depending on their origin instance"
-  @behaviour Pleroma.Web.ActivityPub.MRF
+  @behaviour Pleroma.Web.ActivityPub.MRF.Policy
 
   alias Pleroma.Config
   alias Pleroma.FollowingRelationship
@@ -64,20 +64,16 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
          %{host: actor_host} = _actor_info,
          %{
            "type" => "Create",
-           "object" => child_object
+           "object" => %{} = _child_object
          } = object
-       )
-       when is_map(child_object) do
+       ) do
     media_nsfw =
       Config.get([:mrf_simple, :media_nsfw])
       |> MRF.subdomains_regex()
 
     object =
       if MRF.subdomain_match?(media_nsfw, actor_host) do
-        tags = (child_object["tag"] || []) ++ ["nsfw"]
-        child_object = Map.put(child_object, "tag", tags)
-        child_object = Map.put(child_object, "sensitive", true)
-        Map.put(object, "object", child_object)
+        Kernel.put_in(object, ["object", "sensitive"], true)
       else
         object
       end
@@ -181,6 +177,14 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
 
   defp check_banner_removal(_actor_info, object), do: {:ok, object}
 
+  defp check_object(%{"object" => object} = activity) do
+    with {:ok, _object} <- filter(object) do
+      {:ok, activity}
+    end
+  end
+
+  defp check_object(object), do: {:ok, object}
+
   @impl true
   def filter(%{"type" => "Delete", "actor" => actor} = object) do
     %{host: actor_host} = URI.parse(actor)
@@ -206,7 +210,8 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
          {:ok, object} <- check_media_nsfw(actor_info, object),
          {:ok, object} <- check_ftl_removal(actor_info, object),
          {:ok, object} <- check_followers_only(actor_info, object),
-         {:ok, object} <- check_report_removal(actor_info, object) do
+         {:ok, object} <- check_report_removal(actor_info, object),
+         {:ok, object} <- check_object(object) do
       {:ok, object}
     else
       {:reject, nil} -> {:reject, "[SimplePolicy]"}
@@ -231,6 +236,19 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
     end
   end
 
+  def filter(object) when is_binary(object) do
+    uri = URI.parse(object)
+
+    with {:ok, object} <- check_accept(uri, object),
+         {:ok, object} <- check_reject(uri, object) do
+      {:ok, object}
+    else
+      {:reject, nil} -> {:reject, "[SimplePolicy]"}
+      {:reject, _} = e -> e
+      _ -> {:reject, "[SimplePolicy]"}
+    end
+  end
+
   def filter(object), do: {:ok, object}
 
   @impl true
@@ -243,5 +261,79 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
       |> Enum.into(%{})
 
     {:ok, %{mrf_simple: mrf_simple}}
+  end
+
+  @impl true
+  def config_description do
+    %{
+      key: :mrf_simple,
+      related_policy: "Pleroma.Web.ActivityPub.MRF.SimplePolicy",
+      label: "MRF Simple",
+      description: "Simple ingress policies",
+      children: [
+        %{
+          key: :media_removal,
+          type: {:list, :string},
+          description: "List of instances to strip media attachments from",
+          suggestions: ["example.com", "*.example.com"]
+        },
+        %{
+          key: :media_nsfw,
+          label: "Media NSFW",
+          type: {:list, :string},
+          description: "List of instances to tag all media as NSFW (sensitive) from",
+          suggestions: ["example.com", "*.example.com"]
+        },
+        %{
+          key: :federated_timeline_removal,
+          type: {:list, :string},
+          description:
+            "List of instances to remove from the Federated (aka The Whole Known Network) Timeline",
+          suggestions: ["example.com", "*.example.com"]
+        },
+        %{
+          key: :reject,
+          type: {:list, :string},
+          description: "List of instances to reject activities from (except deletes)",
+          suggestions: ["example.com", "*.example.com"]
+        },
+        %{
+          key: :accept,
+          type: {:list, :string},
+          description: "List of instances to only accept activities from (except deletes)",
+          suggestions: ["example.com", "*.example.com"]
+        },
+        %{
+          key: :followers_only,
+          type: {:list, :string},
+          description: "Force posts from the given instances to be visible by followers only",
+          suggestions: ["example.com", "*.example.com"]
+        },
+        %{
+          key: :report_removal,
+          type: {:list, :string},
+          description: "List of instances to reject reports from",
+          suggestions: ["example.com", "*.example.com"]
+        },
+        %{
+          key: :avatar_removal,
+          type: {:list, :string},
+          description: "List of instances to strip avatars from",
+          suggestions: ["example.com", "*.example.com"]
+        },
+        %{
+          key: :banner_removal,
+          type: {:list, :string},
+          description: "List of instances to strip banners from",
+          suggestions: ["example.com", "*.example.com"]
+        },
+        %{
+          key: :reject_deletes,
+          type: {:list, :string},
+          description: "List of instances to reject deletions from",
+          suggestions: ["example.com", "*.example.com"]
+        }
+      ]
+    }
   end
 end
