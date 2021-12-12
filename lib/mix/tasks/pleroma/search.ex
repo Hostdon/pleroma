@@ -15,13 +15,15 @@ defmodule Mix.Tasks.Pleroma.Search do
     start_pleroma()
 
     from(a in Activity, where: not ilike(a.actor, "%/relay"))
+    |> where([a], fragment("(? ->> 'type'::text) = 'Create'", a.data))
     |> Activity.with_preloaded_object()
     |> Activity.with_preloaded_user_actor()
     |> get_all
   end
 
   defp get_all(query, max_id \\ nil) do
-    params = %{limit: 20}
+    IO.puts(max_id)
+    params = %{limit: 2000}
 
     params =
       if max_id == nil do
@@ -38,6 +40,12 @@ defmodule Mix.Tasks.Pleroma.Search do
       :ok
     else
       res
+      |> Enum.filter(fn x -> 
+        t = x.object
+	|> Map.get(:data, %{})
+	|> Map.get("type", "")
+	t == "Note"
+      end)
       |> Pleroma.Elasticsearch.bulk_post(:activities)
 
       get_all(query, List.last(res).id)
