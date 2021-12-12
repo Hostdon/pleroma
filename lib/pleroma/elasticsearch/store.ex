@@ -17,7 +17,7 @@ defmodule Pleroma.Elasticsearch do
     maybe_put_into_elasticsearch(activity)
   end
 
-  def maybe_put_into_elasticsearch(%{data: %{"type" => "Create"}, object: %{data: %{type: "Note"}}} = activity) do
+  def maybe_put_into_elasticsearch(%{data: %{"type" => "Create"}, object: %{data: %{"type" => "Note"}}} = activity) do
     if Config.get([:search, :provider]) == Pleroma.Search.Elasticsearch do
       actor = Pleroma.Activity.user_actor(activity)
 
