@@ -537,7 +537,9 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
   end
 
   @impl true
-  def handle_after_transaction(meta) do
+  def handle_after_transaction(activity, meta) do
+    Pleroma.Elasticsearch.put_by_id(activity.id)
+
     meta
     |> send_notifications()
     |> send_streamables()

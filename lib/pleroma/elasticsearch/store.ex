@@ -1,9 +1,34 @@
 defmodule Pleroma.Elasticsearch do
   alias Pleroma.Activity
   alias Pleroma.Elasticsearch.DocumentMappings
+  alias Pleroma.Config
 
   defp url do
-    Pleroma.Config.get([:elasticsearch, :url])
+    Config.get([:elasticsearch, :url])
+  end
+
+  def put_by_id(id) do
+    id
+    |> Activity.get_by_id_with_object()
+    |> maybe_put_into_elasticsearch()
+  end
+
+  def maybe_put_into_elasticsearch({:ok, activity}) do
+    maybe_put_into_elasticsearch(activity)
+  end
+
+  def maybe_put_into_elasticsearch(%{data: %{"type" => "Create"}, object: %{data: %{type: "Note"}}} = activity) do
+    if Config.get([:search, :provider]) == Pleroma.Search.Elasticsearch do
+      actor = Pleroma.Activity.user_actor(activity)
+
+      activity
+      |> Map.put(:user_actor, actor)
+      |> put()
+    end
+  end
+
+  def maybe_put_into_elasticsearch(_) do
+    {:ok, :skipped}
   end
 
   def put(%Activity{} = activity) do

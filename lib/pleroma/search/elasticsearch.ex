@@ -48,7 +48,7 @@ defmodule Pleroma.Search.Elasticsearch do
     q = %{
       query: %{
         bool: %{
-          must: parse(query)
+          must: parse(String.trim(query))
         }
       }
     }

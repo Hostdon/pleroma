@@ -16,8 +16,6 @@ defmodule Pleroma.Web.CommonAPI do
   alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Web.CommonAPI.ActivityDraft
-  alias Pleroma.Elasticsearch
-  alias Pleroma.Config
 
   import Pleroma.Web.Gettext
   import Pleroma.Web.CommonAPI.Utils
@@ -397,24 +395,12 @@ defmodule Pleroma.Web.CommonAPI do
     end
   end
 
-  def maybe_put_into_elasticsearch({:ok, activity}) do
-    if Config.get([:search, :provider]) == Pleroma.Search.Elasticsearch do
-      actor = Pleroma.Activity.user_actor(activity)
-
-      activity
-      |> Map.put(:user_actor, actor)
-      |> Elasticsearch.put()
-    end
-  end
-
-  def maybe_put_into_elasticsearch(_) do
-    {:ok, :skipped}
-  end
-
   def post(user, %{status: _} = data) do
     with {:ok, draft} <- ActivityDraft.create(user, data) do
       activity = ActivityPub.create(draft.changes, draft.preview?)
-      maybe_put_into_elasticsearch(activity)
+      unless draft.preview? do
+        Pleroma.Elasticsearch.maybe_put_into_elasticsearch(activity)
+      end
       activity
     end
   end
