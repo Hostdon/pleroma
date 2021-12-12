@@ -86,7 +86,7 @@ defmodule Pleroma.Mixfile do
   end
 
   # Specifies which paths to compile per environment.
-  defp elixirc_paths(:benchmark), do: ["lib", "benchmarks"]
+  defp elixirc_paths(:benchmark), do: ["lib", "benchmarks", "priv/scrubbers"]
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
@@ -197,6 +197,11 @@ defmodule Pleroma.Mixfile do
        ref: "289cda1b6d0d70ccb2ba508a2b0bd24638db2880"},
       {:eblurhash, "~> 1.1.0"},
       {:open_api_spex, "~> 3.10"},
+      {:elastix, ">= 0.0.0"},
+      {:search_parser,
+       git: "https://github.com/FloatingGhost/pleroma-contrib-search-parser.git",
+       ref: "08971a81e68686f9ac465cfb6661d51c5e4e1e7f"},
+      {:nimble_parsec, "~> 1.0", override: true},
 
       # indirect dependency version override
       {:plug, "~> 1.10.4", override: true},
