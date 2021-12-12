@@ -2,6 +2,7 @@ defmodule Pleroma.Search.Elasticsearch do
   @behaviour Pleroma.Search
 
   alias Pleroma.Web.MastodonAPI.StatusView
+  alias Pleroma.Web.ActivityPub.Visibility
 
   defp to_es(term) when is_binary(term) do
     %{
@@ -62,6 +63,7 @@ defmodule Pleroma.Search.Elasticsearch do
         |> Map.get("hits", [])
         |> Enum.map(fn result -> result["_id"] end)
         |> Pleroma.Activity.all_by_ids_with_object()
+	|> Enum.filter(fn x -> Visibility.visible_for_user?(x, user) end)
 
       %{
         "accounts" => [],
