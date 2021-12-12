@@ -6,32 +6,33 @@ defmodule Mix.Tasks.Pleroma.Search do
   use Mix.Task
   import Mix.Pleroma
   import Ecto.Query
-  alias Pleroma.Elasticsearch
   alias Pleroma.Activity
-  alias Pleroma.Repo
   alias Pleroma.Pagination
 
   @shortdoc "Manages elasticsearch"
 
-  def run(["import" | rest]) do
+  def run(["import" | _rest]) do
     start_pleroma()
 
-    query = from(a in Activity, where: not ilike(a.actor, "%/relay"))
-    |> Activity.with_preloaded_object
-    |> Activity.with_preloaded_user_actor
+    from(a in Activity, where: not ilike(a.actor, "%/relay"))
+    |> Activity.with_preloaded_object()
+    |> Activity.with_preloaded_user_actor()
     |> get_all
   end
 
   defp get_all(query, max_id \\ nil) do
     params = %{limit: 20}
-    params = if max_id == nil do
-        params
-    else
-        Map.put(params, :max_id, max_id)
-    end
 
-    res = query
-    |> Pagination.fetch_paginated(params)
+    params =
+      if max_id == nil do
+        params
+      else
+        Map.put(params, :max_id, max_id)
+      end
+
+    res =
+      query
+      |> Pagination.fetch_paginated(params)
 
     if res == [] do
       :ok
@@ -42,5 +43,4 @@ defmodule Mix.Tasks.Pleroma.Search do
       get_all(query, List.last(res).id)
     end
   end
-
 end
