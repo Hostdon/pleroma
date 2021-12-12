@@ -27,7 +27,7 @@ defmodule Pleroma.Web.ActivityPub.Pipeline do
   def common_pipeline(object, meta) do
     case Repo.transaction(fn -> do_common_pipeline(object, meta) end, Utils.query_timeout()) do
       {:ok, {:ok, activity, meta}} ->
-        side_effects().handle_after_transaction(meta)
+        side_effects().handle_after_transaction(activity, meta)
         {:ok, activity, meta}
 
       {:ok, value} ->
