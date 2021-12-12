@@ -91,7 +91,7 @@ defmodule Pleroma.Mixfile do
   defp elixirc_paths(_), do: ["lib"]
 
   defp warnings_as_errors(:prod), do: false
-  defp warnings_as_errors(_), do: false
+  defp warnings_as_errors(_), do: true
 
   # Specifies OAuth dependencies.
   defp oauth_deps do
@@ -198,6 +198,10 @@ defmodule Pleroma.Mixfile do
       {:eblurhash, "~> 1.1.0"},
       {:open_api_spex, "~> 3.10"},
       {:elastix, ">= 0.0.0"},
+      {:search_parser,
+       git: "https://github.com/FloatingGhost/pleroma-contrib-search-parser.git",
+       ref: "08971a81e68686f9ac465cfb6661d51c5e4e1e7f"},
+      {:nimble_parsec, "~> 1.0", override: true},
 
       # indirect dependency version override
       {:plug, "~> 1.10.4", override: true},

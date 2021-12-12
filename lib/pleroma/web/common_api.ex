@@ -398,8 +398,9 @@ defmodule Pleroma.Web.CommonAPI do
   end
 
   def maybe_put_into_elasticsearch({:ok, activity}) do
-    if Config.get([:search, :provider]) == :elasticsearch do
+    if Config.get([:search, :provider]) == Pleroma.Search.Elasticsearch do
       actor = Pleroma.Activity.user_actor(activity)
+
       activity
       |> Map.put(:user_actor, actor)
       |> Elasticsearch.put()
