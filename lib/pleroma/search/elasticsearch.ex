@@ -52,8 +52,6 @@ defmodule Pleroma.Search.Elasticsearch do
       }
     }
 
-    IO.inspect(q)
-
     out = Pleroma.Elasticsearch.search_activities(q)
 
     with {:ok, raw_results} <- out do
