@@ -44,6 +44,12 @@ defmodule Pleroma.Elasticsearch do
   def bulk_post(data, :activities) do
     d =
       data
+      |> Enum.filter(fn x ->
+        t = x.object
+        |> Map.get(:data, %{})
+        |> Map.get("type", "")
+        t == "Note"
+      end)
       |> Enum.map(fn d ->
         [
           %{index: %{_id: DocumentMappings.Activity.id(d)}},
@@ -57,6 +63,25 @@ defmodule Pleroma.Elasticsearch do
       d,
       index: "activities",
       type: "activity"
+    )
+  end
+
+  def bulk_post(data, :users) do
+    d =
+      data
+      |> Enum.map(fn d ->
+        [
+          %{index: %{_id: DocumentMappings.User.id(d)}},
+          DocumentMappings.User.encode(d)
+        ]
+      end)
+      |> List.flatten()
+
+    Elastix.Bulk.post(
+      url(),
+      d,
+      index: "users",
+      type: "user"
     )
   end
 
