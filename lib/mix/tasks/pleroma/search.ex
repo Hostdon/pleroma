@@ -8,21 +8,28 @@ defmodule Mix.Tasks.Pleroma.Search do
   import Ecto.Query
   alias Pleroma.Activity
   alias Pleroma.Pagination
+  alias Pleroma.User
 
   @shortdoc "Manages elasticsearch"
 
-  def run(["import" | _rest]) do
+  def run(["import", "activities" | _rest]) do
     start_pleroma()
 
     from(a in Activity, where: not ilike(a.actor, "%/relay"))
     |> where([a], fragment("(? ->> 'type'::text) = 'Create'", a.data))
     |> Activity.with_preloaded_object()
     |> Activity.with_preloaded_user_actor()
-    |> get_all
+    |> get_all(:activities)
   end
 
-  defp get_all(query, max_id \\ nil) do
-    IO.puts(max_id)
+  def run(["import", "users" | _rest]) do
+    start_pleroma()  
+                     
+    from(u in User, where: not ilike(u.ap_id, "%/relay"))
+    |> get_all(:users)
+  end
+
+  defp get_all(query, index, max_id \\ nil) do
     params = %{limit: 2000}
 
     params =
@@ -40,15 +47,9 @@ defmodule Mix.Tasks.Pleroma.Search do
       :ok
     else
       res
-      |> Enum.filter(fn x -> 
-        t = x.object
-	|> Map.get(:data, %{})
-	|> Map.get("type", "")
-	t == "Note"
-      end)
-      |> Pleroma.Elasticsearch.bulk_post(:activities)
+      |> Pleroma.Elasticsearch.bulk_post(index)
 
-      get_all(query, List.last(res).id)
+      get_all(query, index, List.last(res).id)
     end
   end
 end

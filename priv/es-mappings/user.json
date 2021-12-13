@@ -1,5 +1,9 @@
 {
   "properties": {
+    "timestamp": {
+      "type": "date",
+      "index": true
+    },
     "instance": {
       "type": "keyword"
     },
