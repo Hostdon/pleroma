@@ -1,0 +1,21 @@
+{
+  "properties": {
+    "_timestamp": {
+      "type": "date",
+      "index": true
+    },
+    "instance": {
+      "type": "keyword"
+    },
+    "content": {
+      "type": "text"
+    },
+    "hashtags": {
+      "type": "keyword"
+    },
+    "user": {
+      "type": "text"
+    }
+  }
+}
+

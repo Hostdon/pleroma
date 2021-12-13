@@ -1,0 +1,14 @@
+{
+  "properties": {
+    "instance": {
+      "type": "keyword"
+    },
+    "nickname": {
+      "type": "text"
+    },
+    "bio": {
+      "type": "text"
+    }
+  }
+}
+
