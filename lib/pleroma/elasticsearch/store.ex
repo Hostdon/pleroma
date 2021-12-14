@@ -85,6 +85,25 @@ defmodule Pleroma.Elasticsearch do
     )
   end
 
+  def bulk_post(data, :hashtags) do
+    d =
+      data
+      |> Enum.map(fn d ->
+        [
+          %{index: %{_id: DocumentMappings.Hashtag.id(d)}},
+          DocumentMappings.Hashtag.encode(d)
+        ]
+      end)
+      |> List.flatten()
+
+    Elastix.Bulk.post(
+      url(),
+      d,
+      index: "hashtags",
+      type: "hashtag"
+    )
+  end
+
   def search_activities(q) do
     Elastix.Search.search(
       url(),
