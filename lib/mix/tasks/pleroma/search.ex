@@ -9,6 +9,7 @@ defmodule Mix.Tasks.Pleroma.Search do
   alias Pleroma.Activity
   alias Pleroma.Pagination
   alias Pleroma.User
+  alias Pleroma.Hashtag
 
   @shortdoc "Manages elasticsearch"
 
@@ -29,8 +30,16 @@ defmodule Mix.Tasks.Pleroma.Search do
     |> get_all(:users)
   end
 
+  def run(["import", "hashtags" | _rest]) do
+    start_pleroma()
+
+    from(h in Hashtag)
+    |> Pleroma.Repo.all()
+    |> Pleroma.Elasticsearch.bulk_post(:hashtags)
+  end
+
   defp get_all(query, index, max_id \\ nil) do
-    params = %{limit: 2000}
+    params = %{limit: 1000}
 
     params =
       if max_id == nil do
