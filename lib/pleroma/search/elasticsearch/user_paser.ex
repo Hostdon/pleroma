@@ -25,7 +25,7 @@ defmodule Pleroma.Search.Elasticsearch.Parsers.User do
                 query: term,
                 operator: "AND"
               }
-            }  
+            }
           }
         ]
       }

@@ -46,26 +46,31 @@ defmodule Pleroma.Elasticsearch do
   end
 
   def put(%Activity{} = activity) do
-    {:ok, _} = Elastix.Document.index(
-      url(),
-      "activities",
-      "activity",
-      DocumentMappings.Activity.id(activity),
-      DocumentMappings.Activity.encode(activity)
-    )
-    {:ok, _} = bulk_post(
-        activity.object.hashtags, :hashtags
-    )
+    {:ok, _} =
+      Elastix.Document.index(
+        url(),
+        "activities",
+        "activity",
+        DocumentMappings.Activity.id(activity),
+        DocumentMappings.Activity.encode(activity)
+      )
+
+    {:ok, _} =
+      bulk_post(
+        activity.object.hashtags,
+        :hashtags
+      )
   end
 
   def put(%User{} = user) do
-    {:ok, _ } = Elastix.Document.index(
-      url(),
-      "users",
-      "user",
-      DocumentMappings.User.id(user),
-      DocumentMappings.User.encode(user)
-    )
+    {:ok, _} =
+      Elastix.Document.index(
+        url(),
+        "users",
+        "user",
+        DocumentMappings.User.id(user),
+        DocumentMappings.User.encode(user)
+      )
   end
 
   def bulk_post(data, :activities) do
@@ -87,12 +92,13 @@ defmodule Pleroma.Elasticsearch do
       end)
       |> List.flatten()
 
-    {:ok, %{body: %{"errors" => false}}} = Elastix.Bulk.post(
-      url(),
-      d,
-      index: "activities",
-      type: "activity"
-    )
+    {:ok, %{body: %{"errors" => false}}} =
+      Elastix.Bulk.post(
+        url(),
+        d,
+        index: "activities",
+        type: "activity"
+      )
   end
 
   def bulk_post(data, :users) do
@@ -115,7 +121,7 @@ defmodule Pleroma.Elasticsearch do
     )
   end
 
-  def bulk_post(data, :hashtags) do
+  def bulk_post([] = data, :hashtags) do
     d =
       data
       |> Enum.map(fn d ->
@@ -133,6 +139,8 @@ defmodule Pleroma.Elasticsearch do
       type: "hashtag"
     )
   end
+
+  def bulk_post(_, :hashtags), do: {:ok, nil}
 
   def search(:raw, index, type, q) do
     with {:ok, raw_results} <- Elastix.Search.search(url(), index, [type], q) do

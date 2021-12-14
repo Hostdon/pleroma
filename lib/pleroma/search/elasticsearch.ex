@@ -7,7 +7,7 @@ defmodule Pleroma.Search.Elasticsearch do
   alias Pleroma.Search.Elasticsearch.Parsers
   alias Pleroma.Web.Endpoint
 
-  defp es_query(:activity, query) do
+  def es_query(:activity, query) do
     %{
       size: 50,
       terminate_after: 50,
@@ -23,7 +23,7 @@ defmodule Pleroma.Search.Elasticsearch do
     }
   end
 
-  defp es_query(:user, query) do
+  def es_query(:user, query) do
     %{
       size: 50,
       terminate_after: 50,
@@ -36,7 +36,7 @@ defmodule Pleroma.Search.Elasticsearch do
     }
   end
 
-  defp es_query(:hashtag, query) do
+  def es_query(:hashtag, query) do
     %{
       size: 50,
       terminate_after: 50,
