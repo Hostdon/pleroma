@@ -9,9 +9,9 @@ defmodule Pleroma.Search.Elasticsearch do
 
   defp es_query(:activity, query) do
     %{
-      size: 500,
-      terminate_after: 500,
-      timeout: "10s",
+      size: 50,
+      terminate_after: 50,
+      timeout: "5s",
       sort: [
         %{"_timestamp" => "desc"}
       ],
@@ -27,10 +27,7 @@ defmodule Pleroma.Search.Elasticsearch do
     %{
       size: 50,
       terminate_after: 50,
-      timeout: "10s",
-      sort: [
-        %{"_timestamp" => "desc"}
-      ],
+      timeout: "5s",
       query: %{
         bool: %{
           must: Parsers.User.parse(query)
@@ -43,7 +40,7 @@ defmodule Pleroma.Search.Elasticsearch do
     %{
       size: 50,
       terminate_after: 50,
-      timeout: "10s",
+      timeout: "5s",
       query: %{
         bool: %{
           must: Parsers.Hashtag.parse(query)
