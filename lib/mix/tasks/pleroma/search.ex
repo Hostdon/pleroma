@@ -26,7 +26,7 @@ defmodule Mix.Tasks.Pleroma.Search do
   def run(["import", "users" | _rest]) do
     start_pleroma()  
                      
-    from(u in User, where: not ilike(u.ap_id, "%/relay"))
+    from(u in User, where: u.nickname not in ["internal.fetch", "relay"])
     |> get_all(:users)
   end
 

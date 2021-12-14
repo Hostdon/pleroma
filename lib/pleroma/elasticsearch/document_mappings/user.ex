@@ -6,7 +6,8 @@ defmodule Pleroma.Elasticsearch.DocumentMappings.User do
       timestamp: user.inserted_at,
       instance: URI.parse(user.ap_id).host,
       nickname: user.nickname,
-      bio: user.bio
+      bio: user.bio,
+      display_name: user.name
     }
   end
 end

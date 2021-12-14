@@ -538,7 +538,7 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
 
   @impl true
   def handle_after_transaction(%Pleroma.Activity{data: %{"type" => "Create"}} = activity) do
-    Pleroma.Elasticsearch.put_by_id(activity.id)
+    Pleroma.Elasticsearch.put_by_id(:activity, activity.id)
   end
 
   def handle_after_transaction(%Pleroma.Activity{}) do
