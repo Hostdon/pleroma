@@ -28,18 +28,19 @@ defmodule Mix.Tasks.Pleroma.Activity do
   def run(["delete_by_keyword", user, keyword | _rest]) do
     start_pleroma()
     u = User.get_by_nickname(user)
+
     Activity
-      |> Activity.with_preloaded_object()
-      |> Activity.restrict_deactivated_users()
-      |> Activity.Queries.by_author(u)
-      |> query_with(keyword)
-      |> Pagination.fetch_paginated(
-        %{"offset" => 0, "limit" => 20, "skip_order" => false},
-        :offset
-      )
-      |> Enum.map(fn x -> CommonAPI.delete(x.id, u) end)
-      |> Enum.count
-      |> IO.puts
+    |> Activity.with_preloaded_object()
+    |> Activity.restrict_deactivated_users()
+    |> Activity.Queries.by_author(u)
+    |> query_with(keyword)
+    |> Pagination.fetch_paginated(
+      %{"offset" => 0, "limit" => 20, "skip_order" => false},
+      :offset
+    )
+    |> Enum.map(fn x -> CommonAPI.delete(x.id, u) end)
+    |> Enum.count()
+    |> IO.puts()
   end
 
   defp query_with(q, search_query) do

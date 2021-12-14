@@ -11,6 +11,16 @@ defmodule Mix.Tasks.Pleroma.Search do
 
   @shortdoc "Manages elasticsearch"
 
+  def run(["import_since", d | _rest]) do
+    start_pleroma()
+    {:ok, since, _} = DateTime.from_iso8601(d)
+
+    from(a in Activity, where: not ilike(a.actor, "%/relay") and a.inserted_at > ^since)
+    |> Activity.with_preloaded_object()
+    |> Activity.with_preloaded_user_actor()
+    |> get_all
+  end
+
   def run(["import" | _rest]) do
     start_pleroma()
 
@@ -40,11 +50,13 @@ defmodule Mix.Tasks.Pleroma.Search do
       :ok
     else
       res
-      |> Enum.filter(fn x -> 
-        t = x.object
-	|> Map.get(:data, %{})
-	|> Map.get("type", "")
-	t == "Note"
+      |> Enum.filter(fn x ->
+        t =
+          x.object
+          |> Map.get(:data, %{})
+          |> Map.get("type", "")
+
+        t == "Note"
       end)
       |> Pleroma.Elasticsearch.bulk_post(:activities)
 

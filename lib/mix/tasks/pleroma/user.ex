@@ -441,6 +441,7 @@ defmodule Mix.Tasks.Pleroma.User do
 
   def run(["blocking", nickname]) do
     start_pleroma()
+
     with %User{local: true} = user <- User.get_cached_by_nickname(nickname) do
       blocks = User.following_ap_ids(user)
       IO.inspect(blocks, limit: :infinity)
@@ -449,12 +450,13 @@ defmodule Mix.Tasks.Pleroma.User do
 
   def run(["timeline_query", nickname]) do
     start_pleroma()
-    params = %{ local: true }
+    params = %{local: true}
+
     with %User{local: true} = user <- User.get_cached_by_nickname(nickname) do
       params =
         params
         |> Map.put(:type, ["Create", "Announce"])
-	|> Map.put(:limit, 20)
+        |> Map.put(:limit, 20)
         |> Map.put(:blocking_user, user)
         |> Map.put(:muting_user, user)
         |> Map.put(:reply_filtering_user, user)
@@ -462,9 +464,10 @@ defmodule Mix.Tasks.Pleroma.User do
         |> Map.put(:user, user)
         |> Map.put(:local_only, params[:local])
         |> Map.delete(:local)
+
       _activities =
-      [user.ap_id | User.following(user)]
-      |> ActivityPub.fetch_activities(params)
+        [user.ap_id | User.following(user)]
+        |> ActivityPub.fetch_activities(params)
     end
   end
 

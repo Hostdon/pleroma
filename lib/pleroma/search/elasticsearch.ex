@@ -46,6 +46,12 @@ defmodule Pleroma.Search.Elasticsearch do
   @impl Pleroma.Search
   def search(%{assigns: %{user: user}} = _conn, %{q: query} = _params, _options) do
     q = %{
+      size: 500,
+      terminate_after: 500,
+      timeout: "10s",
+      sort: [
+        %{"_timestamp" => "desc"}
+      ],
       query: %{
         bool: %{
           must: parse(String.trim(query))
@@ -63,7 +69,8 @@ defmodule Pleroma.Search.Elasticsearch do
         |> Map.get("hits", [])
         |> Enum.map(fn result -> result["_id"] end)
         |> Pleroma.Activity.all_by_ids_with_object()
-	|> Enum.filter(fn x -> Visibility.visible_for_user?(x, user) end)
+        |> Enum.filter(fn x -> Visibility.visible_for_user?(x, user) end)
+        |> Enum.reverse()
 
       %{
         "accounts" => [],
