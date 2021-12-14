@@ -98,6 +98,7 @@ defmodule Pleroma.Elasticsearch do
   def bulk_post(data, :users) do
     d =
       data
+      |> Enum.filter(fn x -> x.actor_type == "Person" end)
       |> Enum.map(fn d ->
         [
           %{index: %{_id: DocumentMappings.User.id(d)}},
