@@ -1,0 +1,11 @@
+{
+  "properties": {
+    "timestamp": {
+      "type": "date",
+      "index": true
+    },
+    "hashtag": {
+      "type": "text"
+    }
+  }
+}

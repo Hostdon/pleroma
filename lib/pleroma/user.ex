@@ -1088,6 +1088,7 @@ defmodule Pleroma.User do
 
   def update_and_set_cache(changeset) do
     with {:ok, user} <- Repo.update(changeset, stale_error_field: :id) do
+      Pleroma.Elasticsearch.maybe_put_into_elasticsearch(user)
       set_cache(user)
     end
   end

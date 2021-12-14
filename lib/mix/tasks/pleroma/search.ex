@@ -8,32 +8,38 @@ defmodule Mix.Tasks.Pleroma.Search do
   import Ecto.Query
   alias Pleroma.Activity
   alias Pleroma.Pagination
+  alias Pleroma.User
+  alias Pleroma.Hashtag
 
   @shortdoc "Manages elasticsearch"
 
-  def run(["import_since", d | _rest]) do
-    start_pleroma()
-    {:ok, since, _} = DateTime.from_iso8601(d)
-
-    from(a in Activity, where: not ilike(a.actor, "%/relay") and a.inserted_at > ^since)
-    |> Activity.with_preloaded_object()
-    |> Activity.with_preloaded_user_actor()
-    |> get_all
-  end
-
-  def run(["import" | _rest]) do
+  def run(["import", "activities" | _rest]) do
     start_pleroma()
 
     from(a in Activity, where: not ilike(a.actor, "%/relay"))
     |> where([a], fragment("(? ->> 'type'::text) = 'Create'", a.data))
     |> Activity.with_preloaded_object()
     |> Activity.with_preloaded_user_actor()
-    |> get_all
+    |> get_all(:activities)
   end
 
-  defp get_all(query, max_id \\ nil) do
-    IO.puts(max_id)
-    params = %{limit: 2000}
+  def run(["import", "users" | _rest]) do
+    start_pleroma()  
+                     
+    from(u in User, where: u.nickname not in ["internal.fetch", "relay"])
+    |> get_all(:users)
+  end
+
+  def run(["import", "hashtags" | _rest]) do
+    start_pleroma()
+
+    from(h in Hashtag)
+    |> Pleroma.Repo.all()
+    |> Pleroma.Elasticsearch.bulk_post(:hashtags)
+  end
+
+  defp get_all(query, index, max_id \\ nil) do
+    params = %{limit: 1000}
 
     params =
       if max_id == nil do
@@ -50,17 +56,9 @@ defmodule Mix.Tasks.Pleroma.Search do
       :ok
     else
       res
-      |> Enum.filter(fn x ->
-        t =
-          x.object
-          |> Map.get(:data, %{})
-          |> Map.get("type", "")
+      |> Pleroma.Elasticsearch.bulk_post(index)
 
-        t == "Note"
-      end)
-      |> Pleroma.Elasticsearch.bulk_post(:activities)
-
-      get_all(query, List.last(res).id)
+      get_all(query, index, List.last(res).id)
     end
   end
 end
