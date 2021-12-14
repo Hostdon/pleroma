@@ -120,7 +120,7 @@ defmodule Pleroma.Elasticsearch do
     )
   end
 
-  def bulk_post(data, :hashtags) do
+  def bulk_post([] = data, :hashtags) do
     d =
       data
       |> Enum.map(fn d ->
@@ -138,6 +138,8 @@ defmodule Pleroma.Elasticsearch do
       type: "hashtag"
     )
   end
+
+  def bulk_post(_, :hashtags), do: {:ok, nil}
 
   def search(:raw, index, type, q) do
     with {:ok, raw_results} <- Elastix.Search.search(url(), index, [type], q) do
