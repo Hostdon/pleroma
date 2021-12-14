@@ -4,7 +4,6 @@
 
 defmodule Mix.Tasks.Pleroma.Activity do
   alias Pleroma.Activity
-  alias Pleroma.Activity.Search
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Pagination

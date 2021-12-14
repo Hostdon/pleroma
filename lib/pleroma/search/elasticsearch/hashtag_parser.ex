@@ -3,7 +3,7 @@ defmodule Pleroma.Search.Elasticsearch.Parsers.Hashtag do
     %{
       term: %{
         hashtag: %{
-          value: String.downcase(term),
+          value: String.downcase(term)
         }
       }
     }
