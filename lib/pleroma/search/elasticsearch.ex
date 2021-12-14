@@ -8,45 +8,63 @@ defmodule Pleroma.Search.Elasticsearch do
   alias Pleroma.Web.Endpoint
 
   def es_query(:activity, query) do
-    %{
-      size: 50,
-      terminate_after: 50,
-      timeout: "5s",
-      sort: [
-        %{"_timestamp" => "desc"}
-      ],
-      query: %{
-        bool: %{
-          must: Parsers.Activity.parse(query)
+    must = Parsers.Activity.parse(query)
+
+    if must == [] do
+      :skip
+    else
+      %{
+        size: 50,
+        terminate_after: 50,
+        timeout: "5s",
+        sort: [
+          %{"_timestamp" => "desc"}
+        ],
+        query: %{
+          bool: %{
+            must: must
+          }
         }
       }
-    }
+    end
   end
 
   def es_query(:user, query) do
-    %{
-      size: 50,
-      terminate_after: 50,
-      timeout: "5s",
-      query: %{
-        bool: %{
-          must: Parsers.User.parse(query)
+    must = Parsers.User.parse(query)
+
+    if must == [] do
+      :skip
+    else
+      %{
+        size: 50,
+        terminate_after: 50,
+        timeout: "5s",
+        query: %{
+          bool: %{
+            must: must
+          }
         }
       }
-    }
+    end
   end
 
   def es_query(:hashtag, query) do
-    %{
-      size: 50,
-      terminate_after: 50,
-      timeout: "5s",
-      query: %{
-        bool: %{
-          must: Parsers.Hashtag.parse(query)
+    must = Parsers.Hashtag.parse(query)
+
+    if must == [] do
+      :skip
+    else
+      %{
+        size: 50,
+        terminate_after: 50,
+        timeout: "5s",
+        query: %{
+          bool: %{
+            must: Parsers.Hashtag.parse(query)
+          }
         }
       }
-    }
+    end
   end
 
   @impl Pleroma.Search

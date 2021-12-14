@@ -142,6 +142,8 @@ defmodule Pleroma.Elasticsearch do
 
   def bulk_post(_, :hashtags), do: {:ok, nil}
 
+  def search(_, _, _, :skip), do: []
+
   def search(:raw, index, type, q) do
     with {:ok, raw_results} <- Elastix.Search.search(url(), index, [type], q) do
       results =
