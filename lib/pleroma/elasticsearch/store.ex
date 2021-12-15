@@ -35,7 +35,7 @@ defmodule Pleroma.Elasticsearch do
     end
   end
 
-  def maybe_put_into_elasticsearch(%User{} = user) do
+  def maybe_put_into_elasticsearch(%User{actor_type: "Person"} = user) do
     if enabled?() do
       put(user)
     end
