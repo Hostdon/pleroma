@@ -1,6 +1,8 @@
 defmodule Pleroma.Search.Elasticsearch do
   @behaviour Pleroma.Search
 
+  alias Pleroma.Activity
+  alias Pleroma.Object.Fetcher
   alias Pleroma.Web.MastodonAPI.StatusView
   alias Pleroma.Web.MastodonAPI.AccountView
   alias Pleroma.Web.ActivityPub.Visibility
@@ -18,7 +20,8 @@ defmodule Pleroma.Search.Elasticsearch do
         terminate_after: 50,
         timeout: "5s",
         sort: [
-          %{"_timestamp" => "desc"}
+          "_score",
+          %{_timestamp: %{order: "desc", format: "basic_date_time"}}
         ],
         query: %{
           bool: %{
@@ -39,6 +42,9 @@ defmodule Pleroma.Search.Elasticsearch do
         size: 50,
         terminate_after: 50,
         timeout: "5s",
+        sort: [
+          "_score"
+        ],
         query: %{
           bool: %{
             must: must
@@ -58,6 +64,9 @@ defmodule Pleroma.Search.Elasticsearch do
         size: 50,
         terminate_after: 50,
         timeout: "5s",
+        sort: [
+          "_score"
+        ],
         query: %{
           bool: %{
             must: Parsers.Hashtag.parse(query)
@@ -67,12 +76,27 @@ defmodule Pleroma.Search.Elasticsearch do
     end
   end
 
+  defp maybe_fetch(:activity, search_query) do
+    with true <- Regex.match?(~r/https?:/, search_query),
+         {:ok, object} <- Fetcher.fetch_object_from_id(search_query),
+         %Activity{} = activity <- Activity.get_create_by_object_ap_id(object.data["id"]) do
+      activity
+    else
+      _ -> nil
+    end
+  end
+
   @impl Pleroma.Search
   def search(%{assigns: %{user: user}} = _conn, %{q: query} = _params, _options) do
     parsed_query =
       query
       |> String.trim()
       |> SearchParser.parse!()
+
+    activity_fetch_task =
+      Task.async(fn ->
+        maybe_fetch(:activity, String.trim(query))
+      end)
 
     activity_task =
       Task.async(fn ->
@@ -100,6 +124,14 @@ defmodule Pleroma.Search.Elasticsearch do
     activity_results = Task.await(activity_task)
     user_results = Task.await(user_task)
     hashtag_results = Task.await(hashtag_task)
+    direct_activity = Task.await(activity_fetch_task)
+
+    activity_results =
+      if direct_activity == nil do
+        activity_results
+      else
+        [direct_activity | activity_results]
+      end
 
     %{
       "accounts" =>
