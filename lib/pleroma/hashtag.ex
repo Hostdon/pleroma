@@ -61,7 +61,6 @@ defmodule Pleroma.Hashtag do
                {:ok, Repo.all(from(ht in Hashtag, where: ht.name in ^names))}
              end)
              |> Repo.transaction() do
-        Pleroma.Elasticsearch.maybe_bulk_post(hashtags, :hashtags)
         {:ok, hashtags}
       else
         {:error, _name, value, _changes_so_far} -> {:error, value}

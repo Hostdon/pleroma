@@ -4,7 +4,7 @@ defmodule Pleroma.Elasticsearch.DocumentMappings.Hashtag do
   def encode(hashtag) do
     %{
       hashtag: hashtag.name,
-      timestamp: hashtag.inserted_at
+      timestamp: hashtag.timestamp
     }
   end
 end

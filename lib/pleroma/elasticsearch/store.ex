@@ -1,6 +1,7 @@
 defmodule Pleroma.Elasticsearch do
   alias Pleroma.Activity
   alias Pleroma.User
+  alias Pleroma.Object
   alias Pleroma.Elasticsearch.DocumentMappings
   alias Pleroma.Config
   require Logger
@@ -45,6 +46,12 @@ defmodule Pleroma.Elasticsearch do
     {:ok, :skipped}
   end
 
+  def maybe_bulk_post(data, type) do
+    if enabled?() do
+      bulk_post(data, type)
+    end
+  end
+
   def put(%Activity{} = activity) do
     {:ok, _} =
       Elastix.Document.index(
@@ -54,6 +61,12 @@ defmodule Pleroma.Elasticsearch do
         DocumentMappings.Activity.id(activity),
         DocumentMappings.Activity.encode(activity)
       )
+
+    activity
+    |> Map.get(:object)
+    |> Object.hashtags()
+    |> Enum.map(fn x -> %{id: x, name: x, timestamp: DateTime.to_iso8601(DateTime.utc_now())} end)
+    |> bulk_post(:hashtags)
   end
 
   def put(%User{} = user) do
@@ -95,12 +108,6 @@ defmodule Pleroma.Elasticsearch do
       )
   end
 
-  def maybe_bulk_post(data, type) do
-    if enabled?() do
-      bulk_post(data, type)
-    end
-  end
-
   def bulk_post(data, :users) do
     d =
       data
@@ -120,7 +127,7 @@ defmodule Pleroma.Elasticsearch do
     )
   end
 
-  def bulk_post([] = data, :hashtags) do
+  def bulk_post(data, :hashtags) when is_list(data) do
     d =
       data
       |> Enum.map(fn d ->
