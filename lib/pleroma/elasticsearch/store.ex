@@ -108,7 +108,6 @@ defmodule Pleroma.Elasticsearch do
       )
   end
 
-
   def bulk_post(data, :users) do
     d =
       data
