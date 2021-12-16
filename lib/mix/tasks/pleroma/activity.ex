@@ -4,19 +4,13 @@
 
 defmodule Mix.Tasks.Pleroma.Activity do
   alias Pleroma.Activity
-  alias Pleroma.Activity.Search
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Pagination
   require Logger
   import Mix.Pleroma
   import Ecto.Query
-  @shortdoc "A collection of activity debug tasks"
-  @moduledoc """
-   A collection of activity related tasks
 
-   mix pleroma.activity get <id>
-  """
   def run(["get", id | _rest]) do
     start_pleroma()
 
