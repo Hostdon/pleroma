@@ -54,12 +54,6 @@ defmodule Pleroma.Elasticsearch do
         DocumentMappings.Activity.id(activity),
         DocumentMappings.Activity.encode(activity)
       )
-
-    {:ok, _} =
-      bulk_post(
-        activity.object.hashtags,
-        :hashtags
-      )
   end
 
   def put(%User{} = user) do
@@ -99,6 +93,12 @@ defmodule Pleroma.Elasticsearch do
         index: "activities",
         type: "activity"
       )
+  end
+
+  def maybe_bulk_post(data, type) do
+    if enabled?() do
+      bulk_post(data, type)
+    end
   end
 
   def bulk_post(data, :users) do
