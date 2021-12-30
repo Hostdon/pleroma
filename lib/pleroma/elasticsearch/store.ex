@@ -14,6 +14,12 @@ defmodule Pleroma.Elasticsearch do
     Config.get([:search, :provider]) == Pleroma.Search.Elasticsearch
   end
 
+  def delete_by_id(:activity, id) do
+    if enabled?() do
+      Elastix.Document.delete(url(), "activities", "activity", id)
+    end
+  end
+    
   def put_by_id(:activity, id) do
     id
     |> Activity.get_by_id_with_object()
