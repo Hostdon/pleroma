@@ -542,7 +542,9 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
     Pleroma.Elasticsearch.put_by_id(:activity, activity.id)
   end
 
-  def handle_after_transaction(%Pleroma.Activity{data: %{"type" => "Delete", "deleted_activity_id" => id}}) do
+  def handle_after_transaction(%Pleroma.Activity{
+        data: %{"type" => "Delete", "deleted_activity_id" => id}
+      }) do
     Pleroma.Elasticsearch.delete_by_id(:activity, id)
   end
 

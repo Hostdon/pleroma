@@ -129,6 +129,7 @@ defmodule Pleroma.Elasticsearch do
       {:error, %{reason: err}} ->
         Logger.error("Could not bulk put activity: #{err}")
         :skipped
+
       {:ok, %{body: body}} ->
         IO.inspect(body)
         :skipped
@@ -159,6 +160,7 @@ defmodule Pleroma.Elasticsearch do
       {:error, %{reason: err}} ->
         Logger.error("Could not bulk put users: #{err}")
         :skipped
+
       {:ok, %{body: body}} ->
         IO.inspect(body)
         :skipped
@@ -188,6 +190,7 @@ defmodule Pleroma.Elasticsearch do
       {:error, %{reason: err}} ->
         Logger.error("Could not bulk put hashtags: #{err}")
         :skipped
+
       {:ok, %{body: body}} ->
         IO.inspect(body)
         :skipped
