@@ -19,7 +19,7 @@ defmodule Pleroma.Elasticsearch do
       Elastix.Document.delete(url(), "activities", "activity", id)
     end
   end
-    
+
   def put_by_id(:activity, id) do
     id
     |> Activity.get_by_id_with_object()
@@ -59,31 +59,43 @@ defmodule Pleroma.Elasticsearch do
   end
 
   def put(%Activity{} = activity) do
-    {:ok, _} =
-      Elastix.Document.index(
-        url(),
-        "activities",
-        "activity",
-        DocumentMappings.Activity.id(activity),
-        DocumentMappings.Activity.encode(activity)
-      )
-
-    activity
-    |> Map.get(:object)
-    |> Object.hashtags()
-    |> Enum.map(fn x -> %{id: x, name: x, timestamp: DateTime.to_iso8601(DateTime.utc_now())} end)
-    |> bulk_post(:hashtags)
+    with {:ok, _} <-
+           Elastix.Document.index(
+             url(),
+             "activities",
+             "activity",
+             DocumentMappings.Activity.id(activity),
+             DocumentMappings.Activity.encode(activity)
+           ) do
+      activity
+      |> Map.get(:object)
+      |> Object.hashtags()
+      |> Enum.map(fn x ->
+        %{id: x, name: x, timestamp: DateTime.to_iso8601(DateTime.utc_now())}
+      end)
+      |> bulk_post(:hashtags)
+    else
+      {:error, %{reason: err}} ->
+        Logger.error("Could not put activity: #{err}")
+        :skipped
+    end
   end
 
   def put(%User{} = user) do
-    {:ok, _} =
-      Elastix.Document.index(
-        url(),
-        "users",
-        "user",
-        DocumentMappings.User.id(user),
-        DocumentMappings.User.encode(user)
-      )
+    with {:ok, _} <-
+           Elastix.Document.index(
+             url(),
+             "users",
+             "user",
+             DocumentMappings.User.id(user),
+             DocumentMappings.User.encode(user)
+           ) do
+      :ok
+    else
+      {:error, %{reason: err}} ->
+        Logger.error("Could not put user: #{err}")
+        :skipped
+    end
   end
 
   def bulk_post(data, :activities) do
@@ -105,13 +117,22 @@ defmodule Pleroma.Elasticsearch do
       end)
       |> List.flatten()
 
-    {:ok, %{body: %{"errors" => false}}} =
-      Elastix.Bulk.post(
-        url(),
-        d,
-        index: "activities",
-        type: "activity"
-      )
+    with {:ok, %{body: %{"errors" => false}}} <-
+           Elastix.Bulk.post(
+             url(),
+             d,
+             index: "activities",
+             type: "activity"
+           ) do
+      :ok
+    else
+      {:error, %{reason: err}} ->
+        Logger.error("Could not bulk put activity: #{err}")
+        :skipped
+      {:ok, %{body: body}} ->
+        IO.inspect(body)
+        :skipped
+    end
   end
 
   def bulk_post(data, :users) do
@@ -126,12 +147,22 @@ defmodule Pleroma.Elasticsearch do
       end)
       |> List.flatten()
 
-    Elastix.Bulk.post(
-      url(),
-      d,
-      index: "users",
-      type: "user"
-    )
+    with {:ok, %{body: %{"errors" => false}}} <-
+           Elastix.Bulk.post(
+             url(),
+             d,
+             index: "users",
+             type: "user"
+           ) do
+      :ok
+    else
+      {:error, %{reason: err}} ->
+        Logger.error("Could not bulk put users: #{err}")
+        :skipped
+      {:ok, %{body: body}} ->
+        IO.inspect(body)
+        :skipped
+    end
   end
 
   def bulk_post(data, :hashtags) when is_list(data) do
@@ -145,12 +176,22 @@ defmodule Pleroma.Elasticsearch do
       end)
       |> List.flatten()
 
-    Elastix.Bulk.post(
-      url(),
-      d,
-      index: "hashtags",
-      type: "hashtag"
-    )
+    with {:ok, %{body: %{"errors" => false}}} <-
+           Elastix.Bulk.post(
+             url(),
+             d,
+             index: "hashtags",
+             type: "hashtag"
+           ) do
+      :ok
+    else
+      {:error, %{reason: err}} ->
+        Logger.error("Could not bulk put hashtags: #{err}")
+        :skipped
+      {:ok, %{body: body}} ->
+        IO.inspect(body)
+        :skipped
+    end
   end
 
   def bulk_post(_, :hashtags), do: {:ok, nil}
