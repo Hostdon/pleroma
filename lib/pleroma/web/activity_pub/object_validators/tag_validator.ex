@@ -69,7 +69,12 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.TagValidator do
   end
 
   def changeset(struct, %{"type" => "Book"} = data) do
-    data = Map.put(data, "name", data["title"])
+    data =
+      if Map.has_key?(data, "title") do
+        Map.put(data, "name", data["title"])
+      else
+        data
+      end
 
     struct
     |> cast(data, [:type, :name])
@@ -77,7 +82,14 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.TagValidator do
   end
 
   def changeset(struct, %{"type" => "Edition"} = data) do
-    data = Map.put(data, "name", data["title"])
+    # Sometimes it's title, sometimes name
+    # Don't ask me.
+    data =
+      if Map.has_key?(data, "title") do
+        Map.put(data, "name", data["title"])
+      else
+        data
+      end
 
     struct
     |> cast(data, [:type, :name])
@@ -85,7 +97,12 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.TagValidator do
   end
 
   def changeset(struct, %{"type" => "Work"} = data) do
-    data = Map.put(data, "name", data["title"])
+    data =
+      if Map.has_key?(data, "title") do
+        Map.put(data, "name", data["title"])
+      else
+        data
+      end
 
     struct
     |> cast(data, [:type, :name])
