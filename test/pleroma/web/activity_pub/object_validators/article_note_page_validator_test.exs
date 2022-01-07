@@ -31,5 +31,26 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidatorTest 
     test "a basic note validates", %{note: note} do
       %{valid?: true} = ArticleNotePageValidator.cast_and_validate(note)
     end
+
+    test "a note with a remote replies collection should validate", _ do
+      insert(:user, %{ap_id: "https://bookwyrm.com/user/TestUser"})
+      collection = File.read!("test/fixtures/bookwyrm-replies-collection.json")
+
+      Tesla.Mock.mock(fn %{
+                           method: :get,
+                           url: "https://bookwyrm.com/user/TestUser/review/17/replies?page=1"
+                         } ->
+        %Tesla.Env{
+          status: 200,
+          body: collection,
+          headers: HttpRequestMock.activitypub_object_headers()
+        }
+      end)
+
+      note = Jason.decode!(File.read!("test/fixtures/bookwyrm-article.json"))
+
+      %{valid?: true, changes: %{replies: ["https://bookwyrm.com/user/TestUser/status/18"]}} =
+        ArticleNotePageValidator.cast_and_validate(note)
+    end
   end
 end
