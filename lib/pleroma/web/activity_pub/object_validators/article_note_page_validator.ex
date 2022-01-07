@@ -9,8 +9,11 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
   alias Pleroma.Web.ActivityPub.ObjectValidators.CommonFixes
   alias Pleroma.Web.ActivityPub.ObjectValidators.CommonValidations
   alias Pleroma.Web.ActivityPub.Transmogrifier
+  alias Pleroma.Object.Fetcher
 
   import Ecto.Changeset
+
+  require Logger
 
   @primary_key false
   @derive Jason.Encoder
@@ -62,6 +65,18 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
 
   defp fix_replies(%{"replies" => replies} = data) when is_bitstring(replies),
     do: Map.drop(data, ["replies"])
+
+  defp fix_replies(%{"replies" => %{"first" => first}} = data) do
+    with {:ok, %{"orderedItems" => replies}} <-
+           Fetcher.fetch_and_contain_remote_object_from_id(first) do
+      Map.put(data, "replies", replies)
+    else
+      {:error, e} ->
+        Logger.error("Could not fetch replies for #{first}")
+        IO.inspect(e)
+        Map.put(data, "replies", [])
+    end
+  end
 
   defp fix_replies(data), do: data
 
