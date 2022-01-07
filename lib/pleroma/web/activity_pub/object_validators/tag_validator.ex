@@ -68,51 +68,10 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.TagValidator do
     |> validate_required([:type, :name, :icon])
   end
 
-  def changeset(struct, %{"type" => "Book"} = data) do
-    data =
-      if Map.has_key?(data, "title") do
-        Map.put(data, "name", data["title"])
-      else
-        data
-      end
-
+  def changeset(struct, %{"type" => _} = data) do
     struct
-    |> cast(data, [:type, :name])
-    |> validate_required([:type, :name])
-  end
-
-  def changeset(struct, %{"type" => "Edition"} = data) do
-    # Sometimes it's title, sometimes name
-    # Don't ask me.
-    data =
-      if Map.has_key?(data, "title") do
-        Map.put(data, "name", data["title"])
-      else
-        data
-      end
-
-    struct
-    |> cast(data, [:type, :name])
-    |> validate_required([:type, :name])
-  end
-
-  def changeset(struct, %{"type" => "Work"} = data) do
-    data =
-      if Map.has_key?(data, "title") do
-        Map.put(data, "name", data["title"])
-      else
-        data
-      end
-
-    struct
-    |> cast(data, [:type, :name])
-    |> validate_required([:type, :name])
-  end
-
-  def changeset(struct, %{"type" => "Author"} = data) do
-    struct
-    |> cast(data, [:type, :name])
-    |> validate_required([:type, :name])
+    |> cast(data, [])
+    |> Map.put(:action, :ignore)
   end
 
   def icon_changeset(struct, data) do
