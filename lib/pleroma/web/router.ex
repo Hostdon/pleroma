@@ -109,6 +109,12 @@ defmodule Pleroma.Web.Router do
     plug(Pleroma.Web.Plugs.UserIsAdminPlug)
   end
 
+  pipeline :mastodon_html do
+    plug(:browser)
+    plug(:authenticate)
+    plug(:after_auth)
+  end
+
   pipeline :pleroma_html do
     plug(:browser)
     plug(:authenticate)
@@ -572,6 +578,13 @@ defmodule Pleroma.Web.Router do
     get("/timelines/list/:list_id", TimelineController, :list)
   end
 
+  scope "/api/web", Pleroma.Web do
+    pipe_through(:authenticated_api)
+
+    # Backend-obscure settings blob for MastoFE, don't parse/reuse elsewhere
+    put("/settings", MastoFEController, :put_settings)
+  end
+
   scope "/api/v1", Pleroma.Web.MastodonAPI do
     pipe_through(:app_api)
 
@@ -782,12 +795,20 @@ defmodule Pleroma.Web.Router do
     pipe_through(:api)
 
     get("/manifest.json", ManifestController, :show)
+    get("/web/manifest.json", MastoFEController, :manifest)
   end
 
   scope "/", Pleroma.Web do
-    pipe_through(:pleroma_html)
+    pipe_through(:mastodon_html)
 
-    post("/auth/password", TwitterAPI.PasswordController, :request)
+    get("/web/login", MastodonAPI.AuthController, :login)
+    delete("/auth/sign_out", MastodonAPI.AuthController, :logout)
+
+    post("/auth/password", MastodonAPI.AuthController, :password_reset)
+
+    get("/web/*path", MastoFEController, :index)
+
+    get("/embed/:id", EmbedController, :show)
   end
 
   scope "/proxy/", Pleroma.Web do

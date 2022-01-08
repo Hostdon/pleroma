@@ -23,6 +23,8 @@ defmodule Pleroma.Web.MastodonAPI.AppController do
 
   plug(Pleroma.Web.ApiSpec.CastAndValidate)
 
+  @local_mastodon_name "Mastodon-Local"
+
   defdelegate open_api_operation(action), to: Pleroma.Web.ApiSpec.AppOperation
 
   @doc "POST /api/v1/apps"
@@ -37,6 +39,7 @@ defmodule Pleroma.Web.MastodonAPI.AppController do
       |> Maps.put_if_present(:user_id, user_id)
 
     with cs <- App.register_changeset(%App{}, app_attrs),
+         false <- cs.changes[:client_name] == @local_mastodon_name,
          {:ok, app} <- Repo.insert(cs) do
       render(conn, "show.json", app: app)
     end
