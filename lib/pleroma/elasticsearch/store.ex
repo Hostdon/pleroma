@@ -1,3 +1,7 @@
+# Akkoma: A lightweight social networking server
+# Copyright © 2022-2022 Akkoma Authors <https://git.ihatebeinga.live/IHBAGang/akkoma/>
+# SPDX-License-Identifier: AGPL-3.0-only
+
 defmodule Pleroma.Elasticsearch do
   alias Pleroma.Activity
   alias Pleroma.User
