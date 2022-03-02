@@ -217,6 +217,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
       |> Maps.put_if_present(:is_locked, params[:locked])
       # Note: param name is indeed :discoverable (not an error)
       |> Maps.put_if_present(:is_discoverable, params[:discoverable])
+      |> Maps.put_if_present(:language, params[:language])
 
     # What happens here:
     #
