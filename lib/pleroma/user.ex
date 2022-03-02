@@ -151,6 +151,7 @@ defmodule Pleroma.User do
     field(:pinned_objects, :map, default: %{})
     field(:is_suggested, :boolean, default: false)
     field(:last_status_at, :naive_datetime)
+    field(:language, :string)
 
     embeds_one(
       :notification_settings,
