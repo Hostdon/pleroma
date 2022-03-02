@@ -735,7 +735,8 @@ defmodule Pleroma.User do
       :password_confirmation,
       :emoji,
       :accepts_chat_messages,
-      :registration_reason
+      :registration_reason,
+      :language
     ])
     |> validate_required([:name, :nickname, :password, :password_confirmation])
     |> validate_confirmation(:password)
