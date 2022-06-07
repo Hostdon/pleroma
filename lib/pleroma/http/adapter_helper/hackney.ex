@@ -25,7 +25,7 @@ defmodule Pleroma.HTTP.AdapterHelper.Hackney do
   end
 
   defp add_scheme_opts(opts, %URI{scheme: "https"}) do
-    Keyword.put(opts, :ssl_options, versions: [:"tlsv1.2", :"tlsv1.1", :tlsv1])
+    Keyword.put(opts, :ssl_options, versions: [:"tlsv1.3", :"tlsv1.2", :"tlsv1.1", :tlsv1])
   end
 
   defp add_scheme_opts(opts, _), do: opts
