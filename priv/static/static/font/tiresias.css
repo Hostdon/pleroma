@@ -1,0 +1,15 @@
+@font-face {
+  font-family: 'Tiresias PCFont';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Tiresias PCFont'), local('Tiresias PCFont'),
+       url('./fonts/Tiresias_PCfont.ttf') format('truetype')
+}
+
+@font-face {
+  font-family: 'Tiresias Infofont';
+  font-style: normal;   
+  font-weight: 400;
+  src: local('Tiresias Infofont'), local('Tiresias Infofont'),
+       url('./fonts/Tiresias_Infofont.ttf') format('truetype')
+} 
