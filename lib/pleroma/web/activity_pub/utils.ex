@@ -347,7 +347,6 @@ defmodule Pleroma.Web.ActivityPub.Utils do
         %Activity{data: %{"content" => emoji, "actor" => actor}} = activity,
         object
       ) do
-    IO.inspect(emoji)
     reactions = get_cached_emoji_reactions(object)
     emoji = stripped_emoji_name(emoji)
     new_reactions =

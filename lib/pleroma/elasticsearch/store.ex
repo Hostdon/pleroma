@@ -135,7 +135,6 @@ defmodule Pleroma.Elasticsearch do
         :skipped
 
       {:ok, %{body: body}} ->
-        IO.inspect(body)
         :skipped
     end
   end
@@ -166,7 +165,6 @@ defmodule Pleroma.Elasticsearch do
         :skipped
 
       {:ok, %{body: body}} ->
-        IO.inspect(body)
         :skipped
     end
   end
@@ -196,7 +194,6 @@ defmodule Pleroma.Elasticsearch do
         :skipped
 
       {:ok, %{body: body}} ->
-        IO.inspect(body)
         :skipped
     end
   end

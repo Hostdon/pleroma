@@ -144,7 +144,6 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidator do
   def validate(%{"type" => type} = object, meta)
       when type in ~w[Accept Reject Follow Update Like EmojiReact Announce
       ChatMessage Answer] do
-    IO.inspect(object)
     validator =
       case type do
         "Accept" -> AcceptRejectValidator

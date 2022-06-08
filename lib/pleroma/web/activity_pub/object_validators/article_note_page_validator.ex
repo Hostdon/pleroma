@@ -73,7 +73,6 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
     else
       {:error, e} ->
         Logger.error("Could not fetch replies for #{first}")
-        IO.inspect(e)
         Map.put(data, "replies", [])
     end
   end
