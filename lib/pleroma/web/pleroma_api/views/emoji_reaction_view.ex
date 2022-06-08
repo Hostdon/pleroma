@@ -6,6 +6,7 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionView do
   use Pleroma.Web, :view
 
   alias Pleroma.Web.MastodonAPI.AccountView
+  alias Pleroma.Web.MediaProxy
 
   def render("index.json", %{emoji_reactions: emoji_reactions} = opts) do
     render_many(emoji_reactions, __MODULE__, "show.json", opts)
@@ -17,7 +18,7 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionView do
       name: emoji,
       count: length(users),
       accounts: render(AccountView, "index.json", users: users, for: user),
-      url: url,
+      url: MediaProxy.url(url),
       me: !!(user && user.ap_id in user_ap_ids)
     }
   end

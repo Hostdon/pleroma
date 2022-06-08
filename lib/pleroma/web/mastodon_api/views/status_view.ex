@@ -572,7 +572,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
     %{
       name: emoji,
       count: length(users),
-      url: url,
+      url: MediaProxy.url(url),
       me: !!(current_user && current_user.ap_id in users)
     }
   end
