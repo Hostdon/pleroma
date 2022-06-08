@@ -424,6 +424,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
         } = data,
         options
       ) do
+    IO.inspect(data)
     data
     |> Map.put("type", "EmojiReact")
     |> Map.put("content", reaction)

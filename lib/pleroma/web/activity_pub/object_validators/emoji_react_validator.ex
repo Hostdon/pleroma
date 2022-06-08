@@ -72,7 +72,6 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.EmojiReactValidator do
 
   defp validate_emoji(cng) do
     content = get_field(cng, :content)
-    IO.inspect(Pleroma.Emoji.is_unicode_emoji?(content))
     if Pleroma.Emoji.is_unicode_emoji?(content) || Regex.match?(@emoji_regex, content) do
       cng
     else

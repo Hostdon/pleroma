@@ -16,6 +16,7 @@ defmodule Pleroma.Web.ActivityPub.Builder do
   alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Web.CommonAPI.ActivityDraft
+  alias Pleroma.Web.Endpoint
 
   require Pleroma.Constants
 
@@ -57,10 +58,29 @@ defmodule Pleroma.Web.ActivityPub.Builder do
   @spec emoji_react(User.t(), Object.t(), String.t()) :: {:ok, map(), keyword()}
   def emoji_react(actor, object, emoji) do
     with {:ok, data, meta} <- object_action(actor, object) do
-      data =
+      data = if Emoji.is_unicode_emoji?(emoji) do
         data
         |> Map.put("content", emoji)
         |> Map.put("type", "EmojiReact")
+      else
+        emojo = Emoji.get(emoji)
+        path = emojo |> Map.get(:file)
+        url = "#{Endpoint.url()}#{path}"
+        data
+        |> Map.put("content", emoji)
+        |> Map.put("type", "EmojiReact")
+        |> Map.put("tag", [
+            %{}
+            |> Map.put("id", url)
+            |> Map.put("type", "Emoji")
+            |> Map.put("name", emojo.code)
+            |> Map.put("icon",
+                %{}
+                |> Map.put("type", "Image")
+                |> Map.put("url", url)
+            )
+        ])
+      end
 
       {:ok, data, meta}
     end
