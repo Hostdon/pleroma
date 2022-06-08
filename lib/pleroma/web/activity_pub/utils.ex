@@ -344,21 +344,22 @@ defmodule Pleroma.Web.ActivityPub.Utils do
           {:ok, Object.t()} | {:error, Ecto.Changeset.t()}
 
   def add_emoji_reaction_to_object(
-        %Activity{data: %{"content" => emoji, "actor" => actor}},
+        %Activity{data: %{"content" => emoji, "actor" => actor}} = activity,
         object
       ) do
+    IO.inspect(emoji)
     reactions = get_cached_emoji_reactions(object)
-
+    emoji = stripped_emoji_name(emoji)
     new_reactions =
-      case Enum.find_index(reactions, fn [candidate, _] -> emoji == candidate end) do
+      case Enum.find_index(reactions, fn [candidate, _, _] -> emoji == candidate end) do
         nil ->
-          reactions ++ [[emoji, [actor]]]
+          reactions ++ [[emoji, [actor], emoji_url(emoji, activity)]]
 
         index ->
           List.update_at(
             reactions,
             index,
-            fn [emoji, users] -> [emoji, Enum.uniq([actor | users])] end
+            fn [emoji, users, url] -> [emoji, Enum.uniq([actor | users]), url] end
           )
       end
 
@@ -367,8 +368,22 @@ defmodule Pleroma.Web.ActivityPub.Utils do
     update_element_in_object("reaction", new_reactions, object, count)
   end
 
+  defp stripped_emoji_name(name) do
+    name
+    |> String.replace_leading(":", "")
+    |> String.replace_trailing(":", "")
+  end
+
+  defp emoji_url(name,
+    %Activity{
+        data: %{"tag" => [
+            %{"type" => "Emoji", "name" => name, "icon" => %{"url" => url}}
+        ]}
+    }), do: url
+  defp emoji_url(_, _), do: nil
+
   def emoji_count(reactions_list) do
-    Enum.reduce(reactions_list, 0, fn [_, users], acc -> acc + length(users) end)
+    Enum.reduce(reactions_list, 0, fn [_, users, _], acc -> acc + length(users) end)
   end
 
   def remove_emoji_reaction_from_object(
@@ -376,9 +391,8 @@ defmodule Pleroma.Web.ActivityPub.Utils do
         object
       ) do
     reactions = get_cached_emoji_reactions(object)
-
     new_reactions =
-      case Enum.find_index(reactions, fn [candidate, _] -> emoji == candidate end) do
+      case Enum.find_index(reactions, fn [candidate, _, _] -> emoji == candidate end) do
         nil ->
           reactions
 
@@ -386,9 +400,9 @@ defmodule Pleroma.Web.ActivityPub.Utils do
           List.update_at(
             reactions,
             index,
-            fn [emoji, users] -> [emoji, List.delete(users, actor)] end
+            fn [emoji, users, url] -> [emoji, List.delete(users, actor), url] end
           )
-          |> Enum.reject(fn [_, users] -> Enum.empty?(users) end)
+          |> Enum.reject(fn [_, users, _] -> Enum.empty?(users) end)
       end
 
     count = emoji_count(new_reactions)

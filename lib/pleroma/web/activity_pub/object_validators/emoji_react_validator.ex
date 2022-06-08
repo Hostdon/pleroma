@@ -12,6 +12,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.EmojiReactValidator do
   import Pleroma.Web.ActivityPub.ObjectValidators.CommonValidations
 
   @primary_key false
+  @emoji_regex ~r/:[A-Za-z_-]+:/
 
   embedded_schema do
     quote do
@@ -19,6 +20,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.EmojiReactValidator do
         import Elixir.Pleroma.Web.ActivityPub.ObjectValidators.CommonFields
         message_fields()
         activity_fields()
+        tag_fields()
       end
     end
 
@@ -43,7 +45,8 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.EmojiReactValidator do
 
   def changeset(struct, data) do
     struct
-    |> cast(data, __schema__(:fields))
+    |> cast(data, __schema__(:fields) -- [:tag])
+    |> cast_embed(:tag)
   end
 
   defp fix(data) do
@@ -51,6 +54,12 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.EmojiReactValidator do
       data
       |> CommonFixes.fix_actor()
       |> CommonFixes.fix_activity_addressing()
+
+    data = if Map.has_key?(data, "tag") do
+        data
+    else
+        Map.put(data, "tag", [])
+    end
 
     with %Object{} = object <- Object.normalize(data["object"]) do
       data
@@ -63,12 +72,12 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.EmojiReactValidator do
 
   defp validate_emoji(cng) do
     content = get_field(cng, :content)
-
-    if Pleroma.Emoji.is_unicode_emoji?(content) do
+    IO.inspect(Pleroma.Emoji.is_unicode_emoji?(content))
+    if Pleroma.Emoji.is_unicode_emoji?(content) || Regex.match?(@emoji_regex, content) do
       cng
     else
       cng
-      |> add_error(:content, "must be a single character emoji")
+      |> add_error(:content, "is not a valid emoji")
     end
   end
 

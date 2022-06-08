@@ -415,31 +415,31 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     end
   end
 
-  @misskey_reactions %{
-    "like" => "👍",
-    "love" => "❤️",
-    "laugh" => "😆",
-    "hmm" => "🤔",
-    "surprise" => "😮",
-    "congrats" => "🎉",
-    "angry" => "💢",
-    "confused" => "😥",
-    "rip" => "😇",
-    "pudding" => "🍮",
-    "star" => "⭐"
-  }
-
   @doc "Rewrite misskey likes into EmojiReacts"
   def handle_incoming(
         %{
           "type" => "Like",
-          "_misskey_reaction" => reaction
+          "_misskey_reaction" => reaction,
+          "tag" => _
         } = data,
         options
       ) do
     data
     |> Map.put("type", "EmojiReact")
-    |> Map.put("content", @misskey_reactions[reaction] || reaction)
+    |> Map.put("content", reaction)
+    |> handle_incoming(options)
+  end
+
+  def handle_incoming(
+        %{
+          "type" => "Like",
+          "_misskey_reaction" => reaction,
+        } = data,
+        options
+      ) do
+    data
+    |> Map.put("type", "EmojiReact")
+    |> Map.put("content", reaction)
     |> handle_incoming(options)
   end
 
@@ -472,11 +472,11 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   def handle_incoming(%{"type" => type} = data, _options)
       when type in ~w{Like EmojiReact Announce Add Remove} do
     with :ok <- ObjectValidator.fetch_actor_and_object(data),
-         {:ok, activity, _meta} <-
-           Pipeline.common_pipeline(data, local: false) do
+         {:ok, activity, _meta} <- Pipeline.common_pipeline(data, local: false) do
       {:ok, activity}
     else
-      e -> {:error, e}
+      e ->
+        {:error, e}
     end
   end
 

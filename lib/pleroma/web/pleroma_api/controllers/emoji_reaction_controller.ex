@@ -50,17 +50,17 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionController do
           if not with_muted, do: User.cached_muted_users_ap_ids(user), else: []
       end
 
-    filter_emoji = fn emoji, users ->
+    filter_emoji = fn emoji, users, url ->
       case Enum.reject(users, &(&1 in exclude_ap_ids)) do
         [] -> nil
-        users -> {emoji, users}
+        users -> {emoji, users, url}
       end
     end
 
     reactions
     |> Stream.map(fn
-      [emoji, users] when is_list(users) -> filter_emoji.(emoji, users)
-      {emoji, users} when is_list(users) -> filter_emoji.(emoji, users)
+      [emoji, users, url] when is_list(users) -> filter_emoji.(emoji, users, url)
+      {emoji, users, url} when is_list(users) -> filter_emoji.(emoji, users, url)
       _ -> nil
     end)
     |> Stream.reject(&is_nil/1)

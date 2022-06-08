@@ -304,7 +304,6 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
         _e ->
           nil
       end
-
     emoji_reactions =
       object.data
       |> Map.get("reactions", [])
@@ -312,8 +311,8 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
         opts[:for],
         Map.get(opts, :with_muted, false)
       )
-      |> Stream.map(fn {emoji, users} ->
-        build_emoji_map(emoji, users, opts[:for])
+      |> Stream.map(fn {emoji, users, url} ->
+        build_emoji_map(emoji, users, url, opts[:for])
       end)
       |> Enum.to_list()
 
@@ -569,10 +568,11 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
     end
   end
 
-  defp build_emoji_map(emoji, users, current_user) do
+  defp build_emoji_map(emoji, users, url, current_user) do
     %{
       name: emoji,
       count: length(users),
+      url: url,
       me: !!(current_user && current_user.ap_id in users)
     }
   end

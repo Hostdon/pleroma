@@ -11,13 +11,13 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionView do
     render_many(emoji_reactions, __MODULE__, "show.json", opts)
   end
 
-  def render("show.json", %{emoji_reaction: {emoji, user_ap_ids}, user: user}) do
+  def render("show.json", %{emoji_reaction: {emoji, user_ap_ids, url}, user: user}) do
     users = fetch_users(user_ap_ids)
-
     %{
       name: emoji,
       count: length(users),
       accounts: render(AccountView, "index.json", users: users, for: user),
+      url: url,
       me: !!(user && user.ap_id in user_ap_ids)
     }
   end

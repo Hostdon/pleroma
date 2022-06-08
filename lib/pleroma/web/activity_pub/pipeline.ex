@@ -77,7 +77,8 @@ defmodule Pleroma.Web.ActivityPub.Pipeline do
         {:ok, :not_federated}
       end
     else
-      _e -> {:error, :badarg}
+      _e ->
+        {:error, :badarg}
     end
   end
 end
