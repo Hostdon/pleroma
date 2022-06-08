@@ -349,10 +349,17 @@ defmodule Pleroma.Web.ActivityPub.Utils do
       ) do
     reactions = get_cached_emoji_reactions(object)
     emoji = stripped_emoji_name(emoji)
+    url = emoji_url(emoji, activity)
     new_reactions =
-      case Enum.find_index(reactions, fn [candidate, _, _] -> emoji == candidate end) do
+      case Enum.find_index(reactions, fn [candidate, _, candidate_url] ->
+        if is_nil(candidate_url) do
+            emoji == candidate
+        else
+            url == candidate_url
+        end
+      end) do
         nil ->
-          reactions ++ [[emoji, [actor], emoji_url(emoji, activity)]]
+          reactions ++ [[emoji, [actor], url]]
 
         index ->
           List.update_at(
@@ -386,12 +393,20 @@ defmodule Pleroma.Web.ActivityPub.Utils do
   end
 
   def remove_emoji_reaction_from_object(
-        %Activity{data: %{"content" => emoji, "actor" => actor}},
+        %Activity{data: %{"content" => emoji, "actor" => actor}} = activity,
         object
       ) do
+    emoji = stripped_emoji_name(emoji)
     reactions = get_cached_emoji_reactions(object)
+    url = emoji_url(emoji, activity)
     new_reactions =
-      case Enum.find_index(reactions, fn [candidate, _, _] -> emoji == candidate end) do
+      case Enum.find_index(reactions, fn [candidate, _, candidate_url] ->
+        if is_nil(candidate_url) do
+            emoji == candidate
+        else
+            url == candidate_url
+        end
+      end) do
         nil ->
           reactions
 
@@ -521,6 +536,11 @@ defmodule Pleroma.Web.ActivityPub.Utils do
 
   def get_latest_reaction(internal_activity_id, %{ap_id: ap_id}, emoji) do
     %{data: %{"object" => object_ap_id}} = Activity.get_by_id(internal_activity_id)
+    emoji = if String.starts_with?(emoji, ":") do
+      emoji
+    else
+      ":#{emoji}:"
+    end
 
     "EmojiReact"
     |> Activity.Queries.by_type()
