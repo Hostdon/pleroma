@@ -91,7 +91,8 @@ defmodule Pleroma.Web.MastodonAPI.InstanceView do
       end,
       if Config.get([:instance, :profile_directory]) do
         "profile_directory"
-      end
+      end,
+      "custom_emoji_reactions"
     ]
     |> Enum.filter(& &1)
   end
