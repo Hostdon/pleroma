@@ -1,0 +1,9 @@
+pipeline:
+  lint:
+    image: pleromaforkci/ci-base:1.13
+    commands:
+    - mix local.hex --force
+    - mix local.rebar --force
+    - mix format --check-formatted
+    when:
+      event: [push, tag, deployment]
