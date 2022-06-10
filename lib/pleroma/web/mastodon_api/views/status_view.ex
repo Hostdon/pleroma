@@ -304,6 +304,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
         _e ->
           nil
       end
+
     emoji_reactions =
       object.data
       |> Map.get("reactions", [])

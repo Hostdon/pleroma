@@ -350,14 +350,15 @@ defmodule Pleroma.Web.ActivityPub.Utils do
     reactions = get_cached_emoji_reactions(object)
     emoji = stripped_emoji_name(emoji)
     url = emoji_url(emoji, activity)
+
     new_reactions =
       case Enum.find_index(reactions, fn [candidate, _, candidate_url] ->
-        if is_nil(candidate_url) do
-            emoji == candidate
-        else
-            url == candidate_url
-        end
-      end) do
+             if is_nil(candidate_url) do
+               emoji == candidate
+             else
+               url == candidate_url
+             end
+           end) do
         nil ->
           reactions ++ [[emoji, [actor], url]]
 
@@ -380,12 +381,18 @@ defmodule Pleroma.Web.ActivityPub.Utils do
     |> String.replace_trailing(":", "")
   end
 
-  defp emoji_url(name,
-    %Activity{
-        data: %{"tag" => [
-            %{"type" => "Emoji", "name" => name, "icon" => %{"url" => url}}
-        ]}
-    }), do: url
+  defp emoji_url(
+         name,
+         %Activity{
+           data: %{
+             "tag" => [
+               %{"type" => "Emoji", "name" => name, "icon" => %{"url" => url}}
+             ]
+           }
+         }
+       ),
+       do: url
+
   defp emoji_url(_, _), do: nil
 
   def emoji_count(reactions_list) do
@@ -399,14 +406,15 @@ defmodule Pleroma.Web.ActivityPub.Utils do
     emoji = stripped_emoji_name(emoji)
     reactions = get_cached_emoji_reactions(object)
     url = emoji_url(emoji, activity)
+
     new_reactions =
       case Enum.find_index(reactions, fn [candidate, _, candidate_url] ->
-        if is_nil(candidate_url) do
-            emoji == candidate
-        else
-            url == candidate_url
-        end
-      end) do
+             if is_nil(candidate_url) do
+               emoji == candidate
+             else
+               url == candidate_url
+             end
+           end) do
         nil ->
           reactions
 
@@ -536,11 +544,13 @@ defmodule Pleroma.Web.ActivityPub.Utils do
 
   def get_latest_reaction(internal_activity_id, %{ap_id: ap_id}, emoji) do
     %{data: %{"object" => object_ap_id}} = Activity.get_by_id(internal_activity_id)
-    emoji = if String.starts_with?(emoji, ":") do
-      emoji
-    else
-      ":#{emoji}:"
-    end
+
+    emoji =
+      if String.starts_with?(emoji, ":") do
+        emoji
+      else
+        ":#{emoji}:"
+      end
 
     "EmojiReact"
     |> Activity.Queries.by_type()

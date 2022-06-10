@@ -55,11 +55,12 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.EmojiReactValidator do
       |> CommonFixes.fix_actor()
       |> CommonFixes.fix_activity_addressing()
 
-    data = if Map.has_key?(data, "tag") do
+    data =
+      if Map.has_key?(data, "tag") do
         data
-    else
+      else
         Map.put(data, "tag", [])
-    end
+      end
 
     with %Object{} = object <- Object.normalize(data["object"]) do
       data
@@ -72,6 +73,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.EmojiReactValidator do
 
   defp validate_emoji(cng) do
     content = get_field(cng, :content)
+
     if Pleroma.Emoji.is_unicode_emoji?(content) || Regex.match?(@emoji_regex, content) do
       cng
     else

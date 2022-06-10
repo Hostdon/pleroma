@@ -433,7 +433,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   def handle_incoming(
         %{
           "type" => "Like",
-          "_misskey_reaction" => reaction,
+          "_misskey_reaction" => reaction
         } = data,
         options
       ) do

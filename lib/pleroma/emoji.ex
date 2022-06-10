@@ -50,13 +50,14 @@ defmodule Pleroma.Emoji do
   @doc "Returns the path of the emoji `name`."
   @spec get(String.t()) :: String.t() | nil
   def get(name) do
-    name = if String.starts_with?(name, ":") do
-      name
-      |> String.replace_leading(":", "")
-      |> String.replace_trailing(":", "")
-    else
-      name
-    end
+    name =
+      if String.starts_with?(name, ":") do
+        name
+        |> String.replace_leading(":", "")
+        |> String.replace_trailing(":", "")
+      else
+        name
+      end
 
     case :ets.lookup(@ets, name) do
       [{_, path}] -> path

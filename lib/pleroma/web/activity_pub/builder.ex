@@ -58,29 +58,32 @@ defmodule Pleroma.Web.ActivityPub.Builder do
   @spec emoji_react(User.t(), Object.t(), String.t()) :: {:ok, map(), keyword()}
   def emoji_react(actor, object, emoji) do
     with {:ok, data, meta} <- object_action(actor, object) do
-      data = if Emoji.is_unicode_emoji?(emoji) do
-        data
-        |> Map.put("content", emoji)
-        |> Map.put("type", "EmojiReact")
-      else
-        emojo = Emoji.get(emoji)
-        path = emojo |> Map.get(:file)
-        url = "#{Endpoint.url()}#{path}"
-        data
-        |> Map.put("content", emoji)
-        |> Map.put("type", "EmojiReact")
-        |> Map.put("tag", [
+      data =
+        if Emoji.is_unicode_emoji?(emoji) do
+          data
+          |> Map.put("content", emoji)
+          |> Map.put("type", "EmojiReact")
+        else
+          emojo = Emoji.get(emoji)
+          path = emojo |> Map.get(:file)
+          url = "#{Endpoint.url()}#{path}"
+
+          data
+          |> Map.put("content", emoji)
+          |> Map.put("type", "EmojiReact")
+          |> Map.put("tag", [
             %{}
             |> Map.put("id", url)
             |> Map.put("type", "Emoji")
             |> Map.put("name", emojo.code)
-            |> Map.put("icon",
-                %{}
-                |> Map.put("type", "Image")
-                |> Map.put("url", url)
+            |> Map.put(
+              "icon",
+              %{}
+              |> Map.put("type", "Image")
+              |> Map.put("url", url)
             )
-        ])
-      end
+          ])
+        end
 
       {:ok, data, meta}
     end

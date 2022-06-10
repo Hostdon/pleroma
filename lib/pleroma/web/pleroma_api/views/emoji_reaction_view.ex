@@ -14,6 +14,7 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionView do
 
   def render("show.json", %{emoji_reaction: {emoji, user_ap_ids, url}, user: user}) do
     users = fetch_users(user_ap_ids)
+
     %{
       name: emoji,
       count: length(users),
