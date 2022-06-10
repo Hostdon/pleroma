@@ -16,12 +16,12 @@ defmodule Pleroma.Mixfile do
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: ["coveralls.html": :test],
       # Docs
-      name: "Pleroma",
-      homepage_url: "https://pleroma.social/",
-      source_url: "https://git.pleroma.social/pleroma/pleroma",
+      name: "Akkoma",
+      homepage_url: "https://akkoma.dev/",
+      source_url: "https://akkoma.dev/AkkomaGang/akkoma",
       docs: [
         source_url_pattern:
-          "https://git.pleroma.social/pleroma/pleroma/blob/develop/%{path}#L%{line}",
+          "https://akkoma.dev/AkkomaGang/akkoma/blob/develop/%{path}#L%{line}",
         logo: "priv/static/images/logo.png",
         extras: ["README.md", "CHANGELOG.md"] ++ Path.wildcard("docs/**/*.md"),
         groups_for_extras: [
@@ -209,7 +209,7 @@ defmodule Pleroma.Mixfile do
       ## dev & test
       {:ex_doc, "~> 0.22", only: :dev, runtime: false},
       {:ex_machina, "~> 2.4", only: :test},
-      {:credo, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:mock, "~> 0.3.5", only: :test},
       # temporary downgrade for excoveralls, hackney until hackney max_connections bug will be fixed
       {:excoveralls, "0.12.3", only: :test},
