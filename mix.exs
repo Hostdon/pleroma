@@ -20,8 +20,7 @@ defmodule Pleroma.Mixfile do
       homepage_url: "https://akkoma.dev/",
       source_url: "https://akkoma.dev/AkkomaGang/akkoma",
       docs: [
-        source_url_pattern:
-          "https://akkoma.dev/AkkomaGang/akkoma/blob/develop/%{path}#L%{line}",
+        source_url_pattern: "https://akkoma.dev/AkkomaGang/akkoma/blob/develop/%{path}#L%{line}",
         logo: "priv/static/images/logo.png",
         extras: ["README.md", "CHANGELOG.md"] ++ Path.wildcard("docs/**/*.md"),
         groups_for_extras: [
