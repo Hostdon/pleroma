@@ -1,0 +1,51 @@
+depends_on:
+- test
+
+when:
+  event: deployment
+
+matrix:
+  platform:
+    - amd64
+    - arm64
+
+platform: linux/${platform}
+
+pipeline:
+  ${platform}-glibc:
+    group: release
+    image: elixir:1.13
+    environment:
+      MIX_ENV: prod
+    commands:
+      - apt-get update && apt-get install -y cmake libmagic-dev rclone
+      - wget https://github.com/scaleway/scaleway-cli/releases/download/v2.5.1/scaleway-cli_2.5.1_linux_amd64
+      - mv scaleway-cli_2.5.1_linux_amd64 scaleway-cli
+      - chmod +x scaleway-cli
+      - ./scaleway-cli object config install type=rclone
+      - echo "import Mix.Config" > config/prod.secret.exs
+      - mix deps.get --only prod
+      - mkdir release
+      - export PLEROMA_BUILD_BRANCH=$CI_COMMIT_BRANCH
+      - mix release --path release
+      - zip akkoma-$CI_COMMIT_BRANCH-${platform}.zip -r release
+      - rclone copy akkoma-$CI_COMMIT_BRANCH-${platform}.zip scaleway:akkoma-updates/
+
+  ${platform}-musl:
+    group: release
+    image: elixir:1.13-alpine
+    environment:
+      MIX_ENV: prod
+    commands:
+      - apk add git gcc g++ musl-dev make cmake file-dev rclone wget
+      - wget https://github.com/scaleway/scaleway-cli/releases/download/v2.5.1/scaleway-cli_2.5.1_linux_amd64
+      - mv scaleway-cli_2.5.1_linux_amd64 scaleway-cli
+      - chmod +x scaleway-cli
+      - ./scaleway-cli object config install type=rclone
+      - echo "import Mix.Config" > config/prod.secret.exs
+      - mix deps.get --only prod
+      - mkdir release
+      - export PLEROMA_BUILD_BRANCH=${CI_COMMIT_BRANCH}
+      - mix release --path release
+      - zip akkoma-$CI_COMMIT_BRANCH-${platform}.zip -r release
+      - rclone copy akkoma-$CI_COMMIT_BRANCH-${platform}.zip scaleway:akkoma-updates/
