@@ -4,7 +4,10 @@ pipeline:
     when:
       event:
         - push
-
+    secrets:
+    - SCW_ACCESS_KEY
+    - SCW_SECRET_KEY
+    - SCW_DEFAULT_ORGANIZATION_ID
     group: release
     image: elixir:1.13
     environment:
