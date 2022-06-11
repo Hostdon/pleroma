@@ -10,7 +10,7 @@ pipeline:
     image: pleromaforkci/ci-base:${ELIXIR_VERSION}
     when:
       event:
-      - tag
+      - push
     environment:
       MIX_ENV: test
     commands:
@@ -24,7 +24,7 @@ pipeline:
     image: pleromaforkci/ci-base:${ELIXIR_VERSION}
     when:
       event:
-      - tag
+      - push
     environment:
       MIX_ENV: test
       POSTGRES_DB: pleroma_test

@@ -16,7 +16,7 @@ pipeline:
   glibc:
     when:
       event:
-        - push
+        - tag
     secrets:
     - SCW_ACCESS_KEY
     - SCW_SECRET_KEY
@@ -44,7 +44,7 @@ pipeline:
   musl:
     when:
       event:
-        - push
+        - tag
     secrets:
     - SCW_ACCESS_KEY
     - SCW_SECRET_KEY
