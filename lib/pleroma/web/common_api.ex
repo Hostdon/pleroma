@@ -271,7 +271,7 @@ defmodule Pleroma.Web.CommonAPI do
          {:ok, activity, _} <- Pipeline.common_pipeline(undo, local: true) do
       {:ok, activity}
     else
-      e ->
+      _ ->
         {:error, dgettext("errors", "Could not remove reaction emoji")}
     end
   end
