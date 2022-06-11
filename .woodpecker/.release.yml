@@ -1,6 +1,3 @@
-depends_on:
-- test
-
 pipeline:
 
   amd64-glibc:
