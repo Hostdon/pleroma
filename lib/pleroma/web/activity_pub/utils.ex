@@ -543,14 +543,10 @@ defmodule Pleroma.Web.ActivityPub.Utils do
   end
 
   def get_latest_reaction(internal_activity_id, %{ap_id: ap_id}, emoji) do
+    IO.inspect(emoji)
     %{data: %{"object" => object_ap_id}} = Activity.get_by_id(internal_activity_id)
 
-    emoji =
-      if String.starts_with?(emoji, ":") do
-        emoji
-      else
-        ":#{emoji}:"
-      end
+    emoji = Pleroma.Emoji.maybe_quote(emoji)
 
     "EmojiReact"
     |> Activity.Queries.by_type()

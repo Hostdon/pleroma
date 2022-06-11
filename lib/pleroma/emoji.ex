@@ -146,4 +146,23 @@ defmodule Pleroma.Emoji do
   end
 
   def is_unicode_emoji?(_), do: false
+
+  def stripped_name(name) when is_binary(name) do
+    name
+    |> String.replace_leading(":", "")
+    |> String.replace_trailing(":", "")
+  end
+
+  def stripped_name(name), do: name
+
+  def maybe_quote(name) when is_binary(name) do
+    if is_unicode_emoji?(name) do
+      name
+    else
+      ":#{name}:"
+    end
+  end
+
+  def maybe_quote(name), do: name
+    
 end
