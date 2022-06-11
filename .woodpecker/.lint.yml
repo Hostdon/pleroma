@@ -6,4 +6,5 @@ pipeline:
     - mix local.rebar --force
     - mix format --check-formatted
     when:
-      event: [push, tag, deployment]
+      event:
+      - push
