@@ -1,3 +1,34 @@
+## Upgrading to Akkoma
+
+### From source
+
+```bash
+git remote set-url origin https://akkoma.dev/AkkomaGang/akkoma.git/
+git fetch origin
+git pull -r
+```
+
+Then compile, migrate and restart as usual.
+
+Then if you've done anything fancy to the frontend, you'll want to get the
+updates for that as well. This won't be the same for any two instances,
+so `https://akkoma.dev/AkkomaGang/pleroma-fe` is the repo you need.
+
+### From OTP
+
+```bash
+./bin/pleroma_ctl update --zip-url https://akkoma-updates.s3-website.fr-par.scw.cloud/develop/akkoma-amd64.zip
+./bin/pleroma_ctl migrate
+``` 
+
+Then restart. When updating in the future, can just use
+
+```bash
+./bin/pleroma_ctl update --branch develop
+```
+
+### Old readme follows
+
 <img src="https://git.pleroma.social/pleroma/pleroma/uploads/8cec84f5a084d887339f57deeb8a293e/pleroma-banner-vector-nopad-notext.svg" width="300px" />
 
 ## About 
