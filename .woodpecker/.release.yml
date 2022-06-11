@@ -1,6 +1,24 @@
-pipeline:
+matrix:
+  docker_prefix:
+  - ""
+  - arm64v8/
+  - arm32v7/
+  tag:
+  - amd64
+  - arm64
+  - arm
 
-  amd64-glibc:
+  include:
+  - tag: amd64
+    docker_prefix: ""
+  - tag: arm64
+    docker_prefix: arm64v8/
+  - tag: arm
+    docker_prefix: arm32v7/ 
+    
+
+pipeline:
+  glibc:
     when:
       event:
         - push
@@ -9,11 +27,11 @@ pipeline:
     - SCW_SECRET_KEY
     - SCW_DEFAULT_ORGANIZATION_ID
     group: release
-    image: elixir:1.13
+    image: ${docker_prefix}elixir:1.13
     environment:
       MIX_ENV: prod
     commands:
-      - apt-get update && apt-get install -y cmake libmagic-dev rclone
+      - apt-get update && apt-get install -y cmake libmagic-dev rclone zip
       - wget https://github.com/scaleway/scaleway-cli/releases/download/v2.5.1/scaleway-cli_2.5.1_linux_amd64
       - mv scaleway-cli_2.5.1_linux_amd64 scaleway-cli
       - chmod +x scaleway-cli
@@ -25,20 +43,20 @@ pipeline:
       - mkdir release
       - export PLEROMA_BUILD_BRANCH=$CI_COMMIT_BRANCH
       - mix release --path release
-      - zip akkoma-$CI_COMMIT_BRANCH-${platform}.zip -r release
-      - rclone copyto akkoma-$CI_COMMIT_BRANCH-${platform}.zip scaleway:akkoma-updates/$CI_COMMIT_BRANCH/akkoma-${platform}.zip
+      - zip akkoma-$CI_COMMIT_BRANCH-${tag}.zip -r release
+      - rclone copyto akkoma-$CI_COMMIT_BRANCH-${tag}.zip scaleway:akkoma-updates/$CI_COMMIT_BRANCH/akkoma-${tag}.zip
 
-  amd64-musl:
+  musl:
     when:
       event:
         - tag
 
     group: release
-    image: elixir:1.13-alpine
+    image: ${docker_prefix}elixir:1.13-alpine
     environment:
       MIX_ENV: prod
     commands:
-      - apk add git gcc g++ musl-dev make cmake file-dev rclone wget
+      - apk add git gcc g++ musl-dev make cmake file-dev rclone wget zip
       - wget https://github.com/scaleway/scaleway-cli/releases/download/v2.5.1/scaleway-cli_2.5.1_linux_amd64
       - mv scaleway-cli_2.5.1_linux_amd64 scaleway-cli
       - chmod +x scaleway-cli
@@ -48,52 +66,5 @@ pipeline:
       - mkdir release
       - export PLEROMA_BUILD_BRANCH=${CI_COMMIT_BRANCH}
       - mix release --path release
-      - zip akkoma-$CI_COMMIT_BRANCH-${platform}.zip -r release
-      - rclone copyto akkoma-$CI_COMMIT_BRANCH-${platform}.zip scaleway:akkoma-updates/$CI_COMMIT_BRANCH/akkoma-${platform}.zip
-
-  arm64-glibc:
-    when:
-      event:
-        - tag
-
-    group: release
-    image: arm64v8/elixir:1.13
-    environment:
-      MIX_ENV: prod
-    commands:
-      - apt-get update && apt-get install -y cmake libmagic-dev rclone
-      - wget https://github.com/scaleway/scaleway-cli/releases/download/v2.5.1/scaleway-cli_2.5.1_linux_amd64
-      - mv scaleway-cli_2.5.1_linux_amd64 scaleway-cli
-      - chmod +x scaleway-cli
-      - ./scaleway-cli object config install type=rclone
-      - echo "import Mix.Config" > config/prod.secret.exs
-      - mix deps.get --only prod
-      - mkdir release
-      - export PLEROMA_BUILD_BRANCH=$CI_COMMIT_BRANCH
-      - mix release --path release
-      - zip akkoma-$CI_COMMIT_BRANCH-${platform}.zip -r release
-      - rclone copyto akkoma-$CI_COMMIT_BRANCH-${platform}.zip scaleway:akkoma-updates/$CI_COMMIT_BRANCH/akkoma-${platform}.zip
-
-
-  arm64-musl:
-    when:
-      event:
-        - tag
-
-    group: release
-    image: arm64v8/elixir:1.13-alpine
-    environment:
-      MIX_ENV: prod
-    commands:
-      - apk add git gcc g++ musl-dev make cmake file-dev rclone wget
-      - wget https://github.com/scaleway/scaleway-cli/releases/download/v2.5.1/scaleway-cli_2.5.1_linux_amd64
-      - mv scaleway-cli_2.5.1_linux_amd64 scaleway-cli
-      - chmod +x scaleway-cli
-      - ./scaleway-cli object config install type=rclone
-      - echo "import Mix.Config" > config/prod.secret.exs
-      - mix deps.get --only prod
-      - mkdir release
-      - export PLEROMA_BUILD_BRANCH=${CI_COMMIT_BRANCH}
-      - mix release --path release
-      - zip akkoma-$CI_COMMIT_BRANCH-${platform}.zip -r release
-      - rclone copyto akkoma-$CI_COMMIT_BRANCH-${platform}.zip scaleway:akkoma-updates/$CI_COMMIT_BRANCH/akkoma-${platform}.zip
+      - zip akkoma-$CI_COMMIT_BRANCH-${tag}.zip -r release
+      - rclone copyto akkoma-$CI_COMMIT_BRANCH-${tag}.zip scaleway:akkoma-updates/$CI_COMMIT_BRANCH/akkoma-${tag}.zip
