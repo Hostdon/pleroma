@@ -6,7 +6,7 @@ pipeline:
   amd64-glibc:
     when:
       event:
-        - tag
+        - push
 
     group: release
     image: elixir:1.13
@@ -24,7 +24,7 @@ pipeline:
       - export PLEROMA_BUILD_BRANCH=$CI_COMMIT_BRANCH
       - mix release --path release
       - zip akkoma-$CI_COMMIT_BRANCH-${platform}.zip -r release
-      - rclone copy akkoma-$CI_COMMIT_BRANCH-${platform}.zip scaleway:akkoma-updates/
+      - rclone copyto akkoma-$CI_COMMIT_BRANCH-${platform}.zip scaleway:akkoma-updates/$CI_COMMIT_BRANCH/akkoma-${platform}.zip
 
   amd64-musl:
     when:
@@ -47,7 +47,7 @@ pipeline:
       - export PLEROMA_BUILD_BRANCH=${CI_COMMIT_BRANCH}
       - mix release --path release
       - zip akkoma-$CI_COMMIT_BRANCH-${platform}.zip -r release
-      - rclone copy akkoma-$CI_COMMIT_BRANCH-${platform}.zip scaleway:akkoma-updates/
+      - rclone copyto akkoma-$CI_COMMIT_BRANCH-${platform}.zip scaleway:akkoma-updates/$CI_COMMIT_BRANCH/akkoma-${platform}.zip
 
   arm64-glibc:
     when:
@@ -70,7 +70,8 @@ pipeline:
       - export PLEROMA_BUILD_BRANCH=$CI_COMMIT_BRANCH
       - mix release --path release
       - zip akkoma-$CI_COMMIT_BRANCH-${platform}.zip -r release
-      - rclone copy akkoma-$CI_COMMIT_BRANCH-${platform}.zip scaleway:akkoma-updates/
+      - rclone copyto akkoma-$CI_COMMIT_BRANCH-${platform}.zip scaleway:akkoma-updates/$CI_COMMIT_BRANCH/akkoma-${platform}.zip
+
 
   arm64-musl:
     when:
@@ -93,4 +94,4 @@ pipeline:
       - export PLEROMA_BUILD_BRANCH=${CI_COMMIT_BRANCH}
       - mix release --path release
       - zip akkoma-$CI_COMMIT_BRANCH-${platform}.zip -r release
-      - rclone copy akkoma-$CI_COMMIT_BRANCH-${platform}.zip scaleway:akkoma-updates/
+      - rclone copyto akkoma-$CI_COMMIT_BRANCH-${platform}.zip scaleway:akkoma-updates/$CI_COMMIT_BRANCH/akkoma-${platform}.zip

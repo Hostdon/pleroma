@@ -5,8 +5,6 @@ detect_flavour() {
 	arch="$(uname -m)"
 	if [ "$arch" = "x86_64" ]; then
 		arch="amd64"
-	elif [ "$arch" = "armv7l" ]; then
-		arch="arm"
 	elif [ "$arch" = "aarch64" ]; then
 		arch="arm64"
 	else
@@ -77,13 +75,13 @@ update() {
 	done
 
 	RELEASE_ROOT=$(dirname "$SCRIPTPATH")
-	uri="https://git.pleroma.social"
+	uri="https://akkoma-updates.s3-website.fr-par.scw.cloud"
 	project_id="2"
 	project_branch="${BRANCH:-$(detect_branch)}"
 	flavour="${FLAVOUR:-$(detect_flavour)}"
 	tmp="${TMP_DIR:-/tmp}"
 	artifact="$tmp/pleroma.zip"
-	full_uri="${FULL_URI:-${uri}/api/v4/projects/${project_id}/jobs/artifacts/${project_branch}/download?job=${flavour}}"
+	full_uri="${FULL_URI:-${uri}/${project_branch}/akkoma-${flavour}}.zip"
 	echo "Downloading the artifact from ${full_uri} to ${artifact}"
 	curl "$full_uri" -o "${artifact}"
 	echo "Unpacking ${artifact} to ${tmp}"
