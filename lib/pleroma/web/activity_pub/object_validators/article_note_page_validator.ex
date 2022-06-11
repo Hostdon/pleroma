@@ -71,7 +71,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
            Fetcher.fetch_and_contain_remote_object_from_id(first) do
       Map.put(data, "replies", replies)
     else
-      {:error, e} ->
+      {:error, _} ->
         Logger.error("Could not fetch replies for #{first}")
         Map.put(data, "replies", [])
     end

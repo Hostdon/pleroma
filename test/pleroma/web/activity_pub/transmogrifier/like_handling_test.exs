@@ -51,7 +51,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier.LikeHandlingTest do
     assert activity_data["type"] == "EmojiReact"
     assert activity_data["id"] == data["id"]
     assert activity_data["object"] == activity.data["object"]
-    assert activity_data["content"] == "🍮"
+    assert activity_data["content"] == ":pudding:"
   end
 
   test "it works for incoming misskey likes that contain unicode emojis, turning them into EmojiReacts" do

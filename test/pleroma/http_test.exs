@@ -9,6 +9,7 @@ defmodule Pleroma.HTTPTest do
   alias Pleroma.HTTP
 
   setup do
+    clear_config([:http, :send_user_agent], false)
     mock(fn
       %{
         method: :get,

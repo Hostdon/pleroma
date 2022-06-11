@@ -28,6 +28,7 @@ defmodule Pleroma.Web.ActivityPub.PipelineTest do
       SideEffectsMock
       |> expect(:handle, fn o, m -> {:ok, o, m} end)
       |> expect(:handle_after_transaction, fn m -> m end)
+      |> expect(:handle_after_transaction, fn m -> m end)
 
       :ok
     end
