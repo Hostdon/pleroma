@@ -67,7 +67,7 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionController do
   end
 
   defp filter(reactions, %{emoji: emoji}) when is_binary(emoji) do
-    Enum.filter(reactions, fn [e, _] -> e == emoji end)
+    Enum.filter(reactions, fn [e, _, _] -> e == emoji end)
   end
 
   defp filter(reactions, _), do: reactions

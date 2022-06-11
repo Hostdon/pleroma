@@ -64,25 +64,28 @@ defmodule Pleroma.Web.ActivityPub.Builder do
           |> Map.put("content", emoji)
           |> Map.put("type", "EmojiReact")
         else
-          emojo = Emoji.get(emoji)
-          path = emojo |> Map.get(:file)
-          url = "#{Endpoint.url()}#{path}"
+          with %{} = emojo <- Emoji.get(emoji) do
+            path = emojo |> Map.get(:file)
+            url = "#{Endpoint.url()}#{path}"
 
-          data
-          |> Map.put("content", emoji)
-          |> Map.put("type", "EmojiReact")
-          |> Map.put("tag", [
-            %{}
-            |> Map.put("id", url)
-            |> Map.put("type", "Emoji")
-            |> Map.put("name", emojo.code)
-            |> Map.put(
-              "icon",
+            data
+            |> Map.put("content", emoji)
+            |> Map.put("type", "EmojiReact")
+            |> Map.put("tag", [
               %{}
-              |> Map.put("type", "Image")
-              |> Map.put("url", url)
-            )
-          ])
+              |> Map.put("id", url)
+              |> Map.put("type", "Emoji")
+              |> Map.put("name", emojo.code)
+              |> Map.put(
+                "icon",
+                %{}
+                |> Map.put("type", "Image")
+                |> Map.put("url", url)
+              )
+            ])
+          else
+            _ -> {:error, "Emoji does not exist"}
+          end
         end
 
       {:ok, data, meta}

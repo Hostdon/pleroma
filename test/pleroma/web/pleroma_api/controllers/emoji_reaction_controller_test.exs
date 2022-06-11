@@ -31,7 +31,7 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionControllerTest do
     assert to_string(activity.id) == id
 
     assert result["pleroma"]["emoji_reactions"] == [
-             %{"name" => "☕", "count" => 1, "me" => true}
+             %{"name" => "☕", "count" => 1, "me" => true, "url" => nil}
            ]
 
     # Reacting with a non-emoji
@@ -181,7 +181,15 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionControllerTest do
     {:ok, _} = CommonAPI.react_with_emoji(activity.id, other_user, "🎅")
     {:ok, _} = CommonAPI.react_with_emoji(activity.id, other_user, "☕")
 
-    assert [%{"name" => "🎅", "count" => 1, "accounts" => [represented_user], "me" => false}] =
+    assert [
+             %{
+               "name" => "🎅",
+               "count" => 1,
+               "accounts" => [represented_user],
+               "me" => false,
+               "url" => nil
+             }
+           ] =
              conn
              |> get("/api/v1/pleroma/statuses/#{activity.id}/reactions/🎅")
              |> json_response_and_validate_schema(200)
