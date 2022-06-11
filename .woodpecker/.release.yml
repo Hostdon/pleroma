@@ -65,4 +65,4 @@ pipeline:
       - mix release --path release
       - export PLEROMA_BUILD_BRANCH=develop
       - zip akkoma-${tag}.zip -r release
-      - rclone copyto akkoma-${tag}.zip scaleway:akkoma-updates/$CI_COMMIT_BRANCH/akkoma-${tag}-musl.zip
+      - rclone copyto akkoma-${tag}.zip scaleway:akkoma-updates/develop/akkoma-${tag}-musl.zip
