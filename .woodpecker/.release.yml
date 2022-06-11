@@ -6,7 +6,7 @@ pipeline:
   amd64-glibc:
     when:
       event:
-        - deployment
+        - tag
 
     group: release
     image: elixir:1.13
@@ -29,7 +29,7 @@ pipeline:
   amd64-musl:
     when:
       event:
-        - deployment
+        - tag
 
     group: release
     image: elixir:1.13-alpine
@@ -52,7 +52,7 @@ pipeline:
   arm64-glibc:
     when:
       event:
-        - deployment
+        - tag
 
     group: release
     image: arm64v8/elixir:1.13
@@ -75,7 +75,7 @@ pipeline:
   arm64-musl:
     when:
       event:
-        - deployment
+        - tag
 
     group: release
     image: arm64v8/elixir:1.13-alpine
