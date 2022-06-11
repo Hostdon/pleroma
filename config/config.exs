@@ -152,12 +152,12 @@ config :pleroma, Pleroma.Web.Endpoint,
 config :logger, truncate: 65536
 
 config :logger, :console,
-  level: :debug,
+  level: :info,
   format: "\n$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
 config :logger, :ex_syslogger,
-  level: :debug,
+  level: :info,
   ident: "pleroma",
   format: "$metadata[$level] $message",
   metadata: [:request_id]

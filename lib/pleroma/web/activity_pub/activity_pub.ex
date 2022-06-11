@@ -1321,7 +1321,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       fetch_activities_query_ap_ids_ops(opts)
 
     config = %{
-      skip_thread_containment: true
+      skip_thread_containment: Config.get([:instance, :skip_thread_containment])
     }
 
     query =

@@ -144,7 +144,7 @@ defmodule Pleroma.Web.Metadata.Providers.OpenGraphTest do
             [
               property: "og:image",
               content:
-                "http://localhost:4001/proxy/preview/LzAnlke-l5oZbNzWsrHfprX1rGw/aHR0cHM6Ly9wbGVyb21hLmdvdi9hYm91dC9qdWNoZS53ZWJt/juche.webm"
+                "http://localhost:4001/proxy/preview/FElXD3PfapZSKq-u62Dc3BiaIM8/aHR0cHM6Ly9wbGVyb21hLmdvdi9hYm91dC9qdWNoZS53ZWJt/juche.webm"
             ], []} in result
   end
 

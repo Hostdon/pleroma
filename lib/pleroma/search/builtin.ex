@@ -14,6 +14,7 @@ defmodule Pleroma.Search.Builtin do
   def search(_conn, %{q: query} = params, options) do
     version = Keyword.get(options, :version)
     timeout = Keyword.get(Repo.config(), :timeout, 15_000)
+    query = String.trim(query)
     default_values = %{"statuses" => [], "accounts" => [], "hashtags" => []}
 
     default_values

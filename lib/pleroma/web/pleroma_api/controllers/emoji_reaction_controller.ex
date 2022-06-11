@@ -61,6 +61,7 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionController do
     |> Stream.map(fn
       [emoji, users, url] when is_list(users) -> filter_emoji.(emoji, users, url)
       {emoji, users, url} when is_list(users) -> filter_emoji.(emoji, users, url)
+      {emoji, users} when is_list(users) -> filter_emoji.(emoji, users, nil)
       _ -> nil
     end)
     |> Stream.reject(&is_nil/1)

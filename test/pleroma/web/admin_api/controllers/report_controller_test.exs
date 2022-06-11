@@ -360,7 +360,13 @@ defmodule Pleroma.Web.AdminAPI.ReportControllerTest do
 
       response = json_response_and_validate_schema(conn, 200)
       notes = hd(response["reports"])["notes"]
-      [note, _] = notes
+      assert 2 == Enum.count(notes)
+
+      note =
+        notes
+        |> Enum.find(fn note -> note["content"] == "this is disgusting!" end)
+
+      refute is_nil(note)
 
       assert note["user"]["nickname"] == admin.nickname
       assert note["content"] == "this is disgusting!"

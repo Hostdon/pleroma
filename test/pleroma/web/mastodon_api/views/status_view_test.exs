@@ -34,16 +34,25 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
     {:ok, activity} = CommonAPI.post(user, %{status: "dae cofe??"})
 
     {:ok, _} = CommonAPI.react_with_emoji(activity.id, user, "☕")
+    {:ok, _} = CommonAPI.react_with_emoji(activity.id, user, ":dinosaur:")
     {:ok, _} = CommonAPI.react_with_emoji(activity.id, third_user, "🍵")
     {:ok, _} = CommonAPI.react_with_emoji(activity.id, other_user, "☕")
+    {:ok, _} = CommonAPI.react_with_emoji(activity.id, other_user, ":dinosaur:")
+
     activity = Repo.get(Activity, activity.id)
     status = StatusView.render("show.json", activity: activity)
 
     assert_schema(status, "Status", Pleroma.Web.ApiSpec.spec())
 
     assert status[:pleroma][:emoji_reactions] == [
-             %{name: "☕", count: 2, me: false},
-             %{name: "🍵", count: 1, me: false}
+             %{name: "☕", count: 2, me: false, url: nil},
+             %{
+               count: 2,
+               me: false,
+               name: "dinosaur",
+               url: "http://localhost:4001/emoji/dino walking.gif"
+             },
+             %{name: "🍵", count: 1, me: false, url: nil}
            ]
 
     status = StatusView.render("show.json", activity: activity, for: user)
@@ -51,8 +60,14 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
     assert_schema(status, "Status", Pleroma.Web.ApiSpec.spec())
 
     assert status[:pleroma][:emoji_reactions] == [
-             %{name: "☕", count: 2, me: true},
-             %{name: "🍵", count: 1, me: false}
+             %{name: "☕", count: 2, me: true, url: nil},
+             %{
+               count: 2,
+               me: true,
+               name: "dinosaur",
+               url: "http://localhost:4001/emoji/dino walking.gif"
+             },
+             %{name: "🍵", count: 1, me: false, url: nil}
            ]
   end
 
@@ -65,11 +80,10 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
     |> Object.update_data(%{"reactions" => %{"☕" => [user.ap_id], "x" => 1}})
 
     activity = Activity.get_by_id(activity.id)
-
     status = StatusView.render("show.json", activity: activity, for: user)
 
     assert status[:pleroma][:emoji_reactions] == [
-             %{name: "☕", count: 1, me: true}
+             %{name: "☕", count: 1, me: true, url: nil}
            ]
   end
 
@@ -89,7 +103,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
     status = StatusView.render("show.json", activity: activity)
 
     assert status[:pleroma][:emoji_reactions] == [
-             %{name: "☕", count: 1, me: false}
+             %{name: "☕", count: 1, me: false, url: nil}
            ]
 
     status = StatusView.render("show.json", activity: activity, for: user)
@@ -101,19 +115,19 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
     status = StatusView.render("show.json", activity: activity)
 
     assert status[:pleroma][:emoji_reactions] == [
-             %{name: "☕", count: 2, me: false}
+             %{name: "☕", count: 2, me: false, url: nil}
            ]
 
     status = StatusView.render("show.json", activity: activity, for: user)
 
     assert status[:pleroma][:emoji_reactions] == [
-             %{name: "☕", count: 1, me: false}
+             %{name: "☕", count: 1, me: false, url: nil}
            ]
 
     status = StatusView.render("show.json", activity: activity, for: other_user)
 
     assert status[:pleroma][:emoji_reactions] == [
-             %{name: "☕", count: 1, me: true}
+             %{name: "☕", count: 1, me: true, url: nil}
            ]
   end
 
