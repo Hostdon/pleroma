@@ -1,0 +1,30 @@
+.sticker-picker {
+  width: 100%;
+}
+.sticker-picker .contents {
+  min-height: 250px;
+}
+.sticker-picker .contents .sticker-picker-content {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+  padding: 0 4px;
+}
+.sticker-picker .contents .sticker-picker-content .sticker {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex: 1 1 auto;
+      flex: 1 1 auto;
+  margin: 4px;
+  width: 56px;
+  height: 56px;
+}
+.sticker-picker .contents .sticker-picker-content .sticker img {
+  height: 100%;
+}
+.sticker-picker .contents .sticker-picker-content .sticker img:hover {
+  filter: drop-shadow(0 0 5px var(--accent, #d8a070));
+}
+
+/*# sourceMappingURL=4.10e378d3da0e7f32661d.css.map*/
