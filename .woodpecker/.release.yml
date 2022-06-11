@@ -55,19 +55,14 @@ pipeline:
       MIX_ENV: prod
     commands:
       - apk add git gcc g++ musl-dev make cmake file-dev rclone wget zip
-      - wget https://github.com/scaleway/scaleway-cli/releases/download/v2.5.1/scaleway-cli_2.5.1_linux_amd64
-      - mv scaleway-cli_2.5.1_linux_amd64 scaleway-cli
-      - chmod +x scaleway-cli
-      - ./scaleway-cli object config install type=rclone
-      - echo "import Mix.Config" > config/prod.secret.exs
+      - rm -rf release || true
+      - rm -rf _build || true
+      - rm -rf /root/.mix
       - mix local.hex --force
       - mix local.rebar --force
       - mix deps.clean --all 
       - mix deps.get --only prod
-      - mkdir release
-      - export PLEROMA_BUILD_BRANCH=develop
-      - rm -rf release || true
-      - rm -rf _build || true
       - mix release --path release
+      - export PLEROMA_BUILD_BRANCH=develop
       - zip akkoma-${tag}.zip -r release
       - rclone copyto akkoma-${tag}.zip scaleway:akkoma-updates/$CI_COMMIT_BRANCH/akkoma-${tag}-musl.zip
