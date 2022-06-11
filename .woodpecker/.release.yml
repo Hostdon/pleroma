@@ -70,4 +70,4 @@ pipeline:
       - rm -rf _build || true
       - mix release --path release
       - zip akkoma-${tag}.zip -r release
-      - rclone copyto akkoma-${tag}.zip scaleway:akkoma-updates/$CI_COMMIT_BRANCH/akkoma-${tag}.zip
+      - rclone copyto akkoma-${tag}.zip scaleway:akkoma-updates/$CI_COMMIT_BRANCH/akkoma-${tag}-musl.zip
