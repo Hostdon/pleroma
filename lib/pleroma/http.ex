@@ -69,6 +69,7 @@ defmodule Pleroma.HTTP do
     adapter = Application.get_env(:tesla, :adapter)
 
     client = Tesla.client(adapter_middlewares(adapter), adapter)
+
     maybe_limit(
       fn ->
         request(client, request)

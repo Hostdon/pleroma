@@ -323,6 +323,7 @@ defmodule Pleroma.Web.MastodonAPI.SearchControllerTest do
         |> assign(:token, insert(:oauth_token, user: user, scopes: ["read"]))
         |> get("/api/v1/search?#{query}")
         |> json_response_and_validate_schema(200)
+
       [account] = results["accounts"]
       assert account["acct"] == "mike@osada.macgirvin.com"
     end

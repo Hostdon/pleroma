@@ -73,7 +73,17 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier.EmojiReactHandlingTest do
     object = Object.get_by_ap_id(data["object"])
 
     assert object.data["reaction_count"] == 1
-    assert match?([["hanapog", _, "https://misskey.local.live/files/webpublic-8f8a9768-7264-4171-88d6-2356aabeadcd"]], object.data["reactions"])
+
+    assert match?(
+             [
+               [
+                 "hanapog",
+                 _,
+                 "https://misskey.local.live/files/webpublic-8f8a9768-7264-4171-88d6-2356aabeadcd"
+               ]
+             ],
+             object.data["reactions"]
+           )
   end
 
   test "it reject invalid emoji reactions" do

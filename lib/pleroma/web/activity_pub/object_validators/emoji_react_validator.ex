@@ -96,9 +96,11 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.EmojiReactValidator do
     else
       tag = get_field(cng, :tag)
       emoji_name = Emoji.stripped_name(content)
+
       case tag do
         [%{name: ^emoji_name, type: "Emoji", icon: %{url: _}}] ->
           cng
+
         _ ->
           cng
           |> add_error(:tag, "does not contain an Emoji tag")

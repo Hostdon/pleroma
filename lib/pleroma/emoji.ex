@@ -164,5 +164,4 @@ defmodule Pleroma.Emoji do
   end
 
   def maybe_quote(name), do: name
-    
 end
