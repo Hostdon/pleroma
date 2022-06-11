@@ -24,7 +24,7 @@ pipeline:
     image: pleromaforkci/ci-base:${ELIXIR_VERSION}
     when:
       event:
-      - push
+      - tag
     environment:
       MIX_ENV: test
       POSTGRES_DB: pleroma_test
