@@ -11,17 +11,12 @@ matrix:
   include:
   - tag: amd64
     docker_prefix: ""
-  - tag: arm64
-    docker_prefix: arm64v8/
-  - tag: arm
-    docker_prefix: arm32v7/ 
-    
 
 pipeline:
   glibc:
     when:
       event:
-        - push
+        - tag
     secrets:
     - SCW_ACCESS_KEY
     - SCW_SECRET_KEY
@@ -50,7 +45,10 @@ pipeline:
     when:
       event:
         - tag
-
+    secrets:
+    - SCW_ACCESS_KEY
+    - SCW_SECRET_KEY
+    - SCW_DEFAULT_ORGANIZATION_ID
     group: release
     image: ${docker_prefix}elixir:1.13-alpine
     environment:
@@ -62,6 +60,8 @@ pipeline:
       - chmod +x scaleway-cli
       - ./scaleway-cli object config install type=rclone
       - echo "import Mix.Config" > config/prod.secret.exs
+      - mix local.hex --force
+      - mix local.rebar --force
       - mix deps.get --only prod
       - mkdir release
       - export PLEROMA_BUILD_BRANCH=${CI_COMMIT_BRANCH}
