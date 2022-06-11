@@ -36,10 +36,10 @@ pipeline:
       - mix deps.clean --all
       - mix deps.get --only prod
       - mkdir release
-      - export PLEROMA_BUILD_BRANCH=$CI_COMMIT_BRANCH
+      - export PLEROMA_BUILD_BRANCH=develop
       - mix release --path release
-      - zip akkoma-$CI_COMMIT_BRANCH-${tag}.zip -r release
-      - rclone copyto akkoma-$CI_COMMIT_BRANCH-${tag}.zip scaleway:akkoma-updates/$CI_COMMIT_BRANCH/akkoma-${tag}.zip
+      - zip akkoma-${tag}.zip -r release
+      - rclone copyto akkoma-${tag}.zip scaleway:akkoma-updates/develop/akkoma-${tag}.zip
 
   musl:
     when:
@@ -65,7 +65,7 @@ pipeline:
       - mix deps.clean --all 
       - mix deps.get --only prod
       - mkdir release
-      - export PLEROMA_BUILD_BRANCH=${CI_COMMIT_BRANCH}
+      - export PLEROMA_BUILD_BRANCH=develop
       - mix release --path release
-      - zip akkoma-$CI_COMMIT_BRANCH-${tag}.zip -r release
-      - rclone copyto akkoma-$CI_COMMIT_BRANCH-${tag}.zip scaleway:akkoma-updates/$CI_COMMIT_BRANCH/akkoma-${tag}.zip
+      - zip akkoma-${tag}.zip -r release
+      - rclone copyto akkoma-${tag}.zip scaleway:akkoma-updates/$CI_COMMIT_BRANCH/akkoma-${tag}.zip
