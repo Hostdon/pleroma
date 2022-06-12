@@ -188,6 +188,34 @@ defmodule Pleroma.Web.MastodonAPI.NotificationViewTest do
       pleroma: %{is_seen: false, is_muted: false},
       type: "pleroma:emoji_reaction",
       emoji: "☕",
+      emoji_url: nil,
+      account: AccountView.render("show.json", %{user: other_user, for: user}),
+      status: StatusView.render("show.json", %{activity: activity, for: user}),
+      created_at: Utils.to_masto_date(notification.inserted_at)
+    }
+
+    test_notifications_rendering([notification], user, [expected])
+  end
+
+  test "EmojiReact notification with custom emoji" do
+    user = insert(:user)
+    other_user = insert(:user)
+
+    {:ok, activity} = CommonAPI.post(user, %{status: "#morb"})
+    {:ok, _activity} = CommonAPI.react_with_emoji(activity.id, other_user, ":dinosaur:")
+
+    activity = Repo.get(Activity, activity.id)
+
+    [notification] = Notification.for_user(user)
+
+    assert notification
+
+    expected = %{
+      id: to_string(notification.id),
+      pleroma: %{is_seen: false, is_muted: false},
+      type: "pleroma:emoji_reaction",
+      emoji: ":dinosaur:",
+      emoji_url: "http://localhost:4001/emoji/dino walking.gif",
       account: AccountView.render("show.json", %{user: other_user, for: user}),
       status: StatusView.render("show.json", %{activity: activity, for: user}),
       created_at: Utils.to_masto_date(notification.inserted_at)

@@ -164,4 +164,22 @@ defmodule Pleroma.Emoji do
   end
 
   def maybe_quote(name), do: name
+
+  def emoji_url(%{"type" => "EmojiReact", "content" => emoji, "tag" => []}), do: nil
+
+  def emoji_url(%{"type" => "EmojiReact", "content" => emoji, "tag" => tags}) do
+    tag =
+      tags
+      |> Enum.find(fn tag -> tag["type"] == "Emoji" && tag["name"] == stripped_name(emoji) end)
+
+    if is_nil(tag) do
+      nil
+    else
+      tag
+      |> Map.get("icon")
+      |> Map.get("url")
+    end
+  end
+
+  def emoji_url(_), do: nil
 end

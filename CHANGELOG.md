@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## Unreleased
+## 2.5.0 - 10/06/2022
 
 ### Changed
 - Allow users to remove their emails if instance does not need email to register
@@ -21,6 +21,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Ability to log slow Ecto queries by configuring `:pleroma, :telemetry, :slow_queries_logging`
 - Added Phoenix LiveDashboard at `/phoenix/live_dashboard`
 - Added `/manifest.json` for progressive web apps.
+- Readded mastoFE
+- Added support for custom emoji reactions
+- Added `emoji_url` in notifications to allow for custom emoji rendering
 
 ### Fixed
 - Subscription(Bell) Notifications: Don't create from Pipeline Ingested replies
