@@ -291,6 +291,15 @@ defmodule Pleroma.Web.CommonAPI.Utils do
     |> Formatter.html_escape("text/html")
   end
 
+  def format_input(text, "text/x.misskeymarkdown", options) do
+    text
+    |> Formatter.html_escape("text/plain")
+    |> Formatter.linkify(options)
+    |> (fn {text, mentions, tags} ->
+          {String.replace(text, ~r/\r?\n/, "<br>"), mentions, tags}
+        end).()
+  end
+
   def format_naive_asctime(date) do
     date |> DateTime.from_naive!("Etc/UTC") |> format_asctime
   end

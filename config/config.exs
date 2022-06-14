@@ -222,7 +222,8 @@ config :pleroma, :instance,
     "text/plain",
     "text/html",
     "text/markdown",
-    "text/bbcode"
+    "text/bbcode",
+    "text/x.misskeymarkdown"
   ],
   staff_transparency: [],
   autofollowed_nicknames: [],

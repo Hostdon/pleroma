@@ -80,7 +80,6 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
 
   def render("index.json", opts) do
     reading_user = opts[:for]
-
     # To do: check AdminAPIControllerTest on the reasons behind nil activities in the list
     activities = Enum.filter(opts.activities, & &1)
 
@@ -376,6 +375,9 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
         emoji_reactions: emoji_reactions,
         parent_visible: visible_for_user?(reply_to, opts[:for]),
         pinned_at: pinned_at
+      },
+      akkoma: %{
+        source: object.data["source"]
       }
     }
   end
