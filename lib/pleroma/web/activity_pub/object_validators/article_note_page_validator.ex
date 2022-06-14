@@ -29,6 +29,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
     end
 
     field(:replies, {:array, ObjectValidators.ObjectID}, default: [])
+    field(:source, :map)
   end
 
   def cast_and_apply(data) do
@@ -79,6 +80,17 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
 
   defp fix_replies(data), do: data
 
+  # https://github.com/misskey-dev/misskey/pull/8787
+  defp fix_misskey_content(%{"source" => %{"mediaType" => "text/x.misskeymarkdown"}} = object), do: object
+
+  defp fix_misskey_content(%{"_misskey_content" => content} = object) do
+    object
+    |> Map.put("source", %{"content" => content, "mediaType" => "text/x.misskeymarkdown" })
+    |> Map.delete("_misskey_content")
+  end
+
+  defp fix_misskey_content(data), do: data
+
   defp fix(data) do
     data
     |> CommonFixes.fix_actor()
@@ -86,6 +98,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
     |> fix_url()
     |> fix_tag()
     |> fix_replies()
+    |> fix_misskey_content()
     |> Transmogrifier.fix_emoji()
     |> Transmogrifier.fix_content_map()
   end
