@@ -16,7 +16,9 @@ defmodule Pleroma.Web.ActivityPub.MRF.NoEmptyPolicyTest do
         "actor" => "http://localhost:4001/users/testuser",
         "attachment" => [],
         "cc" => ["http://localhost:4001/users/testuser/followers"],
-        "source" => "this is a test post",
+        "source" => %{
+            "content" => "this is a test post"
+        },
         "to" => ["https://www.w3.org/ns/activitystreams#Public"],
         "type" => "Note"
       },

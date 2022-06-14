@@ -40,7 +40,23 @@ defmodule Pleroma.Web.ActivityPub.MRF.NoEmptyPolicy do
 
   defp has_attachment?(_), do: false
 
-  defp only_mentions?(%{"type" => "Create", "object" => %{"type" => "Note", "source" => source}}) do
+  defp only_mentions?(%{"type" => "Create", "object" => %{"type" => "Note", "source" => source}})
+       when is_binary(source) do
+    non_mentions =
+      source |> String.split() |> Enum.filter(&(not String.starts_with?(&1, "@"))) |> length
+
+    if non_mentions > 0 do
+      false
+    else
+      true
+    end
+  end
+
+  defp only_mentions?(%{
+         "type" => "Create",
+         "object" => %{"type" => "Note", "source" => %{"content" => source}}
+       })
+       when is_binary(source) do
     non_mentions =
       source |> String.split() |> Enum.filter(&(not String.starts_with?(&1, "@"))) |> length
 
