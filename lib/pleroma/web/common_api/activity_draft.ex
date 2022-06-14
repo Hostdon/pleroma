@@ -214,6 +214,7 @@ defmodule Pleroma.Web.CommonAPI.ActivityDraft do
 
     emoji = Map.merge(emoji, summary_emoji)
     {:ok, note_data, _meta} = Builder.note(draft)
+
     object =
       note_data
       |> Map.put("emoji", emoji)

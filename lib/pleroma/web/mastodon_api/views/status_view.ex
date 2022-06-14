@@ -328,6 +328,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
         )
 
     {pinned?, pinned_at} = pin_data(object, user)
+
     %{
       id: to_string(activity.id),
       uri: object.data["id"],
