@@ -213,13 +213,14 @@ defmodule Pleroma.Web.CommonAPI.ActivityDraft do
       end
 
     emoji = Map.merge(emoji, summary_emoji)
-
     {:ok, note_data, _meta} = Builder.note(draft)
-
     object =
       note_data
       |> Map.put("emoji", emoji)
-      |> Map.put("source", draft.status)
+      |> Map.put("source", %{
+        "content" => draft.status,
+        "mediaType" => draft.params[:content_type]
+      })
       |> Map.put("generator", draft.params[:generator])
 
     %__MODULE__{draft | object: object}

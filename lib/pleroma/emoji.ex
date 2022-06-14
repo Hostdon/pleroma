@@ -165,7 +165,7 @@ defmodule Pleroma.Emoji do
 
   def maybe_quote(name), do: name
 
-  def emoji_url(%{"type" => "EmojiReact", "content" => emoji, "tag" => []}), do: nil
+  def emoji_url(%{"type" => "EmojiReact", "content" => _, "tag" => []}), do: nil
 
   def emoji_url(%{"type" => "EmojiReact", "content" => emoji, "tag" => tags}) do
     tag =
