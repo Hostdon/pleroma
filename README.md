@@ -1,3 +1,31 @@
+## akkoma
+
+*a smallish microblogging platform, aka the cooler pleroma*
+
+### Why though?
+
+pleroma as a project has stagnated of late. after a spat between
+developers led to a fork (which died due to chronic lack of direction),
+nearly nobody seems to _want_ to work on it. this in addition to the
+BDFL being AWOL whenever needed, means that the entire project is
+nought but a power vacuum waiting for someone to step in. and with the
+track record pleroma has, i do not trust that whoever steps in will be
+good for the project.
+
+thus, i am striking out on my own. i already had a few modifications 
+on my instance, so it wasn't a particularly large leap to assume direct
+control. 
+
+### But really, why should I migrate to your thing?
+
+aside from me actually being responsive? let's lookie here, we've got
+- custom emoji reactions
+- misskey markdown (MFM) rendering and posting support 
+- elasticsearch support (because pleroma search is GARBAGE)
+- latest develop pleroma-fe additions
+- local-only posting
+- probably more, this is like 3.5 years of IHBA additions finally compiled
+
 ## Upgrading to Akkoma
 
 ### From source

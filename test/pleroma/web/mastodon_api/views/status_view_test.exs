@@ -302,6 +302,9 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
         emoji_reactions: [],
         parent_visible: false,
         pinned_at: nil
+      },
+      akkoma: %{
+        source: HTML.filter_tags(object_data["content"])
       }
     }
 

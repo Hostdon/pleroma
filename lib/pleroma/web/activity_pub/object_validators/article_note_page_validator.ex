@@ -81,15 +81,23 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
   defp fix_replies(data), do: data
 
   # https://github.com/misskey-dev/misskey/pull/8787
-  defp fix_misskey_content(%{"source" => %{"mediaType" => "text/x.misskeymarkdown"}} = object), do: object
+  defp fix_misskey_content(%{"source" => %{"mediaType" => "text/x.misskeymarkdown"}} = object),
+    do: object
 
   defp fix_misskey_content(%{"_misskey_content" => content} = object) do
     object
-    |> Map.put("source", %{"content" => content, "mediaType" => "text/x.misskeymarkdown" })
+    |> Map.put("source", %{"content" => content, "mediaType" => "text/x.misskeymarkdown"})
     |> Map.delete("_misskey_content")
   end
 
   defp fix_misskey_content(data), do: data
+
+  defp fix_source(%{"source" => source} = object) when is_binary(source) do
+    object
+    |> Map.put("source", %{"content" => source})
+  end
+
+  defp fix_source(object), do: object
 
   defp fix(data) do
     data
@@ -98,6 +106,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
     |> fix_url()
     |> fix_tag()
     |> fix_replies()
+    |> fix_source()
     |> fix_misskey_content()
     |> Transmogrifier.fix_emoji()
     |> Transmogrifier.fix_content_map()
