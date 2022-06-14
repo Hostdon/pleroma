@@ -202,7 +202,7 @@ defmodule Pleroma.Web.MastodonAPI.NotificationViewTest do
     other_user = insert(:user)
 
     {:ok, activity} = CommonAPI.post(user, %{status: "#morb"})
-    {:ok, _activity} = CommonAPI.react_with_emoji(activity.id, other_user, ":dinosaur:")
+    {:ok, _activity} = CommonAPI.react_with_emoji(activity.id, other_user, ":100a:")
 
     activity = Repo.get(Activity, activity.id)
 
@@ -214,8 +214,8 @@ defmodule Pleroma.Web.MastodonAPI.NotificationViewTest do
       id: to_string(notification.id),
       pleroma: %{is_seen: false, is_muted: false},
       type: "pleroma:emoji_reaction",
-      emoji: ":dinosaur:",
-      emoji_url: "http://localhost:4001/emoji/dino walking.gif",
+      emoji: ":100a:",
+      emoji_url: "http://localhost:4001/emoji/100a.png",
       account: AccountView.render("show.json", %{user: other_user, for: user}),
       status: StatusView.render("show.json", %{activity: activity, for: user}),
       created_at: Utils.to_masto_date(notification.inserted_at)
