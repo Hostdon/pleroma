@@ -734,10 +734,11 @@ config :pleroma, :frontends,
     },
     "pleroma-fe" => %{
       "name" => "pleroma-fe",
-      "git" => "https://git.pleroma.social/pleroma/pleroma-fe",
+      "git" => "https://akkoma.dev/AkkomaGang/pleroma-fe",
       "build_url" =>
-        "https://git.pleroma.social/pleroma/pleroma-fe/-/jobs/artifacts/${ref}/download?job=build",
-      "ref" => "develop"
+        "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/akkoma-fe.zip",
+      "ref" => "develop",
+      "build_dir" => "dist"
     },
     "fedi-fe" => %{
       "name" => "fedi-fe",
