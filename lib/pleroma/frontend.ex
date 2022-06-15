@@ -33,6 +33,7 @@ defmodule Pleroma.Frontend do
     label = "#{name} (#{ref})"
     tmp_dir = Path.join(dir(), "tmp")
     IO.puts("Downloading #{label}...")
+
     with {_, :ok} <-
            {:download_or_unzip, download_or_unzip(frontend_info, tmp_dir, opts[:file])},
          IO.puts("Installing #{label} to #{dest}"),
