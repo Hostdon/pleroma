@@ -12,6 +12,8 @@ defmodule Pleroma.Web.MastodonAPI.NotificationViewTest do
   alias Pleroma.Object
   alias Pleroma.Repo
   alias Pleroma.User
+  alias Pleroma.Web.ActivityPub.Builder
+  alias Pleroma.Web.ActivityPub.Pipeline
   alias Pleroma.Web.AdminAPI.Report
   alias Pleroma.Web.AdminAPI.ReportView
   alias Pleroma.Web.CommonAPI
@@ -19,6 +21,7 @@ defmodule Pleroma.Web.MastodonAPI.NotificationViewTest do
   alias Pleroma.Web.MastodonAPI.AccountView
   alias Pleroma.Web.MastodonAPI.NotificationView
   alias Pleroma.Web.MastodonAPI.StatusView
+  alias Pleroma.Web.MediaProxy
   alias Pleroma.Web.PleromaAPI.Chat.MessageReferenceView
   import Pleroma.Factory
 
@@ -222,6 +225,47 @@ defmodule Pleroma.Web.MastodonAPI.NotificationViewTest do
     }
 
     test_notifications_rendering([notification], user, [expected])
+  end
+
+  test "EmojiReact notification with remote custom emoji" do
+    proxyBaseUrl = "https://cache.pleroma.social"
+    clear_config([:media_proxy, :base_url], proxyBaseUrl)
+
+    for testProxy <- [true, false] do
+      clear_config([:media_proxy, :enabled], testProxy)
+
+      user = insert(:user)
+      other_user = insert(:user, local: false)
+
+      {:ok, activity} = CommonAPI.post(user, %{status: "#morb"})
+      {:ok, emoji_react, _} = Builder.emoji_react(other_user, Object.normalize(activity, fetch: false), ":100a:")
+
+      remoteUrl = "http://evil.website/emoji/100a.png"
+      [tag] = emoji_react["tag"]
+      tag = put_in(tag["id"], remoteUrl)
+      tag = put_in(tag["icon"]["url"], remoteUrl)
+      emoji_react = put_in(emoji_react["tag"], [tag])
+
+      {:ok, _activity, _} = Pipeline.common_pipeline(emoji_react, local: false)
+
+      activity = Repo.get(Activity, activity.id)
+
+      [notification] = Notification.for_user(user)
+
+      assert notification
+
+      expected = %{
+        id: to_string(notification.id),
+        pleroma: %{is_seen: false, is_muted: false},
+        type: "pleroma:emoji_reaction",
+        emoji: ":100a:",
+        emoji_url: (if testProxy, do: MediaProxy.encode_url(remoteUrl), else: remoteUrl),
+        account: AccountView.render("show.json", %{user: other_user, for: user}),
+        status: StatusView.render("show.json", %{activity: activity, for: user}),
+        created_at: Utils.to_masto_date(notification.inserted_at)
+      }
+      test_notifications_rendering([notification], user, [expected])
+    end
   end
 
   test "Poll notification" do
