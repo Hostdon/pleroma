@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+## 2.5.2
+
+### Added
+- Allow posting and recieving of misskey markdown (requires text/x.misskeymarkdown in `allowed_post_formats`)
+
+### Changed
+- Set frontend URLs to akkoma-maintained ones
+
+### Fixed
+- Updated `no_empty` MRF to not error when recieving misskey markdown
+
+## 2.5.1
+
+### Added
+- Elasticsearch Search provider support
+- Enabled custom emoji reactions to posts via `/api/v1/pleroma/statuses/:id/reactions/:shortcode:`
+- Added continuous integration builds for x86 glibc and musl
+
+### Fixed
+- Enabled support for non-standard AP entities, such as those used by bookwyrm
+
 ## 2.5.0 - 10/06/2022
 
 ### Changed
