@@ -16,6 +16,7 @@ defmodule Pleroma.Web.ActivityPub.VisibilityTest do
     mentioned = insert(:user)
     following = insert(:user)
     unrelated = insert(:user)
+    remote = insert(:user, local: false)
     {:ok, following, user} = Pleroma.User.follow(following, user)
     {:ok, list} = Pleroma.List.create("foo", user)
 
@@ -33,6 +34,9 @@ defmodule Pleroma.Web.ActivityPub.VisibilityTest do
     {:ok, unlisted} =
       CommonAPI.post(user, %{status: "@#{mentioned.nickname}", visibility: "unlisted"})
 
+    {:ok, local} =
+      CommonAPI.post(user, %{status: "@#{mentioned.nickname}", visibility: "local"})
+
     {:ok, list} =
       CommonAPI.post(user, %{
         status: "@#{mentioned.nickname}",
@@ -48,7 +52,9 @@ defmodule Pleroma.Web.ActivityPub.VisibilityTest do
       mentioned: mentioned,
       following: following,
       unrelated: unrelated,
-      list: list
+      list: list,
+      local: local,
+      remote: remote
     }
   end
 
@@ -57,13 +63,15 @@ defmodule Pleroma.Web.ActivityPub.VisibilityTest do
     private: private,
     direct: direct,
     unlisted: unlisted,
-    list: list
+    list: list,
+    local: local
   } do
     assert Visibility.is_direct?(direct)
     refute Visibility.is_direct?(public)
     refute Visibility.is_direct?(private)
     refute Visibility.is_direct?(unlisted)
     assert Visibility.is_direct?(list)
+    refute Visibility.is_direct?(local)
   end
 
   test "is_public?", %{
@@ -71,12 +79,14 @@ defmodule Pleroma.Web.ActivityPub.VisibilityTest do
     private: private,
     direct: direct,
     unlisted: unlisted,
+    local: local,
     list: list
   } do
     refute Visibility.is_public?(direct)
     assert Visibility.is_public?(public)
     refute Visibility.is_public?(private)
     assert Visibility.is_public?(unlisted)
+    assert Visibility.is_public?(local)
     refute Visibility.is_public?(list)
   end
 
@@ -85,13 +95,15 @@ defmodule Pleroma.Web.ActivityPub.VisibilityTest do
     private: private,
     direct: direct,
     unlisted: unlisted,
-    list: list
+    list: list,
+    local: local
   } do
     refute Visibility.is_private?(direct)
     refute Visibility.is_private?(public)
     assert Visibility.is_private?(private)
     refute Visibility.is_private?(unlisted)
     refute Visibility.is_private?(list)
+    refute Visibility.is_private?(local)
   end
 
   test "is_list?", %{
@@ -99,13 +111,15 @@ defmodule Pleroma.Web.ActivityPub.VisibilityTest do
     private: private,
     direct: direct,
     unlisted: unlisted,
-    list: list
+    list: list,
+    local: local
   } do
     refute Visibility.is_list?(direct)
     refute Visibility.is_list?(public)
     refute Visibility.is_list?(private)
     refute Visibility.is_list?(unlisted)
     assert Visibility.is_list?(list)
+    refute Visibility.is_list?(local)
   end
 
   test "visible_for_user? Activity", %{
@@ -117,7 +131,9 @@ defmodule Pleroma.Web.ActivityPub.VisibilityTest do
     mentioned: mentioned,
     following: following,
     unrelated: unrelated,
-    list: list
+    list: list,
+    local: local,
+    remote: remote
   } do
     # All visible to author
 
@@ -126,6 +142,7 @@ defmodule Pleroma.Web.ActivityPub.VisibilityTest do
     assert Visibility.visible_for_user?(unlisted, user)
     assert Visibility.visible_for_user?(direct, user)
     assert Visibility.visible_for_user?(list, user)
+    assert Visibility.visible_for_user?(local, user)
 
     # All visible to a mentioned user
 
@@ -134,6 +151,7 @@ defmodule Pleroma.Web.ActivityPub.VisibilityTest do
     assert Visibility.visible_for_user?(unlisted, mentioned)
     assert Visibility.visible_for_user?(direct, mentioned)
     assert Visibility.visible_for_user?(list, mentioned)
+    assert Visibility.visible_for_user?(local, mentioned)
 
     # DM not visible for just follower
 
@@ -142,6 +160,7 @@ defmodule Pleroma.Web.ActivityPub.VisibilityTest do
     assert Visibility.visible_for_user?(unlisted, following)
     refute Visibility.visible_for_user?(direct, following)
     refute Visibility.visible_for_user?(list, following)
+    assert Visibility.visible_for_user?(local, following)
 
     # Public and unlisted visible for unrelated user
 
@@ -149,6 +168,7 @@ defmodule Pleroma.Web.ActivityPub.VisibilityTest do
     assert Visibility.visible_for_user?(unlisted, unrelated)
     refute Visibility.visible_for_user?(private, unrelated)
     refute Visibility.visible_for_user?(direct, unrelated)
+    assert Visibility.visible_for_user?(local, unrelated)
 
     # Public and unlisted visible for unauthenticated
 
@@ -156,9 +176,13 @@ defmodule Pleroma.Web.ActivityPub.VisibilityTest do
     assert Visibility.visible_for_user?(unlisted, nil)
     refute Visibility.visible_for_user?(private, nil)
     refute Visibility.visible_for_user?(direct, nil)
+    refute Visibility.visible_for_user?(local, nil)
 
     # Visible for a list member
     assert Visibility.visible_for_user?(list, unrelated)
+
+    # Local not visible to remote user
+    refute Visibility.visible_for_user?(local, remote)
   end
 
   test "visible_for_user? Object", %{
@@ -170,13 +194,16 @@ defmodule Pleroma.Web.ActivityPub.VisibilityTest do
     mentioned: mentioned,
     following: following,
     unrelated: unrelated,
-    list: list
+    list: list,
+    local: local,
+    remote: remote
   } do
     public = Object.normalize(public)
     private = Object.normalize(private)
     unlisted = Object.normalize(unlisted)
     direct = Object.normalize(direct)
     list = Object.normalize(list)
+    local = Object.normalize(local)
 
     # All visible to author
 
@@ -215,7 +242,10 @@ defmodule Pleroma.Web.ActivityPub.VisibilityTest do
     assert Visibility.visible_for_user?(unlisted, nil)
     refute Visibility.visible_for_user?(private, nil)
     refute Visibility.visible_for_user?(direct, nil)
+    refute Visibility.visible_for_user?(local, nil)
 
+    # Local posts to remote
+    refute Visibility.visible_for_user?(local, remote)
     # Visible for a list member
     # assert Visibility.visible_for_user?(list, unrelated)
   end

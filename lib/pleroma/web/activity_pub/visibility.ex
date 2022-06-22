@@ -84,7 +84,12 @@ defmodule Pleroma.Web.ActivityPub.Visibility do
       when module in [Activity, Object] do
     x = [user.ap_id | User.following(user)]
     y = [message.data["actor"]] ++ message.data["to"] ++ (message.data["cc"] || [])
-    is_public?(message) || Enum.any?(x, &(&1 in y))
+
+    if is_local_public?(message) do
+      user.local
+    else
+      is_public?(message) || Enum.any?(x, &(&1 in y))
+    end
   end
 
   def entire_thread_visible_for_user?(%Activity{} = activity, %User{} = user) do
