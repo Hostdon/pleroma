@@ -64,7 +64,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
-## 2.4.1 - 2021-08-29
+### Security
+- Private `/objects/` and `/activities/` leaking if cached by authenticated user
+- SweetXML library DTD bomb
+
+## 2.4.2 - 2022-01-10
+
+### Fixed
+- Federation issues caused by HTTP pool checkout timeouts
+- Compatibility with Elixir 1.13
+
+### Upgrade notes
+
+1. Restart Pleroma
 
 ### Changed
 - Make `mix pleroma.database set_text_search_config` run concurrently and indefinitely
