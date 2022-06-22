@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 - Updated `no_empty` MRF to not error when recieving misskey markdown
 
+### Security
+- Ensure local-only statuses do not get leaked
+
 ## 2.5.1
 
 ### Added
