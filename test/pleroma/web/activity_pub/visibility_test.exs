@@ -34,8 +34,7 @@ defmodule Pleroma.Web.ActivityPub.VisibilityTest do
     {:ok, unlisted} =
       CommonAPI.post(user, %{status: "@#{mentioned.nickname}", visibility: "unlisted"})
 
-    {:ok, local} =
-      CommonAPI.post(user, %{status: "@#{mentioned.nickname}", visibility: "local"})
+    {:ok, local} = CommonAPI.post(user, %{status: "@#{mentioned.nickname}", visibility: "local"})
 
     {:ok, list} =
       CommonAPI.post(user, %{

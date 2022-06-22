@@ -238,7 +238,9 @@ defmodule Pleroma.Web.MastodonAPI.NotificationViewTest do
       other_user = insert(:user, local: false)
 
       {:ok, activity} = CommonAPI.post(user, %{status: "#morb"})
-      {:ok, emoji_react, _} = Builder.emoji_react(other_user, Object.normalize(activity, fetch: false), ":100a:")
+
+      {:ok, emoji_react, _} =
+        Builder.emoji_react(other_user, Object.normalize(activity, fetch: false), ":100a:")
 
       remoteUrl = "http://evil.website/emoji/100a.png"
       [tag] = emoji_react["tag"]
@@ -259,11 +261,12 @@ defmodule Pleroma.Web.MastodonAPI.NotificationViewTest do
         pleroma: %{is_seen: false, is_muted: false},
         type: "pleroma:emoji_reaction",
         emoji: ":100a:",
-        emoji_url: (if testProxy, do: MediaProxy.encode_url(remoteUrl), else: remoteUrl),
+        emoji_url: if(testProxy, do: MediaProxy.encode_url(remoteUrl), else: remoteUrl),
         account: AccountView.render("show.json", %{user: other_user, for: user}),
         status: StatusView.render("show.json", %{activity: activity, for: user}),
         created_at: Utils.to_masto_date(notification.inserted_at)
       }
+
       test_notifications_rendering([notification], user, [expected])
     end
   end
