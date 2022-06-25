@@ -159,7 +159,11 @@ defmodule Pleroma.Emoji do
     if is_unicode_emoji?(name) do
       name
     else
-      ":#{name}:"
+      if String.starts_with?(name, ":") do
+        name
+      else
+        ":#{name}:"
+      end
     end
   end
 
