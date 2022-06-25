@@ -47,8 +47,16 @@ defmodule Pleroma.Web.Federator do
   end
 
   @impl true
-  def publish(activity) do
-    PublisherWorker.enqueue("publish", %{"activity_id" => activity.id})
+  def publish(%{data: %{"object" => object}} = activity) when is_binary(object) do
+    PublisherWorker.enqueue("publish", %{"activity_id" => activity.id, "object_data" => nil})
+  end
+
+  @impl true
+  def publish(%{data: %{"object" => object}} = activity) when is_map(object) or is_list(object) do
+    PublisherWorker.enqueue("publish", %{
+      "activity_id" => activity.id,
+      "object_data" => Jason.encode!(object)
+    })
   end
 
   # Job Worker Callbacks
