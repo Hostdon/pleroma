@@ -31,9 +31,6 @@ defmodule Pleroma.Web.Federator.Publisher do
   """
   @spec enqueue_one(module(), Map.t()) :: :ok
   def enqueue_one(module, %{} = params) do
-    IO.puts("ENQUEUE")
-    IO.inspect(params)
-
     PublisherWorker.enqueue(
       "publish_one",
       %{"module" => to_string(module), "params" => params}
