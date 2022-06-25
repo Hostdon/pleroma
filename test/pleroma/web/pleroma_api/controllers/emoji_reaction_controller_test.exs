@@ -34,6 +34,30 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionControllerTest do
              %{"name" => "☕", "count" => 1, "me" => true, "url" => nil}
            ]
 
+    {:ok, activity} = CommonAPI.post(user, %{status: "#cofe"})
+
+    ObanHelpers.perform_all()
+    # Reacting with a custom emoji
+    result =
+      conn
+      |> assign(:user, other_user)
+      |> assign(:token, insert(:oauth_token, user: other_user, scopes: ["write:statuses"]))
+      |> put("/api/v1/pleroma/statuses/#{activity.id}/reactions/:dinosaur:")
+      |> json_response_and_validate_schema(200)
+
+    # We return the status, but this our implementation detail.
+    assert %{"id" => id} = result
+    assert to_string(activity.id) == id
+
+    assert result["pleroma"]["emoji_reactions"] == [
+             %{
+               "name" => "dinosaur",
+               "count" => 1,
+               "me" => true,
+               "url" => "http://localhost:4001/emoji/dino walking.gif"
+             }
+           ]
+
     # Reacting with a non-emoji
     assert conn
            |> assign(:user, other_user)
@@ -48,6 +72,7 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionControllerTest do
 
     {:ok, activity} = CommonAPI.post(user, %{status: "#cofe"})
     {:ok, _reaction_activity} = CommonAPI.react_with_emoji(activity.id, other_user, "☕")
+    {:ok, _reaction_activity} = CommonAPI.react_with_emoji(activity.id, other_user, ":dinosaur:")
 
     ObanHelpers.perform_all()
 
@@ -56,6 +81,17 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionControllerTest do
       |> assign(:user, other_user)
       |> assign(:token, insert(:oauth_token, user: other_user, scopes: ["write:statuses"]))
       |> delete("/api/v1/pleroma/statuses/#{activity.id}/reactions/☕")
+
+    assert %{"id" => id} = json_response_and_validate_schema(result, 200)
+    assert to_string(activity.id) == id
+
+    # Remove custom emoji
+
+    result =
+      conn
+      |> assign(:user, other_user)
+      |> assign(:token, insert(:oauth_token, user: other_user, scopes: ["write:statuses"]))
+      |> delete("/api/v1/pleroma/statuses/#{activity.id}/reactions/:dinosaur:")
 
     assert %{"id" => id} = json_response_and_validate_schema(result, 200)
     assert to_string(activity.id) == id
