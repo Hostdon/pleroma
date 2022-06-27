@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 - SSH frontend, to be potentially re-enabled via a bridge rather than wired into the main system
+- Gopher frontend, as above
 
 ## 2.5.2
 

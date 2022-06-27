@@ -97,7 +97,6 @@ config :pleroma, :uri_schemes,
     "http",
     "dat",
     "dweb",
-    "gopher",
     "hyper",
     "ipfs",
     "ipns",
@@ -473,11 +472,6 @@ config :phoenix, :format_encoders, json: Jason, "activity+json": Jason
 config :phoenix, :json_library, Jason
 
 config :phoenix, :filter_parameters, ["password", "confirm"]
-
-config :pleroma, :gopher,
-  enabled: false,
-  ip: {0, 0, 0, 0},
-  port: 9999
 
 config :pleroma, Pleroma.Web.Metadata,
   providers: [

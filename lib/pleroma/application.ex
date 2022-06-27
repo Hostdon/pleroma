@@ -107,8 +107,7 @@ defmodule Pleroma.Application do
         ] ++
         task_children(@mix_env) ++
         dont_run_in_test(@mix_env) ++
-        shout_child(shout_enabled?()) ++
-        [Pleroma.Gopher.Server]
+        shout_child(shout_enabled?())
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
     # for other strategies and supported options

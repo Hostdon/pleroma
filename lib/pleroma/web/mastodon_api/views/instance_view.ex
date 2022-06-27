@@ -68,9 +68,6 @@ defmodule Pleroma.Web.MastodonAPI.InstanceView do
       if Config.get([:media_proxy, :enabled]) do
         "media_proxy"
       end,
-      if Config.get([:gopher, :enabled]) do
-        "gopher"
-      end,
       # backwards compat
       if Config.get([:shout, :enabled]) do
         "chat"
