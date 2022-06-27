@@ -833,15 +833,6 @@ To enable them, both the `rum_enabled` flag has to be set and the following spec
 
 This will probably take a long time.
 
-## Alternative client protocols
-
-### :gopher
-* `enabled`: Enables the gopher interface
-* `ip`: IP address to bind to
-* `port`: Port to bind to
-* `dstport`: Port advertised in urls (optional, defaults to `port`)
-
-
 ## Authentication
 
 ### :admin_token
