@@ -835,24 +835,6 @@ This will probably take a long time.
 
 ## Alternative client protocols
 
-### BBS / SSH access
-
-To enable simple command line interface accessible over ssh, add a setting like this to your configuration file:
-
-```exs
-app_dir = File.cwd!
-priv_dir = Path.join([app_dir, "priv/ssh_keys"])
-
-config :esshd,
-  enabled: true,
-  priv_dir: priv_dir,
-  handler: "Pleroma.BBS.Handler",
-  port: 10_022,
-  password_authenticator: "Pleroma.BBS.Authenticator"
-```
-
-Feel free to adjust the priv_dir and port number. Then you will have to create the key for the keys (in the example `priv/ssh_keys`) and create the host keys with `ssh-keygen -m PEM -N "" -b 2048 -t rsa -f ssh_host_rsa_key`. After restarting, you should be able to connect to your Pleroma instance with `ssh username@server -p $PORT`
-
 ### :gopher
 * `enabled`: Enables the gopher interface
 * `ip`: IP address to bind to
