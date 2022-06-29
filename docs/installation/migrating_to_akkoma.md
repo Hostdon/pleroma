@@ -1,10 +1,11 @@
 # Migrating to Akkoma
 
-**Akkoma does not currently have a stable release, until 3.0, all builds should be considered "develop**
+**Akkoma does not currently have a stable release, until 3.0, all builds should be considered "develop"**
 
 ## Why should you migrate?
 
-aside from actually responsive maintainer(s)? let's lookie here, we've got
+aside from actually responsive maintainer(s)? let's lookie here, we've got:
+
 - custom emoji reactions
 - misskey markdown (MFM) rendering and posting support
 - elasticsearch support (because pleroma search is GARBAGE)
