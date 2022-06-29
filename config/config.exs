@@ -701,7 +701,7 @@ config :pleroma, Pleroma.Web.Plugs.RemoteIp,
     "192.168.0.0/16"
   ]
 
-config :pleroma, :static_fe, enabled: true
+config :pleroma, :static_fe, enabled: false
 
 # Example of frontend configuration
 # This example will make us serve the primary frontend from the
