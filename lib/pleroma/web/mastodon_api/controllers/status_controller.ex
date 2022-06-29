@@ -384,11 +384,13 @@ defmodule Pleroma.Web.MastodonAPI.StatusController do
   def context(%{assigns: %{user: user}} = conn, %{id: id}) do
     with %Activity{} = activity <- Activity.get_by_id(id) do
       activities =
-        ActivityPub.fetch_activities_for_context(activity.data["context"], %{
+        activity.data["context"]
+        |> ActivityPub.fetch_activities_for_context(%{
           blocking_user: user,
           user: user,
           exclude_id: activity.id
         })
+        |> Enum.filter(fn activity -> Visibility.visible_for_user?(activity, user) end)
 
       render(conn, "context.json", activity: activity, activities: activities, user: user)
     end

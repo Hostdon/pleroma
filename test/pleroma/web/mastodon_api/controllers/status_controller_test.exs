@@ -1810,6 +1810,39 @@ defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
            } = response
   end
 
+  test "context when restrict_unauthenticated is on" do
+    user = insert(:user)
+    remote_user = insert(:user, local: false)
+
+    {:ok, %{id: id1}} = CommonAPI.post(user, %{status: "1"})
+    {:ok, %{id: id2}} = CommonAPI.post(user, %{status: "2", in_reply_to_status_id: id1})
+
+    {:ok, %{id: id3}} =
+      CommonAPI.post(remote_user, %{status: "3", in_reply_to_status_id: id2, local: false})
+
+    response =
+      build_conn()
+      |> get("/api/v1/statuses/#{id2}/context")
+      |> json_response_and_validate_schema(:ok)
+
+    assert %{
+             "ancestors" => [%{"id" => ^id1}],
+             "descendants" => [%{"id" => ^id3}]
+           } = response
+
+    clear_config([:restrict_unauthenticated, :activities, :local], true)
+
+    response =
+      build_conn()
+      |> get("/api/v1/statuses/#{id2}/context")
+      |> json_response_and_validate_schema(:ok)
+
+    assert %{
+             "ancestors" => [],
+             "descendants" => []
+           } = response
+  end
+
   test "favorites paginate correctly" do
     %{user: user, conn: conn} = oauth_access(["read:favourites"])
     other_user = insert(:user)

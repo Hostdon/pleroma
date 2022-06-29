@@ -11,6 +11,7 @@ pipeline:
     when:
       event:
       - push
+      - pull_request
     environment:
       MIX_ENV: test
     commands:
@@ -25,6 +26,7 @@ pipeline:
     when:
       event:
       - push
+      - pull_request
     environment:
       MIX_ENV: test
       POSTGRES_DB: pleroma_test
