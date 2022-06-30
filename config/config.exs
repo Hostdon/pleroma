@@ -856,14 +856,28 @@ config :pleroma, ConcurrentLimiter, [
   {Pleroma.Search, [max_running: 30, max_waiting: 50]}
 ]
 
-config :pleroma, :search, provider: Pleroma.Search.Builtin
-
 config :pleroma, Pleroma.Search, module: Pleroma.Search.DatabaseSearch
 
 config :pleroma, Pleroma.Search.Meilisearch,
   url: "http://127.0.0.1:7700/",
   private_key: nil,
   initial_indexing_chunk_size: 100_000
+
+config :pleroma, Pleroma.Search.Elasticsearch.Cluster,
+  url: "http://localhost:9200",
+  username: "elastic",
+  password: "changeme",
+  api: Elasticsearch.API.HTTP,
+  json_library: Jason,
+  indexes: %{
+    activities: %{
+      settings: "priv/es-mappings/activity.json",
+      store: Pleroma.Search.Elasticsearch.Store,
+      sources: [Pleroma.Activity],
+      bulk_page_size: 5000,
+      bulk_wait_interval: 15_000
+    }
+  }
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

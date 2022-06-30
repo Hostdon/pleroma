@@ -203,6 +203,7 @@ defmodule Pleroma.Mixfile do
       {:nimble_parsec, "~> 1.0", override: true},
       {:phoenix_live_dashboard, "~> 0.6.2"},
       {:ecto_psql_extras, "~> 0.6"},
+      {:elasticsearch, "~> 1.0.0"},
 
       # indirect dependency version override
       {:plug, "~> 1.10.4", override: true},

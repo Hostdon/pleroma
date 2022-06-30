@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2021 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2022 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.ActivityPub.SideEffects do
@@ -272,6 +272,7 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
   def handle(%{data: %{"type" => "EmojiReact"}} = object, meta) do
     reacted_object = Object.get_by_ap_id(object.data["object"])
     Utils.add_emoji_reaction_to_object(object, reacted_object)
+
     Notification.create_notifications(object)
 
     {:ok, object, meta}
@@ -547,24 +548,6 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
   end
 
   @impl true
-  def handle_after_transaction(%Pleroma.Activity{data: %{"type" => "Create"}} = activity) do
-    Pleroma.Elasticsearch.put_by_id(:activity, activity.id)
-  end
-
-  def handle_after_transaction(%Pleroma.Activity{
-        data: %{"type" => "Delete", "deleted_activity_id" => id}
-      }) do
-    Pleroma.Elasticsearch.delete_by_id(:activity, id)
-  end
-
-  def handle_after_transaction(%Pleroma.Activity{}) do
-    :ok
-  end
-
-  def handle_after_transaction(%Pleroma.Object{}) do
-    :ok
-  end
-
   def handle_after_transaction(meta) do
     meta
     |> send_notifications()

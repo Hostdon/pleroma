@@ -1095,7 +1095,6 @@ defmodule Pleroma.User do
     was_superuser_before_update = User.superuser?(user)
 
     with {:ok, user} <- Repo.update(changeset, stale_error_field: :id) do
-      Pleroma.Elasticsearch.maybe_put_into_elasticsearch(user)
       set_cache(user)
     end
     |> maybe_remove_report_notifications(was_superuser_before_update)
