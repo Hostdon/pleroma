@@ -507,6 +507,11 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
           type: :string,
           nullable: true,
           description: "Invite token required when the registrations aren't public"
+        },
+        language: %Schema{
+          type: :string,
+          nullable: true,
+          description: "User's preferred language for emails"
         }
       },
       example: %{

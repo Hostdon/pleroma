@@ -105,6 +105,7 @@ defmodule Pleroma.Application do
           {Oban, Config.get(Oban)},
           Pleroma.Web.Endpoint
         ] ++
+        elasticsearch_children() ++
         task_children(@mix_env) ++
         dont_run_in_test(@mix_env) ++
         shout_child(shout_enabled?())
@@ -303,11 +304,25 @@ defmodule Pleroma.Application do
 
   defp http_children(_, _), do: []
 
+  def elasticsearch_children do
+    config = Config.get([Pleroma.Search, :module])
+
+    if config == Pleroma.Search.Elasticsearch do
+      [Pleroma.Search.Elasticsearch.Cluster]
+    else
+      []
+    end
+  end
+
   @spec limiters_setup() :: :ok
   def limiters_setup do
     config = Config.get(ConcurrentLimiter, [])
 
-    [Pleroma.Web.RichMedia.Helpers, Pleroma.Web.ActivityPub.MRF.MediaProxyWarmingPolicy]
+    [
+      Pleroma.Web.RichMedia.Helpers,
+      Pleroma.Web.ActivityPub.MRF.MediaProxyWarmingPolicy,
+      Pleroma.Search
+    ]
     |> Enum.each(fn module ->
       mod_config = Keyword.get(config, module, [])
 

@@ -3429,5 +3429,133 @@ config :pleroma, :config_description, [
         ]
       }
     ]
+  },
+  %{
+    group: :pleroma,
+    key: Pleroma.Search,
+    type: :group,
+    description: "General search settings.",
+    children: [
+      %{
+        key: :module,
+        type: :keyword,
+        description: "Selected search module.",
+        suggestion: [Pleroma.Search.DatabaseSearch, Pleroma.Search.Meilisearch]
+      }
+    ]
+  },
+  %{
+    group: :pleroma,
+    key: Pleroma.Search.Meilisearch,
+    type: :group,
+    description: "Meilisearch settings.",
+    children: [
+      %{
+        key: :url,
+        type: :string,
+        description: "Meilisearch URL.",
+        suggestion: ["http://127.0.0.1:7700/"]
+      },
+      %{
+        key: :private_key,
+        type: :string,
+        description:
+          "Private key for meilisearch authentication, or `nil` to disable private key authentication.",
+        suggestion: [nil]
+      },
+      %{
+        key: :initial_indexing_chunk_size,
+        type: :int,
+        description:
+          "Amount of posts in a batch when running the initial indexing operation. Should probably not be more than 100000" <>
+            " since there's a limit on maximum insert size",
+        suggestion: [100_000]
+      }
+    ]
+  },
+  %{
+    group: :pleroma,
+    key: Pleroma.Search.Elasticsearch.Cluster,
+    type: :group,
+    description: "Elasticsearch settings.",
+    children: [
+      %{
+        key: :url,
+        type: :string,
+        description: "Elasticsearch URL.",
+        suggestion: ["http://127.0.0.1:9200/"]
+      },
+      %{
+        key: :username,
+        type: :string,
+        description: "Username to connect to ES. Set to nil if your cluster is unauthenticated.",
+        suggestion: ["elastic"]
+      },
+      %{
+        key: :password,
+        type: :string,
+        description: "Password to connect to ES. Set to nil if your cluster is unauthenticated.",
+        suggestion: ["changeme"]
+      },
+      %{
+        key: :api,
+        type: :module,
+        description:
+          "The API module used by Elasticsearch. Should always be Elasticsearch.API.HTTP",
+        suggestion: [Elasticsearch.API.HTTP]
+      },
+      %{
+        key: :json_library,
+        type: :module,
+        description:
+          "The JSON module used to encode/decode when communicating with Elasticsearch",
+        suggestion: [Jason]
+      },
+      %{
+        key: :indexes,
+        type: :map,
+        description: "The indices to set up in Elasticsearch",
+        children: [
+          %{
+            key: :activities,
+            type: :map,
+            description: "Config for the index to use for activities",
+            children: [
+              %{
+                key: :settings,
+                type: :string,
+                description:
+                  "Path to the file containing index settings for the activities index. Should contain a mapping.",
+                suggestion: ["priv/es-mappings/activity.json"]
+              },
+              %{
+                key: :store,
+                type: :module,
+                description: "The internal store module",
+                suggestion: [Pleroma.Search.Elasticsearch.Store]
+              },
+              %{
+                key: :sources,
+                type: {:list, :module},
+                description: "The internal types to use for this index",
+                suggestion: [[Pleroma.Activity]]
+              },
+              %{
+                key: :bulk_page_size,
+                type: :int,
+                description: "Size for bulk put requests, mostly used on building the index",
+                suggestion: [5000]
+              },
+              %{
+                key: :bulk_wait_interval,
+                type: :int,
+                description: "Time to wait between bulk put requests (in ms)",
+                suggestion: [15_000]
+              }
+            ]
+          }
+        ]
+      }
+    ]
   }
 ]

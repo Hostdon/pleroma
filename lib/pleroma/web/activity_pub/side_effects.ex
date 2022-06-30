@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2021 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2022 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.ActivityPub.SideEffects do
@@ -193,6 +193,7 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
   # - Increase replies count
   # - Set up ActivityExpiration
   # - Set up notifications
+  # - Index incoming posts for search (if needed)
   @impl true
   def handle(%{data: %{"type" => "Create"}} = activity, meta) do
     with {:ok, object, meta} <- handle_object_creation(meta[:object_data], activity, meta),
@@ -221,6 +222,8 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
       ConcurrentLimiter.limit(Pleroma.Web.RichMedia.Helpers, fn ->
         Task.start(fn -> Pleroma.Web.RichMedia.Helpers.fetch_data_for_activity(activity) end)
       end)
+
+      Pleroma.Search.add_to_index(Map.put(activity, :object, object))
 
       meta =
         meta
@@ -269,6 +272,7 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
   def handle(%{data: %{"type" => "EmojiReact"}} = object, meta) do
     reacted_object = Object.get_by_ap_id(object.data["object"])
     Utils.add_emoji_reaction_to_object(object, reacted_object)
+
     Notification.create_notifications(object)
 
     {:ok, object, meta}
@@ -281,6 +285,7 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
   # - Reduce the user note count
   # - Reduce the reply count
   # - Stream out the activity
+  # - Removes posts from search index (if needed)
   @impl true
   def handle(%{data: %{"type" => "Delete", "object" => deleted_object}} = object, meta) do
     deleted_object =
@@ -320,6 +325,12 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
 
     if result == :ok do
       Notification.create_notifications(object)
+
+      # Only remove from index when deleting actual objects, not users or anything else
+      with %Pleroma.Object{} <- deleted_object do
+        Pleroma.Search.remove_from_index(deleted_object)
+      end
+
       {:ok, object, meta}
     else
       {:error, result}
@@ -537,24 +548,6 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
   end
 
   @impl true
-  def handle_after_transaction(%Pleroma.Activity{data: %{"type" => "Create"}} = activity) do
-    Pleroma.Elasticsearch.put_by_id(:activity, activity.id)
-  end
-
-  def handle_after_transaction(%Pleroma.Activity{
-        data: %{"type" => "Delete", "deleted_activity_id" => id}
-      }) do
-    Pleroma.Elasticsearch.delete_by_id(:activity, id)
-  end
-
-  def handle_after_transaction(%Pleroma.Activity{}) do
-    :ok
-  end
-
-  def handle_after_transaction(%Pleroma.Object{}) do
-    :ok
-  end
-
   def handle_after_transaction(meta) do
     meta
     |> send_notifications()
