@@ -57,7 +57,8 @@ defmodule Mix.Pleroma do
         {Majic.Pool,
          [name: Pleroma.MajicPool, pool_size: Pleroma.Config.get([:majic_pool, :size], 2)]}
       ] ++
-        http_children(adapter)
+        http_children(adapter) ++
+        elasticsearch_children()
 
     cachex_children = Enum.map(@cachex_children, &Pleroma.Application.build_cachex(&1, []))
 
@@ -136,4 +137,14 @@ defmodule Mix.Pleroma do
   end
 
   defp http_children(_), do: []
+
+  def elasticsearch_children do
+    config = Pleroma.Config.get([Pleroma.Search, :module])
+
+    if config == Pleroma.Search.Elasticsearch do
+      [Pleroma.Search.Elasticsearch.Cluster]
+    else
+      []
+    end
+  end
 end

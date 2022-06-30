@@ -874,7 +874,7 @@ config :pleroma, Pleroma.Search.Elasticsearch.Cluster,
       settings: "priv/es-mappings/activity.json",
       store: Pleroma.Search.Elasticsearch.Store,
       sources: [Pleroma.Activity],
-      bulk_page_size: 5000,
+      bulk_page_size: 1000,
       bulk_wait_interval: 15_000
     }
   }

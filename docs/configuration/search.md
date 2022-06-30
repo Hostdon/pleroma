@@ -154,10 +154,10 @@ To start the initial indexing, run the `build` command:
 
 === "OTP"
 ```sh
-./bin/pleroma_ctl search.elasticsearch index activities --cluster Pleroma.Search.Elasticsearch.Cluster
+./bin/pleroma_ctl search import activities
 ```
 
 === "From Source"
 ```sh
-mix elasticsearch.build activities --cluster Pleroma.Search.Elasticsearch.Cluster
+mix pleroma.search import activities
 ```
