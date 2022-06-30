@@ -121,3 +121,43 @@ This will clear **all** the posts from the search index. Note, that deleted post
 there is no need to actually clear the whole index, unless you want **all** of it gone. That said, the index does not hold any information
 that cannot be re-created from the database, it should also generally be a lot smaller than the size of your database. Still, the size
 depends on the amount of text in posts.
+
+## Elasticsearch
+
+As with meilisearch, this can be rather memory-hungry, but it is very good at what it does.
+
+To use [elasticsearch](https://www.elastic.co/), set the search module to `Pleroma.Search.Elasticsearch`:
+
+> config :pleroma, Pleroma.Search, module: Pleroma.Search.Elasticsearch
+
+You then need to set the URL and authentication credentials if relevant.
+
+> config :pleroma, Pleroma.Search.Elasticsearch.Cluster,
+>    url: "http://127.0.0.1:9200/",
+>    username: "elastic",
+>    password: "changeme",
+
+### Initial indexing
+
+After setting up the configuration, you'll want to index all of your already existsing posts. Only public posts are indexed.  You'll only
+have to do it one time, but it might take a while, depending on the amount of posts your instance has seen. 
+
+The sequence of actions is as follows:
+
+1. First, change the configuration to use `Pleroma.Search.Elasticsearch` as the search backend
+2. Restart your instance, at this point it can be used while the search indexing is running, though search won't return anything
+3. Start the initial indexing process (as described below with `index`),
+   and wait until the task says it sent everything from the database to index
+4. Wait until the index tasks exits
+
+To start the initial indexing, run the `build` command:
+
+=== "OTP"
+```sh
+./bin/pleroma_ctl search.elasticsearch index activities --cluster Pleroma.Search.Elasticsearch.Cluster
+```
+
+=== "From Source"
+```sh
+mix elasticsearch.build activities --cluster Pleroma.Search.Elasticsearch.Cluster
+```
