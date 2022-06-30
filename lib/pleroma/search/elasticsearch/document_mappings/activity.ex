@@ -53,3 +53,9 @@ defimpl Elasticsearch.Document, for: Pleroma.Activity do
     object_to_search_data(object)
   end
 end
+
+defimpl Elasticsearch.Document, for: Pleroma.Object do
+  def id(obj), do: obj.id
+  def routing(_), do: false
+  def encode(_), do: nil
+end
