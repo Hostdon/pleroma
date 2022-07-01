@@ -718,10 +718,6 @@ config :pleroma, :static_fe, enabled: false
 # available: %{...}
 
 config :pleroma, :frontends,
-  primary: %{
-    "name" => "pleroma-fe",
-    "ref" => "develop"
-  },
   available: %{
     "pleroma-fe" => %{
       "name" => "pleroma-fe",
