@@ -12,6 +12,8 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPI do
   alias Pleroma.UserInviteToken
 
   def register_user(params, opts \\ []) do
+    fallback_language = Gettext.get_locale()
+
     params =
       params
       |> Map.take([:email, :token, :password])
@@ -20,6 +22,10 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPI do
       |> Map.put(:name, Map.get(params, :fullname, params[:username]))
       |> Map.put(:password_confirmation, params[:password])
       |> Map.put(:registration_reason, params[:reason])
+      |> Map.put(
+        :language,
+        Pleroma.Web.Gettext.normalize_locale(params[:language]) || fallback_language
+      )
 
     if Pleroma.Config.get([:instance, :registrations_open]) do
       create_user(params, opts)

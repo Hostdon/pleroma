@@ -396,13 +396,7 @@ defmodule Pleroma.Web.CommonAPI do
 
   def post(user, %{status: _} = data) do
     with {:ok, draft} <- ActivityDraft.create(user, data) do
-      activity = ActivityPub.create(draft.changes, draft.preview?)
-
-      unless draft.preview? do
-        Pleroma.Elasticsearch.maybe_put_into_elasticsearch(activity)
-      end
-
-      activity
+      ActivityPub.create(draft.changes, draft.preview?)
     end
   end
 

@@ -2,7 +2,7 @@
 # Copyright © 2017-2021 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.Activity.Search do
+defmodule Pleroma.Search.DatabaseSearch do
   alias Pleroma.Activity
   alias Pleroma.Object.Fetcher
   alias Pleroma.Pagination
@@ -12,6 +12,8 @@ defmodule Pleroma.Activity.Search do
   require Pleroma.Constants
 
   import Ecto.Query
+
+  @behaviour Pleroma.Search.SearchBackend
 
   def search(user, search_query, options \\ []) do
     index_type = if Pleroma.Config.get([:database, :rum_enabled]), do: :rum, else: :gin
@@ -45,6 +47,12 @@ defmodule Pleroma.Activity.Search do
     end
   end
 
+  @impl true
+  def add_to_index(_activity), do: nil
+
+  @impl true
+  def remove_from_index(_object), do: nil
+
   def maybe_restrict_author(query, %User{} = author) do
     Activity.Queries.by_author(query, author)
   end
@@ -57,7 +65,7 @@ defmodule Pleroma.Activity.Search do
 
   def maybe_restrict_blocked(query, _), do: query
 
-  defp restrict_public(q) do
+  def restrict_public(q) do
     from([a, o] in q,
       where: fragment("?->>'type' = 'Create'", a.data),
       where: ^Pleroma.Constants.as_public() in a.recipients
@@ -124,7 +132,7 @@ defmodule Pleroma.Activity.Search do
     )
   end
 
-  defp maybe_restrict_local(q, user) do
+  def maybe_restrict_local(q, user) do
     limit = Pleroma.Config.get([:instance, :limit_to_local_content], :unauthenticated)
 
     case {limit, user} do
@@ -137,7 +145,7 @@ defmodule Pleroma.Activity.Search do
 
   defp restrict_local(q), do: where(q, local: true)
 
-  defp maybe_fetch(activities, user, search_query) do
+  def maybe_fetch(activities, user, search_query) do
     with true <- Regex.match?(~r/https?:/, search_query),
          {:ok, object} <- Fetcher.fetch_object_from_id(search_query),
          %Activity{} = activity <- Activity.get_create_by_object_ap_id(object.data["id"]),

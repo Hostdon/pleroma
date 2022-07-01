@@ -5,60 +5,16 @@
 defmodule Mix.Tasks.Pleroma.Search do
   use Mix.Task
   import Mix.Pleroma
-  import Ecto.Query
-  alias Pleroma.Activity
-  alias Pleroma.Pagination
-  alias Pleroma.User
-  alias Pleroma.Hashtag
 
   @shortdoc "Manages elasticsearch"
 
   def run(["import", "activities" | _rest]) do
     start_pleroma()
 
-    from(a in Activity, where: not ilike(a.actor, "%/relay"))
-    |> where([a], fragment("(? ->> 'type'::text) = 'Create'", a.data))
-    |> Activity.with_preloaded_object()
-    |> Activity.with_preloaded_user_actor()
-    |> get_all(:activities)
-  end
-
-  def run(["import", "users" | _rest]) do
-    start_pleroma()
-
-    from(u in User, where: u.nickname not in ["internal.fetch", "relay"])
-    |> get_all(:users)
-  end
-
-  def run(["import", "hashtags" | _rest]) do
-    start_pleroma()
-
-    from(h in Hashtag)
-    |> Pleroma.Repo.all()
-    |> Pleroma.Elasticsearch.bulk_post(:hashtags)
-  end
-
-  defp get_all(query, index, max_id \\ nil) do
-    params = %{limit: 1000}
-
-    params =
-      if max_id == nil do
-        params
-      else
-        Map.put(params, :max_id, max_id)
-      end
-
-    res =
-      query
-      |> Pagination.fetch_paginated(params)
-
-    if res == [] do
-      :ok
-    else
-      res
-      |> Pleroma.Elasticsearch.bulk_post(index)
-
-      get_all(query, index, List.last(res).id)
-    end
+    Elasticsearch.Index.Bulk.upload(
+      Pleroma.Search.Elasticsearch.Cluster,
+      "activities",
+      Pleroma.Config.get([Pleroma.Search.Elasticsearch.Cluster, :indexes, :activities])
+    )
   end
 end
