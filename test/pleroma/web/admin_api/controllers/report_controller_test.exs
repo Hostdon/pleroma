@@ -369,7 +369,8 @@ defmodule Pleroma.Web.AdminAPI.ReportControllerTest do
       refute is_nil(note)
 
       assert note["user"]["nickname"] == admin.nickname
-      assert note["content"] == "this is disgusting!"
+      # We use '=~' because the order of the notes isn't guaranteed
+      assert note["content"] =~ "this is disgusting"
       assert note["created_at"]
       assert response["total"] == 1
     end

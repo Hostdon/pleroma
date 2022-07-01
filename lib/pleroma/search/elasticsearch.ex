@@ -3,24 +3,22 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Search.Elasticsearch do
-  @behaviour Pleroma.Search
+  @behaviour Pleroma.Search.SearchBackend
 
   alias Pleroma.Activity
   alias Pleroma.Object.Fetcher
-  alias Pleroma.Web.MastodonAPI.StatusView
-  alias Pleroma.Web.MastodonAPI.AccountView
   alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Search.Elasticsearch.Parsers
-  alias Pleroma.Web.Endpoint
 
-  def es_query(:activity, query) do
+  def es_query(:activity, query, offset, limit) do
     must = Parsers.Activity.parse(query)
 
     if must == [] do
       :skip
     else
       %{
-        size: 50,
+        size: limit,
+        from: offset,
         terminate_after: 50,
         timeout: "5s",
         sort: [
@@ -30,50 +28,6 @@ defmodule Pleroma.Search.Elasticsearch do
         query: %{
           bool: %{
             must: must
-          }
-        }
-      }
-    end
-  end
-
-  def es_query(:user, query) do
-    must = Parsers.User.parse(query)
-
-    if must == [] do
-      :skip
-    else
-      %{
-        size: 50,
-        terminate_after: 50,
-        timeout: "5s",
-        sort: [
-          "_score"
-        ],
-        query: %{
-          bool: %{
-            must: must
-          }
-        }
-      }
-    end
-  end
-
-  def es_query(:hashtag, query) do
-    must = Parsers.Hashtag.parse(query)
-
-    if must == [] do
-      :skip
-    else
-      %{
-        size: 50,
-        terminate_after: 50,
-        timeout: "5s",
-        sort: [
-          "_score"
-        ],
-        query: %{
-          bool: %{
-            must: Parsers.Hashtag.parse(query)
           }
         }
       }
@@ -90,8 +44,10 @@ defmodule Pleroma.Search.Elasticsearch do
     end
   end
 
-  @impl Pleroma.Search
-  def search(%{assigns: %{user: user}} = _conn, %{q: query} = _params, _options) do
+  def search(user, query, options) do
+    limit = Enum.min([Keyword.get(options, :limit), 40])
+    offset = Keyword.get(options, :offset, 0)
+
     parsed_query =
       query
       |> String.trim()
@@ -104,30 +60,13 @@ defmodule Pleroma.Search.Elasticsearch do
 
     activity_task =
       Task.async(fn ->
-        q = es_query(:activity, parsed_query)
+        q = es_query(:activity, parsed_query, offset, limit)
 
-        Pleroma.Elasticsearch.search(:activities, q)
+        Pleroma.Search.Elasticsearch.Store.search(:activities, q)
         |> Enum.filter(fn x -> Visibility.visible_for_user?(x, user) end)
       end)
 
-    user_task =
-      Task.async(fn ->
-        q = es_query(:user, parsed_query)
-
-        Pleroma.Elasticsearch.search(:users, q)
-        |> Enum.filter(fn x -> Pleroma.User.visible_for(x, user) == :visible end)
-      end)
-
-    hashtag_task =
-      Task.async(fn ->
-        q = es_query(:hashtag, parsed_query)
-
-        Pleroma.Elasticsearch.search(:hashtags, q)
-      end)
-
     activity_results = Task.await(activity_task)
-    user_results = Task.await(user_task)
-    hashtag_results = Task.await(hashtag_task)
     direct_activity = Task.await(activity_fetch_task)
 
     activity_results =
@@ -137,25 +76,16 @@ defmodule Pleroma.Search.Elasticsearch do
         [direct_activity | activity_results]
       end
 
-    %{
-      "accounts" =>
-        AccountView.render("index.json",
-          users: user_results,
-          for: user
-        ),
-      "hashtags" =>
-        Enum.map(hashtag_results, fn x ->
-          %{
-            url: Endpoint.url() <> "/tag/" <> x,
-            name: x
-          }
-        end),
-      "statuses" =>
-        StatusView.render("index.json",
-          activities: activity_results,
-          for: user,
-          as: :activity
-        )
-    }
+    activity_results
+  end
+
+  @impl true
+  def add_to_index(activity) do
+    Elasticsearch.put_document(Pleroma.Search.Elasticsearch.Cluster, activity, "activities")
+  end
+
+  @impl true
+  def remove_from_index(object) do
+    Elasticsearch.delete_document(Pleroma.Search.Elasticsearch.Cluster, object, "activities")
   end
 end
