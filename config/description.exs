@@ -1653,38 +1653,6 @@ config :pleroma, :config_description, [
   },
   %{
     group: :pleroma,
-    key: :gopher,
-    type: :group,
-    description: "Gopher settings",
-    children: [
-      %{
-        key: :enabled,
-        type: :boolean,
-        description: "Enables the gopher interface"
-      },
-      %{
-        key: :ip,
-        label: "IP",
-        type: :tuple,
-        description: "IP address to bind to",
-        suggestions: [{0, 0, 0, 0}]
-      },
-      %{
-        key: :port,
-        type: :integer,
-        description: "Port to bind to",
-        suggestions: [9999]
-      },
-      %{
-        key: :dstport,
-        type: :integer,
-        description: "Port advertised in URLs (optional, defaults to port)",
-        suggestions: [9999]
-      }
-    ]
-  },
-  %{
-    group: :pleroma,
     key: :activitypub,
     label: "ActivityPub",
     type: :group,
@@ -2564,45 +2532,6 @@ config :pleroma, :config_description, [
         type: [:tuple, {:list, :tuple}],
         description: "For authentication create / password check / user existence check requests",
         suggestions: [{60_000, 15}]
-      }
-    ]
-  },
-  %{
-    group: :esshd,
-    label: "ESSHD",
-    type: :group,
-    description:
-      "Before enabling this you must add :esshd to mix.exs as one of the extra_applications " <>
-        "and generate host keys in your priv dir with ssh-keygen -m PEM -N \"\" -b 2048 -t rsa -f ssh_host_rsa_key",
-    children: [
-      %{
-        key: :enabled,
-        type: :boolean,
-        description: "Enables SSH"
-      },
-      %{
-        key: :priv_dir,
-        type: :string,
-        description: "Dir with SSH keys",
-        suggestions: ["/some/path/ssh_keys"]
-      },
-      %{
-        key: :handler,
-        type: :string,
-        description: "Handler module",
-        suggestions: ["Pleroma.BBS.Handler"]
-      },
-      %{
-        key: :port,
-        type: :integer,
-        description: "Port to connect",
-        suggestions: [10_022]
-      },
-      %{
-        key: :password_authenticator,
-        type: :string,
-        description: "Authenticator module",
-        suggestions: ["Pleroma.BBS.Authenticator"]
       }
     ]
   },

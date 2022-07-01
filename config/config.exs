@@ -149,7 +149,7 @@ config :pleroma, Pleroma.Web.Endpoint,
   ]
 
 # Configures Elixir's Logger
-config :logger, truncate: 65536
+config :logger, truncate: 65_536
 
 config :logger, :console,
   level: :info,
@@ -188,7 +188,7 @@ config :pleroma, :instance,
   name: "Pleroma",
   email: "example@example.com",
   notify_email: "noreply@example.com",
-  description: "Pleroma: An efficient and flexible fediverse server",
+  description: "Akkoma: The cooler fediverse server",
   background_image: "/images/city.jpg",
   instance_thumbnail: "/instance/thumbnail.jpeg",
   limit: 5_000,
@@ -605,7 +605,8 @@ config :pleroma, :ldap,
   uid: System.get_env("LDAP_UID") || "cn"
 
 oauth_consumer_strategies =
-  System.get_env("OAUTH_CONSUMER_STRATEGIES")
+  "OAUTH_CONSUMER_STRATEGIES"
+  |> System.get_env()
   |> to_string()
   |> String.split()
   |> Enum.map(&hd(String.split(&1, ":")))
@@ -715,17 +716,11 @@ config :pleroma, :static_fe, enabled: false
 # config :pleroma, :frontends,
 # primary: %{"name" => "pleroma-fe", "ref" => "develop"},
 # admin: %{"name" => "admin-fe", "ref" => "stable"},
+# mastodon: %{"enabled" => true, "name" => "mastodon-fe", "ref" => "develop"}
 # available: %{...}
 
 config :pleroma, :frontends,
   available: %{
-    "kenoma" => %{
-      "name" => "kenoma",
-      "git" => "https://git.pleroma.social/lambadalambda/kenoma",
-      "build_url" =>
-        "https://git.pleroma.social/lambadalambda/kenoma/-/jobs/artifacts/${ref}/download?job=build",
-      "ref" => "master"
-    },
     "pleroma-fe" => %{
       "name" => "pleroma-fe",
       "git" => "https://akkoma.dev/AkkomaGang/pleroma-fe",
@@ -733,21 +728,18 @@ config :pleroma, :frontends,
       "ref" => "develop",
       "build_dir" => "dist"
     },
-    "fedi-fe" => %{
-      "name" => "fedi-fe",
-      "git" => "https://git.pleroma.social/pleroma/fedi-fe",
-      "build_url" =>
-        "https://git.pleroma.social/pleroma/fedi-fe/-/jobs/artifacts/${ref}/download?job=build",
-      "ref" => "master",
-      "custom-http-headers" => [
-        {"service-worker-allowed", "/"}
-      ]
+    # mastodon-Fe cannot be set as a primary - this is only here so we can update this seperately
+    "mastodon-fe" => %{
+      "name" => "mastodon-fe",
+      "git" => "https://akkoma.dev/AkkomaGang/masto-fe",
+      "build_url" => "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/masto-fe.zip",
+      "build_dir" => "distribution",
+      "ref" => "develop"
     },
     "admin-fe" => %{
       "name" => "admin-fe",
-      "git" => "https://git.pleroma.social/pleroma/admin-fe",
-      "build_url" =>
-        "https://git.pleroma.social/pleroma/admin-fe/-/jobs/artifacts/${ref}/download?job=build",
+      "git" => "https://akkoma.dev/AkkomaGang/admin-fe",
+      "build_url" => "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/admin-fe.zip",
       "ref" => "develop"
     },
     "soapbox-fe" => %{
