@@ -6,7 +6,7 @@
 
 This guide is a step-by-step installation guide for Alpine Linux. The instructions were verified against Alpine v3.10 standard image. You might miss additional dependencies if you use `netboot` instead.
 
-It assumes that you have administrative rights, either as root or a user with [sudo permissions](https://www.linode.com/docs/tools-reference/custom-kernels-distros/install-alpine-linux-on-your-linode/#configuration). If you want to run this guide with root, ignore the `sudo` at the beginning of the lines, unless it calls a user like `sudo -Hu pleroma`; in this case, use `su -l <username> -s $SHELL -c 'command'` instead.
+It assumes that you have administrative rights, either as root or a user with [sudo permissions](https://www.linode.com/docs/tools-reference/custom-kernels-distros/install-alpine-linux-on-your-linode/#configuration). If you want to run this guide with root, ignore the `sudo` at the beginning of the lines, unless it calls a user like `sudo -Hu akkoma`; in this case, use `su -l <username> -s $SHELL -c 'command'` instead.
 
 {! backend/installation/generic_dependencies.include !}
 
@@ -71,46 +71,46 @@ sudo rc-update add postgresql
 sudo apk add ffmpeg imagemagick exiftool
 ```
 
-### Install PleromaBE
+### Install AkkomaBE
 
-* Add a new system user for the Pleroma service:
+* Add a new system user for the Akkoma service:
 
 ```shell
-sudo addgroup pleroma
-sudo adduser -S -s /bin/false -h /opt/pleroma -H -G pleroma pleroma
+sudo addgroup akkoma
+sudo adduser -S -s /bin/false -h /opt/akkoma -H -G akkoma akkoma
 ```
 
-**Note**: To execute a single command as the Pleroma system user, use `sudo -Hu pleroma command`. You can also switch to a shell by using `sudo -Hu pleroma $SHELL`. If you don’t have and want `sudo` on your system, you can use `su` as root user (UID 0) for a single command by using `su -l pleroma -s $SHELL -c 'command'` and `su -l pleroma -s $SHELL` for starting a shell.
+**Note**: To execute a single command as the Akkoma system user, use `sudo -Hu akkoma command`. You can also switch to a shell by using `sudo -Hu akkoma $SHELL`. If you don’t have and want `sudo` on your system, you can use `su` as root user (UID 0) for a single command by using `su -l akkoma -s $SHELL -c 'command'` and `su -l akkoma -s $SHELL` for starting a shell.
 
-* Git clone the PleromaBE repository and make the Pleroma user the owner of the directory:
+* Git clone the AkkomaBE repository and make the Akkoma user the owner of the directory:
 
 ```shell
-sudo mkdir -p /opt/pleroma
-sudo chown -R pleroma:pleroma /opt/pleroma
-sudo -Hu pleroma git clone -b stable https://git.pleroma.social/pleroma/pleroma /opt/pleroma
+sudo mkdir -p /opt/akkoma
+sudo chown -R akkoma:akkoma /opt/akkoma
+sudo -Hu akkoma git clone https://akkoma.dev/AkkomaGang/akkoma.git /opt/akkoma
 ```
 
 * Change to the new directory:
 
 ```shell
-cd /opt/pleroma
+cd /opt/akkoma
 ```
 
-* Install the dependencies for Pleroma and answer with `yes` if it asks you to install `Hex`:
+* Install the dependencies for Akkoma and answer with `yes` if it asks you to install `Hex`:
 
 ```shell
-sudo -Hu pleroma mix deps.get
+sudo -Hu akkoma mix deps.get
 ```
 
-* Generate the configuration: `sudo -Hu pleroma MIX_ENV=prod mix pleroma.instance gen`
+* Generate the configuration: `sudo -Hu akkoma MIX_ENV=prod mix pleroma.instance gen`
   * Answer with `yes` if it asks you to install `rebar3`.
-  * This may take some time, because parts of pleroma get compiled first.
+  * This may take some time, because parts of akkoma get compiled first.
   * After that it will ask you a few questions about your instance and generates a configuration file in `config/generated_config.exs`.
 
-* Check the configuration and if all looks right, rename it, so Pleroma will load it (`prod.secret.exs` for productive instance, `dev.secret.exs` for development instances):
+* Check the configuration and if all looks right, rename it, so Akkoma will load it (`prod.secret.exs` for productive instance, `dev.secret.exs` for development instances):
 
 ```shell
-sudo -Hu pleroma mv config/{generated_config.exs,prod.secret.exs}
+sudo -Hu akkoma mv config/{generated_config.exs,prod.secret.exs}
 ```
 
 * The previous command creates also the file `config/setup_db.psql`, with which you can create the database:
@@ -122,18 +122,18 @@ sudo -Hu postgres psql -f config/setup_db.psql
 * Now run the database migration:
 
 ```shell
-sudo -Hu pleroma MIX_ENV=prod mix ecto.migrate
+sudo -Hu akkoma MIX_ENV=prod mix ecto.migrate
 ```
 
-* Now you can start Pleroma already
+* Now you can start Akkoma already
 
 ```shell
-sudo -Hu pleroma MIX_ENV=prod mix phx.server
+sudo -Hu akkoma MIX_ENV=prod mix phx.server
 ```
 
 ### Finalize installation
 
-If you want to open your newly installed instance to the world, you should run nginx or some other webserver/proxy in front of Pleroma and you should consider to create an OpenRC service file for Pleroma.
+If you want to open your newly installed instance to the world, you should run nginx or some other webserver/proxy in front of Akkoma and you should consider to create an OpenRC service file for Akkoma.
 
 #### Nginx
 
@@ -161,7 +161,7 @@ If that doesn’t work, make sure, that nginx is not already running. If it stil
 * Copy the example nginx configuration to the nginx folder
 
 ```shell
-sudo cp /opt/pleroma/installation/pleroma.nginx /etc/nginx/conf.d/pleroma.conf
+sudo cp /opt/akkoma/installation/akkoma.nginx /etc/nginx/conf.d/akkoma.conf
 ```
 
 * Before starting nginx edit the configuration and change it to your needs. You must change change `server_name` and the paths to the certificates. You can use `nano` (install with `apk add nano` if missing).
@@ -202,13 +202,13 @@ sudo certbot certonly --email <your@emailaddress> -d <yourdomain> --webroot -w /
 * Copy example service file:
 
 ```shell
-sudo cp /opt/pleroma/installation/init.d/pleroma /etc/init.d/pleroma
+sudo cp /opt/akkoma/installation/init.d/akkoma /etc/init.d/akkoma
 ```
 
 * Make sure to start it during the boot
 
 ```shell
-sudo rc-update add pleroma
+sudo rc-update add akkoma
 ```
 
 #### Create your first user
@@ -216,13 +216,12 @@ sudo rc-update add pleroma
 If your instance is up and running, you can create your first user with administrative rights with the following task:
 
 ```shell
-sudo -Hu pleroma MIX_ENV=prod mix pleroma.user new <username> <your@emailaddress> --admin
+sudo -Hu akkoma MIX_ENV=prod mix pleroma.user new <username> <your@emailaddress> --admin
 ```
 
 #### Further reading
 
 {! backend/installation/further_reading.include !}
-
 ## Questions
 
-Questions about the installation or didn’t it work as it should be, ask in [#pleroma:libera.chat](https://matrix.to/#/#pleroma:libera.chat) via Matrix or **#pleroma** on **libera.chat** via IRC.
+If you encounter any issues or have questions regarding the install process, feel free to ask at [meta.akkoma.dev](https://meta.akkoma.dev/).

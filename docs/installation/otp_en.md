@@ -2,7 +2,7 @@
 
 {! backend/installation/otp_vs_from_source.include !}
 
-This guide covers a installation using an OTP release. To install Pleroma from source, please check out the corresponding guide for your distro.
+This guide covers a installation using an OTP release. To install Akkoma from source, please check out the corresponding guide for your distro.
 
 ## Pre-requisites
 * A machine running Linux with GNU (e.g. Debian, Ubuntu) or musl (e.g. Alpine) libc and `x86_64`, `aarch64` or `armv7l` CPU, you have root access to. If you are not sure if it's compatible see [Detecting flavour section](#detecting-flavour) below
@@ -23,7 +23,7 @@ If your platform is supported the output will contain the flavour string, you wi
 
 ### Installing the required packages
 
-Other than things bundled in the OTP release Pleroma depends on:
+Other than things bundled in the OTP release Akkoma depends on:
 
 * curl (to download the release build)
 * unzip (needed to unpack release builds)
@@ -104,62 +104,62 @@ Restart PostgreSQL to apply configuration changes:
     systemctl restart postgresql
     ```
 
-### Installing Pleroma
+### Installing Akkoma
 ```sh
-# Create a Pleroma user
-adduser --system --shell  /bin/false --home /opt/pleroma pleroma
+# Create a Akkoma user
+adduser --system --shell  /bin/false --home /opt/akkoma akkoma
 
 # Set the flavour environment variable to the string you got in Detecting flavour section.
 # For example if the flavour is `amd64-musl` the command will be
 export FLAVOUR="amd64-musl"
 
 # Clone the release build into a temporary directory and unpack it
-su pleroma -s $SHELL -lc "
-curl 'https://git.pleroma.social/api/v4/projects/2/jobs/artifacts/stable/download?job=$FLAVOUR' -o /tmp/pleroma.zip
-unzip /tmp/pleroma.zip -d /tmp/
+su akkoma -s $SHELL -lc "
+curl 'https://akkoma-updates.s3-website.fr-par.scw.cloud/develop/akkoma-$FLAVOUR.zip' -o /tmp/akkoma.zip
+unzip /tmp/akkoma.zip -d /tmp/
 "
 
 # Move the release to the home directory and delete temporary files
-su pleroma -s $SHELL -lc "
-mv /tmp/release/* /opt/pleroma
+su akkoma -s $SHELL -lc "
+mv /tmp/release/* /opt/akkoma
 rmdir /tmp/release
-rm /tmp/pleroma.zip
+rm /tmp/akkoma.zip
 "
 # Create uploads directory and set proper permissions (skip if planning to use a remote uploader)
-# Note: It does not have to be `/var/lib/pleroma/uploads`, the config generator will ask about the upload directory later
+# Note: It does not have to be `/var/lib/akkoma/uploads`, the config generator will ask about the upload directory later
 
-mkdir -p /var/lib/pleroma/uploads
-chown -R pleroma /var/lib/pleroma
+mkdir -p /var/lib/akkoma/uploads
+chown -R akkoma /var/lib/akkoma
 
 # Create custom public files directory (custom emojis, frontend bundle overrides, robots.txt, etc.)
-# Note: It does not have to be `/var/lib/pleroma/static`, the config generator will ask about the custom public files directory later
-mkdir -p /var/lib/pleroma/static
-chown -R pleroma /var/lib/pleroma
+# Note: It does not have to be `/var/lib/akkoma/static`, the config generator will ask about the custom public files directory later
+mkdir -p /var/lib/akkoma/static
+chown -R akkoma /var/lib/akkoma
 
 # Create a config directory
-mkdir -p /etc/pleroma
-chown -R pleroma /etc/pleroma
+mkdir -p /etc/akkoma
+chown -R akkoma /etc/akkoma
 
 # Run the config generator
-su pleroma -s $SHELL -lc "./bin/pleroma_ctl instance gen --output /etc/pleroma/config.exs --output-psql /tmp/setup_db.psql"
+su akkoma -s $SHELL -lc "./bin/pleroma_ctl instance gen --output /etc/akkoma/config.exs --output-psql /tmp/setup_db.psql"
 
 # Create the postgres database
 su postgres -s $SHELL -lc "psql -f /tmp/setup_db.psql"
 
 # Create the database schema
-su pleroma -s $SHELL -lc "./bin/pleroma_ctl migrate"
+su akkoma -s $SHELL -lc "./bin/pleroma_ctl migrate"
 
 # If you have installed RUM indexes uncommend and run
-# su pleroma -s $SHELL -lc "./bin/pleroma_ctl migrate --migrations-path priv/repo/optional_migrations/rum_indexing/"
+# su akkoma -s $SHELL -lc "./bin/pleroma_ctl migrate --migrations-path priv/repo/optional_migrations/rum_indexing/"
 
 # Start the instance to verify that everything is working as expected
-su pleroma -s $SHELL -lc "./bin/pleroma daemon"
+su akkoma -s $SHELL -lc "./bin/pleroma daemon"
 
 # Wait for about 20 seconds and query the instance endpoint, if it shows your uri, name and email correctly, you are configured correctly
 sleep 20 && curl http://localhost:4000/api/v1/instance
 
 # Stop the instance
-su pleroma -s $SHELL -lc "./bin/pleroma stop"
+su akkoma -s $SHELL -lc "./bin/pleroma stop"
 ```
 
 ### Setting up nginx and getting Let's Encrypt SSL certificaties
@@ -169,24 +169,24 @@ su pleroma -s $SHELL -lc "./bin/pleroma stop"
 certbot certonly --standalone --preferred-challenges http -d yourinstance.tld
 ```
 
-#### Copy Pleroma nginx configuration to the nginx folder
+#### Copy Akkoma nginx configuration to the nginx folder
 
 The location of nginx configs is dependent on the distro
 
 === "Alpine"
     ```
-    cp /opt/pleroma/installation/pleroma.nginx /etc/nginx/conf.d/pleroma.conf
+    cp /opt/akkoma/installation/akkoma.nginx /etc/nginx/conf.d/akkoma.conf
     ```
 
 === "Debian/Ubuntu"
     ```
-    cp /opt/pleroma/installation/pleroma.nginx /etc/nginx/sites-available/pleroma.conf
-    ln -s /etc/nginx/sites-available/pleroma.conf /etc/nginx/sites-enabled/pleroma.conf
+    cp /opt/akkoma/installation/akkoma.nginx /etc/nginx/sites-available/akkoma.conf
+    ln -s /etc/nginx/sites-available/akkoma.conf /etc/nginx/sites-enabled/akkoma.conf
     ```
 
-If your distro does not have either of those you can append `include /etc/nginx/pleroma.conf` to the end of the http section in /etc/nginx/nginx.conf and
+If your distro does not have either of those you can append `include /etc/nginx/akkoma.conf` to the end of the http section in /etc/nginx/nginx.conf and
 ```sh
-cp /opt/pleroma/installation/pleroma.nginx /etc/nginx/pleroma.conf
+cp /opt/akkoma/installation/akkoma.nginx /etc/nginx/akkoma.conf
 ```
 
 #### Edit the nginx config
@@ -209,33 +209,33 @@ nginx -t
     systemctl start nginx
     ```
 
-At this point if you open your (sub)domain in a browser you should see a 502 error, that's because Pleroma is not started yet.
+At this point if you open your (sub)domain in a browser you should see a 502 error, that's because Akkoma is not started yet.
 
 ### Setting up a system service
 
 === "Alpine"
     ```
     # Copy the service into a proper directory
-    cp /opt/pleroma/installation/init.d/pleroma /etc/init.d/pleroma
+    cp /opt/akkoma/installation/init.d/akkoma /etc/init.d/akkoma
 
-    # Start pleroma and enable it on boot
-    rc-service pleroma start
-    rc-update add pleroma
+    # Start akkoma and enable it on boot
+    rc-service akkoma start
+    rc-update add akkoma
     ```
 
 === "Debian/Ubuntu"
     ```
     # Copy the service into a proper directory
-    cp /opt/pleroma/installation/pleroma.service /etc/systemd/system/pleroma.service
+    cp /opt/akkoma/installation/akkoma.service /etc/systemd/system/akkoma.service
 
-    # Start pleroma and enable it on boot
-    systemctl start pleroma
-    systemctl enable pleroma
+    # Start akkoma and enable it on boot
+    systemctl start akkoma
+    systemctl enable akkoma
     ```
 
-If everything worked, you should see Pleroma-FE when visiting your domain. If that didn't happen, try reviewing the installation steps, starting Pleroma in the foreground and seeing if there are any errrors.
+If everything worked, you should see Akkoma-FE when visiting your domain. If that didn't happen, try reviewing the installation steps, starting Akkoma in the foreground and seeing if there are any errrors.
 
-Questions about the installation or didn’t it work as it should be, ask in [#pleroma:libera.chat](https://matrix.to/#/#pleroma:libera.chat) via Matrix or **#pleroma** on **libera.chat** via IRC, you can also [file an issue on our Gitlab](https://git.pleroma.social/pleroma/pleroma-support/issues/new).
+Questions about the installation or didn’t it work as it should be, ask in [#pleroma:libera.chat](https://matrix.to/#/#pleroma:libera.chat) via Matrix or **#pleroma** on **libera.chat** via IRC, you can also [file an issue on our Gitea](https://akkoma.dev/AkkomaGang/akkoma/issues).
 
 ## Post installation
 
@@ -266,10 +266,10 @@ nginx -t
     # Add it to the daily cron
     echo '#!/bin/sh
     certbot renew --cert-name yourinstance.tld --webroot -w /var/lib/letsencrypt/ --post-hook "rc-service nginx reload"
-    ' > /etc/periodic/daily/renew-pleroma-cert
-    chmod +x /etc/periodic/daily/renew-pleroma-cert
+    ' > /etc/periodic/daily/renew-akkoma-cert
+    chmod +x /etc/periodic/daily/renew-akkoma-cert
 
-    # If everything worked the output should contain /etc/cron.daily/renew-pleroma-cert
+    # If everything worked the output should contain /etc/cron.daily/renew-akkoma-cert
     run-parts --test /etc/periodic/daily
     ```
 
@@ -284,17 +284,17 @@ nginx -t
     # Add it to the daily cron
     echo '#!/bin/sh
     certbot renew --cert-name yourinstance.tld --webroot -w /var/lib/letsencrypt/ --post-hook "systemctl reload nginx"
-    ' > /etc/cron.daily/renew-pleroma-cert
-    chmod +x /etc/cron.daily/renew-pleroma-cert
+    ' > /etc/cron.daily/renew-akkoma-cert
+    chmod +x /etc/cron.daily/renew-akkoma-cert
 
-    # If everything worked the output should contain /etc/cron.daily/renew-pleroma-cert
+    # If everything worked the output should contain /etc/cron.daily/renew-akkoma-cert
     run-parts --test /etc/cron.daily
     ```
 
 ## Create your first user and set as admin
 ```sh
-cd /opt/pleroma
-su pleroma -s $SHELL -lc "./bin/pleroma_ctl user new joeuser joeuser@sld.tld --admin"
+cd /opt/akkoma
+su akkoma -s $SHELL -lc "./bin/pleroma_ctl user new joeuser joeuser@sld.tld --admin"
 ```
 This will create an account withe the username of 'joeuser' with the email address of joeuser@sld.tld, and set that user's account as an admin. This will result in a link that you can paste into the browser, which logs you in and enables you to set the password.
 
@@ -304,4 +304,4 @@ This will create an account withe the username of 'joeuser' with the email addre
 
 ## Questions
 
-Questions about the installation or didn’t it work as it should be, ask in [#pleroma:libera.chat](https://matrix.to/#/#pleroma:libera.chat) via Matrix or **#pleroma** on **libera.chat** via IRC, you can also [file an issue on our Gitlab](https://git.pleroma.social/pleroma/pleroma-support/issues/new).
+If you encounter any issues or have questions regarding the install process, feel free to ask at [meta.akkoma.dev](https://meta.akkoma.dev/).

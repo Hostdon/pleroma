@@ -8,7 +8,7 @@ pkgin should have been installed by the NetBSD installer if you selected
 the right options. If it isn't installed, install it using pkg_add.
 
 Note that `postgresql11-contrib` is needed for the Postgres extensions
-Pleroma uses.
+Akkoma uses.
 
 The `mksh` shell is needed to run the Elixir `mix` script.
 
@@ -50,28 +50,28 @@ First, run `# /etc/rc.d/pgsql start`. Then, `$ sudo -Hu pgsql -g pgsql createdb`
 
 `# pkgin install ImageMagick ffmpeg4 p5-Image-ExifTool`
 
-## Configuring Pleroma
+## Configuring Akkoma
 
-Create a user for Pleroma:
+Create a user for Akkoma:
 
 ```
-# groupadd pleroma
-# useradd -d /home/pleroma -m -g pleroma -s /usr/pkg/bin/mksh pleroma
-# echo 'export LC_ALL="en_GB.UTF-8"' >> /home/pleroma/.profile
-# su -l pleroma -c $SHELL
+# groupadd akkoma
+# useradd -d /home/akkoma -m -g akkoma -s /usr/pkg/bin/mksh akkoma
+# echo 'export LC_ALL="en_GB.UTF-8"' >> /home/akkoma/.profile
+# su -l akkoma -c $SHELL
 ```
 
 Clone the repository:
 
 ```
-$ cd /home/pleroma
-$ git clone -b stable https://git.pleroma.social/pleroma/pleroma.git
+$ cd /home/akkoma
+$ git clone https://akkoma.dev/AkkomaGang/akkoma.git
 ```
 
-Configure Pleroma. Note that you need a domain name at this point:
+Configure Akkoma. Note that you need a domain name at this point:
 
 ```
-$ cd /home/pleroma/pleroma
+$ cd /home/akkoma/akkoma
 $ mix deps.get
 $ MIX_ENV=prod mix pleroma.instance gen # You will be asked a few questions here.
 ```
@@ -101,7 +101,7 @@ $ MIX_ENV=prod mix ecto.migrate
 ## Configuring nginx
 
 Install the example configuration file
-`/home/pleroma/pleroma/installation/pleroma.nginx` to
+`/home/akkoma/akkoma/installation/akkoma.nginx` to
 `/usr/pkg/etc/nginx.conf`.
 
 Note that it will need to be wrapped in a `http {}` block. You should add
@@ -172,24 +172,24 @@ Let's add auto-renewal to `/etc/daily.local`
     --stateless
 ```
 
-## Creating a startup script for Pleroma
+## Creating a startup script for Akkoma
 
 Copy the startup script to the correct location and make sure it's executable:
 
 ```
-# cp /home/pleroma/pleroma/installation/netbsd/rc.d/pleroma /etc/rc.d/pleroma
-# chmod +x /etc/rc.d/pleroma
+# cp /home/akkoma/akkoma/installation/netbsd/rc.d/akkoma /etc/rc.d/akkoma
+# chmod +x /etc/rc.d/akkoma
 ```
 
 Add the following to `/etc/rc.conf`:
 
 ```
-pleroma=YES
-pleroma_home="/home/pleroma"
-pleroma_user="pleroma"
+akkoma=YES
+akkoma_home="/home/akkoma"
+akkoma_user="akkoma"
 ```
 
-Run `# /etc/rc.d/pleroma start` to start Pleroma.
+Run `# /etc/rc.d/akkoma start` to start Akkoma.
 
 ## Conclusion
 
@@ -209,3 +209,6 @@ incorrect timestamps. You should have ntpd running.
 ## Questions
 
 Questions about the installation or didn’t it work as it should be, ask in [#pleroma:libera.chat](https://matrix.to/#/#pleroma:libera.chat) via Matrix or **#pleroma** on **libera.chat** via IRC.
+## Questions
+
+If you encounter any issues or have questions regarding the install process, feel free to ask at [meta.akkoma.dev](https://meta.akkoma.dev/).

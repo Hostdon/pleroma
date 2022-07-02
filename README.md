@@ -22,7 +22,6 @@ If your platform is not supported, or you just want to be able to edit the sourc
 
 - [Alpine Linux](https://docs.akkoma.dev/main/backend/installation/alpine_linux_en/)
 - [Arch Linux](https://docs.akkoma.dev/main/backend/installation/arch_linux_en/)
-- [CentOS 7](https://docs.akkoma.dev/main/backend/installation/centos7_en/)
 - [Debian-based](https://docs.akkoma.dev/main/backend/installation/debian_based_en/)
 - [Debian-based (jp)](https://docs.akkoma.dev/main/backend/installation/debian_based_jp/)
 - [FreeBSD](https://docs.akkoma.dev/main/backend/installation/freebsd_en/)

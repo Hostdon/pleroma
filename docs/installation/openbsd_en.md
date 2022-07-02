@@ -1,6 +1,6 @@
 # Installing on OpenBSD
 
-This guide describes the installation and configuration of pleroma (and the required software to run it) on a single OpenBSD 6.6 server.
+This guide describes the installation and configuration of akkoma (and the required software to run it) on a single OpenBSD 6.6 server.
 
 For any additional information regarding commands and configuration files mentioned here, check the man pages [online](https://man.openbsd.org/) or directly on your server with the man command.
 
@@ -15,7 +15,7 @@ To install them, run the following command (with doas or as root):
 pkg_add elixir gmake git postgresql-server postgresql-contrib cmake ffmpeg ImageMagick
 ```
 
-Pleroma requires a reverse proxy, OpenBSD has relayd in base (and is used in this guide) and packages/ports are available for nginx (www/nginx) and apache (www/apache-httpd). Independently of the reverse proxy, [acme-client(1)](https://man.openbsd.org/acme-client) can be used to get a certificate from Let's Encrypt.
+Akkoma requires a reverse proxy, OpenBSD has relayd in base (and is used in this guide) and packages/ports are available for nginx (www/nginx) and apache (www/apache-httpd). Independently of the reverse proxy, [acme-client(1)](https://man.openbsd.org/acme-client) can be used to get a certificate from Let's Encrypt.
 
 #### Optional software
 
@@ -30,20 +30,20 @@ To install the above:
 pkg_add ImageMagick ffmpeg p5-Image-ExifTool
 ```
 
-#### Creating the pleroma user
-Pleroma will be run by a dedicated user, \_pleroma. Before creating it, insert the following lines in login.conf:
+#### Creating the akkoma user
+Akkoma will be run by a dedicated user, \_akkoma. Before creating it, insert the following lines in login.conf:
 ```
-pleroma:\
+akkoma:\
 	:datasize-max=1536M:\
 	:datasize-cur=1536M:\
 	:openfiles-max=4096
 ```
-This creates a "pleroma" login class and sets higher values than default for datasize and openfiles (see [login.conf(5)](https://man.openbsd.org/login.conf)), this is required to avoid having pleroma crash some time after starting.
+This creates a "akkoma" login class and sets higher values than default for datasize and openfiles (see [login.conf(5)](https://man.openbsd.org/login.conf)), this is required to avoid having akkoma crash some time after starting.
 
-Create the \_pleroma user, assign it the pleroma login class and create its home directory (/home/\_pleroma/): `useradd -m -L pleroma _pleroma`
+Create the \_akkoma user, assign it the akkoma login class and create its home directory (/home/\_akkoma/): `useradd -m -L akkoma _akkoma`
 
-#### Clone pleroma's directory
-Enter a shell as the \_pleroma user. As root, run `su _pleroma -;cd`. Then clone the repository with `git clone -b stable https://git.pleroma.social/pleroma/pleroma.git`. Pleroma is now installed in /home/\_pleroma/pleroma/, it will be configured and started at the end of this guide.
+#### Clone akkoma's directory
+Enter a shell as the \_akkoma user. As root, run `su _akkoma -;cd`. Then clone the repository with `git clone https://akkoma.dev/AkkomaGang/akkoma.git`. Akkoma is now installed in /home/\_akkoma/akkoma/, it will be configured and started at the end of this guide.
 
 #### PostgreSQL
 Start a shell as the \_postgresql user (as root run `su _postgresql -` then run the `initdb` command to initialize postgresql:
@@ -137,7 +137,7 @@ ln -s /etc/ssl/private/<domain name>.key /etc/ssl/private/<IP address>.key
 This will have to be done for each IPv4 and IPv6 address relayd listens on.
 
 #### relayd
-relayd will be used as the reverse proxy sitting in front of pleroma.
+relayd will be used as the reverse proxy sitting in front of akkoma.
 Insert the following configuration in /etc/relayd.conf:
 ```
 # $OpenBSD: relayd.conf,v 1.4 2018/03/23 09:55:06 claudio Exp $
@@ -145,19 +145,19 @@ Insert the following configuration in /etc/relayd.conf:
 ext_inet="<IPv4 address>"
 ext_inet6="<IPv6 address>"
 
-table <pleroma_server> { 127.0.0.1 }
+table <akkoma_server> { 127.0.0.1 }
 table <httpd_server> { 127.0.0.1 }
 
-http protocol plerup { # Protocol for upstream pleroma server
+http protocol plerup { # Protocol for upstream akkoma server
 	#tcp { nodelay, sack, socket buffer 65536, backlog 128 } # Uncomment and adjust as you see fit
 	tls ciphers "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305"
 	tls ecdhe secp384r1
 
-	# Forward some paths to the local server (as pleroma won't respond to them as you might want)
+	# Forward some paths to the local server (as akkoma won't respond to them as you might want)
 	pass request quick path "/robots.txt" forward to <httpd_server>
 
 	# Append a bunch of headers
-	match request header append "X-Forwarded-For" value "$REMOTE_ADDR" # This two header and the next one are not strictly required by pleroma but adding them won't hurt
+	match request header append "X-Forwarded-For" value "$REMOTE_ADDR" # This two header and the next one are not strictly required by akkoma but adding them won't hurt
 	match request header append "X-Forwarded-By" value "$SERVER_ADDR:$SERVER_PORT"
 
 	match response header append "X-XSS-Protection" value "1; mode=block"
@@ -170,7 +170,7 @@ http protocol plerup { # Protocol for upstream pleroma server
 	match request header append "Connection" value "upgrade"
 	#match response header append "Strict-Transport-Security" value "max-age=31536000; includeSubDomains" # Uncomment this only after you get HTTPS working.
 
-	# If you do not want remote frontends to be able to access your Pleroma backend server, comment these lines
+	# If you do not want remote frontends to be able to access your Akkoma backend server, comment these lines
 	match response header append "Access-Control-Allow-Origin" value "*"
 	match response header append "Access-Control-Allow-Methods" value "POST, PUT, DELETE, GET, PATCH, OPTIONS"
 	match response header append "Access-Control-Allow-Headers" value "Authorization, Content-Type, Idempotency-Key"
@@ -184,7 +184,7 @@ relay wwwtls {
 
 	protocol plerup
 
-	forward to <pleroma_server> port 4000 check http "/" code 200
+	forward to <akkoma_server> port 4000 check http "/" code 200
 	forward to <httpd_server> port 80 check http "/robots.txt" code 200
 }
 ```
@@ -225,27 +225,27 @@ Replace *<network interface\>* by your server's network interface name (which yo
 
 Check pf's configuration by running `pfctl -nf /etc/pf.conf`, load it with `pfctl -f /etc/pf.conf` and enable pf at boot with `rcctl enable pf`.
 
-#### Configure and start pleroma
-Enter a shell as \_pleroma (as root `su _pleroma -`) and enter pleroma's installation directory (`cd ~/pleroma/`).
+#### Configure and start akkoma
+Enter a shell as \_akkoma (as root `su _akkoma -`) and enter akkoma's installation directory (`cd ~/akkoma/`).
 
 Then follow the main installation guide:
 
   * run `mix deps.get`
   * run `MIX_ENV=prod mix pleroma.instance gen` and enter your instance's information when asked
   * copy config/generated\_config.exs to config/prod.secret.exs. The default values should be sufficient but you should edit it and check that everything seems OK.
-  * exit your current shell back to a root one and run `psql -U postgres -f /home/_pleroma/pleroma/config/setup_db.psql` to setup the database.
-  * return to a \_pleroma shell into pleroma's installation directory (`su _pleroma -;cd ~/pleroma`) and run `MIX_ENV=prod mix ecto.migrate`
+  * exit your current shell back to a root one and run `psql -U postgres -f /home/_akkoma/akkoma/config/setup_db.psql` to setup the database.
+  * return to a \_akkoma shell into akkoma's installation directory (`su _akkoma -;cd ~/akkoma`) and run `MIX_ENV=prod mix ecto.migrate`
 
-As \_pleroma in /home/\_pleroma/pleroma, you can now run `LC_ALL=en_US.UTF-8 MIX_ENV=prod mix phx.server` to start your instance.
+As \_akkoma in /home/\_akkoma/akkoma, you can now run `LC_ALL=en_US.UTF-8 MIX_ENV=prod mix phx.server` to start your instance.
 In another SSH session/tmux window, check that it is working properly by running `ftp -MVo - http://127.0.0.1:4000/api/v1/instance`, you should get json output. Double-check that *uri*'s value is your instance's domain name.
 
-##### Starting pleroma at boot
-An rc script to automatically start pleroma at boot hasn't been written yet, it can be run in a tmux session (tmux is in base).
+##### Starting akkoma at boot
+An rc script to automatically start akkoma at boot hasn't been written yet, it can be run in a tmux session (tmux is in base).
 
 
 #### Create administrative user
 
-If your instance is up and running, you can create your first user with administrative rights with the following command as the \_pleroma user.
+If your instance is up and running, you can create your first user with administrative rights with the following command as the \_akkoma user.
 ```
 LC_ALL=en_US.UTF-8 MIX_ENV=prod mix pleroma.user new <username> <your@emailaddress> --admin
 ```
@@ -256,4 +256,4 @@ LC_ALL=en_US.UTF-8 MIX_ENV=prod mix pleroma.user new <username> <your@emailaddre
 
 ## Questions
 
-Questions about the installation or didn’t it work as it should be, ask in [#pleroma:libera.chat](https://matrix.to/#/#pleroma:libera.chat) via Matrix or **#pleroma** on **libera.chat** via IRC.
+If you encounter any issues or have questions regarding the install process, feel free to ask at [meta.akkoma.dev](https://meta.akkoma.dev/).

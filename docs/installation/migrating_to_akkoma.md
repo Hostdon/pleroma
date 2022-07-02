@@ -16,14 +16,14 @@ aside from actually responsive maintainer(s)? let's lookie here, we've got:
 ## Actually migrating
 
 Let's say you're very cool and have decided to move to the cooler
-fork of Pleroma - luckily this isn't very hard.
+fork of Akkoma - luckily this isn't very hard.
 
 You'll need to update the backend, then possibly the frontend, depending
 on your setup.
 
 ## From Source
 
-If you're running the source Pleroma install, you'll need to set the
+If you're running the source Akkoma install, you'll need to set the
 upstream git URL then just rebuild - that'll be:
 
 ```bash

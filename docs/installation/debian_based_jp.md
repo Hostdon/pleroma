@@ -1,17 +1,17 @@
-# Pleromaの入れ方
+# Akkomaの入れ方
 ## 日本語訳について
 
 この記事は [Installing on Debian based distributions](Installing on Debian based distributions) の日本語訳です。何かがおかしいと思ったら、原文を見てください。
 
 ## インストール
 
-このガイドはDebian Stretchを利用することを想定しています。Ubuntu 16.04や18.04でもおそらく動作します。また、ユーザはrootもしくはsudoにより管理者権限を持っていることを前提とします。もし、以下の操作をrootユーザで行う場合は、 `sudo` を無視してください。ただし、`sudo -Hu pleroma` のようにユーザを指定している場合には `su <username> -s $SHELL -c 'command'` を代わりに使ってください。
+このガイドはDebian Stretchを利用することを想定しています。Ubuntu 16.04や18.04でもおそらく動作します。また、ユーザはrootもしくはsudoにより管理者権限を持っていることを前提とします。もし、以下の操作をrootユーザで行う場合は、 `sudo` を無視してください。ただし、`sudo -Hu akkoma` のようにユーザを指定している場合には `su <username> -s $SHELL -c 'command'` を代わりに使ってください。
 
 ### 必要なソフトウェア
 
 - PostgreSQL 9.6以上 (Ubuntu16.04では9.5しか提供されていないので，[](https://www.postgresql.org/download/linux/ubuntu/)こちらから新しいバージョンを入手してください)
 - `postgresql-contrib` 9.6以上 (同上)
-- Elixir 1.8 以上 ([Debianのリポジトリからインストールしないこと！！！ ここからインストールすること！](https://elixir-lang.org/install.html#unix-and-unix-like)。または [asdf](https://github.com/asdf-vm/asdf) をpleromaユーザーでインストールしてください)
+- Elixir 1.8 以上 ([Debianのリポジトリからインストールしないこと！！！ ここからインストールすること！](https://elixir-lang.org/install.html#unix-and-unix-like)。または [asdf](https://github.com/asdf-vm/asdf) をakkomaユーザーでインストールしてください)
 - `erlang-dev`
 - `erlang-nox`
 - `git`
@@ -60,65 +60,65 @@ sudo apt install elixir erlang-dev erlang-nox
 sudo apt install imagemagick ffmpeg libimage-exiftool-perl
 ```
 
-### Pleroma BE (バックエンド) をインストールします
+### Akkoma BE (バックエンド) をインストールします
 
-*  Pleroma用に新しいユーザーを作ります。
+*  Akkoma用に新しいユーザーを作ります。
 
 ```
-sudo useradd -r -s /bin/false -m -d /var/lib/pleroma -U pleroma
+sudo useradd -r -s /bin/false -m -d /var/lib/akkoma -U akkoma
 ```
 
-**注意**: Pleromaユーザとして単発のコマンドを実行したい場合はは、`sudo -Hu pleroma command` を使ってください。シェルを使いたい場合は `sudo -Hu pleroma $SHELL`です。もし `sudo` を使わない場合は、rootユーザで `su -l pleroma -s $SHELL -c 'command'` とすることでコマンドを、`su -l pleroma -s $SHELL` とすることでシェルを開始できます。
+**注意**: Akkomaユーザとして単発のコマンドを実行したい場合はは、`sudo -Hu akkoma command` を使ってください。シェルを使いたい場合は `sudo -Hu akkoma $SHELL`です。もし `sudo` を使わない場合は、rootユーザで `su -l akkoma -s $SHELL -c 'command'` とすることでコマンドを、`su -l akkoma -s $SHELL` とすることでシェルを開始できます。
 
 *  Gitリポジトリをクローンします。
 ```
-sudo mkdir -p /opt/pleroma
-sudo chown -R pleroma:pleroma /opt/pleroma
-sudo -Hu pleroma git clone -b stable https://git.pleroma.social/pleroma/pleroma /opt/pleroma
+sudo mkdir -p /opt/akkoma
+sudo chown -R akkoma:akkoma /opt/akkoma
+sudo -Hu akkoma git clone https://akkoma.dev/AkkomaGang/akkoma.git /opt/akkoma
 ```
 
 *  新しいディレクトリに移動します。
 ```
-cd /opt/pleroma
+cd /opt/akkoma
 ```
 
-* Pleromaが依存するパッケージをインストールします。Hexをインストールしてもよいか聞かれたら、yesを入力してください。
+* Akkomaが依存するパッケージをインストールします。Hexをインストールしてもよいか聞かれたら、yesを入力してください。
 ```
-sudo -Hu pleroma mix deps.get
+sudo -Hu akkoma mix deps.get
 ```
 
 * コンフィギュレーションを生成します。
 ```
-sudo -Hu pleroma MIX_ENV=prod mix pleroma.instance gen
+sudo -Hu akkoma MIX_ENV=prod mix pleroma.instance gen
 ```
     * rebar3をインストールしてもよいか聞かれたら、yesを入力してください。
-    * このときにpleromaの一部がコンパイルされるため、この処理には時間がかかります。
+    * このときにakkomaの一部がコンパイルされるため、この処理には時間がかかります。
     * あなたのインスタンスについて、いくつかの質問されます。この質問により `config/generated_config.exs` という設定ファイルが生成されます。
 
 
 * コンフィギュレーションを確認して、もし問題なければ、ファイル名を変更してください。
 ```
-sudo -Hu pleroma mv config/{generated_config.exs,prod.secret.exs}
+sudo -Hu akkoma mv config/{generated_config.exs,prod.secret.exs}
 ```
 
 * 先程のコマンドで、すでに `config/setup_db.psql` というファイルが作られています。このファイルをもとに、データベースを作成します。
 ```
-sudo -Hu pleroma MIX_ENV=prod mix pleroma.instance gen
+sudo -Hu akkoma MIX_ENV=prod mix pleroma.instance gen
 ```
 
 * そして、データベースのマイグレーションを実行します。
 ```
-sudo -Hu pleroma MIX_ENV=prod mix ecto.migrate
+sudo -Hu akkoma MIX_ENV=prod mix ecto.migrate
 ```
 
-* これでPleromaを起動できるようになりました。
+* これでAkkomaを起動できるようになりました。
 ```
-sudo -Hu pleroma MIX_ENV=prod mix phx.server
+sudo -Hu akkoma MIX_ENV=prod mix phx.server
 ```
 
 ### インストールの最終段階
 
-あなたの新しいインスタンスを世界に向けて公開するには、nginx等のWebサーバやプロキシサーバをPleromaの前段に使用する必要があります。また、Pleroma のためにシステムサービスファイルを作成する必要があります。
+あなたの新しいインスタンスを世界に向けて公開するには、nginx等のWebサーバやプロキシサーバをAkkomaの前段に使用する必要があります。また、Akkoma のためにシステムサービスファイルを作成する必要があります。
 
 #### Nginx
 
@@ -143,8 +143,8 @@ sudo certbot certonly --email <your@emailaddress> -d <yourdomain> --standalone
 
 * nginxの設定ファイルサンプルをnginxフォルダーにコピーします。
 ```
-sudo cp /opt/pleroma/installation/pleroma.nginx /etc/nginx/sites-available/pleroma.nginx
-sudo ln -s /etc/nginx/sites-available/pleroma.nginx /etc/nginx/sites-enabled/pleroma.nginx
+sudo cp /opt/akkoma/installation/akkoma.nginx /etc/nginx/sites-available/akkoma.nginx
+sudo ln -s /etc/nginx/sites-available/akkoma.nginx /etc/nginx/sites-enabled/akkoma.nginx
 ```
 
 * nginxを起動する前に、設定ファイルを編集してください。例えば、サーバー名、証明書のパスなどを変更する必要があります。
@@ -160,19 +160,19 @@ sudo certbot certonly --email <your@emailaddress> -d <yourdomain> --webroot -w /
 ```
 
 #### 他のWebサーバやプロキシ
-これに関してはサンプルが `/opt/pleroma/installation/` にあるので、探してみてください。
+これに関してはサンプルが `/opt/akkoma/installation/` にあるので、探してみてください。
 
 #### Systemd サービス
 
 * サービスファイルのサンプルをコピーします。
 ```
-sudo cp /opt/pleroma/installation/pleroma.service /etc/systemd/system/pleroma.service
+sudo cp /opt/akkoma/installation/akkoma.service /etc/systemd/system/akkoma.service
 ```
 
 * サービスファイルを変更します。すべてのパスが正しいことを確認してください
-* サービスを有効化し `pleroma.service` を開始してください
+* サービスを有効化し `akkoma.service` を開始してください
 ```
-sudo systemctl enable --now pleroma.service
+sudo systemctl enable --now akkoma.service
 ```
 
 #### 初期ユーザの作成
@@ -180,16 +180,9 @@ sudo systemctl enable --now pleroma.service
 新たにインスタンスを作成したら、以下のコマンドにより管理者権限を持った初期ユーザを作成できます。
 
 ```
-sudo -Hu pleroma MIX_ENV=prod mix pleroma.user new <username> <your@emailaddress> --admin
+sudo -Hu akkoma MIX_ENV=prod mix pleroma.user new <username> <your@emailaddress> --admin
 ```
 
 #### その他の設定とカスタマイズ
 
 {! backend/installation/further_reading.include !}
-
-## 質問ある？
-
-インストールについて質問がある、もしくは、うまくいかないときは、以下のところで質問できます。
-
-* [#pleroma:libera.chat](https://matrix.to/#/#pleroma:libera.chat)
-* **libera.chat** の **#pleroma** IRCチャンネル

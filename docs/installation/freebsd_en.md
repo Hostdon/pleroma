@@ -34,27 +34,27 @@ Setup the required services to automatically start at boot, using `sysrc(8)`.
 # pkg install imagemagick ffmpeg p5-Image-ExifTool
 ```
 
-## Configuring Pleroma
+## Configuring Akkoma
 
-Create a user for Pleroma:
+Create a user for Akkoma:
 
 ```
-# pw add user pleroma -m
-# echo 'export LC_ALL="en_US.UTF-8"' >> /home/pleroma/.profile
-# su -l pleroma
+# pw add user akkoma -m
+# echo 'export LC_ALL="en_US.UTF-8"' >> /home/akkoma/.profile
+# su -l akkoma
 ```
 
 Clone the repository:
 
 ```
-$ cd $HOME # Should be the same as /home/pleroma
-$ git clone -b stable https://git.pleroma.social/pleroma/pleroma.git
+$ cd $HOME # Should be the same as /home/akkoma
+$ git clone https://akkoma.dev/AkkomaGang/akkoma.git
 ```
 
-Configure Pleroma. Note that you need a domain name at this point:
+Configure Akkoma. Note that you need a domain name at this point:
 
 ```
-$ cd /home/pleroma/pleroma
+$ cd /home/akkoma/akkoma
 $ mix deps.get # Enter "y" when asked to install Hex
 $ MIX_ENV=prod mix pleroma.instance gen # You will be asked a few questions here.
 $ cp config/generated_config.exs config/prod.secret.exs
@@ -66,7 +66,7 @@ now be a file in `config/setup_db.psql` that makes this easier. Edit it, and
 it'll be protecting your database. As root, you can now initialize the database:
 
 ```
-# cd /home/pleroma/pleroma
+# cd /home/akkoma/akkoma
 # sudo -Hu postgres -g postgres psql -f config/setup_db.psql
 ```
 
@@ -81,11 +81,11 @@ Once this is done, restart Postgres with:
 
 Run the database migrations.
 
-Back as the pleroma user, run the following to implement any database migrations.
+Back as the akkoma user, run the following to implement any database migrations.
 
 ```
-# su -l pleroma
-$ cd /home/pleroma/pleroma
+# su -l akkoma
+$ cd /home/akkoma/akkoma
 $ MIX_ENV=prod mix ecto.migrate
 ```
 
@@ -163,40 +163,40 @@ http {
 }
 ```
 
-As root, copy `/home/pleroma/pleroma/installation/pleroma.nginx` to
-`/usr/local/etc/nginx/sites-available/pleroma.nginx`.
+As root, copy `/home/akkoma/akkoma/installation/akkoma.nginx` to
+`/usr/local/etc/nginx/sites-available/akkoma.nginx`.
 
-Edit the defaults of `/usr/local/etc/nginx/sites-available/pleroma.nginx`:
+Edit the defaults of `/usr/local/etc/nginx/sites-available/akkoma.nginx`:
 
 * Change `ssl_trusted_certificate` to `/var/db/acme/certs/example.tld/example.tld.cer`.
 * Change `ssl_certificate` to `/var/db/acme/certs/example.tld/fullchain.cer`.
 * Change `ssl_certificate_key` to `/var/db/acme/certs/example.tld/example.tld.key`.
 * Change all references of `example.tld` to your instance's domain name.
 
-## Creating a startup script for Pleroma
+## Creating a startup script for Akkoma
 
-Pleroma will need to compile when it initially starts, which typically takes a longer
-period of time. Therefore, it is good practice to initially run pleroma from the
+Akkoma will need to compile when it initially starts, which typically takes a longer
+period of time. Therefore, it is good practice to initially run akkoma from the
 command-line before utilizing the rc.d script. That is done as follows:
 
 ```
-# su -l pleroma
-$ cd $HOME/pleroma
+# su -l akkoma
+$ cd $HOME/akkoma
 $ MIX_ENV=prod mix phx.server
 ```
 
 Copy the startup script to the correct location and make sure it's executable:
 
 ```
-# cp /home/pleroma/pleroma/installation/freebsd/rc.d/pleroma /usr/local/etc/rc.d/pleroma
-# chmod +x /usr/local/etc/rc.d/pleroma
+# cp /home/akkoma/akkoma/installation/freebsd/rc.d/akkoma /usr/local/etc/rc.d/akkoma
+# chmod +x /usr/local/etc/rc.d/akkoma
 ```
 
-Update the `/etc/rc.conf` and start pleroma with the following commands:
+Update the `/etc/rc.conf` and start akkoma with the following commands:
 
 ```
-# sysrc pleroma_enable=YES
-# service pleroma start
+# sysrc akkoma_enable=YES
+# service akkoma start
 ```
 
 #### Create your first user
@@ -204,7 +204,7 @@ Update the `/etc/rc.conf` and start pleroma with the following commands:
 If your instance is up and running, you can create your first user with administrative rights with the following task:
 
 ```shell
-sudo -Hu pleroma MIX_ENV=prod mix pleroma.user new <username> <your@emailaddress> --admin
+sudo -Hu akkoma MIX_ENV=prod mix pleroma.user new <username> <your@emailaddress> --admin
 ```
 ## Conclusion
 
@@ -212,7 +212,6 @@ Restart nginx with `# service nginx restart` and you should be up and running.
 
 Make sure your time is in sync, or other instances will receive your posts with
 incorrect timestamps. You should have ntpd running.
-
 ## Questions
 
-Questions about the installation or didn’t it work as it should be, ask in [#pleroma:libera.chat](https://matrix.to/#/#pleroma:libera.chat) via Matrix or **#pleroma** on **libera.chat** via IRC.
+If you encounter any issues or have questions regarding the install process, feel free to ask at [meta.akkoma.dev](https://meta.akkoma.dev/).

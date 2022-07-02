@@ -1,4 +1,4 @@
-# Pleroman asennus OpenBSD:llä
+# Akkoman asennus OpenBSD:llä
 
 Tarvitset:
 * Oman domainin
@@ -45,19 +45,19 @@ Käynnistä tietokanta ja aseta se käynnistymään automaattisesti.
 
 `# rcctl enable postgresql`
 
-Luo käyttäjä pleromaa varten (kysyy muutaman kysymyksen):
+Luo käyttäjä akkomaa varten (kysyy muutaman kysymyksen):
 
-`# adduser pleroma`
+`# adduser akkoma`
 
-Vaihda pleroma-käyttäjään ja mene kotihakemistoosi:
+Vaihda akkoma-käyttäjään ja mene kotihakemistoosi:
 
-`# su - pleroma`
+`# su - akkoma`
 
-Lataa pleroman lähdekoodi:
+Lataa akkoman lähdekoodi:
 
-`$ git clone -b stable https://git.pleroma.social/pleroma/pleroma.git`
+`$ git clone https://akkoma.dev/AkkomaGang/akkoma.git`
 
-`$ cd pleroma`
+`$ cd akkoma`
 
 Asenna tarvittavat elixir-kirjastot:
 
@@ -77,7 +77,7 @@ Aja luodut tietokantakomennot:
 
 `$ MIX_ENV=prod mix ecto.migrate`
 
-Käynnistä pleroma-prosessi:
+Käynnistä akkoma-prosessi:
 
 `$ MIX_ENV=prod mix compile`
 
@@ -90,18 +90,18 @@ että kohta "uri" on "https://esimerkki.com".
 Huom! Muista varmistaa että muuttuja MIX_ENV on "prod" mix-komentoja ajaessasi.
 Mix lukee oikean konfiguraatiotiedoston sen mukaisesti.
 
-Ohessa enimmäkseen toimivaksi todettu rc.d-skripti pleroman käynnistämiseen.
-Kirjoita se tiedostoon /etc/rc.d/pleroma. Tämän jälkeen aja
-`# chmod +x /etc/rc.d/pleroma`, ja voit käynnistää pleroman komennolla
-`# /etc/rc.d/pleroma start`.
+Ohessa enimmäkseen toimivaksi todettu rc.d-skripti akkoman käynnistämiseen.
+Kirjoita se tiedostoon /etc/rc.d/akkoma. Tämän jälkeen aja
+`# chmod +x /etc/rc.d/akkoma`, ja voit käynnistää akkoman komennolla
+`# /etc/rc.d/akkoma start`.
 
 ```
 #!/bin/ksh
-#/etc/rc.d/pleroma
+#/etc/rc.d/akkoma
 
-daemon="cd /home/pleroma/pleroma;MIX_ENV=prod /usr/local/bin/elixir"
+daemon="cd /home/akkoma/akkoma;MIX_ENV=prod /usr/local/bin/elixir"
 daemon_flags="--detached /usr/local/bin/mix phx.server"
-daemon_user="pleroma"
+daemon_user="akkoma"
 rc_reload="NO"
 rc_bg="YES"
 
@@ -112,8 +112,8 @@ pexp="beam"
 rc_cmd $1
 ```
 
-Tämän jälkeen tarvitset enää HTTP-serverin välittämään kutsut pleroma-prosessille.
-Tiedostosta `install/pleroma.nginx` löytyy esimerkkikonfiguraatio, ja TLS-sertifikaatit
+Tämän jälkeen tarvitset enää HTTP-serverin välittämään kutsut akkoma-prosessille.
+Tiedostosta `install/akkoma.nginx` löytyy esimerkkikonfiguraatio, ja TLS-sertifikaatit
 saat ilmaiseksi esimerkiksi [letsencryptiltä](https://certbot.eff.org/lets-encrypt/opbsd-nginx.html).
 Nginx asentuu yksinkertaisesti komennolla `# pkg_add nginx`.
 
