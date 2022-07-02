@@ -15,7 +15,7 @@ defmodule Pleroma.Web.Preload.Providers.InstanceTest do
              registrations: true
            } = info
 
-    assert String.equivalent?(description, "Pleroma: An efficient and flexible fediverse server")
+    assert String.equivalent?(description, "Akkoma: The cooler fediverse server")
   end
 
   test "it renders the panel", %{"/instance/panel.html" => panel} do

@@ -27,7 +27,7 @@ pipeline:
     environment:
       MIX_ENV: prod
     commands:
-      - apt-get update && apt-get install -y cmake libmagic-dev rclone zip
+      - apt-get update && apt-get install -y cmake libmagic-dev rclone zip imagemagick libmagic-dev
       - wget https://github.com/scaleway/scaleway-cli/releases/download/v2.5.1/scaleway-cli_2.5.1_linux_amd64
       - mv scaleway-cli_2.5.1_linux_amd64 scaleway-cli
       - chmod +x scaleway-cli
@@ -58,7 +58,7 @@ pipeline:
     environment:
       MIX_ENV: prod
     commands:
-      - apk add git gcc g++ musl-dev make cmake file-dev rclone wget zip
+      - apk add git gcc g++ musl-dev make cmake file-dev rclone wget zip imagemagick
       - rm -rf release || true
       - rm -rf _build || true
       - rm -rf /root/.mix

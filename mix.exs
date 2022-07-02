@@ -194,7 +194,7 @@ defmodule Pleroma.Mixfile do
        ref: "e0f16822d578866e186a0974d65ad58cddc1e2ab"},
       {:restarter, path: "./restarter"},
       {:majic, "~> 1.0"},
-      {:eblurhash, "~> 1.1.0"},
+      {:eblurhash, "~> 1.2.2"},
       {:open_api_spex, "~> 3.10"},
       {:elastix, ">= 0.0.0"},
       {:search_parser,
