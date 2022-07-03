@@ -1,7 +1,7 @@
-# How to activate Pleroma in-database configuration
+# How to activate Akkoma in-database configuration
 ## Explanation
 
-The configuration of Pleroma has traditionally been managed with a config file, e.g. `config/prod.secret.exs`. This method requires a restart of the application for any configuration changes to take effect. We have made it possible to control most settings in the AdminFE interface after running a migration script.
+The configuration of Akkoma (and Pleroma) has traditionally been managed with a config file, e.g. `config/prod.secret.exs`. This method requires a restart of the application for any configuration changes to take effect. We have made it possible to control most settings in the AdminFE interface after running a migration script.
 
 ## Migration to database config
 
@@ -17,7 +17,7 @@ The configuration of Pleroma has traditionally been managed with a config file, 
 
   **OTP:**
 
-  *Note: OTP users need Pleroma to be running for `pleroma_ctl` commands to work*
+  *Note: OTP users need Akkoma to be running for `pleroma_ctl` commands to work*
 
   ```
   $ ./bin/pleroma_ctl config migrate_to_db
@@ -36,7 +36,7 @@ The configuration of Pleroma has traditionally been managed with a config file, 
   cp config/dev.secret.exs config/dev.secret.exs.orig
   ```
 
-3. Edit your Pleroma config to enable database configuration:
+3. Edit your Akkoma config to enable database configuration:
 
   ```
   config :pleroma, configurable_from_database: true
@@ -66,9 +66,9 @@ The configuration of Pleroma has traditionally been managed with a config file, 
 
   config :pleroma, Pleroma.Repo,
     adapter: Ecto.Adapters.Postgres,
-    username: "pleroma",
+    username: "akkoma",
     password: "MySecretPassword",
-    database: "pleroma_prod",
+    database: "akkoma_prod",
     hostname: "localhost"
 
   config :pleroma, configurable_from_database: true

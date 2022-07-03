@@ -1,5 +1,5 @@
 # Hardening your instance
-Here are some suggestions which improve the security of parts of your Pleroma instance.
+Here are some suggestions which improve the security of parts of your Akkoma instance.
 
 ## Configuration file
 
@@ -9,13 +9,13 @@ These changes should go into `prod.secret.exs` or `dev.secret.exs`, depending on
 
 > Recommended value: `[ip: {127, 0, 0, 1}]`
 
-This sets the Pleroma application server to only listen to the localhost interface. This way, you can only reach your server over the Internet by going through the reverse proxy. By default, Pleroma listens on all interfaces.
+This sets the Akkoma application server to only listen to the localhost interface. This way, you can only reach your server over the Internet by going through the reverse proxy. By default, Akkoma listens on all interfaces.
 
 ### `secure_cookie_flag`
 
 > Recommended value: `true`
 
-This sets the `secure` flag on Pleroma’s session cookie. This makes sure, that the cookie is only accepted over encrypted HTTPs connections. This implicitly renames the cookie from `pleroma_key` to `__Host-pleroma-key` which enforces some restrictions. (see [cookie prefixes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie#Cookie_prefixes))
+This sets the `secure` flag on Akkoma’s session cookie. This makes sure, that the cookie is only accepted over encrypted HTTPs connections. This implicitly renames the cookie from `pleroma_key` to `__Host-pleroma-key` which enforces some restrictions. (see [cookie prefixes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie#Cookie_prefixes))
 
 ### `:http_security`
 
@@ -76,7 +76,7 @@ Use private `/tmp` and `/var/tmp` folders inside a new file system namespace, wh
 
 > Recommended value: `true`
 
-The `/home`, `/root`, and `/run/user` folders can not be accessed by this service anymore. If your Pleroma user has its home folder in one of the restricted places, or use one of these folders as its working directory, you have to set this to `false`.
+The `/home`, `/root`, and `/run/user` folders can not be accessed by this service anymore. If your Akkoma user has its home folder in one of the restricted places, or use one of these folders as its working directory, you have to set this to `false`.
 
 ### ProtectSystem
 

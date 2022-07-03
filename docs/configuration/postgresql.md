@@ -1,6 +1,6 @@
 # Optimizing PostgreSQL performance
 
-Pleroma performance is largely dependent on performance of the underlying database. Better performance can be achieved by adjusting a few settings.
+Akkoma performance is largely dependent on performance of the underlying database. Better performance can be achieved by adjusting a few settings.
 
 ## PGTune
 
@@ -10,10 +10,10 @@ Pleroma performance is largely dependent on performance of the underlying databa
 
 When PostgreSQL receives a query, it decides on a strategy for searching the requested data, this is called a query plan. The query planner has two modes: generic and custom. Generic makes a plan for all queries of the same shape, ignoring the parameters, which is then cached and reused. Custom, on the contrary, generates a unique query plan based on query parameters.
 
-By default PostgreSQL has an algorithm to decide which mode is more efficient for particular query, however this algorithm has been observed to be wrong on some of the queries Pleroma sends, leading to serious performance loss. Therefore, it is recommended to disable generic mode.
+By default PostgreSQL has an algorithm to decide which mode is more efficient for particular query, however this algorithm has been observed to be wrong on some of the queries Akkoma sends, leading to serious performance loss. Therefore, it is recommended to disable generic mode.
 
 
-Pleroma already avoids generic query plans by default, however the method it uses is not the most efficient because it needs to be compatible with all supported PostgreSQL versions. For PostgreSQL 12 and higher additional performance can be gained by adding the following to Pleroma configuration:
+Akkoma already avoids generic query plans by default, however the method it uses is not the most efficient because it needs to be compatible with all supported PostgreSQL versions. For PostgreSQL 12 and higher additional performance can be gained by adding the following to Akkoma configuration:
 ```elixir
 config :pleroma, Pleroma.Repo,
   prepare: :named,

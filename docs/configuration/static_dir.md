@@ -1,6 +1,6 @@
 # Static Directory
 
-Static frontend files are shipped with pleroma. If you want to overwrite or update these without problems during upgrades, you can write your custom versions to the static directory.
+Static frontend files are shipped with Akkoma. If you want to overwrite or update these without problems during upgrades, you can write your custom versions to the static directory.
 
 You can find the location of the static directory in the [configuration](../cheatsheet/#instance).
 
@@ -8,7 +8,7 @@ You can find the location of the static directory in the [configuration](../chea
 
     ```elixir
     config :pleroma, :instance,
-      static_dir: "/var/lib/pleroma/static/"
+      static_dir: "/var/lib/akkoma/static/"
     ```
 
 === "From Source"
@@ -53,7 +53,7 @@ Create and Edit your file at `$static_dir/instance/panel.html`.
 
 ## Background
 
-You can change the background of your Pleroma instance by uploading it to `$static_dir/`, and then changing `background` in [your configuration](../cheatsheet/#frontend_configurations) accordingly.
+You can change the background of your Akkoma instance by uploading it to `$static_dir/`, and then changing `background` in [your configuration](../cheatsheet/#frontend_configurations) accordingly.
 
 E.g. if you put `$static_dir/images/background.jpg`
 

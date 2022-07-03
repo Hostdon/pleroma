@@ -11,7 +11,7 @@ Possible uses include:
 * removing media from messages
 * sending only public messages to a specific instance
 
-The MRF provides user-configurable policies. The default policy is `NoOpPolicy`, which disables the MRF functionality. Pleroma also includes an easy to use policy called `SimplePolicy` which maps messages matching certain pre-defined criterion to actions built into the policy module.
+The MRF provides user-configurable policies. The default policy is `NoOpPolicy`, which disables the MRF functionality. Akkoma also includes an easy to use policy called `SimplePolicy` which maps messages matching certain pre-defined criterion to actions built into the policy module.
 
 It is possible to use multiple, active MRF policies at the same time.
 
@@ -122,7 +122,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.RewritePolicy do
 end
 ```
 
-If you save this file as `lib/pleroma/web/activity_pub/mrf/rewrite_policy.ex`, it will be included when you next rebuild Pleroma.  You can enable it in the configuration like so:
+If you save this file as `lib/pleroma/web/activity_pub/mrf/rewrite_policy.ex`, it will be included when you next rebuild Akkoma.  You can enable it in the configuration like so:
 
 ```elixir
 config :pleroma, :mrf,
@@ -132,7 +132,7 @@ config :pleroma, :mrf,
   ]
 ```
 
-Please note that the Pleroma developers consider custom MRF policy modules to fall under the purview of the AGPL. As such, you are obligated to release the sources to your custom MRF policy modules upon request.
+Please note that the Akkoma developers consider custom MRF policy modules to fall under the purview of the AGPL. As such, you are obligated to release the sources to your custom MRF policy modules upon request.
 
 ### MRF policies descriptions
 

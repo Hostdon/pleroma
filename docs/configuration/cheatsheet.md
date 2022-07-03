@@ -1,12 +1,12 @@
 # Configuration Cheat Sheet
 
-This is a cheat sheet for Pleroma configuration file, any setting possible to configure should be listed here.
+This is a cheat sheet for Akkoma configuration file, any setting possible to configure should be listed here.
 
-For OTP installations the configuration is typically stored in `/etc/pleroma/config.exs`.
+For OTP installations the configuration is typically stored in `/etc/akkoma/config.exs`.
 
-For from source installations Pleroma configuration works by first importing the base config `config/config.exs`, then overriding it by the environment config `config/$MIX_ENV.exs` and then overriding it by user config `config/$MIX_ENV.secret.exs`. In from source installations you should always make the changes to the user config and NEVER to the base config to avoid breakages and merge conflicts. So for production you change/add configuration to `config/prod.secret.exs`.
+For from source installations Akkoma configuration works by first importing the base config `config/config.exs`, then overriding it by the environment config `config/$MIX_ENV.exs` and then overriding it by user config `config/$MIX_ENV.secret.exs`. In from source installations you should always make the changes to the user config and NEVER to the base config to avoid breakages and merge conflicts. So for production you change/add configuration to `config/prod.secret.exs`.
 
-To add configuration to your config file, you can copy it from the base config. The latest version of it can be viewed [here](https://git.pleroma.social/pleroma/pleroma/blob/develop/config/config.exs). You can also use this file if you don't know how an option is supposed to be formatted.
+To add configuration to your config file, you can copy it from the base config. The latest version of it can be viewed [here](https://akkoma.dev/AkkomaGang/akkoma/src/branch/develop/config/config.exs). You can also use this file if you don't know how an option is supposed to be formatted.
 
 ## :shout
 
@@ -99,7 +99,7 @@ To add configuration to your config file, you can copy it from the base config. 
         ],
       email: [
         enabled: true,
-        sender: {"Pleroma App", "welcome@pleroma.app"},
+        sender: {"Akkoma App", "welcome@akkoma.app"},
         subject: "Welcome to <%= instance_name %>",
         html: "Welcome to <%= instance_name %>",
         text: "Welcome to <%= instance_name %>"
@@ -254,7 +254,7 @@ This can be used to configure a keyword list that keeps the configuration data f
 
 Frontends can access these settings at `/api/v1/pleroma/frontend_configurations`
 
-To add your own configuration for PleromaFE, use it like this:
+To add your own configuration for Pleroma-FE, use it like this:
 
 ```elixir
 config :pleroma, :frontend_configurations,
@@ -398,7 +398,7 @@ config :pleroma, Pleroma.Web.MediaProxy.Invalidation.Http,
 !!! note
     `Phoenix` endpoint configuration, all configuration options can be viewed [here](https://hexdocs.pm/phoenix/Phoenix.Endpoint.html#module-dynamic-configuration), only common options are listed here.
 
-* `http` - a list containing http protocol configuration, all configuration options can be viewed [here](https://hexdocs.pm/plug_cowboy/Plug.Cowboy.html#module-options), only common options are listed here. For deployment using docker, you need to set this to `[ip: {0,0,0,0}, port: 4000]` to make pleroma accessible from other containers (such as your nginx server).
+* `http` - a list containing http protocol configuration, all configuration options can be viewed [here](https://hexdocs.pm/plug_cowboy/Plug.Cowboy.html#module-options), only common options are listed here. For deployment using docker, you need to set this to `[ip: {0,0,0,0}, port: 4000]` to make akkoma accessible from other containers (such as your nginx server).
   - `ip` - a tuple consisting of 4 integers
   - `port`
 * `url` - a list containing the configuration for generating urls, accepts
@@ -418,7 +418,7 @@ config :pleroma, Pleroma.Web.Endpoint,
   ]
 ```
 
-This will make Pleroma listen on `127.0.0.1` port `8080` and generate urls starting with `https://example.com:2020`
+This will make Akkoma listen on `127.0.0.1` port `8080` and generate urls starting with `https://example.com:2020`
 
 ### :http_security
 * ``enabled``: Whether the managed content security policy is enabled.
@@ -576,9 +576,9 @@ the source code is here: [kocaptcha](https://github.com/koto-bank/kocaptcha). Th
 
 * `uploader`: Which one of the [uploaders](#uploaders) to use.
 * `filters`: List of [upload filters](#upload-filters) to use.
-* `link_name`: When enabled Pleroma will add a `name` parameter to the url of the upload, for example `https://instance.tld/media/corndog.png?name=corndog.png`. This is needed to provide the correct filename in Content-Disposition headers when using filters like `Pleroma.Upload.Filter.Dedupe`
+* `link_name`: When enabled Akkoma will add a `name` parameter to the url of the upload, for example `https://instance.tld/media/corndog.png?name=corndog.png`. This is needed to provide the correct filename in Content-Disposition headers when using filters like `Pleroma.Upload.Filter.Dedupe`
 * `base_url`: The base URL to access a user-uploaded file. Useful when you want to host the media files via another domain or are using a 3rd party S3 provider.
-* `proxy_remote`: If you're using a remote uploader, Pleroma will proxy media requests instead of redirecting to it.
+* `proxy_remote`: If you're using a remote uploader, Akkoma will proxy media requests instead of redirecting to it.
 * `proxy_opts`: Proxy options, see `Pleroma.ReverseProxy` documentation.
 * `filename_display_max_length`: Set max length of a filename to display. 0 = no limit. Default: 30.
 * `default_description`: Sets which default description an image has if none is set explicitly. Options: nil (default) - Don't set a default, :filename - use the filename of the file, a string (e.g. "attachment") - Use this string
@@ -683,7 +683,7 @@ Email notifications settings.
 
 ### Pleroma.Emails.UserEmail
 
-- `:logo` - a path to a custom logo. Set it to `nil` to use the default Pleroma logo.
+- `:logo` - a path to a custom logo. Set it to `nil` to use the default Akkoma logo.
 - `:styling` - a map with color settings for email templates.
 
 ### Pleroma.Emails.NewUsersDigestEmail
@@ -703,7 +703,7 @@ Configuration options described in [Oban readme](https://github.com/sorentwo/oba
 * `queues` - job queues (see below)
 * `crontab` - periodic jobs, see [`Oban.Cron`](#obancron)
 
-Pleroma has the following queues:
+Akkoma has the following queues:
 
 * `activity_expiration` - Activity expiration
 * `federator_outgoing` - Outgoing federation
@@ -715,7 +715,7 @@ Pleroma has the following queues:
 
 #### Oban.Cron
 
-Pleroma has these periodic job workers:
+Akkoma has these periodic job workers:
 
 * `Pleroma.Workers.Cron.DigestEmailsWorker` - digest emails for users with new mentions and follows
 * `Pleroma.Workers.Cron.NewUsersDigestWorker` - digest emails for admins with new registrations
@@ -874,11 +874,11 @@ Authentication / authorization settings.
 
 ### :ldap
 
-Use LDAP for user authentication.  When a user logs in to the Pleroma
+Use LDAP for user authentication.  When a user logs in to the Akkoma
 instance, the name and password will be verified by trying to authenticate
 (bind) to an LDAP server.  If a user exists in the LDAP directory but there
-is no account with the same name yet on the Pleroma instance then a new
-Pleroma account will be created with the same name as the LDAP user name.
+is no account with the same name yet on the Akkoma instance then a new
+Akkoma account will be created with the same name as the LDAP user name.
 
 * `enabled`: enables LDAP authentication
 * `host`: LDAP server hostname
@@ -893,7 +893,7 @@ Pleroma account will be created with the same name as the LDAP user name.
 Note, if your LDAP server is an Active Directory server the correct value is commonly `uid: "cn"`, but if you use an
 OpenLDAP server the value may be `uid: "uid"`.
 
-### :oauth2 (Pleroma as OAuth 2.0 provider settings)
+### :oauth2 (Akkoma as OAuth 2.0 provider settings)
 
 OAuth 2.0 provider settings:
 
@@ -918,7 +918,7 @@ Implementation is based on Ueberauth; see the list of [available strategies](htt
     Each strategy is shipped as a separate dependency; in order to get the strategies, run `OAUTH_CONSUMER_STRATEGIES="..." mix deps.get`, e.g. `OAUTH_CONSUMER_STRATEGIES="twitter facebook google microsoft" mix deps.get`.  The server should also be started with `OAUTH_CONSUMER_STRATEGIES="..." mix phx.server` in case you enable any strategies.
 
 !!! note
-    Each strategy requires separate setup (on external provider side and Pleroma side). Below are the guidelines on setting up most popular strategies.
+    Each strategy requires separate setup (on external provider side and Akkoma side). Below are the guidelines on setting up most popular strategies.
 
 !!! note
     Make sure that `"SameSite=Lax"` is set in `extra_cookie_attrs` when you have this feature enabled. OAuth consumer mode will not work with `"SameSite=Strict"`
@@ -988,7 +988,7 @@ config :ueberauth, Ueberauth,
 
 ### Pleroma.Formatter
 
-Configuration for Pleroma's link formatter which parses mentions, hashtags, and URLs.
+Configuration for Akkoma's link formatter which parses mentions, hashtags, and URLs.
 
 * `class` - specify the class to be added to the generated link (default: `false`)
 * `rel` - specify the rel attribute (default: `ugc`)
@@ -1080,7 +1080,7 @@ Control favicons for instances.
 
 * `:purge_after_days` an integer, remove backup achives after N days.
 * `:limit_days` an integer, limit user to export not more often than once per N days.
-* `:dir` a string with a path to backup temporary directory or `nil` to let Pleroma choose temporary directory in the following order:
+* `:dir` a string with a path to backup temporary directory or `nil` to let Akkoma choose temporary directory in the following order:
     1. the directory named by the TMPDIR environment variable
     2. the directory named by the TEMP environment variable
     3. the directory named by the TMP environment variable
@@ -1089,9 +1089,9 @@ Control favicons for instances.
 
 ## Frontend management
 
-Frontends in Pleroma are swappable - you can specify which one to use here.
+Frontends in Akkoma are swappable - you can specify which one to use here.
 
-You can set a frontends for the key `primary` and `admin` and the options of `name` and `ref`. This will then make Pleroma serve the frontend from a folder constructed by concatenating the instance static path, `frontends` and the name and ref.
+You can set a frontends for the key `primary` and `admin` and the options of `name` and `ref`. This will then make Akkoma serve the frontend from a folder constructed by concatenating the instance static path, `frontends` and the name and ref.
 
 The key `primary` refers to the frontend that will be served by default for general requests. The key `admin` refers to the frontend that will be served at the `/pleroma/admin` path.
 

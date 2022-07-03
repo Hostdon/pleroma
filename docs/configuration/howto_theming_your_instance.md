@@ -43,11 +43,11 @@ Example of `styles.json` where we add our own `my-awesome-theme.json`
 }
 ```
 
-Now you'll already be able to select the theme in Pleroma FE from the drop-down. You don't need to restart Pleroma because we only changed static served files. You may need to refresh the page in your browser. You'll notice however that the theme doesn't have a name, it's just an empty entry in the drop-down.
+Now you'll already be able to select the theme in Pleroma FE from the drop-down. You don't need to restart Akkoma because we only changed static served files. You may need to refresh the page in your browser. You'll notice however that the theme doesn't have a name, it's just an empty entry in the drop-down.
 
 ### Give the theme a name
 
-When you open one of the themes that ship with Pleroma, you'll notice that the json has a `"name"` key. Add a key-value pair to your theme where the key name is `"name"` and the value the name you want to give your theme. After this you can refresh te page in your browser and the name should be visible in the drop-down.
+When you open one of the themes that ship with Akkoma, you'll notice that the json has a `"name"` key. Add a key-value pair to your theme where the key name is `"name"` and the value the name you want to give your theme. After this you can refresh te page in your browser and the name should be visible in the drop-down.
 
 Example of `my-awesome-theme.json` where we add the name "My Awesome Theme"
 ```json

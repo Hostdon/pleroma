@@ -13,7 +13,7 @@ To add custom emoji:
   file in that directory and specify a custom shortcode using the following format:
   `shortcode, file-path, tag1, tag2, etc`. One emoji per line. Note that if you do so,
   you'll have to list all other emojis in the pack too.
-* Either restart pleroma or connect to the iex session pleroma's running and
+* Either restart Akkoma or connect to the iex session Akkoma's running and
   run `Pleroma.Emoji.reload/0` in it.
 
 Example:

@@ -1,6 +1,6 @@
 # I2P Federation and Accessability
 
-This guide is going to focus on the Pleroma federation aspect. The actual installation is neatly explained in the official documentation, and more likely to remain up-to-date.
+This guide is going to focus on the Akkoma federation aspect. The actual installation is neatly explained in the official documentation, and more likely to remain up-to-date.
 It might be added to this guide if there will be a need for that.
 
 We're going to use I2PD for its lightweightness over the official client.
@@ -17,13 +17,13 @@ One using the config, and one using external software (fedproxy). The external s
 
 **Warning:** So far, everytime I followed this way of federating using I2P, the rest of my federation stopped working. I'm leaving this here in case it will help with making it work.
 
-Assuming you're running in prod, cd to your Pleroma folder and append the following to `config/prod.secret.exs`:
+Assuming you're running in prod, cd to your Akkoma folder and append the following to `config/prod.secret.exs`:
 ```
 config :pleroma, :http, proxy_url: {:socks5, :localhost, 4447}
 ```
 And then run the following:
 ```
-su pleroma
+su akkoma
 MIX_ENV=prod mix deps.get
 MIX_ENV=prod mix ecto.migrate
 exit
@@ -45,7 +45,7 @@ To use [fedproxy](https://github.com/majestrate/fedproxy) you'll need to install
 ```
 apt install golang
 ```
-Use a different user than pleroma or root. Run the following to add the Gopath to your ~/.bashrc.
+Use a different user than akkoma or root. Run the following to add the Gopath to your ~/.bashrc.
 ```
 echo "export GOPATH=/home/ren/.go" >> ~/.bashrc
 ```
@@ -60,15 +60,15 @@ And then the following to start it for I2P only.
 fedproxy 127.0.0.1:2000 127.0.0.1:4447
 ```
 If you want to also use it for Tor, add `127.0.0.1:9050` to that command.
-You'll also need to modify your Pleroma config.
+You'll also need to modify your Akkoma config.
 
-Assuming you're running in prod, cd to your Pleroma folder and append the following to `config/prod.secret.exs`:
+Assuming you're running in prod, cd to your Akkoma folder and append the following to `config/prod.secret.exs`:
 ```
 config :pleroma, :http, proxy_url: {:socks5, :localhost, 2000}
 ```
 And then run the following:
 ```
-su pleroma
+su akkoma
 MIX_ENV=prod mix deps.get
 MIX_ENV=prod mix ecto.migrate
 exit
@@ -89,11 +89,11 @@ Make your instance accessible using I2P.
 
 Add the following to your I2PD config `/etc/i2pd/tunnels.conf`:
 ```
-[pleroma]
+[akkoma]
 type = http
 host = 127.0.0.1
 port = 14447
-keys = pleroma.dat
+keys = akkoma.dat
 ```
 Restart I2PD:
 ```
@@ -108,7 +108,7 @@ Or you'll need to access your web-console on localhost:7070.
 If you don't have a GUI, you'll have to SSH tunnel into it like this:
 `ssh -L 7070:127.0.0.1:7070 user@ip -p port`.
 Now you can access it at localhost:7070.
-Go to I2P tunnels page. Look for Server tunnels and you will see an address that ends with `.b32.i2p` next to "pleroma".
+Go to I2P tunnels page. Look for Server tunnels and you will see an address that ends with `.b32.i2p` next to "akkoma".
 This is your site's address.
 
 ### I2P-only Instance
@@ -121,10 +121,10 @@ In addition to that, replace the existing nginx config's contents with the examp
 
 ### Existing Instance (Clearnet Instance)
 
-If not an I2P-only instance, add the nginx config below to your existing config at `/etc/nginx/sites-enabled/pleroma.nginx`.
+If not an I2P-only instance, add the nginx config below to your existing config at `/etc/nginx/sites-enabled/akkoma.nginx`.
 
-And for both cases, disable CSP in Pleroma's config (STS is disabled by default) so you can define those yourself separately from the clearnet (if your instance is also on the clearnet).
-Copy the following into the `config/prod.secret.exs` in your Pleroma folder (/home/pleroma/pleroma/):
+And for both cases, disable CSP in Akkoma's config (STS is disabled by default) so you can define those yourself separately from the clearnet (if your instance is also on the clearnet).
+Copy the following into the `config/prod.secret.exs` in your Akkoma folder (/home/akkoma/akkoma/):
 ```
 config :pleroma, :http_security,
   enabled: false
@@ -132,7 +132,7 @@ config :pleroma, :http_security,
 
 Use this as the Nginx config:
 ```
-proxy_cache_path /tmp/pleroma-media-cache levels=1:2 keys_zone=pleroma_media_cache:10m max_size=10g inactive=720m use_temp_path=off;
+proxy_cache_path /tmp/akkoma-media-cache levels=1:2 keys_zone=akkoma_media_cache:10m max_size=10g inactive=720m use_temp_path=off;
 # The above already exists in a clearnet instance's config.
 # If not, add it.
 
@@ -173,7 +173,7 @@ server {
     }
 
     location /proxy {
-        proxy_cache pleroma_media_cache;
+        proxy_cache akkoma_media_cache;
         proxy_cache_lock on;
         proxy_ignore_client_abort on;
         proxy_pass http://localhost:4000;

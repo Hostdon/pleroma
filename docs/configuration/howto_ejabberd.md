@@ -1,29 +1,29 @@
-# Configuring Ejabberd (XMPP Server) to use Pleroma for authentication
+# Configuring Ejabberd (XMPP Server) to use Akkoma for authentication
 
-If you want to give your Pleroma users an XMPP (chat) account, you can configure [Ejabberd](https://github.com/processone/ejabberd) to use your Pleroma server for user authentication, automatically giving every local user an XMPP account.
+If you want to give your Akkoma users an XMPP (chat) account, you can configure [Ejabberd](https://github.com/processone/ejabberd) to use your Akkoma server for user authentication, automatically giving every local user an XMPP account.
 
 In general, you just have to follow the configuration described at [https://docs.ejabberd.im/admin/configuration/authentication/#external-script](https://docs.ejabberd.im/admin/configuration/authentication/#external-script). Please read this section carefully. 
 
-Copy the script below to suitable path on your system and set owner and permissions. Also do not forget adjusting `PLEROMA_HOST` and `PLEROMA_PORT`, if necessary.
+Copy the script below to suitable path on your system and set owner and permissions. Also do not forget adjusting `AKKOMA_HOST` and `AKKOMA_PORT`, if necessary.
 
 ```bash
-cp pleroma_ejabberd_auth.py /etc/ejabberd/pleroma_ejabberd_auth.py
-chown ejabberd /etc/ejabberd/pleroma_ejabberd_auth.py
-chmod 700 /etc/ejabberd/pleroma_ejabberd_auth.py
+cp akkoma_ejabberd_auth.py /etc/ejabberd/akkoma_ejabberd_auth.py
+chown ejabberd /etc/ejabberd/akkoma_ejabberd_auth.py
+chmod 700 /etc/ejabberd/akkoma_ejabberd_auth.py
 ```
 
 Set external auth params in ejabberd.yaml file:
 
 ```bash
 auth_method: [external]
-extauth_program: "python3 /etc/ejabberd/pleroma_ejabberd_auth.py"
+extauth_program: "python3 /etc/ejabberd/akkoma_ejabberd_auth.py"
 extauth_instances: 3
 auth_use_cache: false
 ```
 
 Restart / reload your ejabberd service.
 
-After restarting your Ejabberd server, your users should now be able to connect with their Pleroma credentials.
+After restarting your Ejabberd server, your users should now be able to connect with their Akkoma credentials.
 
 
 ```python
@@ -34,18 +34,18 @@ from base64 import b64encode
 import logging
 
 
-PLEROMA_HOST = "127.0.0.1"
-PLEROMA_PORT = "4000"
+AKKOMA_HOST = "127.0.0.1"
+AKKOMA_PORT = "4000"
 AUTH_ENDPOINT = "/api/v1/accounts/verify_credentials"
 USER_ENDPOINT = "/api/v1/accounts"
-LOGFILE = "/var/log/ejabberd/pleroma_auth.log"
+LOGFILE = "/var/log/ejabberd/akkoma_auth.log"
 
 logging.basicConfig(filename=LOGFILE, level=logging.INFO)
 
 
-# Pleroma functions
+# Akkoma functions
 def create_connection():
-    return http.client.HTTPConnection(PLEROMA_HOST, PLEROMA_PORT)
+    return http.client.HTTPConnection(AKKOMA_HOST, AKKOMA_PORT)
 
 
 def verify_credentials(user: str, password: str) -> bool:
@@ -124,7 +124,7 @@ def write(result):
 
 
 if __name__ == "__main__":
-    logging.info("Starting pleroma ejabberd auth daemon...")
+    logging.info("Starting akkoma ejabberd auth daemon...")
     while True:
         try:
             read()
