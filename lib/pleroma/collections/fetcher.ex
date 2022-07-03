@@ -14,10 +14,19 @@ defmodule Akkoma.Collections.Fetcher do
     fetch_collection(ap_id)
   end
 
-  defp fetch_collection(ap_id) do
+  def fetch_collection(ap_id) when is_binary(ap_id) do
     with {:ok, page} <- Fetcher.fetch_and_contain_remote_object_from_id(ap_id) do
       {:ok, objects_from_collection(page)}
+    else
+      e ->
+        Logger.error("Could not fetch collection #{ap_id} - #{inspect(e)}")
+        e
     end
+  end
+
+  def fetch_collection(%{"type" => type} = page)
+      when type in ["Collection", "OrderedCollection"] do
+    {:ok, objects_from_collection(page)}
   end
 
   defp items_in_page(%{"type" => type, "orderedItems" => items})
