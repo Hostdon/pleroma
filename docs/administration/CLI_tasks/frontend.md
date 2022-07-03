@@ -18,10 +18,9 @@ You can give all the options directly on the command line, but missing informati
 
 Currently, known `<frontend>` values are:
 
-- [admin-fe](https://git.pleroma.social/pleroma/admin-fe)
-- [kenoma](http://git.pleroma.social/lambadalambda/kenoma)
-- [pleroma-fe](http://git.pleroma.social/pleroma/pleroma-fe)
-- [fedi-fe](https://git.pleroma.social/pleroma/fedi-fe)
+- [admin-fe](https://akkoma.dev/AkkomaGang/admin-fe)
+- [mastodon-fe](https://akkoma.dev/AkkomaGang/masto-fe)
+- [pleroma-fe](https://akkoma.dev/AkkomaGang/pleroma-fe)
 - [soapbox-fe](https://gitlab.com/soapbox-pub/soapbox-fe)
 
 You can still install frontends that are not configured, see below.
@@ -33,29 +32,29 @@ For a frontend configured under the `available` key, it's enough to install it b
 === "OTP"
 
     ```sh
-    ./bin/pleroma_ctl frontend install pleroma
+    ./bin/pleroma_ctl frontend install pleroma-fe
     ```
 
 === "From Source"
 
     ```sh
-    mix pleroma.frontend install pleroma
+    mix pleroma.frontend install pleroma-fe
     ```
 
 This will download the latest build for the pre-configured `ref` and install it. It can then be configured as the one of the served frontends in the config file (see `primary` or `admin`).
 
-You can override any of the details. To install a pleroma build from a different URL, you could do this:
+You can override any of the details. To install a Pleroma-FE build from a different URL, you could do this:
 
 === "OTP"
 
     ```sh
-    ./bin/pleroma_ctl frontend install pleroma --ref 2hu_edition --build-url https://example.org/raymoo.zip
+    ./bin/pleroma_ctl frontend install pleroma-fe --ref 2hu_edition --build-url https://example.org/raymoo.zip
     ```
 
 === "From Source"
 
     ```sh
-    mix pleroma.frontend install pleroma --ref 2hu_edition --build-url https://example.org/raymoo.zip
+    mix pleroma.frontend install pleroma-fe --ref 2hu_edition --build-url https://example.org/raymoo.zip
     ```
 
 Similarly, you can also install from a local zip file.
@@ -63,13 +62,13 @@ Similarly, you can also install from a local zip file.
 === "OTP"
 
     ```sh
-    ./bin/pleroma_ctl frontend install pleroma --ref mybuild --file ~/Downloads/doomfe.zip
+    ./bin/pleroma_ctl frontend install pleroma-fe --ref mybuild --file ~/Downloads/doomfe.zip
     ```
 
 === "From Source"
 
     ```sh
-    mix pleroma.frontend install pleroma --ref mybuild --file ~/Downloads/doomfe.zip
+    mix pleroma.frontend install pleroma-fe --ref mybuild --file ~/Downloads/doomfe.zip
     ```
 
 The resulting frontend will always be installed into a folder of this template: `${instance_static}/frontends/${name}/${ref}`.
