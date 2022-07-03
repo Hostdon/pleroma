@@ -1663,6 +1663,36 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   end
 
   def pin_data_from_featured_collection(%{
+        "type" => "OrderedCollection",
+        "first" => first
+      }) do
+    with {:ok, page} <- Fetcher.fetch_and_contain_remote_object_from_id(first) do
+      page
+      |> Map.get("orderedItems")
+      |> Map.new(fn %{"id" => object_ap_id} -> {object_ap_id, NaiveDateTime.utc_now()} end)
+    else
+      e ->
+        Logger.error("Could not decode featured collection at fetch #{first}, #{inspect(e)}")
+        {:ok, %{}}
+    end
+  end
+
+  def pin_data_from_featured_collection(%{
+        "type" => "Collection",
+        "first" => first
+      }) do
+    with {:ok, page} <- Fetcher.fetch_and_contain_remote_object_from_id(first) do
+      page
+      |> Map.get("items")
+      |> Map.new(fn %{"id" => object_ap_id} -> {object_ap_id, NaiveDateTime.utc_now()} end)
+    else
+      e ->
+        Logger.error("Could not decode featured collection at fetch #{first}, #{inspect(e)}")
+        {:ok, %{}}
+    end
+  end
+
+  def pin_data_from_featured_collection(%{
         "type" => type,
         "orderedItems" => objects
       })

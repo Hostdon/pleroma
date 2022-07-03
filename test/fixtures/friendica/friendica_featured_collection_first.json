@@ -26,5 +26,9 @@
     "type": "OrderedCollectionPage",
     "totalItems": 0,
     "partOf": "https://friendica.example.com/featured/raha",
-    "orderedItems": []
+    "orderedItems": [
+        {
+            "id": "http://inserted"
+        }
+     ]
 }
