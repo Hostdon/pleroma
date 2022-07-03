@@ -1,0 +1,30 @@
+{
+    "@context": [
+        "https://www.w3.org/ns/activitystreams",
+        "https://w3id.org/security/v1",
+        {
+            "vcard": "http://www.w3.org/2006/vcard/ns#",
+            "dfrn": "http://purl.org/macgirvin/dfrn/1.0/",
+            "diaspora": "https://diasporafoundation.org/ns/",
+            "litepub": "http://litepub.social/ns#",
+            "toot": "http://joinmastodon.org/ns#",
+            "featured": {
+                "@id": "toot:featured",
+                "@type": "@id"
+            },
+            "schema": "http://schema.org#",
+            "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+            "sensitive": "as:sensitive",
+            "Hashtag": "as:Hashtag",
+            "directMessage": "litepub:directMessage",
+            "discoverable": "toot:discoverable",
+            "PropertyValue": "schema:PropertyValue",
+            "value": "schema:value"
+        }
+    ],
+    "id": "https://friendica.example.com/featured/raha?page=1",
+    "type": "OrderedCollectionPage",
+    "totalItems": 0,
+    "partOf": "https://friendica.example.com/featured/raha",
+    "orderedItems": []
+}
