@@ -1,0 +1,12 @@
+{
+  "type": "CollectionPage",
+  "id": "https://example.com/collection/unordered_page_reference?page=2",
+  "partOf": "https://example.com/collection/unordered_page_reference",
+  "items": [
+    {
+      "type": "Like",
+      "actor": "http://www.test.example/sally",
+      "object": "http://example.org/foo"
+    }
+  ]
+}

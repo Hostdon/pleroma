@@ -1,0 +1,8 @@
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "summary": "Sally's recent activities",
+  "type": "Collection",
+  "id": "https://example.com/collection/unordered_page_reference",
+  "totalItems": 10,
+  "first": "https://example.com/collection/unordered_page_reference?page=1"
+}

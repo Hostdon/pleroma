@@ -1,0 +1,13 @@
+{
+  "type": "CollectionPage",
+  "id": "https://example.com/collection/unordered_page_reference?page=1",
+  "partOf": "https://example.com/collection/unordered_page_reference",
+  "next": "https://example.com/collection/unordered_page_reference?page=2",
+  "items": [
+    {
+      "type": "Create",
+      "actor": "http://www.test.example/sally",
+      "object": "http://example.org/foo"
+    }
+  ]
+}
