@@ -59,34 +59,8 @@ defmodule Pleroma.Application do
     Pleroma.Docs.JSON.compile()
     limiters_setup()
 
-    adapter = Application.get_env(:tesla, :adapter)
-
-    if match?({Tesla.Adapter.Finch, _}, adapter) do
-      Logger.info("Starting Finch")
-      Finch.start_link(name: MyFinch)
-    end
-
-    if adapter == Tesla.Adapter.Gun do
-      if version = Pleroma.OTPVersion.version() do
-        [major, minor] =
-          version
-          |> String.split(".")
-          |> Enum.map(&String.to_integer/1)
-          |> Enum.take(2)
-
-        if (major == 22 and minor < 2) or major < 22 do
-          raise "
-            !!!OTP VERSION WARNING!!!
-            You are using gun adapter with OTP version #{version}, which doesn't support correct handling of unordered certificates chains. Please update your Erlang/OTP to at least 22.2.
-            "
-        end
-      else
-        raise "
-          !!!OTP VERSION WARNING!!!
-          To support correct handling of unordered certificates chains - OTP version must be > 22.2.
-          "
-      end
-    end
+    Logger.info("Starting Finch")
+    Finch.start_link(name: MyFinch)
 
     # Define workers and child supervisors to be supervised
     children =
@@ -97,7 +71,6 @@ defmodule Pleroma.Application do
         Pleroma.Web.Plugs.RateLimiter.Supervisor
       ] ++
         cachex_children() ++
-        http_children(adapter, @mix_env) ++
         [
           Pleroma.Stats,
           Pleroma.JobQueueMonitor,
@@ -275,34 +248,6 @@ defmodule Pleroma.Application do
       }
     ]
   end
-
-  # start hackney and gun pools in tests
-  defp http_children(_, :test) do
-    http_children(Tesla.Adapter.Hackney, nil) ++ http_children(Tesla.Adapter.Gun, nil)
-  end
-
-  defp http_children(Tesla.Adapter.Hackney, _) do
-    pools = [:federation, :media]
-
-    pools =
-      if Config.get([Pleroma.Upload, :proxy_remote]) do
-        [:upload | pools]
-      else
-        pools
-      end
-
-    for pool <- pools do
-      options = Config.get([:hackney_pools, pool])
-      :hackney_pool.child_spec(pool, options)
-    end
-  end
-
-  defp http_children(Tesla.Adapter.Gun, _) do
-    Pleroma.Gun.ConnectionPool.children() ++
-      [{Task, &Pleroma.HTTP.AdapterHelper.Gun.limiter_setup/0}]
-  end
-
-  defp http_children(_, _), do: []
 
   def elasticsearch_children do
     config = Config.get([Pleroma.Search, :module])

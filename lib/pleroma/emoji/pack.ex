@@ -542,7 +542,7 @@ defmodule Pleroma.Emoji.Pack do
   defp http_get(%URI{} = url), do: url |> to_string() |> http_get()
 
   defp http_get(url) do
-    with {:ok, %{body: body}} <- Pleroma.HTTP.get(url, [], pool: :default) do
+    with {:ok, %{body: body}} <- Pleroma.HTTP.get(url, [], []) do
       Jason.decode(body)
     end
   end

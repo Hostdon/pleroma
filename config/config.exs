@@ -175,12 +175,11 @@ config :mime, :types, %{
   "application/ld+json" => ["activity+json"]
 }
 
-config :tesla, adapter: Tesla.Adapter.Hackney
+config :tesla, :adapter, {Tesla.Adapter.Finch, name: MyFinch}
 
 # Configures http settings, upstream proxy etc.
 config :pleroma, :http,
   proxy_url: nil,
-  send_user_agent: true,
   user_agent: :default,
   adapter: []
 
@@ -440,11 +439,7 @@ config :pleroma, :media_proxy,
     redirect_on_failure: false,
     max_body_length: 25 * 1_048_576,
     # Note: max_read_duration defaults to Pleroma.ReverseProxy.max_read_duration_default/1
-    max_read_duration: 30_000,
-    http: [
-      follow_redirect: true,
-      pool: :media
-    ]
+    max_read_duration: 30_000
   ],
   whitelist: []
 
@@ -765,51 +760,6 @@ config :pleroma, Pleroma.Repo,
   parameters: [gin_fuzzy_search_limit: "500"],
   prepare: :unnamed
 
-config :pleroma, :connections_pool,
-  reclaim_multiplier: 0.1,
-  connection_acquisition_wait: 250,
-  connection_acquisition_retries: 5,
-  max_connections: 250,
-  max_idle_time: 30_000,
-  retry: 0,
-  connect_timeout: 5_000
-
-config :pleroma, :pools,
-  federation: [
-    size: 50,
-    max_waiting: 10,
-    recv_timeout: 10_000
-  ],
-  media: [
-    size: 50,
-    max_waiting: 20,
-    recv_timeout: 15_000
-  ],
-  upload: [
-    size: 25,
-    max_waiting: 5,
-    recv_timeout: 15_000
-  ],
-  default: [
-    size: 10,
-    max_waiting: 2,
-    recv_timeout: 5_000
-  ]
-
-config :pleroma, :hackney_pools,
-  federation: [
-    max_connections: 50,
-    timeout: 150_000
-  ],
-  media: [
-    max_connections: 50,
-    timeout: 150_000
-  ],
-  upload: [
-    max_connections: 25,
-    timeout: 300_000
-  ]
-
 config :pleroma, :majic_pool, size: 2
 
 private_instance? = :if_instance_is_private
@@ -825,8 +775,6 @@ config :pleroma, :mrf,
   policies: [Pleroma.Web.ActivityPub.MRF.ObjectAgePolicy, Pleroma.Web.ActivityPub.MRF.TagPolicy],
   transparency: true,
   transparency_exclusions: []
-
-config :tzdata, :http_client, Pleroma.HTTP.Tzdata
 
 config :ex_aws, http_client: Pleroma.HTTP.ExAws
 

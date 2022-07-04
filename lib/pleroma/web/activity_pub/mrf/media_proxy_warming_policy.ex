@@ -12,7 +12,6 @@ defmodule Pleroma.Web.ActivityPub.MRF.MediaProxyWarmingPolicy do
   require Logger
 
   @adapter_options [
-    pool: :media,
     recv_timeout: 10_000
   ]
 

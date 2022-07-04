@@ -6,7 +6,7 @@ defmodule Pleroma.HTTP.AdapterHelper do
   @moduledoc """
   Configure Tesla.Client with default and customized adapter options.
   """
-  @defaults [pool: :federation, connect_timeout: 5_000, recv_timeout: 5_000]
+  @defaults [name: MyFinch, connect_timeout: 5_000, recv_timeout: 5_000]
 
   @type proxy_type() :: :socks4 | :socks5
   @type host() :: charlist() | :inet.ip_address()
@@ -43,17 +43,7 @@ defmodule Pleroma.HTTP.AdapterHelper do
   def options(%URI{} = uri, opts \\ []) do
     @defaults
     |> Keyword.merge(opts)
-    |> adapter_helper().options(uri)
-  end
-
-  defp adapter, do: Application.get_env(:tesla, :adapter)
-
-  defp adapter_helper do
-    case adapter() do
-      Tesla.Adapter.Gun -> AdapterHelper.Gun
-      Tesla.Adapter.Hackney -> AdapterHelper.Hackney
-      _ -> AdapterHelper.Default
-    end
+    |> AdapterHelper.Default.options(uri)
   end
 
   @spec parse_proxy(String.t() | tuple() | nil) ::

@@ -4,7 +4,6 @@
 
 defmodule Pleroma.Web.RelMe do
   @options [
-    pool: :media,
     max_body: 2_000_000,
     recv_timeout: 2_000
   ]

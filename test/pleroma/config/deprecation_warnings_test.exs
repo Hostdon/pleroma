@@ -280,50 +280,6 @@ defmodule Pleroma.Config.DeprecationWarningsTest do
              "Your config is using the old setting for controlling the URL of media uploaded to your S3 bucket."
   end
 
-  describe "check_gun_pool_options/0" do
-    test "await_up_timeout" do
-      config = Config.get(:connections_pool)
-      clear_config(:connections_pool, Keyword.put(config, :await_up_timeout, 5_000))
-
-      assert capture_log(fn ->
-               DeprecationWarnings.check_gun_pool_options()
-             end) =~
-               "Your config is using old setting `config :pleroma, :connections_pool, await_up_timeout`."
-    end
-
-    test "pool timeout" do
-      old_config = [
-        federation: [
-          size: 50,
-          max_waiting: 10,
-          timeout: 10_000
-        ],
-        media: [
-          size: 50,
-          max_waiting: 10,
-          timeout: 10_000
-        ],
-        upload: [
-          size: 25,
-          max_waiting: 5,
-          timeout: 15_000
-        ],
-        default: [
-          size: 10,
-          max_waiting: 2,
-          timeout: 5_000
-        ]
-      ]
-
-      clear_config(:pools, old_config)
-
-      assert capture_log(fn ->
-               DeprecationWarnings.check_gun_pool_options()
-             end) =~
-               "Your config is using old setting name `timeout` instead of `recv_timeout` in pool settings"
-    end
-  end
-
   test "check_old_chat_shoutbox/0" do
     clear_config([:instance, :chat_limit], 1_000)
     clear_config([:chat, :enabled], true)

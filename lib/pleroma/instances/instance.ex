@@ -170,7 +170,7 @@ defmodule Pleroma.Instances.Instance do
     try do
       with {_, true} <- {:reachable, reachable?(instance_uri.host)},
            {:ok, %Tesla.Env{body: html}} <-
-             Pleroma.HTTP.get(to_string(instance_uri), [{"accept", "text/html"}], pool: :media),
+             Pleroma.HTTP.get(to_string(instance_uri), [{"accept", "text/html"}], []),
            {_, [favicon_rel | _]} when is_binary(favicon_rel) <-
              {:parse,
               html |> Floki.parse_document!() |> Floki.attribute("link[rel=icon]", "href")},

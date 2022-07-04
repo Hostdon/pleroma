@@ -10,7 +10,6 @@ defmodule Pleroma.Web.RichMedia.Helpers do
   alias Pleroma.Web.RichMedia.Parser
 
   @options [
-    pool: :media,
     max_body: 2_000_000,
     recv_timeout: 2_000
   ]

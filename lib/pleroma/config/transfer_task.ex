@@ -15,14 +15,11 @@ defmodule Pleroma.Config.TransferTask do
 
   defp reboot_time_keys,
     do: [
-      {:pleroma, :hackney_pools},
       {:pleroma, :shout},
       {:pleroma, Oban},
       {:pleroma, :rate_limit},
       {:pleroma, :markup},
-      {:pleroma, :streamer},
-      {:pleroma, :pools},
-      {:pleroma, :connections_pool}
+      {:pleroma, :streamer}
     ]
 
   defp reboot_time_subkeys,
