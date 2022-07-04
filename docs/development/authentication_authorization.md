@@ -2,7 +2,7 @@
 
 ## OAuth token-based authentication & authorization
 
-* Pleroma supports hierarchical OAuth scopes, just like Mastodon but with added granularity of admin scopes. For a reference, see [Mastodon OAuth scopes](https://docs.joinmastodon.org/api/oauth-scopes/).
+* Akkoma supports hierarchical OAuth scopes, just like Mastodon but with added granularity of admin scopes. For a reference, see [Mastodon OAuth scopes](https://docs.joinmastodon.org/api/oauth-scopes/).
 
 * It is important to either define OAuth scope restrictions or explicitly mark OAuth scope check as skipped, for every controller action. To define scopes, call `plug(Pleroma.Web.Plugs.OAuthScopesPlug, %{scopes: [...]})`. To explicitly set OAuth scopes check skipped, call `plug(:skip_plug, Pleroma.Web.Plugs.OAuthScopesPlug <when ...>)`.
 

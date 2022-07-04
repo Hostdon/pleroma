@@ -330,8 +330,8 @@ See also [the Nodeinfo standard](https://nodeinfo.diaspora.software/).
    },
    "software":{
       "name":"pleroma",
-      "repository":"https://git.pleroma.social/pleroma/pleroma",
-      "version":"2.4.1"
+      "repository":"https://akkoma.dev/AkkomaGang/akkoma",
+      "version":"2.5.2"
    },
    "usage":{
       "localPosts":27,
