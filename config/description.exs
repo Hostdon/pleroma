@@ -1689,6 +1689,13 @@ config :pleroma, :config_description, [
         type: :integer,
         description: "Following handshake timeout",
         suggestions: [500]
+      },
+      %{
+        key: :max_collection_objects,
+        type: :integer,
+        description:
+          "The maximum number of items to fetch from a remote collections. Setting this too low can lead to only getting partial collections, but too high and you can end up fetching far too many objects.",
+        suggestions: [50]
       }
     ]
   },

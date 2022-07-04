@@ -314,6 +314,44 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
     end
   end
 
+  test "fetches user featured collection using the first property" do
+    featured_url = "https://friendica.example.com/raha/collections/featured"
+    first_url = "https://friendica.example.com/featured/raha?page=1"
+
+    featured_data =
+      "test/fixtures/friendica/friendica_featured_collection.json"
+      |> File.read!()
+
+    page_data =
+      "test/fixtures/friendica/friendica_featured_collection_first.json"
+      |> File.read!()
+
+    Tesla.Mock.mock(fn
+      %{
+        method: :get,
+        url: ^featured_url
+      } ->
+        %Tesla.Env{
+          status: 200,
+          body: featured_data,
+          headers: [{"content-type", "application/activity+json"}]
+        }
+
+      %{
+        method: :get,
+        url: ^first_url
+      } ->
+        %Tesla.Env{
+          status: 200,
+          body: page_data,
+          headers: [{"content-type", "application/activity+json"}]
+        }
+    end)
+
+    {:ok, data} = ActivityPub.fetch_and_prepare_featured_from_ap_id(featured_url)
+    assert Map.has_key?(data, "http://inserted")
+  end
+
   test "it fetches the appropriate tag-restricted posts" do
     user = insert(:user)
 

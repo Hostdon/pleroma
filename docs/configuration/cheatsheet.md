@@ -236,6 +236,7 @@ Notes:
 * `deny_follow_blocked`: Whether to disallow following an account that has blocked the user in question
 * `sign_object_fetches`: Sign object fetches with HTTP signatures
 * `authorized_fetch_mode`: Require HTTP signatures for AP fetches
+* `max_collection_objects`: The maximum number of objects to fetch from a remote AP collection.
 
 ## Pleroma.User
 
