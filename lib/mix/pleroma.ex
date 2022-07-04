@@ -25,7 +25,6 @@ defmodule Mix.Pleroma do
     Application.put_env(:phoenix, :serve_endpoints, false, persistent: true)
     Finch.start_link(name: MyFinch)
 
-
     unless System.get_env("DEBUG") do
       Logger.remove_backend(:console)
     end
