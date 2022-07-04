@@ -13,7 +13,7 @@ This is an awkward setup for a few reasons:
 - The standard `Status` format of implicit addressing also leads to rather ugly results if you try to display the messages as a chat, because all the recipients are always mentioned by name in the message.
 - As direct messages are posted with the same api call (and usually same frontend component) as public messages, accidentally making a public message private or vice versa can happen easily. Client bugs can also lead to this, accidentally making private messages public.
 
-As a measure to improve this situation, the `Conversation` concept and related Pleroma extensions were introduced. While it made it possible to work around a few of the issues, many of the problems remained and it didn't see much adoption because it was too complicated to use correctly. 
+As a measure to improve this situation, the `Conversation` concept and related Akkoma extensions were introduced. While it made it possible to work around a few of the issues, many of the problems remained and it didn't see much adoption because it was too complicated to use correctly.
 
 ## Chats explained
 For this reasons, Chats are a new and different entity, both in the API as well as in ActivityPub. A quick overview:

@@ -1,6 +1,6 @@
 # Prometheus Metrics
 
-Pleroma includes support for exporting metrics via the [prometheus_ex](https://github.com/deadtrickster/prometheus.ex) library.
+Akkoma includes support for exporting metrics via the [prometheus_ex](https://github.com/deadtrickster/prometheus.ex) library.
 
 Config example:
 
@@ -13,8 +13,8 @@ config :prometheus, Pleroma.Web.Endpoint.MetricsExporter,
   format: :text
 ```
 
-* `enabled` (Pleroma extension) enables the endpoint
-* `ip_whitelist` (Pleroma extension) could be used to restrict access only to specified IPs
+* `enabled` (Akkoma extension) enables the endpoint
+* `ip_whitelist` (Akkoma extension) could be used to restrict access only to specified IPs
 * `auth` sets the authentication (`false` for no auth; configurable to HTTP Basic Auth, see [prometheus-plugs](https://github.com/deadtrickster/prometheus-plugs#exporting) documentation)
 * `format` sets the output format (`:text` or `:protobuf`)
 * `path` sets the path to app metrics page 

@@ -1,10 +1,10 @@
 # Differences in Mastodon API responses from vanilla Mastodon
 
-A Pleroma instance can be identified by "<Mastodon version> (compatible; Pleroma <version>)" present in `version` field in response from `/api/v1/instance`
+A Akkoma instance can be identified by "<Mastodon version> (compatible; Pleroma <version>)" present in `version` field in response from `/api/v1/instance`
 
 ## Flake IDs
 
-Pleroma uses 128-bit ids as opposed to Mastodon's 64 bits. However, just like Mastodon's ids, they are lexically sortable strings
+Akkoma uses 128-bit ids as opposed to Mastodon's 64 bits. However, just like Mastodon's ids, they are lexically sortable strings
 
 ## Timelines
 
@@ -54,11 +54,11 @@ Has these additional fields under the `pleroma` object:
 
 ### Attachment cap
 
-Some apps operate under the assumption that no more than 4 attachments can be returned or uploaded. Pleroma however does not enforce any limits on attachment count neither when returning the status object nor when posting.
+Some apps operate under the assumption that no more than 4 attachments can be returned or uploaded. Akkoma however does not enforce any limits on attachment count neither when returning the status object nor when posting.
 
 ### Limitations
 
-Pleroma does not process remote images and therefore cannot include fields such as `meta` and `blurhash`. It does not support focal points or aspect ratios. The frontend is expected to handle it.
+Akkoma does not process remote images and therefore cannot include fields such as `meta` and `blurhash`. It does not support focal points or aspect ratios. The frontend is expected to handle it.
 
 ## Accounts
 
@@ -99,7 +99,7 @@ Has these additional fields under the `pleroma` object:
 - `hide_followers_count`: boolean, true when the user has follower stat hiding enabled
 - `hide_follows_count`: boolean, true when the user has follow stat hiding enabled
 - `settings_store`: A generic map of settings for frontends. Opaque to the backend. Only returned in `/api/v1/accounts/verify_credentials` and `/api/v1/accounts/update_credentials`
-- `chat_token`: The token needed for Pleroma shoutbox. Only returned in `/api/v1/accounts/verify_credentials`
+- `chat_token`: The token needed for Akkoma shoutbox. Only returned in `/api/v1/accounts/verify_credentials`
 - `deactivated`: boolean, true when the user is deactivated
 - `allow_following_move`: boolean, true when the user allows automatically follow moved following accounts
 - `unread_conversation_count`: The count of unread conversations. Only returned to the account owner.
@@ -245,9 +245,9 @@ Additional parameters can be added to the JSON body/Form data:
 
 All images (avatar, banner and background) can be reset to the default by sending an empty string ("") instead of a file.
 
-### Pleroma Settings Store
+### Akkoma Settings Store
 
-Pleroma has mechanism that allows frontends to save blobs of json for each user on the backend. This can be used to save frontend-specific settings for a user that the backend does not need to know about.
+Akkoma has mechanism that allows frontends to save blobs of json for each user on the backend. This can be used to save frontend-specific settings for a user that the backend does not need to know about.
 
 The parameter should have a form of `{frontend_name: {...}}`, with `frontend_name` identifying your type of client, e.g. `pleroma_fe`. It will overwrite everything under this property, but will not overwrite other frontend's settings.
 
@@ -255,7 +255,7 @@ This information is returned in the `/api/v1/accounts/verify_credentials` endpoi
 
 ## Authentication
 
-*Pleroma supports refreshing tokens.*
+*Akkoma supports refreshing tokens.*
 
 ### POST `/oauth/token`
 
@@ -278,14 +278,14 @@ To obtain a token from a user's password, pass `grant_type=password` with the fo
 
 Additional fields are returned in the response:
 
-- `id`: The primary key of this token in Pleroma's database.
+- `id`: The primary key of this token in Akkoma's database.
 - `me` (user tokens only): The ActivityPub ID of the user who owns the token.
 
 ## Account Registration
 
 `POST /api/v1/accounts`
 
-Has these additional parameters (which are the same as in Pleroma-API):
+Has these additional parameters (which are the same as in Akkoma-API):
 
 - `fullname`: optional
 - `bio`: optional
@@ -342,7 +342,7 @@ For viewing remote server timelines, there are `public:remote` and `public:remot
 
 ### Follow relationships updates
 
-Pleroma streams follow relationships updates as `pleroma:follow_relationships_update` events to the `user` stream.
+Akkoma streams follow relationships updates as `pleroma:follow_relationships_update` events to the `user` stream.
 
 The message payload consist of:
 
@@ -359,7 +359,7 @@ Both user muting and thread muting can be done for only a certain time by adding
 
 ## Not implemented
 
-Pleroma is generally compatible with the Mastodon 2.7.2 API, but some newer features and non-essential features are omitted. These features usually return an HTTP 200 status code, but with an empty response. While they may be added in the future, they are considered low priority.
+Akkoma is generally compatible with the Mastodon 2.7.2 API, but some newer features and non-essential features are omitted. These features usually return an HTTP 200 status code, but with an empty response. While they may be added in the future, they are considered low priority.
 
 ### Suggestions
 
