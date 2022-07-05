@@ -9,6 +9,7 @@ defmodule Akkoma.Collections.Fetcher do
   """
   alias Pleroma.Object.Fetcher
   alias Pleroma.Config
+  require Logger
 
   def fetch_collection_by_ap_id(ap_id) when is_binary(ap_id) do
     fetch_collection(ap_id)
