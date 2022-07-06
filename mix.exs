@@ -59,8 +59,8 @@ defmodule Pleroma.Mixfile do
 
   def copy_nginx_config(%{path: target_path} = release) do
     File.cp!(
-      "./installation/pleroma.nginx",
-      Path.join([target_path, "installation", "pleroma.nginx"])
+      "./installation/nginx/akkoma.nginx",
+      Path.join([target_path, "installation", "akkoma.nginx"])
     )
 
     release
@@ -347,6 +347,9 @@ defmodule Pleroma.Mixfile do
     template = ~s[\
 # Pleroma: A lightweight social networking server
 # Copyright © 2017-#{year} Pleroma Authors <https://pleroma.social/>
+# SPDX-License-Identifier: AGPL-3.0-only
+# Akkoma: The cooler pleroma
+# Copyright © 2022-#{year} Akkoma Authors <https://akkoma.dev/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 ] |> String.replace("\n", "\\n")
