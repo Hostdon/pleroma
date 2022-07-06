@@ -1,4 +1,4 @@
-# default nginx site config for Pleroma
+# default nginx site config for Akkoma
 #
 # Simple installation instructions:
 # 1. Install your TLS certificate, possibly using Let's Encrypt.
@@ -6,7 +6,7 @@
 # 3. Copy this file to /etc/nginx/sites-available/ and then add a symlink to it
 #    in /etc/nginx/sites-enabled/ and run 'nginx -s reload' or restart nginx.
 
-proxy_cache_path /tmp/pleroma-media-cache levels=1:2 keys_zone=pleroma_media_cache:10m max_size=10g
+proxy_cache_path /tmp/akkoma-media-cache levels=1:2 keys_zone=akkoma_media_cache:10m max_size=10g
                  inactive=720m use_temp_path=off;
 
 # this is explicitly IPv4 since Pleroma.Web.Endpoint binds on IPv4 only
@@ -82,7 +82,7 @@ server {
     }
 
     location ~ ^/(media|proxy) {
-        proxy_cache        pleroma_media_cache;
+        proxy_cache        akkoma_media_cache;
         slice              1m;
         proxy_cache_key    $host$uri$is_args$args$slice_range;
         proxy_set_header   Range $slice_range;

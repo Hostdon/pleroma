@@ -161,7 +161,7 @@ If that doesn’t work, make sure, that nginx is not already running. If it stil
 * Copy the example nginx configuration to the nginx folder
 
 ```shell
-sudo cp /opt/akkoma/installation/akkoma.nginx /etc/nginx/conf.d/akkoma.conf
+sudo cp /opt/akkoma/installation/nginx/akkoma.nginx /etc/nginx/conf.d/akkoma.conf
 ```
 
 * Before starting nginx edit the configuration and change it to your needs. You must change change `server_name` and the paths to the certificates. You can use `nano` (install with `apk add nano` if missing).

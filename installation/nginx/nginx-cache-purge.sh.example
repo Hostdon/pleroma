@@ -5,7 +5,7 @@
 SCRIPTNAME=${0##*/}
 
 # NGINX cache directory
-CACHE_DIRECTORY="/tmp/pleroma-media-cache"
+CACHE_DIRECTORY="/tmp/akkoma-media-cache"
 
 ## Return the files where the items are cached.
 ## $1 - the filename, can be a pattern .

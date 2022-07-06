@@ -163,7 +163,7 @@ http {
 }
 ```
 
-As root, copy `/home/akkoma/akkoma/installation/akkoma.nginx` to
+As root, copy `/home/akkoma/akkoma/installation/nginx/akkoma.nginx` to
 `/usr/local/etc/nginx/sites-available/akkoma.nginx`.
 
 Edit the defaults of `/usr/local/etc/nginx/sites-available/akkoma.nginx`:

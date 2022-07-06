@@ -1,24 +1,24 @@
 #!/bin/sh
-# PROVIDE: pleroma
+# PROVIDE: akkoma
 # REQUIRE: DAEMON pgsql
 
 if [ -f /etc/rc.subr ]; then
 	. /etc/rc.subr
 fi
 
-name="pleroma"
+name="akkoma"
 rcvar=${name}
 command="/usr/pkg/bin/elixir"
 command_args="--detached -S /usr/pkg/bin/mix phx.server"
 start_precmd="ulimit -n unlimited"
 pidfile="/dev/null"
 
-pleroma_chdir="${pleroma_home}/pleroma"
-pleroma_env="HOME=${pleroma_home} MIX_ENV=prod"
+akkoma_chdir="${akkoma_home}/akkoma"
+akkoma_env="HOME=${akkoma_home} MIX_ENV=prod"
 
 check_pidfile()
 {
-	pid=$(pgrep -U "${pleroma_user}" /bin/beam.smp$)
+	pid=$(pgrep -U "${akkoma_user}" /bin/beam.smp$)
 	echo -n "${pid}"
 }
 

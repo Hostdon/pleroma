@@ -217,7 +217,7 @@ If you are using any additional subdomains, such as for a media proxy, you can r
 * Copy the example nginx configuration and activate it:
 
 ```shell
- # cp /home/akkoma/akkoma/installation/akkoma.nginx /etc/nginx/sites-available/
+ # cp /home/akkoma/akkoma/installation/nginx/akkoma.nginx /etc/nginx/sites-available/
  # ln -s /etc/nginx/sites-available/akkoma.nginx /etc/nginx/sites-enabled/akkoma.nginx
 ```
 

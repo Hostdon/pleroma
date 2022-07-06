@@ -101,7 +101,7 @@ $ MIX_ENV=prod mix ecto.migrate
 ## Configuring nginx
 
 Install the example configuration file
-`/home/akkoma/akkoma/installation/akkoma.nginx` to
+`/home/akkoma/akkoma/installation/nginx/akkoma.nginx` to
 `/usr/pkg/etc/nginx.conf`.
 
 Note that it will need to be wrapped in a `http {}` block. You should add

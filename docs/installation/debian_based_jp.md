@@ -143,7 +143,7 @@ sudo certbot certonly --email <your@emailaddress> -d <yourdomain> --standalone
 
 * nginxの設定ファイルサンプルをnginxフォルダーにコピーします。
 ```
-sudo cp /opt/akkoma/installation/akkoma.nginx /etc/nginx/sites-available/akkoma.nginx
+sudo cp /opt/akkoma/installation/nginx/akkoma.nginx /etc/nginx/sites-available/akkoma.nginx
 sudo ln -s /etc/nginx/sites-available/akkoma.nginx /etc/nginx/sites-enabled/akkoma.nginx
 ```
 

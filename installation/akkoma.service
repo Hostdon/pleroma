@@ -1,5 +1,5 @@
 [Unit]
-Description=Pleroma social network
+Description=Akkoma social network
 After=network.target postgresql.service
 
 [Service]
@@ -7,23 +7,23 @@ ExecReload=/bin/kill $MAINPID
 KillMode=process
 Restart=on-failure
 
-; Name of the user that runs the Pleroma service.
-User=pleroma
-; Declares that Pleroma runs in production mode.
+; Name of the user that runs the Akkoma service.
+User=akkoma
+; Declares that Akkoma runs in production mode.
 Environment="MIX_ENV=prod"
 
 ; Make sure that all paths fit your installation.
-; Path to the home directory of the user running the Pleroma service.
-Environment="HOME=/var/lib/pleroma"
-; Path to the folder containing the Pleroma installation.
-WorkingDirectory=/opt/pleroma
+; Path to the home directory of the user running the Akkoma service.
+Environment="HOME=/var/lib/akkoma"
+; Path to the folder containing the Akkoma installation.
+WorkingDirectory=/opt/akkoma
 ; Path to the Mix binary.
 ExecStart=/usr/bin/mix phx.server
 
 ; Some security directives.
 ; Use private /tmp and /var/tmp folders inside a new file system namespace, which are discarded after the process stops.
 PrivateTmp=true
-; The /home, /root, and /run/user folders can not be accessed by this service anymore. If your Pleroma user has its home folder in one of the restricted places, or use one of these folders as its working directory, you have to set this to false.
+; The /home, /root, and /run/user folders can not be accessed by this service anymore. If your Akkoma user has its home folder in one of the restricted places, or use one of these folders as its working directory, you have to set this to false.
 ProtectHome=true
 ; Mount /usr, /boot, and /etc as read-only for processes invoked by this service.
 ProtectSystem=full

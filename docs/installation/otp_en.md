@@ -175,18 +175,18 @@ The location of nginx configs is dependent on the distro
 
 === "Alpine"
     ```
-    cp /opt/akkoma/installation/akkoma.nginx /etc/nginx/conf.d/akkoma.conf
+    cp /opt/akkoma/installation/nginx/akkoma.nginx /etc/nginx/conf.d/akkoma.conf
     ```
 
 === "Debian/Ubuntu"
     ```
-    cp /opt/akkoma/installation/akkoma.nginx /etc/nginx/sites-available/akkoma.conf
+    cp /opt/akkoma/installation/nginx/akkoma.nginx /etc/nginx/sites-available/akkoma.conf
     ln -s /etc/nginx/sites-available/akkoma.conf /etc/nginx/sites-enabled/akkoma.conf
     ```
 
 If your distro does not have either of those you can append `include /etc/nginx/akkoma.conf` to the end of the http section in /etc/nginx/nginx.conf and
 ```sh
-cp /opt/akkoma/installation/akkoma.nginx /etc/nginx/akkoma.conf
+cp /opt/akkoma/installation/nginx/akkoma.nginx /etc/nginx/akkoma.conf
 ```
 
 #### Edit the nginx config

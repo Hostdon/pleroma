@@ -4,7 +4,7 @@
 # You will likely need to setup a sudo rule like the following:
 #
 # Cmnd_Alias HTCACHECLEAN = /usr/local/sbin/htcacheclean
-# pleroma ALL=HTCACHECLEAN, NOPASSWD: HTCACHECLEAN
+# akkoma ALL=HTCACHECLEAN, NOPASSWD: HTCACHECLEAN
 #
 # Please also ensure you have enabled:
 #
@@ -16,7 +16,7 @@
 SCRIPTNAME=${0##*/}
 
 # mod_disk_cache directory
-CACHE_DIRECTORY="/tmp/pleroma-media-cache"
+CACHE_DIRECTORY="/tmp/akkoma-media-cache"
 
 ## Removes an item via the htcacheclean utility
 ## $1 - the filename, can be a pattern .

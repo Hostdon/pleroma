@@ -18,7 +18,7 @@ Also add the following on top of the configuration, outside of the `server` bloc
 ```
 proxy_cache_path /tmp/akkoma-media-cache levels=1:2 keys_zone=akkoma_media_cache:10m max_size=10g inactive=720m use_temp_path=off;
 ```
-If you came here from one of the installation guides, take a look at the example configuration `/installation/akkoma.nginx`, where this part is already included.
+If you came here from one of the installation guides, take a look at the example configuration `/installation/nginx/akkoma.nginx`, where this part is already included.
 
 * Append the following to your `prod.secret.exs` or `dev.secret.exs` (depends on which mode your instance is running):
 ```
