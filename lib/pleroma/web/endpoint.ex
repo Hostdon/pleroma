@@ -12,8 +12,6 @@ defmodule Pleroma.Web.Endpoint do
   socket("/socket", Pleroma.Web.UserSocket)
   socket("/live", Phoenix.LiveView.Socket)
 
-  plug(Plug.Telemetry, event_prefix: [:phoenix, :endpoint])
-
   plug(Pleroma.Web.Plugs.SetLocalePlug)
   plug(CORSPlug)
   plug(Pleroma.Web.Plugs.HTTPSecurityPlug)

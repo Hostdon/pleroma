@@ -477,6 +477,8 @@ config :pleroma, Pleroma.Web.Metadata,
   ],
   unfurl_nsfw: false
 
+config :pleroma, Pleroma.Web.Metadata.Providers.Theme, theme_color: "#593196"
+
 config :pleroma, Pleroma.Web.Preload,
   providers: [
     Pleroma.Web.Preload.Providers.Instance

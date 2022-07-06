@@ -5,10 +5,28 @@
 defmodule Pleroma.Web.Metadata do
   alias Phoenix.HTML
 
+  def build_static_tags(params) do
+    providers = [
+      Pleroma.Web.Metadata.Providers.Theme
+    ]
+
+    Enum.reduce(providers, "", fn parser, acc ->
+      rendered_html =
+        params
+        |> parser.build_tags()
+        |> Enum.map(&to_tag/1)
+        |> Enum.map(&HTML.safe_to_string/1)
+        |> Enum.join()
+
+      acc <> rendered_html
+    end)
+  end
+
   def build_tags(params) do
     providers = [
       Pleroma.Web.Metadata.Providers.RelMe,
-      Pleroma.Web.Metadata.Providers.RestrictIndexing
+      Pleroma.Web.Metadata.Providers.RestrictIndexing,
+      Pleroma.Web.Metadata.Providers.Theme
       | activated_providers()
     ]
 

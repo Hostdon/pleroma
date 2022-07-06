@@ -47,7 +47,6 @@ defmodule Pleroma.Application do
     # Disable warnings_as_errors at runtime, it breaks Phoenix live reload
     # due to protocol consolidation warnings
     Code.compiler_options(warnings_as_errors: false)
-    Pleroma.Telemetry.Logger.attach()
     Config.Holder.save_default()
     Pleroma.HTML.compile_scrubbers()
     Pleroma.Config.Oban.warn()

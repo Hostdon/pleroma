@@ -1981,6 +1981,21 @@ config :pleroma, :config_description, [
   },
   %{
     group: :pleroma,
+    key: Pleroma.Web.Metadata.Providers.Theme,
+    type: :group,
+    description: "Specific provider to hand out themes to instances that scrape index.html",
+    children: [
+      %{
+        key: :theme_color,
+        type: :string,
+        description:
+          "The 'accent color' of the instance, used in places like misskey's instance ticker",
+        suggestions: ["#593196"]
+      }
+    ]
+  },
+  %{
+    group: :pleroma,
     key: :rich_media,
     type: :group,
     description:

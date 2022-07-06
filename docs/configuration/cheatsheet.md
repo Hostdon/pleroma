@@ -1114,6 +1114,18 @@ config :pleroma, :frontends,
 
 This would serve the frontend from the the folder at `$instance_static/frontends/pleroma/stable`. You have to copy the frontend into this folder yourself. You can choose the name and ref any way you like, but they will be used by mix tasks to automate installation in the future, the name referring to the project and the ref referring to a commit.
 
+### Theme settings
+
+Settings to change theme as exposed to the outside world, for software
+that scans `index.html` (mainly misskey)
+
+```
+config :pleroma, Pleroma.Web.Metadata.Providers.Theme, theme_color: "#593196"
+```
+
+This sets the `theme-color` meta tag on `index.html`, and is basically
+a hack to make misskey find the right thing.
+
 ## Ephemeral activities (Pleroma.Workers.PurgeExpiredActivity)
 
 Settings to enable and configure expiration for ephemeral activities
