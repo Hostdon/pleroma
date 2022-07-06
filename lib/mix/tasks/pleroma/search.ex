@@ -10,11 +10,14 @@ defmodule Mix.Tasks.Pleroma.Search do
 
   def run(["import", "activities" | _rest]) do
     start_pleroma()
+    IO.inspect(Pleroma.Config.get([Pleroma.Search.Elasticsearch.Cluster, :indexes, :activities]))
 
-    Elasticsearch.Index.Bulk.upload(
-      Pleroma.Search.Elasticsearch.Cluster,
-      "activities",
-      Pleroma.Config.get([Pleroma.Search.Elasticsearch.Cluster, :indexes, :activities])
+    IO.inspect(
+      Elasticsearch.Index.Bulk.upload(
+        Pleroma.Search.Elasticsearch.Cluster,
+        "activities",
+        Pleroma.Config.get([Pleroma.Search.Elasticsearch.Cluster, :indexes, :activities])
+      )
     )
   end
 end

@@ -124,6 +124,8 @@ depends on the amount of text in posts.
 
 ## Elasticsearch
 
+**Note: This requires at least ElasticSearch 7**
+
 As with meilisearch, this can be rather memory-hungry, but it is very good at what it does.
 
 To use [elasticsearch](https://www.elastic.co/), set the search module to `Pleroma.Search.Elasticsearch`:

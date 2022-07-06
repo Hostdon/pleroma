@@ -196,14 +196,14 @@ defmodule Pleroma.Mixfile do
       {:majic, "~> 1.0"},
       {:eblurhash, "~> 1.2.2"},
       {:open_api_spex, "~> 3.10"},
-      {:elastix, ">= 0.0.0"},
       {:search_parser,
        git: "https://github.com/FloatingGhost/pleroma-contrib-search-parser.git",
        ref: "08971a81e68686f9ac465cfb6661d51c5e4e1e7f"},
       {:nimble_parsec, "~> 1.0", override: true},
       {:phoenix_live_dashboard, "~> 0.6.2"},
       {:ecto_psql_extras, "~> 0.6"},
-      {:elasticsearch, "~> 1.0.0"},
+      {:elasticsearch,
+       git: "https://akkoma.dev/AkkomaGang/elasticsearch-elixir.git", ref: "main"},
 
       # indirect dependency version override
       {:plug, "~> 1.10.4", override: true},
