@@ -141,6 +141,5 @@ OTP releases have different service files than from-source installs so they need
 Refer to [Running mix tasks](otp_en.md#running-mix-tasks) section from OTP release installation guide.
 ## Updating
 Refer to [Updating](otp_en.md#updating) section from OTP release installation guide.
-## Questions
 
-If you encounter any issues or have questions regarding the install process, feel free to ask at [meta.akkoma.dev](https://meta.akkoma.dev/).
+{! backend/support.include !}

@@ -21,7 +21,7 @@ defmodule Pleroma.Web.Preload.Providers.InstanceTest do
   test "it renders the panel", %{"/instance/panel.html" => panel} do
     assert String.contains?(
              panel,
-             "<p>Welcome to <a href=\"https://pleroma.social\" target=\"_blank\">Pleroma!</a></p>"
+             "<p>Welcome to <a href=\"https://akkoma.dev\" target=\"_blank\">Akkoma</a>!</p>"
            )
   end
 

@@ -9,13 +9,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 - Added move account API
 - Added ability to set instance accent-color via theme-color
+- A fallback page for when a user does not have a frontend installed
 
 ### Removed
 - SSH frontend, to be potentially re-enabled via a bridge rather than wired into the main system
 - Gopher frontend, as above
+- All pre-compiled javascript
 
 ### Fixed
 - ES8 support for bulk indexing activities
+
+### Upgrade Notes
+- The bundled frontend has been removed, you will need to run the `pleroma.frontend install` mix task to install your frontend of choice. Configuration by default is set to `pleroma-fe`.
 
 ## 2.5.2
 
