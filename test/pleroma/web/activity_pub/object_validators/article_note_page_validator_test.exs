@@ -10,6 +10,12 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidatorTest 
 
   import Pleroma.Factory
 
+  setup_all do
+    Tesla.Mock.mock_global(fn env -> apply(HttpRequestMock, :request, [env]) end)
+
+    :ok
+  end
+
   describe "Notes" do
     setup do
       user = insert(:user)
@@ -62,6 +68,56 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidatorTest 
         |> Jason.decode!()
 
       %{valid?: true} = ArticleNotePageValidator.cast_and_validate(note)
+    end
+
+    test "a misskey MFM status with a content field should work and be linked", _ do
+      local_user = insert(:user, %{nickname: "akkoma_user"})
+
+      insert(:user, %{ap_id: "https://misskey.local.live/users/92hzkskwgy"})
+
+      note =
+        "test/fixtures/misskey/mfm_x_format.json"
+        |> File.read!()
+        |> Jason.decode!()
+
+      expected_content =
+        "<span class=\"h-card\"><a class=\"u-url mention\" data-user=\"#{local_user.id}\" href=\"#{local_user.ap_id}\" rel=\"ugc\">@<span>akkoma_user</span></a></span> linkifylink <a class=\"hashtag\" data-tag=\"dancedance\" href=\"http://localhost:4001/tag/dancedance\" rel=\"tag ugc\">#dancedance</a> $[jelly mfm goes here] <br><br>## aaa"
+
+      %{
+        valid?: true,
+        changes: %{
+          content: ^expected_content,
+          source: %{
+            "content" => "@akkoma_user linkifylink #dancedance $[jelly mfm goes here] \n\n## aaa",
+            "mediaType" => "text/x.misskeymarkdown"
+          }
+        }
+      } = ArticleNotePageValidator.cast_and_validate(note)
+    end
+
+    test "a misskey MFM status with a _misskey_content field should work and be linked", _ do
+      local_user = insert(:user, %{nickname: "akkoma_user"})
+
+      insert(:user, %{ap_id: "https://misskey.local.live/users/92hzkskwgy"})
+
+      note =
+        "test/fixtures/misskey/mfm_underscore_format.json"
+        |> File.read!()
+        |> Jason.decode!()
+
+      expected_content =
+        "<span class=\"h-card\"><a class=\"u-url mention\" data-user=\"#{local_user.id}\" href=\"#{local_user.ap_id}\" rel=\"ugc\">@<span>akkoma_user</span></a></span> linkifylink <a class=\"hashtag\" data-tag=\"dancedance\" href=\"http://localhost:4001/tag/dancedance\" rel=\"tag ugc\">#dancedance</a> $[jelly mfm goes here] <br><br>## aaa"
+
+      %{
+        valid?: true,
+        changes: %{
+          content: ^expected_content,
+          source: %{
+            "content" => "@akkoma_user linkifylink #dancedance $[jelly mfm goes here] \n\n## aaa",
+            "mediaType" => "text/x.misskeymarkdown"
+          }
+        }
+      } = ArticleNotePageValidator.cast_and_validate(note)
     end
   end
 end

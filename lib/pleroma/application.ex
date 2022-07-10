@@ -58,9 +58,6 @@ defmodule Pleroma.Application do
     Pleroma.Docs.JSON.compile()
     limiters_setup()
 
-    Logger.info("Starting Finch")
-    Finch.start_link(name: MyFinch)
-
     # Define workers and child supervisors to be supervised
     children =
       [
@@ -70,6 +67,7 @@ defmodule Pleroma.Application do
         Pleroma.Web.Plugs.RateLimiter.Supervisor
       ] ++
         cachex_children() ++
+        http_children() ++
         [
           Pleroma.Stats,
           Pleroma.JobQueueMonitor,
@@ -275,5 +273,14 @@ defmodule Pleroma.Application do
 
       ConcurrentLimiter.new(module, max_running, max_waiting)
     end)
+  end
+
+  defp http_children do
+    config =
+      [:http, :adapter]
+      |> Config.get([])
+      |> Keyword.put(:name, MyFinch)
+
+    [{Finch, config}]
   end
 end

@@ -36,6 +36,33 @@ config :logger, :console,
   level: :info
 ```
 
+## Testing with HTTPS
+
+If you end up developing alongside other software like misskey,
+you will not be able to federate without an SSL certificate. You should
+be able to use the snakeoil certificate that comes standard with most
+distributions or generate one from scratch, then force elixir to accept it.
+
+HTTP clients are none too keen to accept self-signed certs, but we can do
+this:
+
+```elixir
+config :pleroma, :http,
+  adapter: [
+    pools: %{
+      default: [
+        conn_opts: [
+          transport_opts: [
+            verify: :verify_none
+          ]
+        ]
+      ]
+    }
+  ]
+```
+
+Now your SSL requests will work. Hooray.
+
 ## Testing
 
 1. Create a `test.secret.exs` file with the content as shown below

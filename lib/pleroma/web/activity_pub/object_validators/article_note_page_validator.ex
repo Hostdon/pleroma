@@ -7,6 +7,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
 
   alias Pleroma.EctoType.ActivityPub.ObjectValidators
   alias Pleroma.Object.Fetcher
+  alias Pleroma.Web.CommonAPI.Utils
   alias Pleroma.Web.ActivityPub.ObjectValidators.CommonFixes
   alias Pleroma.Web.ActivityPub.ObjectValidators.CommonValidations
   alias Pleroma.Web.ActivityPub.Transmogrifier
@@ -81,12 +82,22 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
   defp fix_replies(data), do: data
 
   # https://github.com/misskey-dev/misskey/pull/8787
-  defp fix_misskey_content(%{"source" => %{"mediaType" => "text/x.misskeymarkdown"}} = object),
-    do: object
+  defp fix_misskey_content(
+         %{"source" => %{"mediaType" => "text/x.misskeymarkdown", "content" => content}} = object
+       ) do
+    {linked, _, _} = Utils.format_input(content, "text/x.misskeymarkdown")
+    Map.put(object, "content", linked)
+  end
 
   defp fix_misskey_content(%{"_misskey_content" => content} = object) do
+    {linked, _, _} = Utils.format_input(content, "text/x.misskeymarkdown")
+
     object
-    |> Map.put("source", %{"content" => content, "mediaType" => "text/x.misskeymarkdown"})
+    |> Map.put("source", %{
+      "content" => content,
+      "mediaType" => "text/x.misskeymarkdown"
+    })
+    |> Map.put("content", linked)
     |> Map.delete("_misskey_content")
   end
 

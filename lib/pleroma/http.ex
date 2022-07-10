@@ -65,7 +65,6 @@ defmodule Pleroma.HTTP do
     options = put_in(options[:adapter], adapter_opts)
     params = options[:params] || []
     request = build_request(method, headers, options, url, body, params)
-
     client = Tesla.client([Tesla.Middleware.FollowRedirects])
 
     request(client, request)
