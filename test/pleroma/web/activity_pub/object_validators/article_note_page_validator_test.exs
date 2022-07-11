@@ -80,6 +80,12 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidatorTest 
           ap_id: "http://misskey.local.live/users/remote_user"
         })
 
+      full_tag_remote_user =
+        insert(:user, %{
+          nickname: "full_tag_remote_user",
+          ap_id: "http://misskey.local.live/users/full_tag_remote_user"
+        })
+
       insert(:user, %{ap_id: "https://misskey.local.live/users/92hzkskwgy"})
 
       note =
@@ -93,7 +99,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidatorTest 
           content: content,
           source: %{
             "content" =>
-              "@akkoma_user @remote_user @oops_not_a_mention linkifylink #dancedance $[jelly mfm goes here] \n\n## aaa",
+              "@akkoma_user @remote_user @full_tag_remote_user@misskey.local.live @oops_not_a_mention linkifylink #dancedance $[jelly mfm goes here] \n\n## aaa",
             "mediaType" => "text/x.misskeymarkdown"
           }
         }
@@ -104,6 +110,9 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidatorTest 
 
       assert content =~
                "<span class=\"h-card\"><a class=\"u-url mention\" data-user=\"#{remote_user.id}\" href=\"#{remote_user.ap_id}\" rel=\"ugc\">@<span>remote_user</span></a></span>"
+
+      assert content =~
+               "<span class=\"h-card\"><a class=\"u-url mention\" data-user=\"#{full_tag_remote_user.id}\" href=\"#{full_tag_remote_user.ap_id}\" rel=\"ugc\">@<span>full_tag_remote_user</span></a></span>"
 
       assert content =~ "@oops_not_a_mention"
       assert content =~ "$[jelly mfm goes here] <br><br>## aaa"

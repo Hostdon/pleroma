@@ -81,9 +81,23 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
 
   defp fix_replies(data), do: data
 
-  defp remote_mention_resolver(%{"tag" => tags}, "@" <> nickname = mention, buffer, opts, acc) do
+  defp remote_mention_resolver(
+         %{"id" => ap_id, "tag" => tags},
+         "@" <> nickname = mention,
+         buffer,
+         opts,
+         acc
+       ) do
+    initial_host =
+      ap_id
+      |> URI.parse()
+      |> Map.get(:host)
+
     with mention_tag <-
-           Enum.find(tags, fn t -> t["type"] == "Mention" && t["name"] == mention end),
+           Enum.find(tags, fn t ->
+             t["type"] == "Mention" &&
+               (t["name"] == mention || mention == "#{t["name"]}@#{initial_host}")
+           end),
          false <- is_nil(mention_tag),
          {:ok, %User{} = user} <- User.get_or_fetch_by_ap_id(mention_tag["href"]) do
       link = Pleroma.Formatter.mention_tag(user, nickname, opts)

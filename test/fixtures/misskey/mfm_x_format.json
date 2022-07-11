@@ -5,7 +5,7 @@
   "summary": null,
   "content": "this gets replaced",
   "source": {
-    "content": "@akkoma_user @remote_user @oops_not_a_mention linkifylink #dancedance $[jelly mfm goes here] \n\n## aaa",
+    "content": "@akkoma_user @remote_user @full_tag_remote_user@misskey.local.live @oops_not_a_mention linkifylink #dancedance $[jelly mfm goes here] \n\n## aaa",
     "mediaType": "text/x.misskeymarkdown"
   },
   "published": "2022-07-10T15:37:36.368Z",
@@ -34,6 +34,11 @@
       "type": "Mention",
       "href": "http://misskey.local.live/users/remote_user",
       "name": "@remote_user"
+    },
+    {
+      "type": "Mention",
+      "href": "http://misskey.local.live/users/full_tag_remote_user",
+      "name": "@full_tag_remote_user"
     }
   ]
 }
