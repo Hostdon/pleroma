@@ -3,9 +3,9 @@
   "type": "Note",
   "attributedTo": "https://misskey.local.live/users/92hzkskwgy",
   "summary": null,
-  "content": "<p><a href=\"https://akkoma.local.live/users/akkoma_user\" class=\"u-url mention\">@akkoma_user@akkoma.local.live</a><span> linkifylink </span><a href=\"https://misskey.local.live/tags/dancedance\" rel=\"tag\">#dancedance</a><span> </span><i><span> mfm goes here</span></i><span> <br><br>## aaa</span></p>",
+  "content": "this gets replaced",
   "source": {
-    "content": "@akkoma_user linkifylink #dancedance $[jelly mfm goes here] \n\n## aaa",
+    "content": "@akkoma_user @remote_user @oops_not_a_mention linkifylink #dancedance $[jelly mfm goes here] \n\n## aaa",
     "mediaType": "text/x.misskeymarkdown"
   },
   "published": "2022-07-10T15:37:36.368Z",
@@ -29,6 +29,11 @@
       "type": "Mention",
       "href": "http://localhost:4001/users/akkoma_user",
       "name": "@akkoma_user"
+    },
+    {
+      "type": "Mention",
+      "href": "http://misskey.local.live/users/remote_user",
+      "name": "@remote_user"
     }
   ]
 }
