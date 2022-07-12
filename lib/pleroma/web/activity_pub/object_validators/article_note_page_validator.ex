@@ -4,9 +4,10 @@
 
 defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
   use Ecto.Schema
-
+  alias Pleroma.User
   alias Pleroma.EctoType.ActivityPub.ObjectValidators
   alias Pleroma.Object.Fetcher
+  alias Pleroma.Web.CommonAPI.Utils
   alias Pleroma.Web.ActivityPub.ObjectValidators.CommonFixes
   alias Pleroma.Web.ActivityPub.ObjectValidators.CommonValidations
   alias Pleroma.Web.ActivityPub.Transmogrifier
@@ -80,13 +81,60 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
 
   defp fix_replies(data), do: data
 
+  defp remote_mention_resolver(
+         %{"id" => ap_id, "tag" => tags},
+         "@" <> nickname = mention,
+         buffer,
+         opts,
+         acc
+       ) do
+    initial_host =
+      ap_id
+      |> URI.parse()
+      |> Map.get(:host)
+
+    with mention_tag <-
+           Enum.find(tags, fn t ->
+             t["type"] == "Mention" &&
+               (t["name"] == mention || mention == "#{t["name"]}@#{initial_host}")
+           end),
+         false <- is_nil(mention_tag),
+         {:ok, %User{} = user} <- User.get_or_fetch_by_ap_id(mention_tag["href"]) do
+      link = Pleroma.Formatter.mention_tag(user, nickname, opts)
+      {link, %{acc | mentions: MapSet.put(acc.mentions, {"@" <> nickname, user})}}
+    else
+      _ -> {buffer, acc}
+    end
+  end
+
   # https://github.com/misskey-dev/misskey/pull/8787
-  defp fix_misskey_content(%{"source" => %{"mediaType" => "text/x.misskeymarkdown"}} = object),
-    do: object
+  defp fix_misskey_content(
+         %{"source" => %{"mediaType" => "text/x.misskeymarkdown", "content" => content}} = object
+       ) do
+    mention_handler = fn nick, buffer, opts, acc ->
+      remote_mention_resolver(object, nick, buffer, opts, acc)
+    end
+
+    {linked, _, _} =
+      Utils.format_input(content, "text/x.misskeymarkdown", mention_handler: mention_handler)
+
+    Map.put(object, "content", linked)
+  end
 
   defp fix_misskey_content(%{"_misskey_content" => content} = object) do
+    mention_handler = fn nick, buffer, opts, acc ->
+      remote_mention_resolver(object, nick, buffer, opts, acc)
+    end
+
+    {linked, _, _} =
+      Utils.format_input(content, "text/x.misskeymarkdown", mention_handler: mention_handler)
+
     object
-    |> Map.put("source", %{"content" => content, "mediaType" => "text/x.misskeymarkdown"})
+    |> Map.put("source", %{
+      "content" => content,
+      "mediaType" => "text/x.misskeymarkdown"
+    })
+    |> Map.put("content", linked)
     |> Map.delete("_misskey_content")
   end
 

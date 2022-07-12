@@ -296,6 +296,5 @@ If you opted to allow sudo for the `akkoma` user but would like to remove the ab
 #### Further reading
 
 {! backend/installation/further_reading.include !}
-## Questions
 
-If you encounter any issues or have questions regarding the install process, feel free to ask at [meta.akkoma.dev](https://meta.akkoma.dev/).
+{! backend/support.include !}

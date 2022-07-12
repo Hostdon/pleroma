@@ -718,6 +718,7 @@ config :pleroma, :static_fe, enabled: false
 # available: %{...}
 
 config :pleroma, :frontends,
+  primary: %{"name" => "pleroma-fe", "ref" => "develop"},
   available: %{
     "pleroma-fe" => %{
       "name" => "pleroma-fe",
@@ -726,7 +727,7 @@ config :pleroma, :frontends,
       "ref" => "develop",
       "build_dir" => "dist"
     },
-    # mastodon-Fe cannot be set as a primary - this is only here so we can update this seperately
+    # Mastodon-Fe cannot be set as a primary - this is only here so we can update this seperately
     "mastodon-fe" => %{
       "name" => "mastodon-fe",
       "git" => "https://akkoma.dev/AkkomaGang/masto-fe",

@@ -7,7 +7,7 @@ defmodule Pleroma.Web.AdminAPI.InstanceDocumentControllerTest do
   import Pleroma.Factory
 
   @dir "test/tmp/instance_static"
-  @default_instance_panel ~s(<p>Welcome to <a href="https://pleroma.social" target="_blank">Pleroma!</a></p>)
+  @default_instance_panel ~s(<p>Welcome to <a href="https://akkoma.dev" target="_blank">Akkoma</a>!</p>)
 
   setup do
     File.mkdir_p!(@dir)

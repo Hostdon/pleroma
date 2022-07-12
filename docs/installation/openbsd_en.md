@@ -254,6 +254,4 @@ LC_ALL=en_US.UTF-8 MIX_ENV=prod mix pleroma.user new <username> <your@emailaddre
 
 {! backend/installation/further_reading.include !}
 
-## Questions
-
-If you encounter any issues or have questions regarding the install process, feel free to ask at [meta.akkoma.dev](https://meta.akkoma.dev/).
+{! backend/support.include !}
