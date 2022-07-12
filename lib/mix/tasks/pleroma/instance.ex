@@ -100,14 +100,14 @@ defmodule Mix.Tasks.Pleroma.Instance do
 
       dbhost = get_option(options, :dbhost, "What is the hostname of your database?", "localhost")
 
-      dbname = get_option(options, :dbname, "What is the name of your database?", "pleroma")
+      dbname = get_option(options, :dbname, "What is the name of your database?", "akkoma")
 
       dbuser =
         get_option(
           options,
           :dbuser,
           "What is the user used to connect to your database?",
-          "pleroma"
+          "akkoma"
         )
 
       dbpass =
