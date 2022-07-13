@@ -133,7 +133,7 @@ defmodule Pleroma.Mixfile do
       {:html_entities, "~> 0.5", override: true},
       {:phoenix_html, "~> 3.1", override: true},
       {:calendar, "~> 1.0"},
-      {:cachex, "~> 3.2"},
+      {:cachex, "~> 3.4"},
       {:poison, "~> 3.0", override: true},
       {:tesla, "~> 1.4.4", override: true},
       {:castore, "~> 0.1"},

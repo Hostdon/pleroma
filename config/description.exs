@@ -3090,6 +3090,21 @@ config :pleroma, :config_description, [
         children: installed_frontend_options
       },
       %{
+        key: :swagger,
+        type: :map,
+        description: "Swagger API reference frontend",
+        children:
+          installed_frontend_options ++
+            [
+              %{
+                key: "enabled",
+                label: "Enabled",
+                type: :boolean,
+                description: "Whether to have this enabled at all"
+              }
+            ]
+      },
+      %{
         key: :available,
         type: :map,
         description:

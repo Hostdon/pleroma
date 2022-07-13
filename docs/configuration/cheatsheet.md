@@ -270,6 +270,33 @@ config :pleroma, :frontend_configurations,
 
 These settings **need to be complete**, they will override the defaults.
 
+### :frontends
+
+These settings tell akkoma which frontend files to serve the user.
+
+See: [Frontend Management](../frontend_management)
+
+```elixir
+config :pleroma, :frontends,
+  primary: %{
+    "name" => "pleroma-fe",
+    "ref" => "develop"
+  },
+  admin: %{
+    "name" => "admin-fe",
+    "ref" => "develop"
+  },
+  swagger: %{
+    "name" => "swagger-ui",
+    "ref" => "stable",
+    "enabled" => true
+  } 
+```
+
+* `:primary` - The frontend that will be served at `/`
+* `:admin` - The frontend that will be served at `/pleroma/admin`
+* `:swagger` - Config for developers to act as an API reference to be served at `/akkoma/swaggerui/` (trailing slash _needed_). Disabled by default.
+
 ### :static_fe
 
 Render profiles and posts using server-generated HTML that is viewable without using JavaScript.
@@ -1087,40 +1114,6 @@ Control favicons for instances.
     3. the directory named by the TMP environment variable
     4. C:\TMP on Windows or /tmp on Unix-like operating systems
     5. as a last resort, the current working directory
-
-## Frontend management
-
-Frontends in Akkoma are swappable - you can specify which one to use here.
-
-You can set a frontends for the key `primary` and `admin` and the options of `name` and `ref`. This will then make Akkoma serve the frontend from a folder constructed by concatenating the instance static path, `frontends` and the name and ref.
-
-The key `primary` refers to the frontend that will be served by default for general requests. The key `admin` refers to the frontend that will be served at the `/pleroma/admin` path.
-
-If you don't set anything here, you will not have _any_ frontend at all.
-
-Example:
-
-```
-config :pleroma, :frontends,
-  primary: %{
-    "name" => "pleroma",
-    "ref" => "stable"
-  },
-  admin: %{
-    "name" => "admin",
-    "ref" => "develop"
-  }
-```
-
-This would serve the frontend from the the folder at `$instance_static/frontends/pleroma/stable`. You have to copy the frontend into this folder yourself. You can choose the name and ref any way you like, but they will be used by mix tasks to automate installation in the future, the name referring to the project and the ref referring to a commit.
-
-Refer to [the frontend CLI task](../../administration/CLI_tasks/frontend) for how to install the frontend's files
-
-If you wish masto-fe to also be enabled, you will also need to run the install task for `mastodon-fe`. Not doing this will lead to the frontend not working.
-
-If you choose not to install a frontend for whatever reason, it is recommended that you enable [`:static_fe`](#static_fe) to allow remote users to click "view remote source". Don't bother with this if you've got no unauthenticated access though.
-
-You can also replace the default "no frontend" page by placing an `index.html` file under your `instance/static/` directory.
 
 ### Theme settings
 

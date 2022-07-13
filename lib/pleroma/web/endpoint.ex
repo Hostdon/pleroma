@@ -66,12 +66,13 @@ defmodule Pleroma.Web.Endpoint do
     }
   )
 
-  plug(Plug.Static.IndexHtml, at: "/pleroma/fedife/")
+  plug(Plug.Static.IndexHtml, at: "/akkoma/swaggerui")
 
   plug(Pleroma.Web.Plugs.FrontendStatic,
-    at: "/pleroma/fedife",
-    frontend_type: :fedife,
+    at: "/akkoma/swaggerui",
+    frontend_type: :swagger,
     gzip: true,
+    if: &Akkoma.Web.Swagger.ui_enabled?/0,
     cache_control_for_etags: @static_cache_control,
     headers: %{
       "cache-control" => @static_cache_control

@@ -719,6 +719,11 @@ config :pleroma, :static_fe, enabled: false
 
 config :pleroma, :frontends,
   primary: %{"name" => "pleroma-fe", "ref" => "develop"},
+  swagger: %{
+    "name" => "swagger-ui",
+    "ref" => "stable",
+    "enabled" => false
+  },
   available: %{
     "pleroma-fe" => %{
       "name" => "pleroma-fe",
@@ -748,6 +753,14 @@ config :pleroma, :frontends,
         "https://gitlab.com/soapbox-pub/soapbox-fe/-/jobs/artifacts/${ref}/download?job=build-production",
       "ref" => "v1.0.0",
       "build_dir" => "static"
+    },
+    # For developers - enables a swagger frontend to view the openapi spec
+    "swagger-ui" => %{
+      "name" => "swagger-ui",
+      "git" => "https://github.com/swagger-api/swagger-ui",
+      "build_url" => "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/swagger-ui.zip",
+      "build_dir" => "dist",
+      "ref" => "stable"
     }
   }
 
