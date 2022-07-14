@@ -1,4 +1,4 @@
-defmodule Akkoma.Web.Swagger do
+defmodule Pleroma.Web.Swagger do
   alias Pleroma.Config
 
   def ui_enabled? do
