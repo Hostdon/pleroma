@@ -36,6 +36,12 @@ Then compile, migrate and restart as usual.
 
 ## From OTP
 
+**IMPORTANT: if you are using musl1.1 (void linux musl edition),
+you will need to override the FLAVOUR to amd64-musl11, 
+also pls go shout at your maintainers to actually upgrade from EOL software.**
+
+the flavour to be
+
 This will just be setting the update URL -
 
 ```bash

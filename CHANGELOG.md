@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added move account API
 - Added ability to set instance accent-color via theme-color
 - A fallback page for when a user does not have a frontend installed
+- Support for OTP musl11
 
 ### Removed
 - SSH frontend, to be potentially re-enabled via a bridge rather than wired into the main system

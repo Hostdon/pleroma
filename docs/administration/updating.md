@@ -8,7 +8,7 @@ Besides that, doing the following is generally enough:
 
 ```sh
 # Download the new release
-su akkoma -s $SHELL -lc "./bin/pleroma_ctl update"
+su akkoma -s $SHELL -lc "./bin/pleroma_ctl update --branch develop" 
 
 # Migrate the database, you are advised to stop the instance before doing that
 su akkoma -s $SHELL -lc "./bin/pleroma_ctl migrate"
