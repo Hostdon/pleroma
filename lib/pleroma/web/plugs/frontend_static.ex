@@ -31,13 +31,13 @@ defmodule Pleroma.Web.Plugs.FrontendStatic do
     |> Keyword.put(:from, "__unconfigured_frontend_static_plug")
     |> Plug.Static.init()
     |> Map.put(:frontend_type, opts[:frontend_type])
-    |> Map.put(:if, Keyword.get(opts, :if, fn -> true end))
+    |> Map.put(:if, Keyword.get(opts, :if, true))
   end
 
   def call(conn, opts) do
     with false <- api_route?(conn.path_info),
          false <- invalid_path?(conn.path_info),
-         true <- opts[:if].(),
+         true <- enabled?(opts[:if]),
          frontend_type <- Map.get(opts, :frontend_type, :primary),
          path when not is_nil(path) <- file_path("", frontend_type) do
       call_static(conn, opts, path)
@@ -46,6 +46,10 @@ defmodule Pleroma.Web.Plugs.FrontendStatic do
         conn
     end
   end
+
+  defp enabled?(if_opt) when is_function(if_opt), do: if_opt.()
+  defp enabled?(true), do: true
+  defp enabled?(_), do: false
 
   defp invalid_path?(list) do
     invalid_path?(list, :binary.compile_pattern(["/", "\\", ":", "\0"]))
