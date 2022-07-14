@@ -72,7 +72,7 @@ defmodule Pleroma.Web.Endpoint do
     at: "/akkoma/swaggerui",
     frontend_type: :swagger,
     gzip: true,
-    if: &Akkoma.Web.Swagger.ui_enabled?/0,
+    if: &Pleroma.Web.Swagger.ui_enabled?/0,
     cache_control_for_etags: @static_cache_control,
     headers: %{
       "cache-control" => @static_cache_control
