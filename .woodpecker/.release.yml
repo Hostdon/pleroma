@@ -22,6 +22,7 @@ pipeline:
         - develop
         - stable
         - refs/tags/v*
+        - refs/tags/stable-*
     secrets:
     - SCW_ACCESS_KEY
     - SCW_SECRET_KEY
@@ -56,6 +57,7 @@ pipeline:
         - develop
         - stable
         - refs/tags/v*
+        - refs/tags/stable-*
     secrets:
     - SCW_ACCESS_KEY
     - SCW_SECRET_KEY
@@ -93,6 +95,7 @@ pipeline:
         - develop
         - stable
         - refs/tags/v*
+        - refs/tags/stable-*
     secrets:
     - SCW_ACCESS_KEY
     - SCW_SECRET_KEY
