@@ -55,7 +55,6 @@ pipeline:
     - SCW_ACCESS_KEY
     - SCW_SECRET_KEY
     - SCW_DEFAULT_ORGANIZATION_ID
-    group: release
     image: ${docker_prefix}elixir:1.13-alpine
     environment:
       MIX_ENV: prod
@@ -90,7 +89,6 @@ pipeline:
     - SCW_ACCESS_KEY
     - SCW_SECRET_KEY
     - SCW_DEFAULT_ORGANIZATION_ID
-    group: release
     image: voidlinux/voidlinux-musl
     environment:
       MIX_ENV: prod
