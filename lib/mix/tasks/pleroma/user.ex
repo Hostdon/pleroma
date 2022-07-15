@@ -13,7 +13,7 @@ defmodule Mix.Tasks.Pleroma.User do
   alias Pleroma.Web.ActivityPub.Pipeline
 
   @shortdoc "Manages Pleroma users"
-  @moduledoc File.read!("docs/administration/CLI_tasks/user.md")
+  @moduledoc File.read!("docs/docs/administration/CLI_tasks/user.md")
 
   def run(["new", nickname, email | rest]) do
     {options, [], []} =

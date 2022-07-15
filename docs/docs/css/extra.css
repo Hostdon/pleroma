@@ -1,0 +1,28 @@
+p, a, li, pre {
+  font-family: "Tiresias PCFont", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji" !important;
+}
+
+code,
+.codehilite pre {
+  font-weight: bold;
+}
+
+:root > * {
+  --md-primary-fg-color:        #593196;
+  --md-accent-fg-color:         #455a63;
+}
+
+@font-face {
+  font-family: 'Tiresias PCFont';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Tiresias PCFont'), local('Tiresias PCFont'),
+       url('./fonts/Tiresias_PCfont.ttf') format('truetype')
+}
+@font-face {
+  font-family: 'Tiresias Infofont';
+  font-style: normal;   
+  font-weight: 400;
+  src: local('Tiresias Infofont'), local('Tiresias Infofont'),
+       url('./fonts/Tiresias_Infofont.ttf') format('truetype')
+} 

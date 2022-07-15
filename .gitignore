@@ -61,3 +61,6 @@ pleroma.iml
 # Editor temp files
 /*~
 /*#
+
+# Generated documentation
+docs/site

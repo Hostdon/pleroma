@@ -1,0 +1,37 @@
+site_name: Akkoma Documentation
+theme:
+  favicon: 'images/akko_badday.png'
+  name: 'material'
+  custom_dir: 'theme'
+  # Disable google fonts
+  font: false
+  logo: 'images/akko_badday.png'
+  features:
+    - tabs
+  palette:
+    primary: 'deep purple'
+    accent: 'blue grey'
+
+extra_css:
+  - css/extra.css
+repo_name: 'AkkomaGang/docs'
+repo_url: 'https://akkoma.dev/AkkomaGang/docs'
+
+extra:
+  repo_icon: gitea
+
+markdown_extensions:
+  # Note/warning blocks https://squidfunk.github.io/mkdocs-material/extensions/admonition/
+  - admonition
+  - codehilite:
+      guess_lang: false
+  # Make it possible to link to every header https://squidfunk.github.io/mkdocs-material/extensions/permalinks/
+  - toc:
+      permalink: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.superfences
+  - pymdownx.tabbed
+  - pymdownx.details
+  - markdown_include.include:
+      base_path: docs

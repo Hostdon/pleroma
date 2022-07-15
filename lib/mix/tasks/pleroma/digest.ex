@@ -7,7 +7,7 @@ defmodule Mix.Tasks.Pleroma.Digest do
   import Mix.Pleroma
 
   @shortdoc "Manages digest emails"
-  @moduledoc File.read!("docs/administration/CLI_tasks/digest.md")
+  @moduledoc File.read!("docs/docs/administration/CLI_tasks/digest.md")
 
   def run(["test", nickname | opts]) do
     Mix.Pleroma.start_pleroma()

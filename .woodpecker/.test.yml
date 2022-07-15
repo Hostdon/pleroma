@@ -1,16 +1,22 @@
-depends_on:
-- lint
-
 matrix:
   ELIXIR_VERSION:
   - 1.13
 
 pipeline:
+  lint:
+    when:
+      event:
+      - pull_request
+    image: pleromaforkci/ci-base:1.13
+    commands:
+    - mix local.hex --force
+    - mix local.rebar --force
+    - mix format --check-formatted
+
   build:
     image: pleromaforkci/ci-base:${ELIXIR_VERSION}
     when:
       event:
-      - push
       - pull_request
     environment:
       MIX_ENV: test
@@ -25,7 +31,6 @@ pipeline:
     image: pleromaforkci/ci-base:${ELIXIR_VERSION}
     when:
       event:
-      - push
       - pull_request
     environment:
       MIX_ENV: test
@@ -36,6 +41,7 @@ pipeline:
     commands:
     - mix local.hex --force
     - mix local.rebar --force
+    - mix deps.get
     - mix ecto.drop -f -q
     - mix ecto.create
     - mix ecto.migrate
@@ -44,6 +50,9 @@ pipeline:
 services:
   postgres:
     image: postgres:13
+    when:
+      event:
+      - pull_request
     environment:
       POSTGRES_DB: pleroma_test
       POSTGRES_USER: postgres

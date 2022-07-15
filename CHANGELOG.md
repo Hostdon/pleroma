@@ -22,6 +22,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Upgrade Notes
 - The bundled frontend has been removed, you will need to run the `pleroma.frontend install` mix task to install your frontend of choice. Configuration by default is set to `pleroma-fe`.
+- Admin-FE users will have to ensure that :admin is set _BEFORE_ restart, or
+you might end up in a situation where you don't have an ability to get it.
 
 ## 2.5.2
 

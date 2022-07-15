@@ -9,7 +9,7 @@ defmodule Mix.Tasks.Pleroma.Instance do
   alias Pleroma.Config
 
   @shortdoc "Manages Pleroma instance"
-  @moduledoc File.read!("docs/administration/CLI_tasks/instance.md")
+  @moduledoc File.read!("docs/docs/administration/CLI_tasks/instance.md")
 
   def run(["gen" | rest]) do
     {options, [], []} =

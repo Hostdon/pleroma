@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Mix.Tasks.Pleroma.App do
-  @moduledoc File.read!("docs/administration/CLI_tasks/oauth_app.md")
+  @moduledoc File.read!("docs/docs/administration/CLI_tasks/oauth_app.md")
   use Mix.Task
 
   import Mix.Pleroma

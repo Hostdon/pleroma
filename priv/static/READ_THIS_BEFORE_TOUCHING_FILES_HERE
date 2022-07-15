@@ -5,4 +5,4 @@ modifying anything here.
 
 Please use the instance static directory instead, it has the same directory
 structure and files placed there will override files placed here. See
-https://docs.akkoma.dev/main/backend/configuration/static_dir/ for more info.
+https://docs.akkoma.dev/stable/configuration/static_dir/ for more info.

@@ -718,7 +718,8 @@ config :pleroma, :static_fe, enabled: false
 # available: %{...}
 
 config :pleroma, :frontends,
-  primary: %{"name" => "pleroma-fe", "ref" => "develop"},
+  primary: %{"name" => "pleroma-fe", "ref" => "stable"},
+  admin: %{"name" => "admin-fe", "ref" => "stable"},
   swagger: %{
     "name" => "swagger-ui",
     "ref" => "stable",
@@ -728,8 +729,9 @@ config :pleroma, :frontends,
     "pleroma-fe" => %{
       "name" => "pleroma-fe",
       "git" => "https://akkoma.dev/AkkomaGang/pleroma-fe",
-      "build_url" => "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/akkoma-fe.zip",
-      "ref" => "develop",
+      "build_url" =>
+        "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/${ref}/akkoma-fe.zip",
+      "ref" => "stable",
       "build_dir" => "dist"
     },
     # Mastodon-Fe cannot be set as a primary - this is only here so we can update this seperately
@@ -743,8 +745,9 @@ config :pleroma, :frontends,
     "admin-fe" => %{
       "name" => "admin-fe",
       "git" => "https://akkoma.dev/AkkomaGang/admin-fe",
-      "build_url" => "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/admin-fe.zip",
-      "ref" => "develop"
+      "build_url" =>
+        "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/${ref}/admin-fe.zip",
+      "ref" => "stable"
     },
     "soapbox-fe" => %{
       "name" => "soapbox-fe",
