@@ -18,7 +18,7 @@ variables:
       - refs/tags/stable-*  
   - &tag-build 'export BUILD_TAG=$${CI_COMMIT_TAG:-"$CI_COMMIT_BRANCH"} && export PLEROMA_BUILD_BRANCH=$BUILD_TAG'
 
-  - &clean "(rm -rf release || true) && (rm -rf _build || true) && (rm -rf /root/.mix) && (rm scaleway-cli || true) && (mix deps.clean --all || true)"
+  - &clean "(rm -rf release || true) && (rm -rf _build || true) && (rm -rf /root/.mix) && (rm scaleway-cli || true)"
 
 
 pipeline:
@@ -51,6 +51,7 @@ pipeline:
       - *clean
       - *setup-scw-s3
       - *setup-hex
+      - mix deps.clean --all
       - *tag-build
       - mix deps.get --only prod
       - mix release --path release
