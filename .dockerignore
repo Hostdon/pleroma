@@ -6,6 +6,12 @@ COPYING
 *file
 elixir_buildpack.config
 test/
+instance/
+_build
+deps
+test
+benchmarks
+docs/site
 
 # Required to get version
 !.git
