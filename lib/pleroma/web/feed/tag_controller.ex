@@ -31,7 +31,8 @@ defmodule Pleroma.Web.Feed.TagController do
     |> render("tag.#{format}",
       activities: activities,
       tag: tag,
-      feed_config: Config.get([:feed])
+      feed_config: Config.get([:feed]),
+      view_module: FeedView
     )
   end
 

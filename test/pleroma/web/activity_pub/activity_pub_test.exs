@@ -23,6 +23,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
   import Tesla.Mock
 
   setup do
+    clear_config([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
+    clear_config([Pleroma.Uploaders.Local, :uploads], "uploads")
     mock(fn env -> apply(HttpRequestMock, :request, [env]) end)
     :ok
   end

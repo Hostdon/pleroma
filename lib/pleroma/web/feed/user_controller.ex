@@ -60,7 +60,8 @@ defmodule Pleroma.Web.Feed.UserController do
       |> render("user.#{format}",
         user: user,
         activities: activities,
-        feed_config: Config.get([:feed])
+        feed_config: Config.get([:feed]),
+        view_module: FeedView
       )
     end
   end

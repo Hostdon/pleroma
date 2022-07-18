@@ -27,6 +27,8 @@ defmodule Pleroma.Web.CommonAPITest do
   require Pleroma.Constants
 
   setup_all do
+    clear_config([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
+    clear_config([Pleroma.Uploaders.Local, :uploads], "uploads")
     Tesla.Mock.mock_global(fn env -> apply(HttpRequestMock, :request, [env]) end)
     :ok
   end

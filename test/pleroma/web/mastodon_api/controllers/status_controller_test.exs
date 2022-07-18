@@ -25,6 +25,8 @@ defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
   setup do: clear_config([:rich_media, :enabled])
   setup do: clear_config([:mrf, :policies])
   setup do: clear_config([:mrf_keyword, :reject])
+  setup do: clear_config([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
+  setup do: clear_config([Pleroma.Uploaders.Local, :uploads], "uploads")
 
   describe "posting statuses" do
     setup do: oauth_access(["write:statuses"])
