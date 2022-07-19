@@ -1331,45 +1331,6 @@ defmodule Pleroma.Web.CommonAPITest do
     end
   end
 
-  describe "listen/2" do
-    test "returns a valid activity" do
-      user = insert(:user)
-
-      {:ok, activity} =
-        CommonAPI.listen(user, %{
-          title: "lain radio episode 1",
-          album: "lain radio",
-          artist: "lain",
-          length: 180_000
-        })
-
-      object = Object.normalize(activity, fetch: false)
-
-      assert object.data["title"] == "lain radio episode 1"
-
-      assert Visibility.get_visibility(activity) == "public"
-    end
-
-    test "respects visibility=private" do
-      user = insert(:user)
-
-      {:ok, activity} =
-        CommonAPI.listen(user, %{
-          title: "lain radio episode 1",
-          album: "lain radio",
-          artist: "lain",
-          length: 180_000,
-          visibility: "private"
-        })
-
-      object = Object.normalize(activity, fetch: false)
-
-      assert object.data["title"] == "lain radio episode 1"
-
-      assert Visibility.get_visibility(activity) == "private"
-    end
-  end
-
   describe "get_user/1" do
     test "gets user by ap_id" do
       user = insert(:user)

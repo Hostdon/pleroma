@@ -384,37 +384,6 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   def handle_incoming(%{"id" => id}, _options) when is_binary(id) and byte_size(id) < 8,
     do: :error
 
-  def handle_incoming(
-        %{"type" => "Listen", "object" => %{"type" => "Audio"} = object} = data,
-        options
-      ) do
-    actor = Containment.get_actor(data)
-
-    data =
-      Map.put(data, "actor", actor)
-      |> fix_addressing
-
-    with {:ok, %User{} = user} <- User.get_or_fetch_by_ap_id(data["actor"]) do
-      reply_depth = (options[:depth] || 0) + 1
-      options = Keyword.put(options, :depth, reply_depth)
-      object = fix_object(object, options)
-
-      params = %{
-        to: data["to"],
-        object: object,
-        actor: user,
-        context: nil,
-        local: false,
-        published: data["published"],
-        additional: Map.take(data, ["cc", "id"])
-      }
-
-      ActivityPub.listen(params)
-    else
-      _e -> :error
-    end
-  end
-
   @doc "Rewrite misskey likes into EmojiReacts"
   def handle_incoming(
         %{
@@ -695,7 +664,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   #  """
 
   def prepare_outgoing(%{"type" => activity_type, "object" => object_id} = data)
-      when activity_type in ["Create", "Listen"] do
+      when activity_type in ["Create"] do
     object =
       object_id
       |> Object.normalize(fetch: false)
