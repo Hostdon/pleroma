@@ -14,8 +14,8 @@ theme:
 
 extra_css:
   - css/extra.css
-repo_name: 'AkkomaGang/docs'
-repo_url: 'https://akkoma.dev/AkkomaGang/docs'
+repo_name: 'AkkomaGang/akkoma'
+repo_url: 'https://akkoma.dev/AkkomaGang/akkoma'
 
 extra:
   repo_icon: gitea
