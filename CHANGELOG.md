@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 - Scrobbling support
+  - `/api/v1/pleroma/scrobble`
+  - `/api/v1/pleroma/accounts/{id}/scrobbles`
+- Deprecated endpoints
+  - `/api/v1/pleroma/chats`
+  - `/api/v1/notifications/dismiss`
+  - `/api/v1/search`
+  - `/api/v1/statuses/{id}/card` 
 
 ## 2022.07
 

@@ -137,23 +137,6 @@ defmodule Pleroma.Web.MastodonAPI.NotificationControllerTest do
     assert response == expected_response
   end
 
-  test "dismissing a single notification (deprecated endpoint)" do
-    %{user: user, conn: conn} = oauth_access(["write:notifications"])
-    other_user = insert(:user)
-
-    {:ok, activity} = CommonAPI.post(other_user, %{status: "hi @#{user.nickname}"})
-
-    {:ok, [notification]} = Notification.create_notifications(activity)
-
-    conn =
-      conn
-      |> assign(:user, user)
-      |> put_req_header("content-type", "application/json")
-      |> post("/api/v1/notifications/dismiss", %{"id" => to_string(notification.id)})
-
-    assert %{} = json_response_and_validate_schema(conn, 200)
-  end
-
   test "dismissing a single notification" do
     %{user: user, conn: conn} = oauth_access(["write:notifications"])
     other_user = insert(:user)

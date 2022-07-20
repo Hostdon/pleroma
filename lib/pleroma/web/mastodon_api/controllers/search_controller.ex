@@ -25,7 +25,7 @@ defmodule Pleroma.Web.MastodonAPI.SearchController do
 
   # Note: on private instances auth is required (EnsurePublicOrAuthenticatedPlug is not skipped)
 
-  plug(RateLimiter, [name: :search] when action in [:search, :search2, :account_search])
+  plug(RateLimiter, [name: :search] when action in [:search2, :account_search])
 
   defdelegate open_api_operation(action), to: Pleroma.Web.ApiSpec.SearchOperation
 
@@ -42,7 +42,6 @@ defmodule Pleroma.Web.MastodonAPI.SearchController do
   end
 
   def search2(conn, params), do: do_search(:v2, conn, params)
-  def search(conn, params), do: do_search(:v1, conn, params)
 
   defp do_search(version, %{assigns: %{user: user}} = conn, %{q: query} = params) do
     query = String.trim(query)
@@ -116,10 +115,6 @@ defmodule Pleroma.Web.MastodonAPI.SearchController do
     |> Enum.map(fn tag ->
       %{name: tag, url: tags_path <> tag}
     end)
-  end
-
-  defp resource_search(:v1, "hashtags", query, options) do
-    prepare_tags(query, options)
   end
 
   defp prepare_tags(query, options) do

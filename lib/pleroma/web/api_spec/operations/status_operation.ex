@@ -323,34 +323,6 @@ defmodule Pleroma.Web.ApiSpec.StatusOperation do
     }
   end
 
-  def card_operation do
-    %Operation{
-      tags: ["Retrieve status information"],
-      deprecated: true,
-      summary: "Preview card",
-      description: "Deprecated in favor of card property inlined on Status entity",
-      operationId: "StatusController.card",
-      parameters: [id_param()],
-      security: [%{"oAuth" => ["read:statuses"]}],
-      responses: %{
-        200 =>
-          Operation.response("Card", "application/json", %Schema{
-            type: :object,
-            nullable: true,
-            properties: %{
-              type: %Schema{type: :string, enum: ["link", "photo", "video", "rich"]},
-              provider_name: %Schema{type: :string, nullable: true},
-              provider_url: %Schema{type: :string, format: :uri},
-              url: %Schema{type: :string, format: :uri},
-              image: %Schema{type: :string, nullable: true, format: :uri},
-              title: %Schema{type: :string},
-              description: %Schema{type: :string}
-            }
-          })
-      }
-    }
-  end
-
   def favourited_by_operation do
     %Operation{
       tags: ["Retrieve status information"],

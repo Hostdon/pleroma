@@ -428,7 +428,6 @@ defmodule Pleroma.Web.Router do
       pipe_through(:authenticated_api)
 
       post("/chats/by-account-id/:id", ChatController, :create)
-      get("/chats", ChatController, :index)
       get("/chats/:id", ChatController, :show)
       get("/chats/:id/messages", ChatController, :messages)
       post("/chats/:id/messages", ChatController, :post_chat_message)
@@ -543,8 +542,6 @@ defmodule Pleroma.Web.Router do
     post("/notifications/:id/dismiss", NotificationController, :dismiss)
     post("/notifications/clear", NotificationController, :clear)
     delete("/notifications/destroy_multiple", NotificationController, :destroy_multiple)
-    # Deprecated: was removed in Mastodon v3, use `/notifications/:id/dismiss` instead
-    post("/notifications/dismiss", NotificationController, :dismiss_via_body)
 
     post("/polls/:id/votes", PollController, :vote)
 
@@ -607,8 +604,6 @@ defmodule Pleroma.Web.Router do
     pipe_through(:api)
 
     get("/accounts/search", SearchController, :account_search)
-    get("/search", SearchController, :search)
-
     get("/accounts/lookup", AccountController, :lookup)
 
     get("/accounts/:id/statuses", AccountController, :statuses)
@@ -624,7 +619,6 @@ defmodule Pleroma.Web.Router do
     get("/statuses", StatusController, :index)
     get("/statuses/:id", StatusController, :show)
     get("/statuses/:id/context", StatusController, :context)
-    get("/statuses/:id/card", StatusController, :card)
     get("/statuses/:id/favourited_by", StatusController, :favourited_by)
     get("/statuses/:id/reblogged_by", StatusController, :reblogged_by)
 

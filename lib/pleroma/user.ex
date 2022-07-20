@@ -194,17 +194,6 @@ defmodule Pleroma.User do
       has_many(incoming_relation_source, through: [incoming_relation, :source])
     end
 
-    # `:blocks` is deprecated (replaced with `blocked_users` relation)
-    field(:blocks, {:array, :string}, default: [])
-    # `:mutes` is deprecated (replaced with `muted_users` relation)
-    field(:mutes, {:array, :string}, default: [])
-    # `:muted_reblogs` is deprecated (replaced with `reblog_muted_users` relation)
-    field(:muted_reblogs, {:array, :string}, default: [])
-    # `:muted_notifications` is deprecated (replaced with `notification_muted_users` relation)
-    field(:muted_notifications, {:array, :string}, default: [])
-    # `:subscribers` is deprecated (replaced with `subscriber_users` relation)
-    field(:subscribers, {:array, :string}, default: [])
-
     embeds_one(
       :multi_factor_authentication_settings,
       MFA.Settings,

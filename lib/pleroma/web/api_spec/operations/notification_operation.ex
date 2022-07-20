@@ -108,24 +108,6 @@ defmodule Pleroma.Web.ApiSpec.NotificationOperation do
     }
   end
 
-  def dismiss_via_body_operation do
-    %Operation{
-      tags: ["Notifications"],
-      summary: "Dismiss a single notification",
-      deprecated: true,
-      description: "Clear a single notification from the server.",
-      operationId: "NotificationController.dismiss_via_body",
-      requestBody:
-        request_body(
-          "Parameters",
-          %Schema{type: :object, properties: %{id: %Schema{type: :string}}},
-          required: true
-        ),
-      security: [%{"oAuth" => ["write:notifications"]}],
-      responses: %{200 => empty_object_response()}
-    }
-  end
-
   def destroy_multiple_operation do
     %Operation{
       tags: ["Notifications"],

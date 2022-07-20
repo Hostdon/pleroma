@@ -59,53 +59,6 @@ defmodule Pleroma.Web.ApiSpec.SearchOperation do
     }
   end
 
-  def search_operation do
-    %Operation{
-      tags: ["Search"],
-      summary: "Search results",
-      security: [%{"oAuth" => ["read:search"]}],
-      operationId: "SearchController.search",
-      deprecated: true,
-      parameters: [
-        Operation.parameter(
-          :account_id,
-          :query,
-          FlakeID,
-          "If provided, statuses returned will be authored only by this account"
-        ),
-        Operation.parameter(
-          :type,
-          :query,
-          %Schema{type: :string, enum: ["accounts", "hashtags", "statuses"]},
-          "Search type"
-        ),
-        Operation.parameter(:q, :query, %Schema{type: :string}, "The search query", required: true),
-        Operation.parameter(
-          :resolve,
-          :query,
-          %Schema{allOf: [BooleanLike], default: false},
-          "Attempt WebFinger lookup"
-        ),
-        Operation.parameter(
-          :following,
-          :query,
-          %Schema{allOf: [BooleanLike], default: false},
-          "Only include accounts that the user is following"
-        ),
-        Operation.parameter(
-          :offset,
-          :query,
-          %Schema{type: :integer},
-          "Offset"
-        ),
-        with_relationships_param() | pagination_params()
-      ],
-      responses: %{
-        200 => Operation.response("Results", "application/json", results())
-      }
-    }
-  end
-
   def search2_operation do
     %Operation{
       tags: ["Search"],
@@ -173,35 +126,6 @@ defmodule Pleroma.Web.ApiSpec.SearchOperation do
         "accounts" => [Account.schema().example],
         "statuses" => [Status.schema().example],
         "hashtags" => [Tag.schema().example]
-      }
-    }
-  end
-
-  defp results do
-    %Schema{
-      title: "SearchResults",
-      type: :object,
-      properties: %{
-        accounts: %Schema{
-          type: :array,
-          items: Account,
-          description: "Accounts which match the given query"
-        },
-        statuses: %Schema{
-          type: :array,
-          items: Status,
-          description: "Statuses which match the given query"
-        },
-        hashtags: %Schema{
-          type: :array,
-          items: %Schema{type: :string},
-          description: "Hashtags which match the given query"
-        }
-      },
-      example: %{
-        "accounts" => [Account.schema().example],
-        "statuses" => [Status.schema().example],
-        "hashtags" => ["cofe"]
       }
     }
   end
