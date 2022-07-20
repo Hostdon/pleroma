@@ -57,6 +57,7 @@ defmodule Pleroma.Web.MastodonAPI.InstanceView do
   def features do
     [
       "pleroma_api",
+      "akkoma_api",
       "mastodon_api",
       "mastodon_api_streaming",
       "polls",
@@ -68,13 +69,6 @@ defmodule Pleroma.Web.MastodonAPI.InstanceView do
       if Config.get([:media_proxy, :enabled]) do
         "media_proxy"
       end,
-      # backwards compat
-      if Config.get([:shout, :enabled]) do
-        "chat"
-      end,
-      if Config.get([:shout, :enabled]) do
-        "shout"
-      end,
       if Config.get([:instance, :allow_relay]) do
         "relay"
       end,
@@ -82,7 +76,6 @@ defmodule Pleroma.Web.MastodonAPI.InstanceView do
         "safe_dm_mentions"
       end,
       "pleroma_emoji_reactions",
-      "pleroma_chat_messages",
       if Config.get([:instance, :show_reactions]) do
         "exposable_reactions"
       end,
