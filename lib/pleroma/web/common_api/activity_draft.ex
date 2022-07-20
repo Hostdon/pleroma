@@ -64,30 +64,6 @@ defmodule Pleroma.Web.CommonAPI.ActivityDraft do
     |> validate()
   end
 
-  def listen(user, params) do
-    user
-    |> new(params)
-    |> visibility()
-    |> to_and_cc()
-    |> context()
-    |> listen_object()
-    |> with_valid(&changes/1)
-    |> validate()
-  end
-
-  defp listen_object(draft) do
-    object =
-      draft.params
-      |> Map.take([:album, :artist, :title, :length])
-      |> Map.new(fn {key, value} -> {to_string(key), value} end)
-      |> Map.put("type", "Audio")
-      |> Map.put("to", draft.to)
-      |> Map.put("cc", draft.cc)
-      |> Map.put("actor", draft.user.ap_id)
-
-    %__MODULE__{draft | object: object}
-  end
-
   defp put_params(draft, params) do
     params = Map.put_new(params, :in_reply_to_status_id, params[:in_reply_to_id])
     %__MODULE__{draft | params: params}

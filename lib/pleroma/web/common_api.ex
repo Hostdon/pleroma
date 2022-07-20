@@ -388,12 +388,6 @@ defmodule Pleroma.Web.CommonAPI do
     |> check_expiry_date()
   end
 
-  def listen(user, data) do
-    with {:ok, draft} <- ActivityDraft.listen(user, data) do
-      ActivityPub.listen(draft.changes)
-    end
-  end
-
   def post(user, %{status: _} = data) do
     with {:ok, draft} <- ActivityDraft.create(user, data) do
       ActivityPub.create(draft.changes, draft.preview?)
