@@ -710,6 +710,7 @@ config :pleroma, :static_fe, enabled: false
 config :pleroma, :frontends,
   primary: %{"name" => "pleroma-fe", "ref" => "stable"},
   admin: %{"name" => "admin-fe", "ref" => "stable"},
+  mastodon: %{"name" => "mastodon-fe", "ref" => "akkoma"},
   swagger: %{
     "name" => "swagger-ui",
     "ref" => "stable",
@@ -728,9 +729,9 @@ config :pleroma, :frontends,
     "mastodon-fe" => %{
       "name" => "mastodon-fe",
       "git" => "https://akkoma.dev/AkkomaGang/masto-fe",
-      "build_url" => "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/masto-fe.zip",
+      "build_url" => "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/${ref}/masto-fe.zip",
       "build_dir" => "distribution",
-      "ref" => "develop"
+      "ref" => "akkoma"
     },
     "admin-fe" => %{
       "name" => "admin-fe",

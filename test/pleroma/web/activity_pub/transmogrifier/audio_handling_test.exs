@@ -10,8 +10,6 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier.AudioHandlingTest do
   alias Pleroma.Object
   alias Pleroma.Web.ActivityPub.Transmogrifier
 
-  import Pleroma.Factory
-
   test "Funkwhale Audio object" do
     Tesla.Mock.mock(fn
       %{url: "https://channels.tests.funkwhale.audio/federation/actors/compositions"} ->

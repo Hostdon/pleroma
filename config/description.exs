@@ -2992,6 +2992,12 @@ config :pleroma, :config_description, [
         children: installed_frontend_options
       },
       %{
+        key: :mastodon,
+        type: :map,
+        description: "Mastodon frontend",
+        children: installed_frontend_options
+      },
+      %{
         key: :swagger,
         type: :map,
         description: "Swagger API reference frontend",
