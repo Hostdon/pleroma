@@ -623,13 +623,6 @@ config :pleroma, Pleroma.Emails.UserEmail,
 
 config :pleroma, Pleroma.Emails.NewUsersDigestEmail, enabled: false
 
-config :prometheus, Pleroma.Web.Endpoint.MetricsExporter,
-  enabled: false,
-  auth: false,
-  ip_whitelist: [],
-  path: "/api/pleroma/app_metrics",
-  format: :text
-
 config :pleroma, Pleroma.ScheduledActivity,
   daily_user_limit: 25,
   total_user_limit: 300,

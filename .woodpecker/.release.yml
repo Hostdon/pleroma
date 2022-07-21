@@ -37,8 +37,8 @@ pipeline:
       - *tag-build
       - mix deps.get --only prod
       - mix release --path release
-      - zip akkoma-${tag}.zip -r release
-      - rclone copyto akkoma-${tag}.zip scaleway:akkoma-updates/$BUILD_TAG/akkoma-${tag}.zip
+      - zip akkoma-amd64.zip -r release
+      - rclone copyto akkoma-amd64.zip scaleway:akkoma-updates/$BUILD_TAG/akkoma-amd64.zip
 
   musl:
     image: elixir:1.13-alpine
@@ -55,5 +55,5 @@ pipeline:
       - *tag-build
       - mix deps.get --only prod
       - mix release --path release
-      - zip akkoma-${tag}.zip -r release
-      - rclone copyto akkoma-${tag}.zip scaleway:akkoma-updates/$BUILD_TAG/akkoma-${tag}-musl.zip
+      - zip akkoma-amd64.zip -r release
+      - rclone copyto akkoma-amd64.zip scaleway:akkoma-updates/$BUILD_TAG/akkoma-amd64-musl.zip
