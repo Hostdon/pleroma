@@ -97,7 +97,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   defp increase_replies_count_if_reply(_create_data), do: :noop
 
-  @object_types ~w[ChatMessage Question Answer Audio Video Event Article Note Page]
+  @object_types ~w[Question Answer Audio Video Event Article Note Page]
   @impl true
   def persist(%{"type" => type} = object, meta) when type in @object_types do
     with {:ok, object} <- Object.create(object) do
@@ -1188,18 +1188,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     end
   end
 
-  defp exclude_chat_messages(query, %{include_chat_messages: true}), do: query
-
-  defp exclude_chat_messages(query, _) do
-    if has_named_binding?(query, :object) do
-      from([activity, object: o] in query,
-        where: fragment("not(?->>'type' = ?)", o.data, "ChatMessage")
-      )
-    else
-      query
-    end
-  end
-
   defp exclude_invisible_actors(query, %{invisible_actors: true}), do: query
 
   defp exclude_invisible_actors(query, _opts) do
@@ -1340,7 +1328,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       |> restrict_filtered(opts)
       |> Activity.restrict_deactivated_users()
       |> exclude_poll_votes(opts)
-      |> exclude_chat_messages(opts)
       |> exclude_invisible_actors(opts)
       |> exclude_visibility(opts)
 
@@ -1462,8 +1449,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       end)
 
     is_locked = data["manuallyApprovesFollowers"] || false
-    capabilities = data["capabilities"] || %{}
-    accepts_chat_messages = capabilities["acceptsChatMessages"]
     data = Transmogrifier.maybe_fix_user_object(data)
     is_discoverable = data["discoverable"] || false
     invisible = data["invisible"] || false
@@ -1507,7 +1492,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       public_key: public_key,
       inbox: data["inbox"],
       shared_inbox: shared_inbox,
-      accepts_chat_messages: accepts_chat_messages,
       pinned_objects: pinned_objects
     }
 

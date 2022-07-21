@@ -7,8 +7,6 @@ defmodule Pleroma.Web.ActivityPub.SideEffectsTest do
   use Pleroma.DataCase
 
   alias Pleroma.Activity
-  alias Pleroma.Chat
-  alias Pleroma.Chat.MessageReference
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.Repo
@@ -17,6 +15,7 @@ defmodule Pleroma.Web.ActivityPub.SideEffectsTest do
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Builder
   alias Pleroma.Web.ActivityPub.SideEffects
+  alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.CommonAPI
 
   import Mock
@@ -27,15 +26,22 @@ defmodule Pleroma.Web.ActivityPub.SideEffectsTest do
       author = insert(:user, local: true)
       recipient = insert(:user, local: true)
 
-      {:ok, chat_message_data, _meta} = Builder.chat_message(author, recipient.ap_id, "hey")
+      {:ok, note_data, _meta} =
+        Builder.note(%Pleroma.Web.CommonAPI.ActivityDraft{
+          user: author,
+          to: [recipient.ap_id],
+          mentions: [recipient],
+          content_html: "hey",
+          extra: %{"id" => Utils.generate_object_id()}
+        })
 
       {:ok, create_activity_data, _meta} =
-        Builder.create(author, chat_message_data["id"], [recipient.ap_id])
+        Builder.create(author, note_data["id"], [recipient.ap_id])
 
       {:ok, create_activity, _meta} = ActivityPub.persist(create_activity_data, local: false)
 
       {:ok, _create_activity, meta} =
-        SideEffects.handle(create_activity, local: false, object_data: chat_message_data)
+        SideEffects.handle(create_activity, local: false, object_data: note_data)
 
       assert [notification] = meta[:notifications]
 
@@ -58,7 +64,6 @@ defmodule Pleroma.Web.ActivityPub.SideEffectsTest do
         SideEffects.handle_after_transaction(meta)
 
         assert called(Pleroma.Web.Streamer.stream(["user", "user:notification"], notification))
-        assert called(Pleroma.Web.Streamer.stream(["user", "user:pleroma_chat"], :_))
         assert called(Pleroma.Web.Push.send(notification))
       end
     end
@@ -333,147 +338,6 @@ defmodule Pleroma.Web.ActivityPub.SideEffectsTest do
     test "creates a notification", %{like: like, poster: poster} do
       {:ok, like, _} = SideEffects.handle(like)
       assert Repo.get_by(Notification, user_id: poster.id, activity_id: like.id)
-    end
-  end
-
-  describe "creation of ChatMessages" do
-    test "notifies the recipient" do
-      author = insert(:user, local: false)
-      recipient = insert(:user, local: true)
-
-      {:ok, chat_message_data, _meta} = Builder.chat_message(author, recipient.ap_id, "hey")
-
-      {:ok, create_activity_data, _meta} =
-        Builder.create(author, chat_message_data["id"], [recipient.ap_id])
-
-      {:ok, create_activity, _meta} = ActivityPub.persist(create_activity_data, local: false)
-
-      {:ok, _create_activity, _meta} =
-        SideEffects.handle(create_activity, local: false, object_data: chat_message_data)
-
-      assert Repo.get_by(Notification, user_id: recipient.id, activity_id: create_activity.id)
-    end
-
-    test "it streams the created ChatMessage" do
-      author = insert(:user, local: true)
-      recipient = insert(:user, local: true)
-
-      {:ok, chat_message_data, _meta} = Builder.chat_message(author, recipient.ap_id, "hey")
-
-      {:ok, create_activity_data, _meta} =
-        Builder.create(author, chat_message_data["id"], [recipient.ap_id])
-
-      {:ok, create_activity, _meta} = ActivityPub.persist(create_activity_data, local: false)
-
-      {:ok, _create_activity, meta} =
-        SideEffects.handle(create_activity, local: false, object_data: chat_message_data)
-
-      assert [_, _] = meta[:streamables]
-    end
-
-    test "it creates a Chat and MessageReferences for the local users and bumps the unread count, except for the author" do
-      author = insert(:user, local: true)
-      recipient = insert(:user, local: true)
-
-      {:ok, chat_message_data, _meta} = Builder.chat_message(author, recipient.ap_id, "hey")
-
-      {:ok, create_activity_data, _meta} =
-        Builder.create(author, chat_message_data["id"], [recipient.ap_id])
-
-      {:ok, create_activity, _meta} = ActivityPub.persist(create_activity_data, local: false)
-
-      with_mocks([
-        {
-          Pleroma.Web.Streamer,
-          [],
-          [
-            stream: fn _, _ -> nil end
-          ]
-        },
-        {
-          Pleroma.Web.Push,
-          [],
-          [
-            send: fn _ -> nil end
-          ]
-        }
-      ]) do
-        {:ok, _create_activity, meta} =
-          SideEffects.handle(create_activity, local: false, object_data: chat_message_data)
-
-        # The notification gets created
-        assert [notification] = meta[:notifications]
-        assert notification.activity_id == create_activity.id
-
-        # But it is not sent out
-        refute called(Pleroma.Web.Streamer.stream(["user", "user:notification"], notification))
-        refute called(Pleroma.Web.Push.send(notification))
-
-        # Same for the user chat stream
-        assert [{topics, _}, _] = meta[:streamables]
-        assert topics == ["user", "user:pleroma_chat"]
-        refute called(Pleroma.Web.Streamer.stream(["user", "user:pleroma_chat"], :_))
-
-        chat = Chat.get(author.id, recipient.ap_id)
-
-        [cm_ref] = MessageReference.for_chat_query(chat) |> Repo.all()
-
-        assert cm_ref.object.data["content"] == "hey"
-        assert cm_ref.unread == false
-
-        chat = Chat.get(recipient.id, author.ap_id)
-
-        [cm_ref] = MessageReference.for_chat_query(chat) |> Repo.all()
-
-        assert cm_ref.object.data["content"] == "hey"
-        assert cm_ref.unread == true
-      end
-    end
-
-    test "it creates a Chat for the local users and bumps the unread count" do
-      author = insert(:user, local: false)
-      recipient = insert(:user, local: true)
-
-      {:ok, chat_message_data, _meta} = Builder.chat_message(author, recipient.ap_id, "hey")
-
-      {:ok, create_activity_data, _meta} =
-        Builder.create(author, chat_message_data["id"], [recipient.ap_id])
-
-      {:ok, create_activity, _meta} = ActivityPub.persist(create_activity_data, local: false)
-
-      {:ok, _create_activity, _meta} =
-        SideEffects.handle(create_activity, local: false, object_data: chat_message_data)
-
-      # An object is created
-      assert Object.get_by_ap_id(chat_message_data["id"])
-
-      # The remote user won't get a chat
-      chat = Chat.get(author.id, recipient.ap_id)
-      refute chat
-
-      # The local user will get a chat
-      chat = Chat.get(recipient.id, author.ap_id)
-      assert chat
-
-      author = insert(:user, local: true)
-      recipient = insert(:user, local: true)
-
-      {:ok, chat_message_data, _meta} = Builder.chat_message(author, recipient.ap_id, "hey")
-
-      {:ok, create_activity_data, _meta} =
-        Builder.create(author, chat_message_data["id"], [recipient.ap_id])
-
-      {:ok, create_activity, _meta} = ActivityPub.persist(create_activity_data, local: false)
-
-      {:ok, _create_activity, _meta} =
-        SideEffects.handle(create_activity, local: false, object_data: chat_message_data)
-
-      # Both users are local and get the chat
-      chat = Chat.get(author.id, recipient.ap_id)
-      assert chat
-
-      chat = Chat.get(recipient.id, author.ap_id)
-      assert chat
     end
   end
 

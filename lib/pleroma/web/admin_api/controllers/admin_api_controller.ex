@@ -54,12 +54,6 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
   plug(
     OAuthScopesPlug,
-    %{scopes: ["admin:read:chats"]}
-    when action in [:list_user_chats]
-  )
-
-  plug(
-    OAuthScopesPlug,
     %{scopes: ["admin:read"]}
     when action in [
            :list_log,
@@ -101,20 +95,6 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
       conn
       |> put_view(AdminAPI.StatusView)
       |> render("index.json", %{total: result[:total], activities: result[:items], as: :activity})
-    else
-      _ -> {:error, :not_found}
-    end
-  end
-
-  def list_user_chats(%{assigns: %{user: admin}} = conn, %{"nickname" => nickname} = _params) do
-    with %User{id: user_id} <- User.get_cached_by_nickname_or_id(nickname, for: admin) do
-      chats =
-        Pleroma.Chat.for_user_query(user_id)
-        |> Pleroma.Repo.all()
-
-      conn
-      |> put_view(AdminAPI.ChatView)
-      |> render("index.json", chats: chats)
     else
       _ -> {:error, :not_found}
     end

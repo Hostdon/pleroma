@@ -6,9 +6,7 @@ defmodule Pleroma.Web.MastodonAPI.NotificationView do
   use Pleroma.Web, :view
 
   alias Pleroma.Activity
-  alias Pleroma.Chat.MessageReference
   alias Pleroma.Notification
-  alias Pleroma.Object
   alias Pleroma.User
   alias Pleroma.UserRelationship
   alias Pleroma.Web.AdminAPI.Report
@@ -18,7 +16,6 @@ defmodule Pleroma.Web.MastodonAPI.NotificationView do
   alias Pleroma.Web.MastodonAPI.AccountView
   alias Pleroma.Web.MastodonAPI.NotificationView
   alias Pleroma.Web.MastodonAPI.StatusView
-  alias Pleroma.Web.PleromaAPI.Chat.MessageReferenceView
 
   @parent_types ~w{Like Announce EmojiReact}
 
@@ -121,9 +118,6 @@ defmodule Pleroma.Web.MastodonAPI.NotificationView do
         |> put_status(parent_activity_fn.(), reading_user, status_render_opts)
         |> put_emoji(activity)
 
-      "pleroma:chat_mention" ->
-        put_chat_message(response, activity, reading_user, status_render_opts)
-
       "pleroma:report" ->
         put_report(response, activity)
 
@@ -142,17 +136,6 @@ defmodule Pleroma.Web.MastodonAPI.NotificationView do
     response
     |> Map.put(:emoji, activity.data["content"])
     |> Map.put(:emoji_url, MediaProxy.url(Pleroma.Emoji.emoji_url(activity.data)))
-  end
-
-  defp put_chat_message(response, activity, reading_user, opts) do
-    object = Object.normalize(activity, fetch: false)
-    author = User.get_cached_by_ap_id(object.data["actor"])
-    chat = Pleroma.Chat.get(reading_user.id, author.ap_id)
-    cm_ref = MessageReference.for_chat_and_object(chat, object)
-    render_opts = Map.merge(opts, %{for: reading_user, chat_message_reference: cm_ref})
-    chat_message_render = MessageReferenceView.render("show.json", render_opts)
-
-    Map.put(response, :chat_message, chat_message_render)
   end
 
   defp put_status(response, activity, reading_user, opts) do

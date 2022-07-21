@@ -186,13 +186,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       assert User.invisible?(user)
     end
 
-    test "it returns a user that accepts chat messages" do
-      user_id = "http://mastodon.example.org/users/admin"
-      {:ok, user} = ActivityPub.make_user_from_ap_id(user_id)
-
-      assert user.accepts_chat_messages
-    end
-
     test "works for guppe actors" do
       user_id = "https://gup.pe/u/bernie2020"
 

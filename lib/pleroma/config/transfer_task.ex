@@ -15,7 +15,6 @@ defmodule Pleroma.Config.TransferTask do
 
   defp reboot_time_keys,
     do: [
-      {:pleroma, :shout},
       {:pleroma, Oban},
       {:pleroma, :rate_limit},
       {:pleroma, :markup},

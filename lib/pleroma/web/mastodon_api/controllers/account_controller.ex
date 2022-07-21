@@ -153,13 +153,10 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
 
   @doc "GET /api/v1/accounts/verify_credentials"
   def verify_credentials(%{assigns: %{user: user}} = conn, _) do
-    chat_token = Phoenix.Token.sign(conn, "user socket", user.id)
-
     render(conn, "show.json",
       user: user,
       for: user,
-      with_pleroma_settings: true,
-      with_chat_token: chat_token
+      with_pleroma_settings: true
     )
   end
 
@@ -188,8 +185,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
         :show_role,
         :skip_thread_containment,
         :allow_following_move,
-        :also_known_as,
-        :accepts_chat_messages
+        :also_known_as
       ]
       |> Enum.reduce(%{}, fn key, acc ->
         Maps.put_if_present(acc, key, params[key], &{:ok, Params.truthy_param?(&1)})

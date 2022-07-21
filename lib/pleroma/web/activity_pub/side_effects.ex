@@ -10,8 +10,6 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
   collection, and so on.
   """
   alias Pleroma.Activity
-  alias Pleroma.Chat
-  alias Pleroma.Chat.MessageReference
   alias Pleroma.FollowingRelationship
   alias Pleroma.Notification
   alias Pleroma.Object
@@ -27,7 +25,6 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
 
   require Logger
 
-  @cachex Pleroma.Config.get([:cachex, :provider], Cachex)
   @logger Pleroma.Config.get([:side_effects, :logger], Logger)
 
   @behaviour Pleroma.Web.ActivityPub.SideEffects.Handling
@@ -306,8 +303,6 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
               Object.decrease_replies_count(in_reply_to)
             end
 
-            MessageReference.delete_for_object(deleted_object)
-
             ap_streamer().stream_out(object)
             ap_streamer().stream_out_participations(deleted_object, user)
             :ok
@@ -398,41 +393,6 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
   @impl true
   def handle(object, meta) do
     {:ok, object, meta}
-  end
-
-  def handle_object_creation(%{"type" => "ChatMessage"} = object, _activity, meta) do
-    with {:ok, object, meta} <- Pipeline.common_pipeline(object, meta) do
-      actor = User.get_cached_by_ap_id(object.data["actor"])
-      recipient = User.get_cached_by_ap_id(hd(object.data["to"]))
-
-      streamables =
-        [[actor, recipient], [recipient, actor]]
-        |> Enum.uniq()
-        |> Enum.map(fn [user, other_user] ->
-          if user.local do
-            {:ok, chat} = Chat.bump_or_create(user.id, other_user.ap_id)
-            {:ok, cm_ref} = MessageReference.create(chat, object, user.ap_id != actor.ap_id)
-
-            @cachex.put(
-              :chat_message_id_idempotency_key_cache,
-              cm_ref.id,
-              meta[:idempotency_key]
-            )
-
-            {
-              ["user", "user:pleroma_chat"],
-              {user, %{cm_ref | chat: chat, object: object}}
-            }
-          end
-        end)
-        |> Enum.filter(& &1)
-
-      meta =
-        meta
-        |> add_streamables(streamables)
-
-      {:ok, object, meta}
-    end
   end
 
   def handle_object_creation(%{"type" => "Question"} = object, activity, meta) do
@@ -531,13 +491,6 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
     end)
 
     meta
-  end
-
-  defp add_streamables(meta, streamables) do
-    existing = Keyword.get(meta, :streamables, [])
-
-    meta
-    |> Keyword.put(:streamables, streamables ++ existing)
   end
 
   defp add_notifications(meta, notifications) do

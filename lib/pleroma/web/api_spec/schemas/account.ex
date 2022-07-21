@@ -47,7 +47,6 @@ defmodule Pleroma.Web.ApiSpec.Schemas.Account do
             description: "whether the user allows automatically follow moved following accounts"
           },
           background_image: %Schema{type: :string, nullable: true, format: :uri},
-          chat_token: %Schema{type: :string},
           is_confirmed: %Schema{
             type: :boolean,
             description:
@@ -102,7 +101,6 @@ defmodule Pleroma.Web.ApiSpec.Schemas.Account do
             description:
               "A generic map of settings for frontends. Opaque to the backend. Only returned in `verify_credentials` and `update_credentials`"
           },
-          accepts_chat_messages: %Schema{type: :boolean, nullable: true},
           favicon: %Schema{
             type: :string,
             format: :uri,
@@ -175,9 +173,6 @@ defmodule Pleroma.Web.ApiSpec.Schemas.Account do
         "is_admin" => false,
         "is_moderator" => false,
         "skip_thread_containment" => false,
-        "accepts_chat_messages" => true,
-        "chat_token" =>
-          "SFMyNTY.g3QAAAACZAAEZGF0YW0AAAASOXRLaTNlc2JHN09RZ1oyOTIwZAAGc2lnbmVkbgYARNplS3EB.Mb_Iaqew2bN1I1o79B_iP7encmVCpTKC4OtHZRxdjKc",
         "unread_conversation_count" => 0,
         "tags" => [],
         "notification_settings" => %{

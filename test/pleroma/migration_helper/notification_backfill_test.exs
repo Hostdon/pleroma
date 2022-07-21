@@ -19,7 +19,6 @@ defmodule Pleroma.MigrationHelper.NotificationBackfillTest do
       other_user = insert(:user)
 
       {:ok, post} = CommonAPI.post(user, %{status: "yeah, @#{other_user.nickname}"})
-      {:ok, chat} = CommonAPI.post_chat_message(user, other_user, "yo")
       {:ok, react} = CommonAPI.react_with_emoji(post.id, other_user, "☕")
       {:ok, like} = CommonAPI.favorite(other_user, post.id)
       {:ok, react_2} = CommonAPI.react_with_emoji(post.id, other_user, "☕")
@@ -33,7 +32,7 @@ defmodule Pleroma.MigrationHelper.NotificationBackfillTest do
         |> Activity.change(%{data: data})
         |> Repo.update()
 
-      assert {5, nil} = Repo.update_all(Notification, set: [type: nil])
+      assert {4, nil} = Repo.update_all(Notification, set: [type: nil])
 
       NotificationBackfill.fill_in_notification_types()
 
@@ -48,9 +47,6 @@ defmodule Pleroma.MigrationHelper.NotificationBackfillTest do
 
       assert %{type: "pleroma:emoji_reaction"} =
                Repo.get_by(Notification, user_id: user.id, activity_id: react_2.id)
-
-      assert %{type: "pleroma:chat_mention"} =
-               Repo.get_by(Notification, user_id: other_user.id, activity_id: chat.id)
     end
   end
 end
