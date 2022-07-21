@@ -416,7 +416,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
         %{"type" => "Create", "object" => %{"type" => objtype, "id" => obj_id}} = data,
         options
       )
-      when objtype in ~w{Question Answer ChatMessage Audio Video Event Article Note Page} do
+      when objtype in ~w{Question Answer Audio Video Event Article Note Page} do
     fetch_options = Keyword.put(options, :depth, (options[:depth] || 0) + 1)
 
     object =
@@ -845,9 +845,6 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     attributed_to = object["attributedTo"] || object["actor"]
     Map.put(object, "attributedTo", attributed_to)
   end
-
-  # TODO: Revisit this
-  def prepare_attachments(%{"type" => "ChatMessage"} = object), do: object
 
   def prepare_attachments(object) do
     attachments =

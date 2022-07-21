@@ -83,14 +83,7 @@ defmodule Pleroma.Web.ActivityPub.UserView do
 
     fields = Enum.map(user.fields, &Map.put(&1, "type", "PropertyValue"))
 
-    capabilities =
-      if is_boolean(user.accepts_chat_messages) do
-        %{
-          "acceptsChatMessages" => user.accepts_chat_messages
-        }
-      else
-        %{}
-      end
+    capabilities = %{}
 
     %{
       "id" => user.ap_id,

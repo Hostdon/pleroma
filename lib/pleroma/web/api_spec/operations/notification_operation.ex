@@ -174,7 +174,6 @@ defmodule Pleroma.Web.ApiSpec.NotificationOperation do
         "reblog",
         "mention",
         "pleroma:emoji_reaction",
-        "pleroma:chat_mention",
         "pleroma:report",
         "move",
         "follow_request",
@@ -190,7 +189,6 @@ defmodule Pleroma.Web.ApiSpec.NotificationOperation do
       - `poll` - A poll you have voted in or created has ended
       - `move` - Someone moved their account
       - `pleroma:emoji_reaction` - Someone reacted with emoji to your status
-      - `pleroma:chat_mention` - Someone mentioned you in a chat message
       - `pleroma:report` - Someone was reported
       """
     }

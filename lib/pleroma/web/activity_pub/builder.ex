@@ -183,30 +183,6 @@ defmodule Pleroma.Web.ActivityPub.Builder do
     end
   end
 
-  def chat_message(actor, recipient, content, opts \\ []) do
-    basic = %{
-      "id" => Utils.generate_object_id(),
-      "actor" => actor.ap_id,
-      "type" => "ChatMessage",
-      "to" => [recipient],
-      "content" => content,
-      "published" => DateTime.utc_now() |> DateTime.to_iso8601(),
-      "emoji" => Emoji.Formatter.get_emoji_map(content)
-    }
-
-    case opts[:attachment] do
-      %Object{data: attachment_data} ->
-        {
-          :ok,
-          Map.put(basic, "attachment", attachment_data),
-          []
-        }
-
-      _ ->
-        {:ok, basic, []}
-    end
-  end
-
   def answer(user, object, name) do
     {:ok,
      %{

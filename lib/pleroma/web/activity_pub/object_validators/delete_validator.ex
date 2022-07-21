@@ -48,7 +48,6 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.DeleteValidator do
     Answer
     Article
     Audio
-    ChatMessage
     Event
     Note
     Page

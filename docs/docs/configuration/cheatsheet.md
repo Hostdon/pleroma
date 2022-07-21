@@ -8,11 +8,6 @@ For from source installations Akkoma configuration works by first importing the 
 
 To add configuration to your config file, you can copy it from the base config. The latest version of it can be viewed [here](https://akkoma.dev/AkkomaGang/akkoma/src/branch/develop/config/config.exs). You can also use this file if you don't know how an option is supposed to be formatted.
 
-## :shout
-
-* `enabled` - Enables the backend Shoutbox chat feature. Defaults to `true`.
-* `limit` - Shout character limit. Defaults to `5_000`
-
 ## :instance
 * `name`: The instance’s name.
 * `email`: Email used to reach an Administrator/Moderator of the instance.
@@ -77,10 +72,6 @@ To add configuration to your config file, you can copy it from the base config. 
   * `enabled`: Enables the send a direct message to a newly registered user. Defaults to `false`.
   * `sender_nickname`: The nickname of the local user that sends the welcome message.
   * `message`: A message that will be send to a newly registered users as a direct message.
-* `chat_message`: - welcome message sent as a chat message.
-  * `enabled`: Enables the send a chat message to a newly registered user. Defaults to `false`.
-  * `sender_nickname`: The nickname of the local user that sends the welcome message.
-  * `message`: A message that will be send to a newly registered users as a chat message.
 * `email`: - welcome message sent as a email.
   * `enabled`: Enables the send a welcome email to a newly registered user. Defaults to `false`.
   * `sender`: The email address or tuple with `{nickname, email}` that will use as sender to the welcome email.

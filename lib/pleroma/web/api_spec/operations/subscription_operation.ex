@@ -142,11 +142,6 @@ defmodule Pleroma.Web.ApiSpec.SubscriptionOperation do
                   nullable: true,
                   description: "Receive poll notifications?"
                 },
-                "pleroma:chat_mention": %Schema{
-                  allOf: [BooleanLike],
-                  nullable: true,
-                  description: "Receive chat notifications?"
-                },
                 "pleroma:emoji_reaction": %Schema{
                   allOf: [BooleanLike],
                   nullable: true,
@@ -215,11 +210,6 @@ defmodule Pleroma.Web.ApiSpec.SubscriptionOperation do
                   allOf: [BooleanLike],
                   nullable: true,
                   description: "Receive poll notifications?"
-                },
-                "pleroma:chat_mention": %Schema{
-                  allOf: [BooleanLike],
-                  nullable: true,
-                  description: "Receive chat notifications?"
                 },
                 "pleroma:emoji_reaction": %Schema{
                   allOf: [BooleanLike],

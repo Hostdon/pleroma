@@ -68,7 +68,6 @@ defmodule Pleroma.Notification do
     follow_request
     mention
     move
-    pleroma:chat_mention
     pleroma:emoji_reaction
     pleroma:report
     reblog
@@ -444,16 +443,7 @@ defmodule Pleroma.Notification do
     end
   end
 
-  defp type_from_activity_object(%{data: %{"type" => "Create", "object" => %{}}}), do: "mention"
-
-  defp type_from_activity_object(%{data: %{"type" => "Create"}} = activity) do
-    object = Object.get_by_ap_id(activity.data["object"])
-
-    case object && object.data["type"] do
-      "ChatMessage" -> "pleroma:chat_mention"
-      _ -> "mention"
-    end
-  end
+  defp type_from_activity_object(%{data: %{"type" => "Create"}}), do: "mention"
 
   # TODO move to sql, too.
   def create_notification(%Activity{} = activity, %User{} = user, opts \\ []) do
