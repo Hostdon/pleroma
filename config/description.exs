@@ -947,6 +947,12 @@ config :pleroma, :config_description, [
         type: :boolean,
         description:
           "Let moderators access sensitive data (e.g. updating user credentials, get password reset token, delete users, index and read private statuses)"
+      },
+      %{
+        key: :local_bubble,
+        type: {:list, :string},
+        description:
+          "List of instances that make up your local bubble (closely-related instances). Used to populate the 'bubble' timeline (domain only)."
       }
     ]
   },
