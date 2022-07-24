@@ -12,4 +12,11 @@ defmodule Pleroma.UtilsTest do
       File.rm_rf(path)
     end
   end
+
+  describe "compile_dir/1" do
+    test "recursively compiles directories" do
+      {:ok, [DynamicModule.First, DynamicModule.Second], []} =
+        Pleroma.Utils.compile_dir("test/fixtures/runtime_modules")
+    end
+  end
 end

@@ -1012,7 +1012,22 @@ config :pleroma, Pleroma.Formatter,
 
 ## Custom Runtime Modules (`:modules`)
 
-* `runtime_dir`: A path to custom Elixir modules (such as MRF policies).
+* `runtime_dir`: A path to custom Elixir modules, such as MRF policies or
+ custom authenticators. These modules will be loaded on boot, and can be
+ contained in subdirectories. It is advised to use version-controlled
+ subdirectories to make management of them a bit easier. Note that only
+ files with the extension `.ex` will be loaded.
+
+```elixir
+config :pleroma, :modules, runtime_dir: "instance/modules"
+```
+
+### Adding a module
+
+```bash
+cd instance/modules/
+git clone <MY MODULE>
+```
 
 ## :configurable_from_database
 
