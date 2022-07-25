@@ -59,6 +59,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.CommonFields do
       field(:like_count, :integer, default: 0)
       field(:announcement_count, :integer, default: 0)
       field(:inReplyTo, ObjectValidators.ObjectID)
+      field(:quoteUri, ObjectValidators.ObjectID)
       field(:url, ObjectValidators.Uri)
 
       field(:likes, {:array, ObjectValidators.ObjectID}, default: [])

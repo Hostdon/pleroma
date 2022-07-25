@@ -598,6 +598,12 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
 
   def set_reply_to_uri(obj), do: obj
 
+  def set_quote_url(%{"quoteUri" => quote} = object) when is_binary(quote) do
+    Map.put(object, "quoteUrl", quote)
+  end
+
+  def set_quote_url(obj), do: obj
+
   @doc """
   Serialized Mastodon-compatible `replies` collection containing _self-replies_.
   Based on Mastodon's ActivityPub::NoteSerializer#replies.
@@ -652,6 +658,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     |> prepare_attachments
     |> set_conversation
     |> set_reply_to_uri
+    |> set_quote_url()
     |> set_replies
     |> strip_internal_fields
     |> strip_internal_tags
@@ -878,6 +885,43 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   end
 
   defp strip_internal_tags(object), do: object
+
+  def fix_quote_url(object, options \\ [])
+
+  def fix_quote_url(%{"quoteUri" => quote_url} = object, options)
+      when not is_nil(quote_url) do
+    with {:ok, quoted_object} <- get_obj_helper(quote_url, options),
+         %Activity{} <- Activity.get_create_by_object_ap_id(quoted_object.data["id"]) do
+      Map.put(object, "quoteUri", quoted_object.data["id"])
+    else
+      e ->
+        Logger.warn("Couldn't fetch #{inspect(quote_url)}, error: #{inspect(e)}")
+        object
+    end
+  end
+
+  # Soapbox
+  def fix_quote_url(%{"quoteUrl" => quote_url} = object, options) do
+    object
+    |> Map.put("quoteUri", quote_url)
+    |> fix_quote_url(options)
+  end
+
+  # Old Fedibird (bug)
+  # https://github.com/fedibird/mastodon/issues/9
+  def fix_quote_url(%{"quoteURL" => quote_url} = object, options) do
+    object
+    |> Map.put("quoteUri", quote_url)
+    |> fix_quote_url(options)
+  end
+
+  def fix_quote_url(%{"_misskey_quote" => quote_url} = object, options) do
+    object
+    |> Map.put("quoteUri", quote_url)
+    |> fix_quote_url(options)
+  end
+
+  def fix_quote_url(object, _), do: object
 
   def perform(:user_upgrade, user) do
     # we pass a fake user so that the followers collection is stripped away

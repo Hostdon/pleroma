@@ -305,7 +305,9 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
       },
       akkoma: %{
         source: HTML.filter_tags(object_data["content"])
-      }
+      },
+      quote_id: nil,
+      quote: nil
     }
 
     assert status == expected
@@ -391,6 +393,30 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
     [status] = StatusView.render("index.json", %{activities: [activity], as: :activity})
 
     assert status.in_reply_to_id == to_string(note.id)
+  end
+
+  test "a quote" do
+    note = insert(:note_activity)
+    user = insert(:user)
+
+    {:ok, activity} = CommonAPI.post(user, %{status: "hehe", quote_id: note.id})
+
+    status = StatusView.render("show.json", %{activity: activity})
+
+    assert status.quote_id == to_string(note.id)
+
+    [status] = StatusView.render("index.json", %{activities: [activity], as: :activity})
+
+    assert status.quote_id == to_string(note.id)
+  end
+
+  test "a quote that we can't resolve" do
+    note = insert(:note_activity, quoteUri: "oopsie")
+
+    status = StatusView.render("show.json", %{activity: note})
+
+    assert is_nil(status.quote_id)
+    assert is_nil(status.quote)
   end
 
   test "contains mentions" do

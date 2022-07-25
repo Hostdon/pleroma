@@ -319,6 +319,10 @@ defmodule Pleroma.Web.CommonAPI do
     end
   end
 
+  def get_quoted_visibility(nil), do: nil
+
+  def get_quoted_visibility(activity), do: get_replied_to_visibility(activity)
+
   def check_expiry_date({:ok, nil} = res), do: res
 
   def check_expiry_date({:ok, in_seconds}) do

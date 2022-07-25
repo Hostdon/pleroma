@@ -13,6 +13,7 @@ defmodule Pleroma.Web.ActivityPub.BuilderTest do
     test "returns note data" do
       user = insert(:user)
       note = insert(:note)
+      quote = insert(:note)
       user2 = insert(:user)
       user3 = insert(:user)
 
@@ -25,7 +26,8 @@ defmodule Pleroma.Web.ActivityPub.BuilderTest do
         tags: [name: "jimm"],
         summary: "test summary",
         cc: [user3.ap_id],
-        extra: %{"custom_tag" => "test"}
+        extra: %{"custom_tag" => "test"},
+        quote: quote
       }
 
       expected = %{
@@ -39,7 +41,8 @@ defmodule Pleroma.Web.ActivityPub.BuilderTest do
         "tag" => ["jimm"],
         "to" => [user2.ap_id],
         "type" => "Note",
-        "custom_tag" => "test"
+        "custom_tag" => "test",
+        "quoteUri" => quote.data["id"]
       }
 
       assert {:ok, ^expected, []} = Builder.note(draft)

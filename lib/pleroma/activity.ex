@@ -292,6 +292,12 @@ defmodule Pleroma.Activity do
     get_in_reply_to_activity_from_object(Object.normalize(activity, fetch: false))
   end
 
+  def get_quoted_activity_from_object(%Object{data: %{"quoteUri" => ap_id}}) do
+    get_create_by_object_ap_id_with_object(ap_id)
+  end
+
+  def get_quoted_activity_from_object(_), do: nil
+
   def normalize(%Activity{data: %{"id" => ap_id}}), do: get_by_ap_id_with_object(ap_id)
   def normalize(%{"id" => ap_id}), do: get_by_ap_id_with_object(ap_id)
   def normalize(ap_id) when is_binary(ap_id), do: get_by_ap_id_with_object(ap_id)

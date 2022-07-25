@@ -193,10 +193,14 @@ defmodule Pleroma.Web.MastodonAPI.FilterControllerTest do
 
       assert response["irreversible"] == true
 
-      assert response["expires_at"] ==
-               NaiveDateTime.utc_now()
-               |> NaiveDateTime.add(in_seconds)
-               |> Pleroma.Web.CommonAPI.Utils.to_masto_date()
+      expected_time =
+        NaiveDateTime.utc_now()
+        |> NaiveDateTime.add(in_seconds)
+
+      assert NaiveDateTime.diff(
+               NaiveDateTime.from_iso8601!(response["expires_at"]),
+               expected_time
+             ) < 5
 
       filter = Filter.get(response["id"], user)
 

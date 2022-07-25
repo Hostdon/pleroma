@@ -1944,4 +1944,102 @@ defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
              } = result
     end
   end
+
+  describe "posting quotes" do
+    setup do: oauth_access(["write:statuses"])
+
+    test "posting a quote", %{conn: conn} do
+      user = insert(:user)
+      {:ok, quoted_status} = CommonAPI.post(user, %{status: "tell me, for whom do you fight?"})
+
+      conn =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> post("/api/v1/statuses", %{
+          "status" => "Hmph, how very glib",
+          "quote_id" => quoted_status.id
+        })
+
+      response = json_response_and_validate_schema(conn, 200)
+
+      assert response["quote_id"] == quoted_status.id
+      assert response["quote"]["id"] == quoted_status.id
+      assert response["quote"]["content"] == quoted_status.object.data["content"]
+    end
+
+    test "posting a quote, quoting a status that isn't public", %{conn: conn} do
+      user = insert(:user)
+
+      Enum.each(["private", "local", "direct"], fn visibility ->
+        {:ok, quoted_status} =
+          CommonAPI.post(user, %{
+            status: "tell me, for whom do you fight?",
+            visibility: visibility
+          })
+
+        assert %{"error" => "You can only quote public or unlisted statuses"} =
+                 conn
+                 |> put_req_header("content-type", "application/json")
+                 |> post("/api/v1/statuses", %{
+                   "status" => "Hmph, how very glib",
+                   "quote_id" => quoted_status.id
+                 })
+                 |> json_response_and_validate_schema(422)
+      end)
+    end
+
+    test "posting a quote, after quote, the status gets deleted", %{conn: conn} do
+      user = insert(:user)
+
+      {:ok, quoted_status} =
+        CommonAPI.post(user, %{status: "tell me, for whom do you fight?", visibility: "public"})
+
+      resp =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> post("/api/v1/statuses", %{
+          "status" => "I fight for eorzea!",
+          "quote_id" => quoted_status.id
+        })
+        |> json_response_and_validate_schema(200)
+
+      {:ok, _} = CommonAPI.delete(quoted_status.id, user)
+
+      resp =
+        conn
+        |> get("/api/v1/statuses/#{resp["id"]}")
+        |> json_response_and_validate_schema(200)
+
+      assert is_nil(resp["quote"])
+    end
+
+    test "posting a quote of a deleted status", %{conn: conn} do
+      user = insert(:user)
+
+      {:ok, quoted_status} =
+        CommonAPI.post(user, %{status: "tell me, for whom do you fight?", visibility: "public"})
+
+      {:ok, _} = CommonAPI.delete(quoted_status.id, user)
+
+      assert %{"error" => _} =
+               conn
+               |> put_req_header("content-type", "application/json")
+               |> post("/api/v1/statuses", %{
+                 "status" => "I fight for eorzea!",
+                 "quote_id" => quoted_status.id
+               })
+               |> json_response_and_validate_schema(422)
+    end
+
+    test "posting a quote of a status that doesn't exist", %{conn: conn} do
+      assert %{"error" => "You can't quote a status that doesn't exist"} =
+               conn
+               |> put_req_header("content-type", "application/json")
+               |> post("/api/v1/statuses", %{
+                 "status" => "I fight for eorzea!",
+                 "quote_id" => "oops"
+               })
+               |> json_response_and_validate_schema(422)
+    end
+  end
 end

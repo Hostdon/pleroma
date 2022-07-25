@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 - extended runtime module support, see config cheatsheet
+- quote posting; quotes are limited to public posts
 
 ### Fixed
 - Updated mastoFE path, for the newer version

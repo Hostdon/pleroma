@@ -1,0 +1,38 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://example.com/schemas/litepub-0.1.jsonld",
+    {
+      "@language": "und"
+    }
+  ],
+  "actor": "https://example.com/users/user",
+  "attachment": [
+    {
+      "mediaType": "image/png",
+      "name": "",
+      "type": "Document",
+      "url": "https://example.com/media/4d6097ae20200ac371f51d24eae0a94cb4b424b6aff81dcc0f7411b1a74c796f.png"
+    }
+  ],
+  "attributedTo": "https://example.com/users/user",
+  "cc": [
+    "https://example.com/users/user/followers"
+  ],
+  "content": "",
+  "context": "https://example.com/contexts/c2c52511-977e-4168-996c-bcf006789dca",
+  "conversation": "https://example.com/contexts/c2c52511-977e-4168-996c-bcf006789dca",
+  "id": "https://example.com/objects/43479e20-c0f8-4f49-bf7f-13fab8234924",
+  "published": "2022-07-24T17:25:51.614495Z",
+  "sensitive": null,
+  "source": {
+    "content": "",
+    "mediaType": "text/plain"
+  },
+  "summary": "",
+  "tag": [],
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "type": "Note"
+}

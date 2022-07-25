@@ -329,6 +329,8 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
 
     {pinned?, pinned_at} = pin_data(object, user)
 
+    quote = Activity.get_quoted_activity_from_object(object)
+
     %{
       id: to_string(activity.id),
       uri: object.data["id"],
@@ -363,6 +365,8 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
       application: build_application(object.data["generator"]),
       language: nil,
       emojis: build_emojis(object.data["emoji"]),
+      quote_id: if(quote, do: quote.id, else: nil),
+      quote: maybe_render_quote(quote, opts),
       pleroma: %{
         local: activity.local,
         conversation_id: get_context_id(activity),
@@ -604,4 +608,19 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
   end
 
   defp build_image_url(_, _), do: nil
+
+  defp maybe_render_quote(nil, _), do: nil
+
+  defp maybe_render_quote(quote, opts) do
+    if opts[:do_not_recurse] || !visible_for_user?(quote, opts[:for]) do
+      nil
+    else
+      opts =
+        opts
+        |> Map.put(:activity, quote)
+        |> Map.put(:do_not_recurse, true)
+
+      render("show.json", opts)
+    end
+  end
 end
