@@ -1656,6 +1656,11 @@ config :pleroma, :config_description, [
         description: "Sign object fetches with HTTP signatures"
       },
       %{
+        key: :authorized_fetch_mode,
+        type: :boolean,
+        description: "Require HTTP signatures on AP fetches"
+      },
+      %{
         key: :note_replies_output_limit,
         type: :integer,
         description:
