@@ -156,7 +156,6 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
     |> fix_replies()
     |> fix_source()
     |> fix_misskey_content()
-    |> Transmogrifier.fix_quote_url()
     |> Transmogrifier.fix_attachments()
     |> Transmogrifier.fix_emoji()
     |> Transmogrifier.fix_content_map()

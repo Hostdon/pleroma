@@ -38,6 +38,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     |> fix_attachments()
     |> fix_context()
     |> fix_in_reply_to(options)
+    |> fix_quote_url(options)
     |> fix_emoji()
     |> fix_tag()
     |> fix_content_map()
@@ -166,6 +167,50 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   end
 
   def fix_in_reply_to(object, _options), do: object
+
+  def fix_quote_url(object, options \\ [])
+
+  def fix_quote_url(%{"quoteUri" => quote_url} = object, options)
+      when not is_nil(quote_url) do
+    depth = (options[:depth] || 0) + 1
+
+    if Federator.allowed_thread_distance?(depth) do
+      with {:ok, quoted_object} <- get_obj_helper(quote_url, options),
+           %Activity{} <- Activity.get_create_by_object_ap_id(quoted_object.data["id"]) do
+        object
+        |> Map.put("quoteUri", quoted_object.data["id"])
+      else
+        e ->
+          Logger.warn("Couldn't fetch #{inspect(quote_url)}, error: #{inspect(e)}")
+          object
+      end
+    else
+      object
+    end
+  end
+
+  # Soapbox
+  def fix_quote_url(%{"quoteUrl" => quote_url} = object, options) do
+    object
+    |> Map.put("quoteUri", quote_url)
+    |> fix_quote_url(options)
+  end
+
+  # Old Fedibird (bug)
+  # https://github.com/fedibird/mastodon/issues/9
+  def fix_quote_url(%{"quoteURL" => quote_url} = object, options) do
+    object
+    |> Map.put("quoteUri", quote_url)
+    |> fix_quote_url(options)
+  end
+
+  def fix_quote_url(%{"_misskey_quote" => quote_url} = object, options) do
+    object
+    |> Map.put("quoteUri", quote_url)
+    |> fix_quote_url(options)
+  end
+
+  def fix_quote_url(object, _), do: object
 
   defp prepare_in_reply_to(in_reply_to) do
     cond do
@@ -424,6 +469,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
       |> strip_internal_fields()
       |> fix_type(fetch_options)
       |> fix_in_reply_to(fetch_options)
+      |> fix_quote_url(fetch_options)
 
     data = Map.put(data, "object", object)
     options = Keyword.put(options, :local, false)
@@ -885,43 +931,6 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   end
 
   defp strip_internal_tags(object), do: object
-
-  def fix_quote_url(object, options \\ [])
-
-  def fix_quote_url(%{"quoteUri" => quote_url} = object, options)
-      when not is_nil(quote_url) do
-    with {:ok, quoted_object} <- get_obj_helper(quote_url, options),
-         %Activity{} <- Activity.get_create_by_object_ap_id(quoted_object.data["id"]) do
-      Map.put(object, "quoteUri", quoted_object.data["id"])
-    else
-      e ->
-        Logger.warn("Couldn't fetch #{inspect(quote_url)}, error: #{inspect(e)}")
-        object
-    end
-  end
-
-  # Soapbox
-  def fix_quote_url(%{"quoteUrl" => quote_url} = object, options) do
-    object
-    |> Map.put("quoteUri", quote_url)
-    |> fix_quote_url(options)
-  end
-
-  # Old Fedibird (bug)
-  # https://github.com/fedibird/mastodon/issues/9
-  def fix_quote_url(%{"quoteURL" => quote_url} = object, options) do
-    object
-    |> Map.put("quoteUri", quote_url)
-    |> fix_quote_url(options)
-  end
-
-  def fix_quote_url(%{"_misskey_quote" => quote_url} = object, options) do
-    object
-    |> Map.put("quoteUri", quote_url)
-    |> fix_quote_url(options)
-  end
-
-  def fix_quote_url(object, _), do: object
 
   def perform(:user_upgrade, user) do
     # we pass a fake user so that the followers collection is stripped away
