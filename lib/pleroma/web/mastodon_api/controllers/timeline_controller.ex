@@ -128,7 +128,11 @@ defmodule Pleroma.Web.MastodonAPI.TimelineController do
 
   # GET /api/v1/timelines/bubble
   def bubble(%{assigns: %{user: user}} = conn, params) do
-    bubble_instances = Config.get([:instance, :local_bubble], [])
+    bubble_instances =
+      Enum.uniq(
+        Config.get([:instance, :local_bubble], []) ++
+          [Pleroma.Web.Endpoint.host()]
+      )
 
     if is_nil(user) do
       fail_on_bad_auth(conn)
