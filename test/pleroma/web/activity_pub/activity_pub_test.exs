@@ -347,6 +347,39 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
     assert Map.has_key?(data, "http://inserted")
   end
 
+  test "fetches user featured when it has string IDs" do
+    featured_url = "https://example.com/alisaie/collections/featured"
+    dead_url = "https://example.com/users/alisaie/statuses/108311386746229284"
+
+    featured_data =
+      "test/fixtures/mastodon/featured_collection.json"
+      |> File.read!()
+
+    Tesla.Mock.mock(fn
+      %{
+        method: :get,
+        url: ^featured_url
+      } ->
+        %Tesla.Env{
+          status: 200,
+          body: featured_data,
+          headers: [{"content-type", "application/activity+json"}]
+        }
+
+      %{
+        method: :get,
+        url: ^dead_url
+      } ->
+        %Tesla.Env{
+          status: 404,
+          body: "{}",
+          headers: [{"content-type", "application/activity+json"}]
+        }
+    end)
+
+    {:ok, %{}} = ActivityPub.fetch_and_prepare_featured_from_ap_id(featured_url)
+  end
+
   test "it fetches the appropriate tag-restricted posts" do
     user = insert(:user)
 

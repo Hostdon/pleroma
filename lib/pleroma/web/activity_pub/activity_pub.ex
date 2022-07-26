@@ -1657,7 +1657,13 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       )
       when type in ["OrderedCollection", "Collection"] do
     {:ok, objects} = Collections.Fetcher.fetch_collection(collection)
-    Map.new(objects, fn %{"id" => object_ap_id} -> {object_ap_id, NaiveDateTime.utc_now()} end)
+
+    # Items can either be a map _or_ a string
+    objects
+    |> Map.new(fn
+      ap_id when is_binary(ap_id) -> {ap_id, NaiveDateTime.utc_now()}
+      %{"id" => object_ap_id} -> {object_ap_id, NaiveDateTime.utc_now()}
+    end)
   end
 
   def fetch_and_prepare_featured_from_ap_id(nil) do
