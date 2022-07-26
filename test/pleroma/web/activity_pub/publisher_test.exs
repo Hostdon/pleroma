@@ -23,7 +23,10 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
     :ok
   end
 
-  setup_all do: clear_config([:instance, :federating], true)
+  setup_all do
+    clear_config([:instance, :federating], true)
+    clear_config([:instance, :quarantined_instances], [])
+  end
 
   describe "gather_webfinger_links/1" do
     test "it returns links" do
@@ -267,7 +270,7 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
   end
 
   describe "publish/2" do
-    test_with_mock "doesn't publish a non-public activity to quarantined instances.",
+    test_with_mock "doesn't publish any activity to quarantined instances.",
                    Pleroma.Web.Federator.Publisher,
                    [:passthrough],
                    [] do
@@ -291,15 +294,31 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
           recipients: [follower.ap_id]
         )
 
+      public_note_activity =
+        insert(:note_activity,
+          user: actor,
+          recipients: [follower.ap_id, @as_public]
+        )
+
       res = Publisher.publish(actor, note_activity)
 
       assert res == :ok
+
+      :ok = Publisher.publish(actor, public_note_activity)
 
       assert not called(
                Pleroma.Web.Federator.Publisher.enqueue_one(Publisher, %{
                  inbox: "https://domain.com/users/nick1/inbox",
                  actor_id: actor.id,
                  id: note_activity.data["id"]
+               })
+             )
+
+      assert not called(
+               Pleroma.Web.Federator.Publisher.enqueue_one(Publisher, %{
+                 inbox: "https://domain.com/users/nick1/inbox",
+                 actor_id: actor.id,
+                 id: public_note_activity.data["id"]
                })
              )
     end
@@ -345,6 +364,8 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
                    Pleroma.Web.Federator.Publisher,
                    [:passthrough],
                    [] do
+      Config.put([:instance, :quarantined_instances], [])
+
       follower =
         insert(:user, %{
           local: false,
@@ -379,6 +400,8 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
                    Pleroma.Web.Federator.Publisher,
                    [:passthrough],
                    [] do
+      clear_config([:instance, :quarantined_instances], [])
+
       fetcher =
         insert(:user,
           local: false,

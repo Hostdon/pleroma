@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - extended runtime module support, see config cheatsheet
 - quote posting; quotes are limited to public posts
 
+### Changed
+- quarantining is now considered absolutely; public activities are no longer
+  an exception.
+
 ### Fixed
 - Updated mastoFE path, for the newer version
 
