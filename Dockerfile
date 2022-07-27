@@ -1,4 +1,4 @@
-FROM hexpm/elixir:1.13.4-erlang-24.3.4.2-alpine-3.16.0 as build
+FROM elixir:1.13.4-alpine as build
 
 COPY . .
 

@@ -1,0 +1,187 @@
+variables:
+  - &scw-secrets
+    - SCW_ACCESS_KEY
+    - SCW_SECRET_KEY
+    - SCW_DEFAULT_ORGANIZATION_ID
+  - &setup-hex "mix local.hex --force && mix local.rebar --force"
+  - &on-release
+    when:
+      event:
+        - push
+        - tag
+      branch:
+        - develop
+        - stable
+        - refs/tags/v*
+        - refs/tags/stable-*
+  - &on-point-release
+    when:
+      event:
+        - push
+      branch:
+        - develop
+        - stable
+  - &on-pr-open
+    when:
+      event:
+        - pull_request
+
+  - &tag-build "export BUILD_TAG=$${CI_COMMIT_TAG:-\"$CI_COMMIT_BRANCH\"} && export PLEROMA_BUILD_BRANCH=$BUILD_TAG"
+
+  - &clean "(rm -rf release || true) && (rm -rf _build || true) && (rm -rf /root/.mix)"
+
+services:
+  postgres:
+    image: postgres:13
+    when:
+      event:
+        - pull_request
+    environment:
+      POSTGRES_DB: pleroma_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+pipeline:
+  lint:
+    <<: *on-pr-open
+    image: akkoma/ci-base:latest
+    commands:
+    - mix local.hex --force
+    - mix local.rebar --force
+    - mix format --check-formatted
+
+  build:
+    image: akkoma/ci-base:latest
+    <<: *on-pr-open
+    environment:
+      MIX_ENV: test
+      POSTGRES_DB: pleroma_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      DB_HOST: postgres
+    commands:
+      - mix local.hex --force
+      - mix local.rebar --force
+      - mix deps.get
+      - mix compile
+
+  test:
+    image: akkoma/ci-base:latest
+    <<: *on-pr-open
+    environment:
+      MIX_ENV: test
+      POSTGRES_DB: pleroma_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      DB_HOST: postgres
+    commands:
+    - mix local.hex --force
+    - mix local.rebar --force
+    - mix deps.get
+    - mix compile
+    - mix ecto.drop -f -q
+    - mix ecto.create
+    - mix ecto.migrate
+    - mix test --preload-modules --exclude erratic --exclude federated --max-cases 4
+
+  # Canonical amd64
+  ubuntu22:
+    image: hexpm/elixir:1.13.4-erlang-25.0.2-ubuntu-jammy-20220428
+    <<: *on-release
+    environment:
+      MIX_ENV: prod
+      DEBIAN_FRONTEND: noninteractive
+    commands:
+      - rm config/emoji.txt
+      - apt-get update && apt-get install -y cmake libmagic-dev rclone zip imagemagick libmagic-dev git build-essential g++ wget
+      - *clean
+      - echo "import Config" > config/prod.secret.exs
+      - *setup-hex
+      - *tag-build
+      - mix deps.get --only prod
+      - mix release --path release
+      - zip akkoma-amd64.zip -r release
+
+  release-ubuntu22:
+    image: akkoma/releaser
+    <<: *on-release
+    secrets: *scw-secrets
+    commands:
+      - export SOURCE=akkoma-amd64.zip
+      - export DEST=scaleway:akkoma-updates/$${CI_COMMIT_TAG:-"$CI_COMMIT_BRANCH"}/akkoma-amd64.zip
+      - /bin/sh /entrypoint.sh
+    environment:
+      SOURCE: akkoma-amd64.zip
+      DEST: scaleway:akkoma-updates/$${CI_COMMIT_TAG:-"$CI_COMMIT_BRANCH"}/akkoma-amd64.zip
+
+  debian-bullseye:
+    image: elixir:1.13.4
+    <<: *on-release
+    environment:
+      MIX_ENV: prod
+      DEBIAN_FRONTEND: noninteractive
+    commands:
+      - apt-get update && apt-get install -y cmake libmagic-dev rclone zip imagemagick libmagic-dev git build-essential gcc make g++ wget
+      - *clean
+      - echo "import Config" > config/prod.secret.exs
+      - *setup-hex
+      - *tag-build
+      - mix deps.get --only prod
+      - mix release --path release
+      - zip akkoma-amd64.zip -r release
+
+  release-debian:
+    image: akkoma/releaser
+    <<: *on-release
+    secrets: *scw-secrets
+    commands:
+      - export SOURCE=akkoma-amd64.zip
+      - export DEST=scaleway:akkoma-updates/$${CI_COMMIT_TAG:-"$CI_COMMIT_BRANCH"}/akkoma-debian-bullseye.zip
+      - /bin/sh /entrypoint.sh
+
+  # Canonical amd64-musl
+  musl:
+    image: elixir:1.13.4-alpine
+    <<: *on-release
+    environment:
+      MIX_ENV: prod
+    commands:
+      - apk add git gcc g++ musl-dev make cmake file-dev rclone wget zip imagemagick
+      - *clean
+      - *setup-hex
+      - mix deps.clean --all
+      - *tag-build
+      - mix deps.get --only prod
+      - mix release --path release
+      - zip akkoma-amd64-musl.zip -r release
+
+  release-musl:
+    image: akkoma/releaser
+    <<: *on-release
+    secrets: *scw-secrets
+    commands:
+      - export SOURCE=akkoma-amd64-musl.zip
+      - export DEST=scaleway:akkoma-updates/$${CI_COMMIT_TAG:-"$CI_COMMIT_BRANCH"}/akkoma-amd64-musl.zip
+      - /bin/sh /entrypoint.sh
+
+  docs:
+    <<: *on-point-release
+    secrets:
+    - SCW_ACCESS_KEY
+    - SCW_SECRET_KEY
+    - SCW_DEFAULT_ORGANIZATION_ID
+    environment:
+      CI: "true"
+    image: python:3.10-slim
+    commands:
+      - apt-get update && apt-get install -y rclone wget git zip
+      - wget https://github.com/scaleway/scaleway-cli/releases/download/v2.5.1/scaleway-cli_2.5.1_linux_amd64
+      - mv scaleway-cli_2.5.1_linux_amd64 scaleway-cli
+      - chmod +x scaleway-cli
+      - ./scaleway-cli object config install type=rclone
+      - cd docs
+      - pip install -r requirements.txt
+      - mkdocs build
+      - zip -r docs.zip site/*
+      - cd site
+      - rclone copy . scaleway:akkoma-docs/$CI_COMMIT_BRANCH/

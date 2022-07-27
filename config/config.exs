@@ -509,7 +509,6 @@ config :pleroma, Pleroma.User,
     "~",
     "about",
     "activities",
-    "akkoma",
     "api",
     "auth",
     "check_password",
@@ -589,6 +588,17 @@ config :pleroma, Pleroma.Formatter,
   strip_prefix: false,
   extra: true,
   validate_tld: :no_scheme
+
+config :pleroma, :ldap,
+  enabled: System.get_env("LDAP_ENABLED") == "true",
+  host: System.get_env("LDAP_HOST") || "localhost",
+  port: String.to_integer(System.get_env("LDAP_PORT") || "389"),
+  ssl: System.get_env("LDAP_SSL") == "true",
+  sslopts: [],
+  tls: System.get_env("LDAP_TLS") == "true",
+  tlsopts: [],
+  base: System.get_env("LDAP_BASE") || "dc=example,dc=com",
+  uid: System.get_env("LDAP_UID") || "cn"
 
 oauth_consumer_strategies =
   "OAUTH_CONSUMER_STRATEGIES"

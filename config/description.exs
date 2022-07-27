@@ -2142,6 +2142,104 @@ config :pleroma, :config_description, [
   },
   %{
     group: :pleroma,
+    key: :ldap,
+    label: "LDAP",
+    type: :group,
+    description:
+      "Use LDAP for user authentication. When a user logs in to the Pleroma instance, the name and password" <>
+        " will be verified by trying to authenticate (bind) to a LDAP server." <>
+        " If a user exists in the LDAP directory but there is no account with the same name yet on the" <>
+        " Pleroma instance then a new Pleroma account will be created with the same name as the LDAP user name.",
+    children: [
+      %{
+        key: :enabled,
+        type: :boolean,
+        description: "Enables LDAP authentication"
+      },
+      %{
+        key: :host,
+        type: :string,
+        description: "LDAP server hostname",
+        suggestions: ["localhosts"]
+      },
+      %{
+        key: :port,
+        type: :integer,
+        description: "LDAP port, e.g. 389 or 636",
+        suggestions: [389, 636]
+      },
+      %{
+        key: :ssl,
+        label: "SSL",
+        type: :boolean,
+        description: "Enable to use SSL, usually implies the port 636"
+      },
+      %{
+        key: :sslopts,
+        label: "SSL options",
+        type: :keyword,
+        description: "Additional SSL options",
+        suggestions: [cacertfile: "path/to/file/with/PEM/cacerts", verify: :verify_peer],
+        children: [
+          %{
+            key: :cacertfile,
+            type: :string,
+            description: "Path to file with PEM encoded cacerts",
+            suggestions: ["path/to/file/with/PEM/cacerts"]
+          },
+          %{
+            key: :verify,
+            type: :atom,
+            description: "Type of cert verification",
+            suggestions: [:verify_peer]
+          }
+        ]
+      },
+      %{
+        key: :tls,
+        label: "TLS",
+        type: :boolean,
+        description: "Enable to use STARTTLS, usually implies the port 389"
+      },
+      %{
+        key: :tlsopts,
+        label: "TLS options",
+        type: :keyword,
+        description: "Additional TLS options",
+        suggestions: [cacertfile: "path/to/file/with/PEM/cacerts", verify: :verify_peer],
+        children: [
+          %{
+            key: :cacertfile,
+            type: :string,
+            description: "Path to file with PEM encoded cacerts",
+            suggestions: ["path/to/file/with/PEM/cacerts"]
+          },
+          %{
+            key: :verify,
+            type: :atom,
+            description: "Type of cert verification",
+            suggestions: [:verify_peer]
+          }
+        ]
+      },
+      %{
+        key: :base,
+        type: :string,
+        description: "LDAP base, e.g. \"dc=example,dc=com\"",
+        suggestions: ["dc=example,dc=com"]
+      },
+      %{
+        key: :uid,
+        label: "UID",
+        type: :string,
+        description:
+          "LDAP attribute name to authenticate the user, e.g. when \"cn\", the filter will be \"cn=username,base\"",
+        suggestions: ["cn"]
+      }
+    ]
+  },
+  %{
+    group: :pleroma,
     key: :auth,
     type: :group,
     description: "Authentication / authorization settings",

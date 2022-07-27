@@ -41,6 +41,12 @@ doas apk add git build-base cmake file-dev
 doas apk add erlang elixir
 ```
 
+* Install `erlang-eldap` if you want to enable ldap authenticator
+
+```shell
+doas apk add erlang-eldap
+```
+
 ### Install PostgreSQL
 
 * Install Postgresql server:
