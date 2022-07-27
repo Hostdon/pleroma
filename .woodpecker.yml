@@ -29,6 +29,7 @@ variables:
   - &tag-build "export BUILD_TAG=$${CI_COMMIT_TAG:-\"$CI_COMMIT_BRANCH\"} && export PLEROMA_BUILD_BRANCH=$BUILD_TAG"
 
   - &clean "(rm -rf release || true) && (rm -rf _build || true) && (rm -rf /root/.mix)"
+  - &mix-clean "mix deps.clean --all && mix clean"
 
 services:
   postgres:
@@ -126,6 +127,7 @@ pipeline:
       - echo "import Config" > config/prod.secret.exs
       - *setup-hex
       - *tag-build
+      - *mix-clean
       - mix deps.get --only prod
       - mix release --path release
       - zip akkoma-amd64.zip -r release
@@ -149,7 +151,7 @@ pipeline:
       - apk add git gcc g++ musl-dev make cmake file-dev rclone wget zip imagemagick
       - *clean
       - *setup-hex
-      - mix deps.clean --all
+      - *mix-clean
       - *tag-build
       - mix deps.get --only prod
       - mix release --path release
