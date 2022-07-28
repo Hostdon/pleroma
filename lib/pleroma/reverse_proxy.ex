@@ -114,6 +114,7 @@ defmodule Pleroma.ReverseProxy do
     else
       {:ok, true} ->
         conn
+        |> put_private(:proxied_url, url)
         |> error_or_redirect(500, "Request failed", opts)
         |> halt()
 
