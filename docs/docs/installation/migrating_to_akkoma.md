@@ -30,22 +30,18 @@ upstream git URL then just rebuild - that'll be:
 git remote set-url origin https://akkoma.dev/AkkomaGang/akkoma.git/
 git fetch origin
 git pull -r
+# or, if you're on an instance-specific branch, you may want
+# to run "git merge stable" instead (or develop if you want)
 ```
 
 Then compile, migrate and restart as usual.
 
 ## From OTP
 
-**IMPORTANT: if you are using musl1.1 (void linux musl edition),
-you will need to override the FLAVOUR to amd64-musl11, 
-also pls go shout at your maintainers to actually upgrade from EOL software.**
-
-the flavour to be
-
-This will just be setting the update URL -
+This will just be setting the update URL - find your flavour from the [mapping on the install guide](../otp_en/#detecting-flavour) first.
 
 ```bash
-export FLAVOUR=$(arch="$(uname -m)";if [ "$arch" = "x86_64" ];then arch="amd64";elif [ "$arch" = "armv7l" ];then arch="arm";elif [ "$arch" = "aarch64" ];then arch="arm64";else echo "Unsupported arch: $arch">&2;fi;if getconf GNU_LIBC_VERSION>/dev/null;then libc_postfix="";elif [ "$(ldd 2>&1|head -c 9)" = "musl libc" ];then libc_postfix="-musl";elif [ "$(find /lib/libc.musl*|wc -l)" ];then libc_postfix="-musl";else echo "Unsupported libc">&2;fi;echo "$arch$libc_postfix")
+export FLAVOUR=[the flavour you found above]
 
 ./bin/pleroma_ctl update --zip-url https://akkoma-updates.s3-website.fr-par.scw.cloud/develop/akkoma-$FLAVOUR.zip
 ./bin/pleroma_ctl migrate
