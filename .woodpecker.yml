@@ -108,12 +108,9 @@ pipeline:
     <<: *on-release
     secrets: *scw-secrets
     commands:
-      - export SOURCE=akkoma-amd64.zip
-      - export DEST=scaleway:akkoma-updates/$${CI_COMMIT_TAG:-"$CI_COMMIT_BRANCH"}/akkoma-amd64.zip
+      - export SOURCE=akkoma-ubuntu-jammy.zip
+      - export DEST=scaleway:akkoma-updates/$${CI_COMMIT_TAG:-"$CI_COMMIT_BRANCH"}/akkoma-ubuntu-jammy.zip
       - /bin/sh /entrypoint.sh
-    environment:
-      SOURCE: akkoma-ubuntu-jammy.zip
-      DEST: scaleway:akkoma-updates/$${CI_COMMIT_TAG:-"$CI_COMMIT_BRANCH"}/akkoma-ubuntu-jammy.zip
 
   debian-bullseye:
     image: elixir:1.13.4
