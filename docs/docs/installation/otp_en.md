@@ -6,6 +6,7 @@ This guide covers a installation using an OTP release. To install Akkoma from so
 
 ## Pre-requisites
 * A machine running Linux with GNU (e.g. Debian, Ubuntu) or musl (e.g. Alpine) libc and `x86_64`, `aarch64` or `armv7l` CPU, you have root access to. If you are not sure if it's compatible see [Detecting flavour section](#detecting-flavour) below
+* For installing OTP releases on RedHat-based distros like Fedora and Centos Stream, please follow [this guide](./otp_redhat_en.md) instead.
 * A (sub)domain pointed to the machine
 
 You will be running commands as root. If you aren't root already, please elevate your priviledges by executing `sudo su`/`su`.
