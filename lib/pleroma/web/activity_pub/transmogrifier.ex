@@ -201,12 +201,14 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   def fix_quote_url(%{"quoteURL" => quote_url} = object, options) do
     object
     |> Map.put("quoteUri", quote_url)
+    |> Map.delete("quoteURL")
     |> fix_quote_url(options)
   end
 
   def fix_quote_url(%{"_misskey_quote" => quote_url} = object, options) do
     object
     |> Map.put("quoteUri", quote_url)
+    |> Map.delete("_misskey_quote")
     |> fix_quote_url(options)
   end
 
