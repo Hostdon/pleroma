@@ -110,7 +110,8 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
   # https://github.com/misskey-dev/misskey/pull/8787
   defp fix_misskey_content(
          %{"source" => %{"mediaType" => "text/x.misskeymarkdown", "content" => content}} = object
-       ) do
+       )
+       when is_binary(content) do
     mention_handler = fn nick, buffer, opts, acc ->
       remote_mention_resolver(object, nick, buffer, opts, acc)
     end
@@ -121,7 +122,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
     Map.put(object, "content", linked)
   end
 
-  defp fix_misskey_content(%{"_misskey_content" => content} = object) do
+  defp fix_misskey_content(%{"_misskey_content" => content} = object) when is_binary(content) do
     mention_handler = fn nick, buffer, opts, acc ->
       remote_mention_resolver(object, nick, buffer, opts, acc)
     end
