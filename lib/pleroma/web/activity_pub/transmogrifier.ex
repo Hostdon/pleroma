@@ -193,6 +193,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   def fix_quote_url(%{"quoteUrl" => quote_url} = object, options) do
     object
     |> Map.put("quoteUri", quote_url)
+    |> Map.delete("quoteUrl")
     |> fix_quote_url(options)
   end
 
