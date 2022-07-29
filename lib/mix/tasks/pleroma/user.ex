@@ -496,12 +496,12 @@ defmodule Mix.Tasks.Pleroma.User do
            {:follow_data, Pleroma.Web.ActivityPub.Utils.fetch_latest_follow(local, remote)} do
       calculated_state = User.following?(local, remote)
 
-      shell_info(
+      IO.puts(
         "Request state is #{request_state}, vs calculated state of following=#{calculated_state}"
       )
 
       if calculated_state == false && request_state == "accept" do
-        shell_info("Discrepancy found, fixing")
+        IO.puts("Discrepancy found, fixing")
         Pleroma.Web.CommonAPI.reject_follow_request(local, remote)
         shell_info("Relationship fixed")
       else
