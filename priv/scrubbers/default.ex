@@ -97,5 +97,8 @@ defmodule Pleroma.HTML.Scrubber.Default do
     Meta.allow_tag_with_these_attributes(:font, ["face"])
   end
 
+  Meta.allow_tag_with_these_attributes(:center, [])
+  Meta.allow_tag_with_these_attributes(:small, [])
+
   Meta.strip_everything_not_covered()
 end

@@ -130,18 +130,21 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidatorTest 
         |> Jason.decode!()
 
       expected_content =
-        "<span class=\"h-card\"><a class=\"u-url mention\" data-user=\"#{local_user.id}\" href=\"#{local_user.ap_id}\" rel=\"ugc\">@<span>akkoma_user</span></a></span> linkifylink <a class=\"hashtag\" data-tag=\"dancedance\" href=\"http://localhost:4001/tag/dancedance\" rel=\"tag ugc\">#dancedance</a> $[jelly mfm goes here] <br><br>## aaa"
+        "<span class=\"h-card\"><a class=\"u-url mention\" data-user=\"#{local_user.id}\" href=\"#{local_user.ap_id}\" rel=\"ugc\">@<span>akkoma_user</span></a></span> linkifylink <a class=\"hashtag\" data-tag=\"dancedance\" href=\"http://localhost:4001/tag/dancedance\">#dancedance</a> $[jelly mfm goes here] <br><br>## aaa"
+
+      changes = ArticleNotePageValidator.cast_and_validate(note)
 
       %{
         valid?: true,
         changes: %{
-          content: ^expected_content,
           source: %{
             "content" => "@akkoma_user linkifylink #dancedance $[jelly mfm goes here] \n\n## aaa",
             "mediaType" => "text/x.misskeymarkdown"
           }
         }
-      } = ArticleNotePageValidator.cast_and_validate(note)
+      } = changes
+
+      assert changes.changes[:content] == expected_content
     end
   end
 end

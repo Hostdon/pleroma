@@ -259,8 +259,7 @@ defmodule Pleroma.Web.CommonAPI.Utils do
   @doc """
   Formatting text to plain text, BBCode, HTML, or Markdown
   """
-  def format_input(text, format, options)
-      when format in ["text/plain", "text/x.misskeymarkdown"] do
+  def format_input(text, "text/plain", options) do
     text
     |> Formatter.html_escape("text/plain")
     |> Formatter.linkify(options)
@@ -282,6 +281,15 @@ defmodule Pleroma.Web.CommonAPI.Utils do
     text
     |> Formatter.html_escape("text/html")
     |> Formatter.linkify(options)
+  end
+
+  def format_input(text, "text/x.misskeymarkdown", options) do
+    text
+    |> Formatter.linkify(options)
+    |> Formatter.html_escape("text/x.misskeymarkdown")
+    |> (fn {text, mentions, tags} ->
+          {String.replace(text, ~r/\r?\n/, "<br>"), mentions, tags}
+        end).()
   end
 
   def format_input(text, "text/markdown", options) do

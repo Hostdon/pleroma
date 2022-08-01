@@ -136,7 +136,12 @@ defmodule Pleroma.Formatter do
     HTML.filter_tags(text)
   end
 
-  def html_escape(text, format) when format in ["text/plain", "text/x.misskeymarkdown"] do
+  def html_escape(text, "text/x.misskeymarkdown") do
+    text
+    |> HTML.filter_tags()
+  end
+
+  def html_escape(text, "text/plain") do
     Regex.split(@link_regex, text, include_captures: true)
     |> Enum.map_every(2, fn chunk ->
       {:safe, part} = Phoenix.HTML.html_escape(chunk)
