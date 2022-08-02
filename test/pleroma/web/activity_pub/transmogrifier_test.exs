@@ -107,6 +107,22 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
       assert activity.data["target"] == new_user.ap_id
       assert activity.data["type"] == "Move"
     end
+
+    test "it fixes both the Create and object contexts in a reply" do
+      insert(:user, ap_id: "https://mk.absturztau.be/users/8ozbzjs3o8")
+      insert(:user, ap_id: "https://p.helene.moe/users/helene")
+
+      create_activity =
+        "test/fixtures/create-pleroma-reply-to-misskey-thread.json"
+        |> File.read!()
+        |> Jason.decode!()
+
+      assert {:ok, %Activity{} = activity} = Transmogrifier.handle_incoming(create_activity)
+
+      object = Object.normalize(activity, fetch: false)
+
+      assert activity.data["context"] == object.data["context"]
+    end
   end
 
   describe "prepare outgoing" do
