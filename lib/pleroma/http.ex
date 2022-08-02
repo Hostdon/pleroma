@@ -83,4 +83,13 @@ defmodule Pleroma.HTTP do
     |> Builder.add_param(:query, :query, params)
     |> Builder.convert_to_keyword()
   end
+
+  defp adapter_middlewares(_) do
+    if Pleroma.Config.get(:env) == :test do
+      # Emulate redirects in test env, which are handled by adapters in other environments
+      [Tesla.Middleware.FollowRedirects]
+    else
+      []
+    end
+  end
 end
