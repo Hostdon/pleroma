@@ -188,6 +188,25 @@ defmodule Pleroma.Web.NodeInfoTest do
     end
   end
 
+  test "Bubble instances", %{conn: conn} do
+    clear_config([:instance, :local_bubble], [])
+
+    response =
+      conn
+      |> get("/nodeinfo/2.1.json")
+      |> json_response(:ok)
+
+    assert response["metadata"]["localBubbleInstances"] == []
+    clear_config([:instance, :local_bubble], ["example.com"])
+
+    response =
+      conn
+      |> get("/nodeinfo/2.1.json")
+      |> json_response(:ok)
+
+    assert response["metadata"]["localBubbleInstances"] == ["example.com"]
+  end
+
   describe "MRF SimplePolicy" do
     setup do
       clear_config([:mrf, :policies], [Pleroma.Web.ActivityPub.MRF.SimplePolicy])
