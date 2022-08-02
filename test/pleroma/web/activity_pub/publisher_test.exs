@@ -26,6 +26,7 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
   setup_all do
     clear_config([:instance, :federating], true)
     clear_config([:instance, :quarantined_instances], [])
+    clear_config([:mrf_simple, :reject], [])
   end
 
   describe "gather_webfinger_links/1" do
@@ -270,11 +271,13 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
   end
 
   describe "publish/2" do
-    test_with_mock "doesn't publish any activity to quarantined instances.",
+    test_with_mock "doesn't publish any activity to quarantined or rejected instances.",
                    Pleroma.Web.Federator.Publisher,
                    [:passthrough],
                    [] do
       Config.put([:instance, :quarantined_instances], [{"domain.com", "some reason"}])
+
+      Config.put([:mrf_simple, :reject], [{"rejected.com", "some reason"}])
 
       follower =
         insert(:user, %{
@@ -283,9 +286,18 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
           ap_enabled: true
         })
 
+      another_follower =
+        insert(:user, %{
+          local: false,
+          inbox: "https://rejected.com/users/nick2/inbox",
+          ap_enabled: true
+        })
+
       actor = insert(:user, follower_address: follower.ap_id)
 
       {:ok, follower, actor} = Pleroma.User.follow(follower, actor)
+      {:ok, _another_follower, actor} = Pleroma.User.follow(another_follower, actor)
+
       actor = refresh_record(actor)
 
       note_activity =
@@ -317,6 +329,22 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
       assert not called(
                Pleroma.Web.Federator.Publisher.enqueue_one(Publisher, %{
                  inbox: "https://domain.com/users/nick1/inbox",
+                 actor_id: actor.id,
+                 id: public_note_activity.data["id"]
+               })
+             )
+
+      assert not called(
+               Pleroma.Web.Federator.Publisher.enqueue_one(Publisher, %{
+                 inbox: "https://rejected.com/users/nick2/inbox",
+                 actor_id: actor.id,
+                 id: note_activity.data["id"]
+               })
+             )
+
+      assert not called(
+               Pleroma.Web.Federator.Publisher.enqueue_one(Publisher, %{
+                 inbox: "https://rejected.com/users/nick1/inbox",
                  actor_id: actor.id,
                  id: public_note_activity.data["id"]
                })

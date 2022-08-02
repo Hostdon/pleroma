@@ -103,11 +103,16 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
     end
   end
 
+  defp blocked_instances do
+    Config.get([:instance, :quarantined_instances], []) ++
+      Config.get([:mrf_simple, :reject], [])
+  end
+
   defp should_federate?(inbox) do
     %{host: host} = URI.parse(inbox)
 
     quarantined_instances =
-      Config.get([:instance, :quarantined_instances], [])
+      blocked_instances()
       |> Pleroma.Web.ActivityPub.MRF.instance_list_from_tuples()
       |> Pleroma.Web.ActivityPub.MRF.subdomains_regex()
 

@@ -215,7 +215,6 @@ config :pleroma, :instance,
   ],
   allow_relay: true,
   public: true,
-  quarantined_instances: [],
   static_dir: "instance/static/",
   allowed_post_formats: [
     "text/plain",

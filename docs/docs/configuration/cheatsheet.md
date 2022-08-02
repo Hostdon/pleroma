@@ -34,7 +34,7 @@ To add configuration to your config file, you can copy it from the base config. 
 * `federation_reachability_timeout_days`: Timeout (in days) of each external federation target being unreachable prior to pausing federating to it.
 * `allow_relay`: Permits remote instances to subscribe to all public posts of your instance. This may increase the visibility of your instance.
 * `public`: Makes the client API in authenticated mode-only except for user-profiles. Useful for disabling the Local Timeline and The Whole Known Network. Note that there is a dependent setting restricting or allowing unauthenticated access to specific resources, see `restrict_unauthenticated` for more details.
-* `quarantined_instances`: ActivityPub instances where activities will not be sent. They can still reach there via other means, we just won't send them.
+* `quarantined_instances`: *DEPRECATED* ActivityPub instances where activities will not be sent. They can still reach there via other means, we just won't send them.
 * `allowed_post_formats`: MIME-type list of formats allowed to be posted (transformed into HTML).
 * `extended_nickname_format`: Set to `true` to use extended local nicknames format (allows underscores/dashes). This will break federation with
     older software for theses nicknames.
@@ -131,7 +131,7 @@ To add configuration to your config file, you can copy it from the base config. 
 * `media_removal`: List of instances to strip media attachments from and the reason for doing so.
 * `media_nsfw`: List of instances to tag all media as NSFW (sensitive) from and the reason for doing so.
 * `federated_timeline_removal`: List of instances to remove from the Federated Timeline (aka The Whole Known Network) and the reason for doing so.
-* `reject`: List of instances to reject activities (except deletes) from and the reason for doing so.
+* `reject`: List of instances to reject activities (except deletes) from and the reason for doing so. Additionally prevents activities from being sent to that instance.
 * `accept`: List of instances to only accept activities (except deletes) from and the reason for doing so.
 * `followers_only`: Force posts from the given instances to be visible by followers only and the reason for doing so.
 * `report_removal`: List of instances to reject reports from and the reason for doing so.

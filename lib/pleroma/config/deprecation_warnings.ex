@@ -17,7 +17,9 @@ defmodule Pleroma.Config.DeprecationWarnings do
     {[:instance, :mrf_transparency], [:mrf, :transparency],
      "\n* `config :pleroma, :instance, mrf_transparency` is now `config :pleroma, :mrf, transparency`"},
     {[:instance, :mrf_transparency_exclusions], [:mrf, :transparency_exclusions],
-     "\n* `config :pleroma, :instance, mrf_transparency_exclusions` is now `config :pleroma, :mrf, transparency_exclusions`"}
+     "\n* `config :pleroma, :instance, mrf_transparency_exclusions` is now `config :pleroma, :mrf, transparency_exclusions`"},
+    {[:instance, :quarantined_instances], [:mrf_simple, :reject],
+     "\n* `config :pleroma, :instance, :quarantined_instances` is now covered by `:pleroma, :mrf_simple, :reject`"}
   ]
 
   def check_simple_policy_tuples do
@@ -81,7 +83,7 @@ defmodule Pleroma.Config.DeprecationWarnings do
   end
 
   def check_quarantined_instances_tuples do
-    has_strings = Config.get([:instance, :quarantined_instances]) |> Enum.any?(&is_binary/1)
+    has_strings = Config.get([:instance, :quarantined_instances], []) |> Enum.any?(&is_binary/1)
 
     if has_strings do
       Logger.warn("""

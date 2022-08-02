@@ -691,7 +691,7 @@ config :pleroma, :config_description, [
         key_placeholder: "instance",
         value_placeholder: "reason",
         description:
-          "List of ActivityPub instances where activities will not be sent, and the reason for doing so",
+          "(Deprecated, will be removed in next release) List of ActivityPub instances where activities will not be sent, and the reason for doing so",
         suggestions: [
           {"quarantined.com", "Reason"},
           {"*.quarantined.com", "Reason"}
