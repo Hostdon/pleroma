@@ -67,9 +67,11 @@ defmodule Pleroma.Web.MastodonAPI.FilterControllerTest do
       expires_at =
         NaiveDateTime.utc_now()
         |> NaiveDateTime.add(in_seconds)
-        |> Pleroma.Web.CommonAPI.Utils.to_masto_date()
 
-      assert response["expires_at"] == expires_at
+      assert NaiveDateTime.diff(
+               NaiveDateTime.from_iso8601!(response["expires_at"]),
+               expires_at
+             ) < 5
 
       filter = Filter.get(response["id"], user)
 

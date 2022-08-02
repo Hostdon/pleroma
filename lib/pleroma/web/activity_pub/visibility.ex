@@ -85,11 +85,9 @@ defmodule Pleroma.Web.ActivityPub.Visibility do
     x = [user.ap_id | User.following(user)]
     y = [message.data["actor"]] ++ message.data["to"] ++ (message.data["cc"] || [])
 
-    if is_local_public?(message) do
-      user.local
-    else
-      is_public?(message) || Enum.any?(x, &(&1 in y))
-    end
+    user_is_local = user.local
+    federatable = not is_local_public?(message)
+    (is_public?(message) || Enum.any?(x, &(&1 in y))) and (user_is_local || federatable)
   end
 
   def entire_thread_visible_for_user?(%Activity{} = activity, %User{} = user) do
