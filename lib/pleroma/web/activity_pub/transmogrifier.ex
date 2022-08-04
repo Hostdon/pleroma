@@ -474,7 +474,16 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
       |> fix_in_reply_to(fetch_options)
       |> fix_quote_url(fetch_options)
 
-    data = Map.put(data, "object", object)
+    # Only change the Create's context if the object's context has been modified.
+    data =
+      if data["object"]["context"] != object["context"] do
+        data
+        |> Map.put("object", object)
+        |> Map.put("context", object["context"])
+      else
+        Map.put(data, "object", object)
+      end
+
     options = Keyword.put(options, :local, false)
 
     with {:ok, %User{}} <- ObjectValidator.fetch_actor(data),
