@@ -60,13 +60,18 @@ your upgrade path here depends on your setup
 
 ### I just run with the built-in frontend
 
-You'll need to run a single command,
+You'll need to run a couple of commands,
 
 ```bash
 # From source
 mix pleroma.frontend install pleroma-fe
+# you'll probably want this too
+mix pleroma.frontend install admin-fe
+
 # OTP
 ./bin/pleroma_ctl frontend install pleroma-fe
+# you'll probably want this too
+./bin/pleroma_ctl frontend install admin-fe
 ```
 
 ### I've run the mix task to install a frontend
