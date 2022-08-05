@@ -25,7 +25,16 @@ sudo dnf upgrade --refresh
 * Install some of the above mentioned programs:
 
 ```shell
-sudo dnf install git gcc g++ make cmake file-devel postgresql postgresql-contrib
+sudo dnf install git gcc g++ make cmake file-devel postgresql-server postgresql-contrib
+```
+
+* Enable and initialize Postgres:
+```shell
+sudo systemctl enable postgresql.service
+sudo postgresql-setup --initdb --unit postgresql
+# Allow password auth for postgres
+sudo sed -E -i 's|(host +all +all +127.0.0.1/32 +)ident|\1md5|' /var/lib/pgsql/data/pg_hba.conf
+sudo systemctl start postgresql.service
 ```
 
 ### Install Elixir and Erlang
