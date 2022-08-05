@@ -1375,6 +1375,21 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       assert embedded_object["object"] == followed.ap_id
       assert embedded_object["id"] == follow_activity.data["id"]
     end
+
+    test "it removes the follow activity if it was remote" do
+      follower = insert(:user, local: false)
+      followed = insert(:user)
+
+      {:ok, _, _, follow_activity} = CommonAPI.follow(follower, followed)
+      {:ok, activity} = ActivityPub.unfollow(follower, followed, nil, false)
+
+      assert activity.data["type"] == "Undo"
+      assert activity.data["actor"] == follower.ap_id
+
+      activity = Activity.get_by_id(follow_activity.id)
+      assert is_nil(activity)
+      assert is_nil(Utils.fetch_latest_follow(follower, followed))
+    end
   end
 
   describe "timeline post-processing" do
