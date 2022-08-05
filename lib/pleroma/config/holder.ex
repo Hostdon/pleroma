@@ -32,9 +32,9 @@ defmodule Pleroma.Config.Holder do
   def release_defaults do
     [
       pleroma: [
-        {:instance, [static_dir: "/var/lib/pleroma/static"]},
-        {Pleroma.Uploaders.Local, [uploads: "/var/lib/pleroma/uploads"]},
-        {:modules, [runtime_dir: "/var/lib/pleroma/modules"]},
+        {:instance, [static_dir: "/var/lib/akkoma/static"]},
+        {Pleroma.Uploaders.Local, [uploads: "/var/lib/akkoma/uploads"]},
+        {:modules, [runtime_dir: "/var/lib/akkoma/modules"]},
         {:release, true}
       ]
     ]
