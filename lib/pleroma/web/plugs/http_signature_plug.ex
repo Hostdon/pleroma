@@ -5,6 +5,8 @@
 defmodule Pleroma.Web.Plugs.HTTPSignaturePlug do
   import Plug.Conn
   import Phoenix.Controller, only: [get_format: 1, text: 2]
+  alias Pleroma.Activity
+  alias Pleroma.Web.Router
   require Logger
 
   def init(options) do
@@ -25,21 +27,45 @@ defmodule Pleroma.Web.Plugs.HTTPSignaturePlug do
     end
   end
 
+  def route_aliases(%{path_info: ["objects", id]} = conn) do
+    ap_id = Router.Helpers.o_status_url(Pleroma.Web.Endpoint, :object, id)
+
+    with %Activity{} = activity <- Activity.get_by_object_ap_id_with_object(ap_id) do
+      ["/notice/#{activity.id}"]
+    else
+      _ -> []
+    end
+  end
+
+  def route_aliases(_), do: []
+
+  defp assign_valid_signature_on_route_aliases(conn, []), do: conn
+
+  defp assign_valid_signature_on_route_aliases(%{assigns: %{valid_signature: true}} = conn, _),
+    do: conn
+
+  defp assign_valid_signature_on_route_aliases(conn, [path | rest]) do
+    request_target = String.downcase("#{conn.method}") <> " #{path}"
+
+    conn =
+      conn
+      |> put_req_header("(request-target)", request_target)
+      |> case do
+        %{assigns: %{digest: digest}} = conn -> put_req_header(conn, "digest", digest)
+        conn -> conn
+      end
+
+    conn
+    |> assign(:valid_signature, HTTPSignatures.validate_conn(conn))
+    |> assign_valid_signature_on_route_aliases(rest)
+  end
+
   defp maybe_assign_valid_signature(conn) do
     if has_signature_header?(conn) do
       # set (request-target) header to the appropriate value
       # we also replace the digest header with the one we computed
-      request_target = String.downcase("#{conn.method}") <> " #{conn.request_path}"
-
-      conn =
-        conn
-        |> put_req_header("(request-target)", request_target)
-        |> case do
-          %{assigns: %{digest: digest}} = conn -> put_req_header(conn, "digest", digest)
-          conn -> conn
-        end
-
-      assign(conn, :valid_signature, HTTPSignatures.validate_conn(conn))
+      possible_paths = route_aliases(conn) ++ [conn.request_path]
+      assign_valid_signature_on_route_aliases(conn, possible_paths)
     else
       Logger.debug("No signature header!")
       conn

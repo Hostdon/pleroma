@@ -4,6 +4,7 @@
 
 defmodule Pleroma.Web.Plugs.HTTPSignaturePlugTest do
   use Pleroma.Web.ConnCase
+  import Pleroma.Factory
   alias Pleroma.Web.Plugs.HTTPSignaturePlug
 
   import Plug.Conn
@@ -80,6 +81,15 @@ defmodule Pleroma.Web.Plugs.HTTPSignaturePlugTest do
       assert conn.status == 401
       assert conn.state == :sent
       assert conn.resp_body == "Request not signed"
+    end
+
+    test "aliases redirected /object endpoints", _ do
+      obj = insert(:note)
+      act = insert(:note_activity, note: obj)
+      params = %{"actor" => "http://mastodon.example.org/users/admin"}
+      path = URI.parse(obj.data["id"]).path
+      conn = build_conn(:get, path, params)
+      assert ["/notice/#{act.id}"] == HTTPSignaturePlug.route_aliases(conn)
     end
   end
 end
