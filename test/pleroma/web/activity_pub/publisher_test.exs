@@ -344,7 +344,7 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
 
       assert not called(
                Pleroma.Web.Federator.Publisher.enqueue_one(Publisher, %{
-                 inbox: "https://rejected.com/users/nick1/inbox",
+                 inbox: "https://rejected.com/users/nick2/inbox",
                  actor_id: actor.id,
                  id: public_note_activity.data["id"]
                })
