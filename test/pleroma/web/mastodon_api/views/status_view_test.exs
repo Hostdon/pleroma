@@ -14,7 +14,6 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
   alias Pleroma.User
   alias Pleroma.UserRelationship
   alias Pleroma.Web.CommonAPI
-  alias Pleroma.Web.CommonAPI.Utils
   alias Pleroma.Web.MastodonAPI.AccountView
   alias Pleroma.Web.MastodonAPI.StatusView
 
@@ -240,7 +239,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
     object_data = Object.normalize(note, fetch: false).data
     user = User.get_cached_by_ap_id(note.data["actor"])
 
-    convo_id = Utils.context_to_conversation_id(object_data["context"])
+    convo_id = :erlang.crc32(object_data["context"])
 
     status = StatusView.render("show.json", %{activity: note})
 
