@@ -159,7 +159,8 @@ defmodule Pleroma.Web.ApiSpec.Schemas.Status do
           conversation_id: %Schema{
             type: :integer,
             deprecated: true,
-            description: "The ID of the AP context the status is associated with (if any); deprecated, please use `context` instead"
+            description:
+              "The ID of the AP context the status is associated with (if any); deprecated, please use `context` instead"
           },
           direct_conversation_id: %Schema{
             type: :integer,
