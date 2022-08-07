@@ -239,7 +239,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
     object_data = Object.normalize(note, fetch: false).data
     user = User.get_cached_by_ap_id(note.data["actor"])
 
-    convo_id = :erlang.crc32(object_data["context"])
+    convo_id = :erlang.crc32(object_data["context"]) |> Bitwise.band(Bitwise.bnot(0x8000_0000))
 
     status = StatusView.render("show.json", %{activity: note})
 
