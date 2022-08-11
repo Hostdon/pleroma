@@ -27,7 +27,7 @@ defmodule Pleroma.Web.Plugs.HTTPSignaturePlug do
     end
   end
 
-  def route_aliases(%{path_info: ["objects", id]} = conn) do
+  def route_aliases(%{path_info: ["objects", id]}) do
     ap_id = Router.Helpers.o_status_url(Pleroma.Web.Endpoint, :object, id)
 
     with %Activity{} = activity <- Activity.get_by_object_ap_id_with_object(ap_id) do

@@ -746,7 +746,7 @@ config :pleroma, :frontends,
       "git" => "https://gitlab.com/soapbox-pub/soapbox-fe",
       "build_url" =>
         "https://gitlab.com/soapbox-pub/soapbox-fe/-/jobs/artifacts/${ref}/download?job=build-production",
-      "ref" => "v1.0.0",
+      "ref" => "v2.0.0",
       "build_dir" => "static"
     },
     # For developers - enables a swagger frontend to view the openapi spec
