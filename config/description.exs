@@ -1448,7 +1448,8 @@ config :pleroma, :config_description, [
       %{
         key: :background_color,
         type: :string,
-        description: "Describe the background color of the app - this is only used for mastodon-fe",
+        description:
+          "Describe the background color of the app - this is only used for mastodon-fe",
         suggestions: ["#191b22", "aliceblue"]
       }
     ]
