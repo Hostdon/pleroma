@@ -93,7 +93,6 @@ pipeline:
       MIX_ENV: prod
       DEBIAN_FRONTEND: noninteractive
     commands:
-      - rm config/emoji.txt
       - apt-get update && apt-get install -y cmake libmagic-dev rclone zip imagemagick libmagic-dev git build-essential g++ wget
       - *clean
       - echo "import Config" > config/prod.secret.exs
