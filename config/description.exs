@@ -1442,13 +1442,13 @@ config :pleroma, :config_description, [
       %{
         key: :theme_color,
         type: :string,
-        description: "Describe the theme color of the app",
+        description: "Describe the theme color of the app - this is only used for mastodon-fe",
         suggestions: ["#282c37", "mediumpurple"]
       },
       %{
         key: :background_color,
         type: :string,
-        description: "Describe the background color of the app",
+        description: "Describe the background color of the app - this is only used for mastodon-fe",
         suggestions: ["#191b22", "aliceblue"]
       }
     ]
