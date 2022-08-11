@@ -1,1 +1,5 @@
 external_emoji, https://example.com/emoji.png
+firefox, /emoji/Firefox.gif, Gif,Fun
+blank, /emoji/blank.png, Fun
+dinosaur, /emoji/dino walking.gif, Gif
+100a, /emoji/100a.png, Fun
