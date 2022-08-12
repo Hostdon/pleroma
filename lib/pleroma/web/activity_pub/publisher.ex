@@ -103,19 +103,20 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
     end
   end
 
-  defp should_federate?(inbox, public) do
-    if public do
-      true
-    else
-      %{host: host} = URI.parse(inbox)
+  defp blocked_instances do
+    Config.get([:instance, :quarantined_instances], []) ++
+      Config.get([:mrf_simple, :reject], [])
+  end
 
-      quarantined_instances =
-        Config.get([:instance, :quarantined_instances], [])
-        |> Pleroma.Web.ActivityPub.MRF.instance_list_from_tuples()
-        |> Pleroma.Web.ActivityPub.MRF.subdomains_regex()
+  defp should_federate?(inbox) do
+    %{host: host} = URI.parse(inbox)
 
-      !Pleroma.Web.ActivityPub.MRF.subdomain_match?(quarantined_instances, host)
-    end
+    quarantined_instances =
+      blocked_instances()
+      |> Pleroma.Web.ActivityPub.MRF.instance_list_from_tuples()
+      |> Pleroma.Web.ActivityPub.MRF.subdomains_regex()
+
+    !Pleroma.Web.ActivityPub.MRF.subdomain_match?(quarantined_instances, host)
   end
 
   @spec recipients(User.t(), Activity.t()) :: list(User.t()) | []
@@ -192,7 +193,6 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
 
   def publish(%User{} = actor, %{data: %{"bcc" => bcc}} = activity)
       when is_list(bcc) and bcc != [] do
-    public = is_public?(activity)
     {:ok, data} = Transmogrifier.prepare_outgoing(activity.data)
 
     recipients = recipients(actor, activity)
@@ -201,7 +201,7 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
       recipients
       |> Enum.filter(&User.ap_enabled?/1)
       |> Enum.map(fn actor -> actor.inbox end)
-      |> Enum.filter(fn inbox -> should_federate?(inbox, public) end)
+      |> Enum.filter(fn inbox -> should_federate?(inbox) end)
       |> Instances.filter_reachable()
 
     Repo.checkout(fn ->
@@ -246,7 +246,7 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
       determine_inbox(activity, user)
     end)
     |> Enum.uniq()
-    |> Enum.filter(fn inbox -> should_federate?(inbox, public) end)
+    |> Enum.filter(fn inbox -> should_federate?(inbox) end)
     |> Instances.filter_reachable()
     |> Enum.each(fn {inbox, unreachable_since} ->
       Pleroma.Web.Federator.Publisher.enqueue_one(

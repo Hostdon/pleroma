@@ -56,7 +56,7 @@ defmodule Pleroma.HTML.Scrubber.Default do
   Meta.allow_tag_with_these_attributes(:u, [])
   Meta.allow_tag_with_these_attributes(:ul, [])
 
-  Meta.allow_tag_with_this_attribute_values(:span, "class", ["h-card"])
+  Meta.allow_tag_with_this_attribute_values(:span, "class", ["h-card", "quote-inline"])
   Meta.allow_tag_with_these_attributes(:span, [])
 
   Meta.allow_tag_with_this_attribute_values(:code, "class", ["inline"])
@@ -96,6 +96,9 @@ defmodule Pleroma.HTML.Scrubber.Default do
   if Pleroma.Config.get([:markup, :allow_fonts]) do
     Meta.allow_tag_with_these_attributes(:font, ["face"])
   end
+
+  Meta.allow_tag_with_these_attributes(:center, [])
+  Meta.allow_tag_with_these_attributes(:small, [])
 
   Meta.strip_everything_not_covered()
 end

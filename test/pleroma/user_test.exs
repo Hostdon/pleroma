@@ -443,22 +443,6 @@ defmodule Pleroma.UserTest do
       assert activity.actor == welcome_user.ap_id
     end
 
-    test "it sends a welcome chat message if it is set" do
-      welcome_user = insert(:user)
-      clear_config([:welcome, :chat_message, :enabled], true)
-      clear_config([:welcome, :chat_message, :sender_nickname], welcome_user.nickname)
-      clear_config([:welcome, :chat_message, :message], "Hello, this is a chat message")
-
-      cng = User.register_changeset(%User{}, @full_user_data)
-      {:ok, registered_user} = User.register(cng)
-      ObanHelpers.perform_all()
-
-      activity = Repo.one(Pleroma.Activity)
-      assert registered_user.ap_id in activity.recipients
-      assert Object.normalize(activity, fetch: false).data["content"] =~ "chat message"
-      assert activity.actor == welcome_user.ap_id
-    end
-
     setup do:
             clear_config(:mrf_simple,
               media_removal: [],
@@ -479,24 +463,6 @@ defmodule Pleroma.UserTest do
                 Pleroma.Web.ActivityPub.MRF.SimplePolicy
               ]
             )
-
-    test "it sends a welcome chat message when Simple policy applied to local instance" do
-      clear_config([:mrf_simple, :media_nsfw], [{"localhost", ""}])
-
-      welcome_user = insert(:user)
-      clear_config([:welcome, :chat_message, :enabled], true)
-      clear_config([:welcome, :chat_message, :sender_nickname], welcome_user.nickname)
-      clear_config([:welcome, :chat_message, :message], "Hello, this is a chat message")
-
-      cng = User.register_changeset(%User{}, @full_user_data)
-      {:ok, registered_user} = User.register(cng)
-      ObanHelpers.perform_all()
-
-      activity = Repo.one(Pleroma.Activity)
-      assert registered_user.ap_id in activity.recipients
-      assert Object.normalize(activity, fetch: false).data["content"] =~ "chat message"
-      assert activity.actor == welcome_user.ap_id
-    end
 
     test "it sends a welcome email message if it is set" do
       welcome_user = insert(:user)
@@ -665,15 +631,6 @@ defmodule Pleroma.UserTest do
       assert changeset.changes.follower_address == "#{changeset.changes.ap_id}/followers"
     end
 
-    test "it sets the 'accepts_chat_messages' set to true" do
-      changeset = User.register_changeset(%User{}, @full_user_data)
-      assert changeset.valid?
-
-      {:ok, user} = Repo.insert(changeset)
-
-      assert user.accepts_chat_messages
-    end
-
     test "it creates a confirmed user" do
       changeset = User.register_changeset(%User{}, @full_user_data)
       assert changeset.valid?
@@ -778,6 +735,116 @@ defmodule Pleroma.UserTest do
       {:ok, fetched_user} = User.get_or_fetch(ap_id)
       freshed_user = refresh_record(user)
       assert freshed_user == fetched_user
+    end
+  end
+
+  describe "get_or_fetch/1 remote users with tld, while BE is runned on subdomain" do
+    setup do: clear_config([Pleroma.Web.WebFinger, :update_nickname_on_user_fetch], true)
+
+    test "for mastodon" do
+      Tesla.Mock.mock(fn
+        %{url: "https://example.com/.well-known/host-meta"} ->
+          %Tesla.Env{
+            status: 302,
+            headers: [{"location", "https://sub.example.com/.well-known/host-meta"}]
+          }
+
+        %{url: "https://sub.example.com/.well-known/host-meta"} ->
+          %Tesla.Env{
+            status: 200,
+            body:
+              "test/fixtures/webfinger/masto-host-meta.xml"
+              |> File.read!()
+              |> String.replace("{{domain}}", "sub.example.com")
+          }
+
+        %{url: "https://sub.example.com/.well-known/webfinger?resource=acct:a@example.com"} ->
+          %Tesla.Env{
+            status: 200,
+            body:
+              "test/fixtures/webfinger/masto-webfinger.json"
+              |> File.read!()
+              |> String.replace("{{nickname}}", "a")
+              |> String.replace("{{domain}}", "example.com")
+              |> String.replace("{{subdomain}}", "sub.example.com"),
+            headers: [{"content-type", "application/jrd+json"}]
+          }
+
+        %{url: "https://sub.example.com/users/a"} ->
+          %Tesla.Env{
+            status: 200,
+            body:
+              "test/fixtures/webfinger/masto-user.json"
+              |> File.read!()
+              |> String.replace("{{nickname}}", "a")
+              |> String.replace("{{domain}}", "sub.example.com"),
+            headers: [{"content-type", "application/activity+json"}]
+          }
+
+        %{url: "https://sub.example.com/users/a/collections/featured"} ->
+          %Tesla.Env{
+            status: 200,
+            body:
+              File.read!("test/fixtures/users_mock/masto_featured.json")
+              |> String.replace("{{domain}}", "sub.example.com")
+              |> String.replace("{{nickname}}", "a"),
+            headers: [{"content-type", "application/activity+json"}]
+          }
+      end)
+
+      ap_id = "a@example.com"
+      {:ok, fetched_user} = User.get_or_fetch(ap_id)
+
+      assert fetched_user.ap_id == "https://sub.example.com/users/a"
+      assert fetched_user.nickname == "a@example.com"
+    end
+
+    test "for pleroma" do
+      Tesla.Mock.mock(fn
+        %{url: "https://example.com/.well-known/host-meta"} ->
+          %Tesla.Env{
+            status: 302,
+            headers: [{"location", "https://sub.example.com/.well-known/host-meta"}]
+          }
+
+        %{url: "https://sub.example.com/.well-known/host-meta"} ->
+          %Tesla.Env{
+            status: 200,
+            body:
+              "test/fixtures/webfinger/pleroma-host-meta.xml"
+              |> File.read!()
+              |> String.replace("{{domain}}", "sub.example.com")
+          }
+
+        %{url: "https://sub.example.com/.well-known/webfinger?resource=acct:a@example.com"} ->
+          %Tesla.Env{
+            status: 200,
+            body:
+              "test/fixtures/webfinger/pleroma-webfinger.json"
+              |> File.read!()
+              |> String.replace("{{nickname}}", "a")
+              |> String.replace("{{domain}}", "example.com")
+              |> String.replace("{{subdomain}}", "sub.example.com"),
+            headers: [{"content-type", "application/jrd+json"}]
+          }
+
+        %{url: "https://sub.example.com/users/a"} ->
+          %Tesla.Env{
+            status: 200,
+            body:
+              "test/fixtures/webfinger/pleroma-user.json"
+              |> File.read!()
+              |> String.replace("{{nickname}}", "a")
+              |> String.replace("{{domain}}", "sub.example.com"),
+            headers: [{"content-type", "application/activity+json"}]
+          }
+      end)
+
+      ap_id = "a@example.com"
+      {:ok, fetched_user} = User.get_or_fetch(ap_id)
+
+      assert fetched_user.ap_id == "https://sub.example.com/users/a"
+      assert fetched_user.nickname == "a@example.com"
     end
   end
 

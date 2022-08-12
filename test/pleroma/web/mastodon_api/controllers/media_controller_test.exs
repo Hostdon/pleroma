@@ -13,6 +13,8 @@ defmodule Pleroma.Web.MastodonAPI.MediaControllerTest do
 
   describe "Upload media" do
     setup do: oauth_access(["write:media"])
+    setup do: clear_config([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
+    setup do: clear_config([Pleroma.Uploaders.Local, :uploads], "uploads")
 
     setup do
       image = %Plug.Upload{

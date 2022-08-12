@@ -79,12 +79,11 @@ defmodule Pleroma.Web.ApiSpec do
         "x-tagGroups": [
           %{
             "name" => "Accounts",
-            "tags" => ["Account actions", "Retrieve account information", "Scrobbles"]
+            "tags" => ["Account actions", "Retrieve account information"]
           },
           %{
             "name" => "Administration",
             "tags" => [
-              "Chat administration",
               "Emoji pack administration",
               "Frontend managment",
               "Instance configuration",
@@ -114,7 +113,6 @@ defmodule Pleroma.Web.ApiSpec do
             ]
           },
           %{"name" => "Instance", "tags" => ["Custom emojis"]},
-          %{"name" => "Messaging", "tags" => ["Chats", "Conversations"]},
           %{
             "name" => "Statuses",
             "tags" => [

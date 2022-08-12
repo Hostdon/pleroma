@@ -98,11 +98,6 @@ defmodule Pleroma.Web.MastodonAPI.NotificationController do
     end
   end
 
-  # POST /api/v1/notifications/dismiss (deprecated)
-  def dismiss_via_body(%{body_params: params} = conn, _) do
-    dismiss(conn, params)
-  end
-
   # DELETE /api/v1/notifications/destroy_multiple
   def destroy_multiple(%{assigns: %{user: user}} = conn, %{ids: ids} = _params) do
     Notification.destroy_multiple(user, ids)

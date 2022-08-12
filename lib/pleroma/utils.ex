@@ -15,9 +15,22 @@ defmodule Pleroma.Utils do
 
   def compile_dir(dir) when is_binary(dir) do
     dir
+    |> elixir_files()
+    |> Kernel.ParallelCompiler.compile()
+  end
+
+  defp elixir_files(dir) when is_binary(dir) do
+    dir
     |> File.ls!()
     |> Enum.map(&Path.join(dir, &1))
-    |> Kernel.ParallelCompiler.compile()
+    |> Enum.flat_map(fn path ->
+      if File.dir?(path) do
+        elixir_files(path)
+      else
+        [path]
+      end
+    end)
+    |> Enum.filter(fn path -> String.ends_with?(path, ".ex") end)
   end
 
   @doc """

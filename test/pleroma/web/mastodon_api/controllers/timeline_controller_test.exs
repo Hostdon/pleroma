@@ -367,6 +367,47 @@ defmodule Pleroma.Web.MastodonAPI.TimelineControllerTest do
                }
              ] = result
     end
+
+    test "should return local-only posts for authenticated users" do
+      user = insert(:user)
+      %{user: _reader, conn: conn} = oauth_access(["read:statuses"])
+
+      {:ok, %{id: id}} = CommonAPI.post(user, %{status: "#2hu #2HU", visibility: "local"})
+
+      result =
+        conn
+        |> get("/api/v1/timelines/public")
+        |> json_response_and_validate_schema(200)
+
+      assert [%{"id" => ^id}] = result
+    end
+
+    test "should not return local-only posts for users without read:statuses" do
+      user = insert(:user)
+      %{user: _reader, conn: conn} = oauth_access([])
+
+      {:ok, _activity} = CommonAPI.post(user, %{status: "#2hu #2HU", visibility: "local"})
+
+      result =
+        conn
+        |> get("/api/v1/timelines/public")
+        |> json_response_and_validate_schema(200)
+
+      assert [] = result
+    end
+
+    test "should not return local-only posts for anonymous users" do
+      user = insert(:user)
+
+      {:ok, _activity} = CommonAPI.post(user, %{status: "#2hu #2HU", visibility: "local"})
+
+      result =
+        build_conn()
+        |> get("/api/v1/timelines/public")
+        |> json_response_and_validate_schema(200)
+
+      assert [] = result
+    end
   end
 
   defp local_and_remote_activities do
@@ -991,6 +1032,45 @@ defmodule Pleroma.Web.MastodonAPI.TimelineControllerTest do
       assert length(json_response_and_validate_schema(res_conn, 200)) == 2
 
       ensure_authenticated_access(base_uri)
+    end
+  end
+
+  describe "bubble" do
+    setup do: oauth_access(["read:statuses"])
+
+    test "filtering", %{conn: conn, user: user} do
+      clear_config([:instance, :local_bubble], [])
+      # our endpoint host has a port in it so let's set the AP ID
+      local_user = insert(:user, %{ap_id: "https://localhost/users/user"})
+      remote_user = insert(:user, %{ap_id: "https://example.com/users/remote_user"})
+      {:ok, user, local_user} = User.follow(user, local_user)
+      {:ok, _user, remote_user} = User.follow(user, remote_user)
+
+      {:ok, local_activity} = CommonAPI.post(local_user, %{status: "Status"})
+      remote_activity = create_remote_activity(remote_user)
+
+      # If nothing, only include ours
+      clear_config([:instance, :local_bubble], [])
+
+      one_instance =
+        conn
+        |> get("/api/v1/timelines/bubble")
+        |> json_response_and_validate_schema(200)
+        |> Enum.map(& &1["id"])
+
+      assert local_activity.id in one_instance
+
+      # If we have others, also include theirs 
+      clear_config([:instance, :local_bubble], ["example.com"])
+
+      two_instances =
+        conn
+        |> get("/api/v1/timelines/bubble")
+        |> json_response_and_validate_schema(200)
+        |> Enum.map(& &1["id"])
+
+      assert local_activity.id in two_instances
+      assert remote_activity.id in two_instances
     end
   end
 

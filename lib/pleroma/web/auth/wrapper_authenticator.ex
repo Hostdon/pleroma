@@ -30,7 +30,7 @@ defmodule Pleroma.Web.Auth.WrapperAuthenticator do
   def auth_template do
     # Note: `config :pleroma, :auth_template, "..."` support is deprecated
     implementation().auth_template() ||
-      Pleroma.Config.get([:auth, :auth_template], Pleroma.Config.get(:auth_template)) ||
+      Pleroma.Config.get(:auth_template) ||
       "show.html"
   end
 

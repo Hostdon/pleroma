@@ -13,8 +13,8 @@ defmodule Pleroma.EmojiTest do
 
       # Accept fully-qualified and unqualified emoji
       # See http://www.unicode.org/reports/tr51/
-      assert Emoji.is_unicode_emoji?("❤")
-      assert Emoji.is_unicode_emoji?("☂")
+      refute Emoji.is_unicode_emoji?("❤")
+      refute Emoji.is_unicode_emoji?("☂")
 
       assert Emoji.is_unicode_emoji?("🥺")
       assert Emoji.is_unicode_emoji?("🤰")

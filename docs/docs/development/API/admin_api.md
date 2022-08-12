@@ -1031,7 +1031,6 @@ Most of the settings will be applied in `runtime`, this means that you don't nee
   - `:hackney_pools`
   - `:connections_pool`
   - `:pools`
-  - `:chat`
 - partially settings inside these keys:
   - `:seconds_valid` in `Pleroma.Captcha`
   - `:proxy_remote` in `Pleroma.Upload`
@@ -1411,127 +1410,6 @@ Loads json generated from `config/descriptions.exs`.
 
 ```
 
-## GET /api/v1/pleroma/admin/users/:nickname/chats
-
-### List a user's chats
-
-- Params: None
-
-- Response:
-
-```json
-[
-   {
-      "sender": {
-        "id": "someflakeid",
-        "username": "somenick",
-        ...
-      },
-      "receiver": {
-        "id": "someflakeid",
-        "username": "somenick",
-        ...
-      },
-      "id" : "1",
-      "unread" : 2,
-      "last_message" : {...}, // The last message in that chat
-      "updated_at": "2020-04-21T15:11:46.000Z"
-   }
-]
-```
-
-## GET /api/v1/pleroma/admin/chats/:chat_id
-
-### View a single chat
-
-- Params: None
-
-- Response:
-
-```json
-{
-  "sender": {
-    "id": "someflakeid",
-    "username": "somenick",
-    ...
-  },
-  "receiver": {
-    "id": "someflakeid",
-    "username": "somenick",
-    ...
-  },
-  "id" : "1",
-  "unread" : 2,
-  "last_message" : {...}, // The last message in that chat
-  "updated_at": "2020-04-21T15:11:46.000Z"
-}
-```
-
-## GET /api/v1/pleroma/admin/chats/:chat_id/messages
-
-### List the messages in a chat
-
-- Params: `max_id`, `min_id`
-
-- Response:
-
-```json
-[
-  {
-    "account_id": "someflakeid",
-    "chat_id": "1",
-    "content": "Check this out :firefox:",
-    "created_at": "2020-04-21T15:11:46.000Z",
-    "emojis": [
-      {
-        "shortcode": "firefox",
-        "static_url": "https://dontbulling.me/emoji/Firefox.gif",
-        "url": "https://dontbulling.me/emoji/Firefox.gif",
-        "visible_in_picker": false
-      }
-    ],
-    "id": "13",
-    "unread": true
-  },
-  {
-    "account_id": "someflakeid",
-    "chat_id": "1",
-    "content": "Whats' up?",
-    "created_at": "2020-04-21T15:06:45.000Z",
-    "emojis": [],
-    "id": "12",
-    "unread": false
-  }
-]
-```
-
-## DELETE /api/v1/pleroma/admin/chats/:chat_id/messages/:message_id
-
-### Delete a single message
-
-- Params: None
-
-- Response:
-
-```json
-{
-  "account_id": "someflakeid",
-  "chat_id": "1",
-  "content": "Check this out :firefox:",
-  "created_at": "2020-04-21T15:11:46.000Z",
-  "emojis": [
-    {
-      "shortcode": "firefox",
-      "static_url": "https://dontbulling.me/emoji/Firefox.gif",
-      "url": "https://dontbulling.me/emoji/Firefox.gif",
-      "visible_in_picker": false
-    }
-  ],
-  "id": "13",
-  "unread": false
-}
-```
-
 ## `GET /api/v1/pleroma/admin/instance_document/:document_name`
 
 ### Get an instance document
@@ -1635,4 +1513,118 @@ Returns the content of the document
 {
   "error": "Could not install frontend"
 }
+```
+
+## `GET /api/v1/pleroma/admin/announcements`
+
+### List announcements
+
+- Params: `offset`, `limit`
+
+- Response: JSON, list of announcements
+
+```json
+[
+  {
+    "id": "AHDp0GBdRn1EPN5HN2",
+    "content": "some content",
+    "starts_at": null,
+    "ends_at": null,
+    "all_day": false,
+    "published_at": "2022-03-09T02:13:05",
+    "reactions": [],
+    "statuses": [],
+    "tags": [],
+    "emojis": [],
+    "updated_at": "2022-03-09T02:13:05"
+  }
+]
+```
+
+Note that this differs from the Mastodon API variant: Mastodon API only returns *active* announcements, while this returns all.
+
+## `GET /api/v1/pleroma/admin/announcements/:id`
+
+### Display one announcement
+
+- Response: JSON, one announcement
+
+```json
+{
+  "id": "AHDp0GBdRn1EPN5HN2",
+  "content": "some content",
+  "starts_at": null,
+  "ends_at": null,
+  "all_day": false,
+  "published_at": "2022-03-09T02:13:05",
+  "reactions": [],
+  "statuses": [],
+  "tags": [],
+  "emojis": [],
+  "updated_at": "2022-03-09T02:13:05"
+}
+```
+
+## `POST /api/v1/pleroma/admin/announcements`
+
+### Create an announcement
+
+- Params:
+  - `content`: string, required, announcement content
+  - `starts_at`: datetime, optional, default to null, the time when the announcement will become active (displayed to users); if it is null, the announcement will be active immediately
+  - `ends_at`: datetime, optional, default to null, the time when the announcement will become inactive (no longer displayed to users); if it is null, the announcement will be active until an admin deletes it
+  - `all_day`: boolean, optional, default to false, tells the client whether to only display dates for `starts_at` and `ends_at`
+
+- Response: JSON, created announcement
+
+```json
+{
+  "id": "AHDp0GBdRn1EPN5HN2",
+  "content": "some content",
+  "starts_at": null,
+  "ends_at": null,
+  "all_day": false,
+  "published_at": "2022-03-09T02:13:05",
+  "reactions": [],
+  "statuses": [],
+  "tags": [],
+  "emojis": [],
+  "updated_at": "2022-03-09T02:13:05"
+}
+```
+
+## `PATCH /api/v1/pleroma/admin/announcements/:id`
+
+### Change an announcement
+
+- Params: same as `POST /api/v1/pleroma/admin/announcements`, except no param is required.
+
+- Updates the announcement according to params. Missing params are kept as-is.
+
+- Response: JSON, updated announcement
+
+```json
+{
+  "id": "AHDp0GBdRn1EPN5HN2",
+  "content": "some content",
+  "starts_at": null,
+  "ends_at": null,
+  "all_day": false,
+  "published_at": "2022-03-09T02:13:05",
+  "reactions": [],
+  "statuses": [],
+  "tags": [],
+  "emojis": [],
+  "updated_at": "2022-03-09T02:13:05"
+}
+```
+
+## `DELETE /api/v1/pleroma/admin/announcements/:id`
+
+### Delete an announcement
+
+- Response: JSON, empty object
+
+```json
+{}
 ```

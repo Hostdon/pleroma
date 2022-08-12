@@ -17,7 +17,9 @@ defmodule Pleroma.Config.DeprecationWarnings do
     {[:instance, :mrf_transparency], [:mrf, :transparency],
      "\n* `config :pleroma, :instance, mrf_transparency` is now `config :pleroma, :mrf, transparency`"},
     {[:instance, :mrf_transparency_exclusions], [:mrf, :transparency_exclusions],
-     "\n* `config :pleroma, :instance, mrf_transparency_exclusions` is now `config :pleroma, :mrf, transparency_exclusions`"}
+     "\n* `config :pleroma, :instance, mrf_transparency_exclusions` is now `config :pleroma, :mrf, transparency_exclusions`"},
+    {[:instance, :quarantined_instances], [:mrf_simple, :reject],
+     "\n* `config :pleroma, :instance, :quarantined_instances` is now covered by `:pleroma, :mrf_simple, :reject`"}
   ]
 
   def check_simple_policy_tuples do
@@ -81,7 +83,7 @@ defmodule Pleroma.Config.DeprecationWarnings do
   end
 
   def check_quarantined_instances_tuples do
-    has_strings = Config.get([:instance, :quarantined_instances]) |> Enum.any?(&is_binary/1)
+    has_strings = Config.get([:instance, :quarantined_instances], []) |> Enum.any?(&is_binary/1)
 
     if has_strings do
       Logger.warn("""
@@ -176,7 +178,6 @@ defmodule Pleroma.Config.DeprecationWarnings do
       check_activity_expiration_config(),
       check_remote_ip_plug_name(),
       check_uploders_s3_public_endpoint(),
-      check_old_chat_shoutbox(),
       check_quarantined_instances_tuples(),
       check_transparency_exclusions_tuples(),
       check_simple_policy_tuples()
@@ -301,29 +302,6 @@ defmodule Pleroma.Config.DeprecationWarnings do
       Please make the following change at your earliest convenience.\n
       \n* `config :pleroma, Pleroma.Uploaders.S3, public_endpoint` is now equal to:
       \n* `config :pleroma, Pleroma.Upload, base_url`
-      """)
-
-      :error
-    else
-      :ok
-    end
-  end
-
-  @spec check_old_chat_shoutbox() :: :ok | nil
-  def check_old_chat_shoutbox do
-    instance_config = Pleroma.Config.get([:instance])
-    chat_config = Pleroma.Config.get([:chat]) || []
-
-    use_old_config =
-      Keyword.has_key?(instance_config, :chat_limit) or
-        Keyword.has_key?(chat_config, :enabled)
-
-    if use_old_config do
-      Logger.error("""
-      !!!DEPRECATION WARNING!!!
-      Your config is using the old namespace for the Shoutbox configuration. You need to convert to the new namespace. e.g.,
-      \n* `config :pleroma, :chat, enabled` and `config :pleroma, :instance, chat_limit` are now equal to:
-      \n* `config :pleroma, :shout, enabled` and `config :pleroma, :shout, limit`
       """)
 
       :error

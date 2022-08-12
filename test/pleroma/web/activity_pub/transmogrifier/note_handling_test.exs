@@ -707,4 +707,81 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier.NoteHandlingTest do
              }
            ]
   end
+
+  describe "fix_quote_url/1" do
+    test "a misskey quote should work", _ do
+      Tesla.Mock.mock(fn %{
+                           method: :get,
+                           url: "https://example.com/objects/43479e20-c0f8-4f49-bf7f-13fab8234924"
+                         } ->
+        %Tesla.Env{
+          status: 200,
+          body: File.read!("test/fixtures/quoted_status.json"),
+          headers: HttpRequestMock.activitypub_object_headers()
+        }
+      end)
+
+      insert(:user, %{ap_id: "https://misskey.io/users/93492q0ip0"})
+      insert(:user, %{ap_id: "https://example.com/users/user"})
+
+      note =
+        "test/fixtures/misskey/quote.json"
+        |> File.read!()
+        |> Jason.decode!()
+
+      %{"quoteUri" => "https://example.com/objects/43479e20-c0f8-4f49-bf7f-13fab8234924"} =
+        Transmogrifier.fix_quote_url(note)
+    end
+
+    test "a fedibird quote should work", _ do
+      Tesla.Mock.mock(fn %{
+                           method: :get,
+                           url: "https://example.com/objects/43479e20-c0f8-4f49-bf7f-13fab8234924"
+                         } ->
+        %Tesla.Env{
+          status: 200,
+          body: File.read!("test/fixtures/quoted_status.json"),
+          headers: HttpRequestMock.activitypub_object_headers()
+        }
+      end)
+
+      insert(:user, %{ap_id: "https://fedibird.com/users/akkoma_ap_integration_tester"})
+      insert(:user, %{ap_id: "https://example.com/users/user"})
+
+      note =
+        "test/fixtures/fedibird/quote.json"
+        |> File.read!()
+        |> Jason.decode!()
+
+      %{
+        "quoteUri" => "https://example.com/objects/43479e20-c0f8-4f49-bf7f-13fab8234924"
+      } = Transmogrifier.fix_quote_url(note)
+    end
+
+    test "quote fetching should stop after n levels", _ do
+      clear_config([:instance, :federation_incoming_replies_max_depth], 1)
+
+      Tesla.Mock.mock(fn %{
+                           method: :get,
+                           url: "https://misskey.io/notes/934gok3482"
+                         } ->
+        %Tesla.Env{
+          status: 200,
+          body: File.read!("test/fixtures/misskey/recursive_quote.json"),
+          headers: HttpRequestMock.activitypub_object_headers()
+        }
+      end)
+
+      insert(:user, %{ap_id: "https://misskey.io/users/93492q0ip0"})
+
+      note =
+        "test/fixtures/misskey/recursive_quote.json"
+        |> File.read!()
+        |> Jason.decode!()
+
+      %{
+        "quoteUri" => "https://misskey.io/notes/934gok3482"
+      } = Transmogrifier.fix_quote_url(note)
+    end
+  end
 end

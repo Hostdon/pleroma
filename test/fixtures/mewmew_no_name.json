@@ -8,7 +8,6 @@
    ],
    "attachment" : [],
    "capabilities" : {
-      "acceptsChatMessages" : true
    },
    "discoverable" : false,
    "endpoints" : {

@@ -300,3 +300,28 @@
     ```sh
     mix pleroma.user unconfirm_all
     ```
+
+## Fix following state
+
+Sometimes the system can get into a situation where
+it think you're already following someone and won't send a request
+to the remote instance, or won't let you unfollow someone. This
+bug was fixed, but in case you encounter these weird states:
+
+=== "OTP"
+
+    ```sh
+     ./bin/pleroma_ctl user fix_follow_state localuser remoteuser@example.com
+    ```
+
+=== "From Source"
+
+    ```sh
+    mix pleroma.user fix_follow_state localuser remoteuser@example.com
+    ```
+
+The first argument is the local user's nickname - if you are `myuser@myinstance`, this should be `myuser`.
+
+The second is the remote user, consisting of both nickname AND domain.
+
+If you are a weird follow state situation and cannot resolve it with the above, you may need to co-operate with the remote admin to clear the state their side too - they should provide the arguments *backwards*, i.e `fix_follow_state remote local`.

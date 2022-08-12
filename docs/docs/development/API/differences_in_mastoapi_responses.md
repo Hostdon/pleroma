@@ -99,13 +99,11 @@ Has these additional fields under the `pleroma` object:
 - `hide_followers_count`: boolean, true when the user has follower stat hiding enabled
 - `hide_follows_count`: boolean, true when the user has follow stat hiding enabled
 - `settings_store`: A generic map of settings for frontends. Opaque to the backend. Only returned in `/api/v1/accounts/verify_credentials` and `/api/v1/accounts/update_credentials`
-- `chat_token`: The token needed for Akkoma shoutbox. Only returned in `/api/v1/accounts/verify_credentials`
 - `deactivated`: boolean, true when the user is deactivated
 - `allow_following_move`: boolean, true when the user allows automatically follow moved following accounts
 - `unread_conversation_count`: The count of unread conversations. Only returned to the account owner.
 - `unread_notifications_count`: The count of unread notifications. Only returned to the account owner.
 - `notification_settings`: object, can be absent. See `/api/v1/pleroma/notification_settings` for the parameters/keys returned.
-- `accepts_chat_messages`: boolean, but can be null if we don't have that information about a user
 - `favicon`: nullable URL string, Favicon image of the user's instance
 
 ### Source
@@ -159,15 +157,6 @@ The `type` value is `pleroma:emoji_reaction`. Has these fields:
 - `account`: The account of the user who reacted
 - `status`: The status that was reacted on
 
-### ChatMention Notification (not default)
-
-This notification has to be requested explicitly.
-
-The `type` value is `pleroma:chat_mention`
-
-- `account`: The account who sent the message
-- `chat_message`: The chat message
-
 ### Report Notification (not default)
 
 This notification has to be requested explicitly.
@@ -182,7 +171,7 @@ The `type` value is `pleroma:report`
 Accepts additional parameters:
 
 - `exclude_visibilities`: will exclude the notifications for activities with the given visibilities. The parameter accepts an array of visibility types (`public`, `unlisted`, `private`, `direct`). Usage example: `GET /api/v1/notifications?exclude_visibilities[]=direct&exclude_visibilities[]=private`.
-- `include_types`: will include the notifications for activities with the given types. The parameter accepts an array of types (`mention`, `follow`, `reblog`, `favourite`, `move`, `pleroma:emoji_reaction`, `pleroma:chat_mention`, `pleroma:report`). Usage example: `GET /api/v1/notifications?include_types[]=mention&include_types[]=reblog`.
+- `include_types`: will include the notifications for activities with the given types. The parameter accepts an array of types (`mention`, `follow`, `reblog`, `favourite`, `move`, `pleroma:emoji_reaction`, `pleroma:report`). Usage example: `GET /api/v1/notifications?include_types[]=mention&include_types[]=reblog`.
 
 ## DELETE `/api/v1/notifications/destroy_multiple`
 
@@ -240,7 +229,6 @@ Additional parameters can be added to the JSON body/Form data:
 - `pleroma_background_image` - sets the background image of the user. Can be set to "" (an empty string) to reset.
 - `discoverable` - if true, external services (search bots) etc. are allowed to index / list the account (regardless of this setting, user will still appear in regular search results).
 - `actor_type` - the type of this account.
-- `accepts_chat_messages` - if false, this account will reject all chat messages.
 - `language` - user's preferred language for receiving emails (digest, confirmation, etc.)
 
 All images (avatar, banner and background) can be reset to the default by sending an empty string ("") instead of a file.
@@ -300,7 +288,6 @@ Has these additional parameters (which are the same as in Akkoma-API):
 `GET /api/v1/instance` has additional fields
 
 - `max_toot_chars`: The maximum characters per post
-- `chat_limit`: The maximum characters per chat message
 - `description_limit`: The maximum characters per image description
 - `poll_limits`: The limits of polls
 - `upload_limit`: The maximum upload file size
@@ -321,7 +308,6 @@ Has these additional parameters (which are the same as in Akkoma-API):
 
 Permits these additional alert types:
 
-- pleroma:chat_mention
 - pleroma:emoji_reaction
 
 ## Markers
@@ -331,10 +317,6 @@ Has these additional fields under the `pleroma` object:
 - `unread_count`: contains number unread notifications
 
 ## Streaming
-
-### Chats
-
-There is an additional `user:pleroma_chat` stream. Incoming chat messages will make the current chat be sent to this `user` stream. The `event` of an incoming chat message is `pleroma:chat_update`. The payload is the updated chat with the incoming chat message in the `last_message` field.
 
 ### Remote timelines
 

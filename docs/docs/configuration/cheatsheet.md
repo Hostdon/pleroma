@@ -8,11 +8,6 @@ For from source installations Akkoma configuration works by first importing the 
 
 To add configuration to your config file, you can copy it from the base config. The latest version of it can be viewed [here](https://akkoma.dev/AkkomaGang/akkoma/src/branch/develop/config/config.exs). You can also use this file if you don't know how an option is supposed to be formatted.
 
-## :shout
-
-* `enabled` - Enables the backend Shoutbox chat feature. Defaults to `true`.
-* `limit` - Shout character limit. Defaults to `5_000`
-
 ## :instance
 * `name`: The instance’s name.
 * `email`: Email used to reach an Administrator/Moderator of the instance.
@@ -39,7 +34,7 @@ To add configuration to your config file, you can copy it from the base config. 
 * `federation_reachability_timeout_days`: Timeout (in days) of each external federation target being unreachable prior to pausing federating to it.
 * `allow_relay`: Permits remote instances to subscribe to all public posts of your instance. This may increase the visibility of your instance.
 * `public`: Makes the client API in authenticated mode-only except for user-profiles. Useful for disabling the Local Timeline and The Whole Known Network. Note that there is a dependent setting restricting or allowing unauthenticated access to specific resources, see `restrict_unauthenticated` for more details.
-* `quarantined_instances`: ActivityPub instances where private (DMs, followers-only) activities will not be send.
+* `quarantined_instances`: *DEPRECATED* ActivityPub instances where activities will not be sent. They can still reach there via other means, we just won't send them.
 * `allowed_post_formats`: MIME-type list of formats allowed to be posted (transformed into HTML).
 * `extended_nickname_format`: Set to `true` to use extended local nicknames format (allows underscores/dashes). This will break federation with
     older software for theses nicknames.
@@ -77,10 +72,6 @@ To add configuration to your config file, you can copy it from the base config. 
   * `enabled`: Enables the send a direct message to a newly registered user. Defaults to `false`.
   * `sender_nickname`: The nickname of the local user that sends the welcome message.
   * `message`: A message that will be send to a newly registered users as a direct message.
-* `chat_message`: - welcome message sent as a chat message.
-  * `enabled`: Enables the send a chat message to a newly registered user. Defaults to `false`.
-  * `sender_nickname`: The nickname of the local user that sends the welcome message.
-  * `message`: A message that will be send to a newly registered users as a chat message.
 * `email`: - welcome message sent as a email.
   * `enabled`: Enables the send a welcome email to a newly registered user. Defaults to `false`.
   * `sender`: The email address or tuple with `{nickname, email}` that will use as sender to the welcome email.
@@ -140,7 +131,7 @@ To add configuration to your config file, you can copy it from the base config. 
 * `media_removal`: List of instances to strip media attachments from and the reason for doing so.
 * `media_nsfw`: List of instances to tag all media as NSFW (sensitive) from and the reason for doing so.
 * `federated_timeline_removal`: List of instances to remove from the Federated Timeline (aka The Whole Known Network) and the reason for doing so.
-* `reject`: List of instances to reject activities (except deletes) from and the reason for doing so.
+* `reject`: List of instances to reject activities (except deletes) from and the reason for doing so. Additionally prevents activities from being sent to that instance.
 * `accept`: List of instances to only accept activities (except deletes) from and the reason for doing so.
 * `followers_only`: Force posts from the given instances to be visible by followers only and the reason for doing so.
 * `report_removal`: List of instances to reject reports from and the reason for doing so.
@@ -292,14 +283,19 @@ config :pleroma, :frontends,
     "name" => "swagger-ui",
     "ref" => "stable",
     "enabled" => true
-  } 
+  },
+  mastodon: %{
+    "name" => "mastodon-fe",
+    "ref" => "akkoma"
+  }
 ```
 
 * `:primary` - The frontend that will be served at `/`
 * `:admin` - The frontend that will be served at `/pleroma/admin`
 * `:swagger` - Config for developers to act as an API reference to be served at `/akkoma/swaggerui/` (trailing slash _needed_). Disabled by default.
+* `:mastodon` - The mastodon-fe configuration. This shouldn't need to be changed. This is served at `/web` when installed.
 
-### :static_fe
+### :static\_fe
 
 Render profiles and posts using server-generated HTML that is viewable without using JavaScript.
 
@@ -1043,7 +1039,22 @@ config :pleroma, Pleroma.Formatter,
 
 ## Custom Runtime Modules (`:modules`)
 
-* `runtime_dir`: A path to custom Elixir modules (such as MRF policies).
+* `runtime_dir`: A path to custom Elixir modules, such as MRF policies or
+ custom authenticators. These modules will be loaded on boot, and can be
+ contained in subdirectories. It is advised to use version-controlled
+ subdirectories to make management of them a bit easier. Note that only
+ files with the extension `.ex` will be loaded.
+
+```elixir
+config :pleroma, :modules, runtime_dir: "instance/modules"
+```
+
+### Adding a module
+
+```bash
+cd instance/modules/
+git clone <MY MODULE>
+```
 
 ## :configurable_from_database
 

@@ -23,6 +23,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
   import Tesla.Mock
 
   setup do
+    clear_config([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
+    clear_config([Pleroma.Uploaders.Local, :uploads], "uploads")
     mock(fn env -> apply(HttpRequestMock, :request, [env]) end)
     :ok
   end
@@ -182,13 +184,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       user_id = "http://mastodon.example.org/users/relay"
       {:ok, user} = ActivityPub.make_user_from_ap_id(user_id)
       assert User.invisible?(user)
-    end
-
-    test "it returns a user that accepts chat messages" do
-      user_id = "http://mastodon.example.org/users/admin"
-      {:ok, user} = ActivityPub.make_user_from_ap_id(user_id)
-
-      assert user.accepts_chat_messages
     end
 
     test "works for guppe actors" do
@@ -352,6 +347,39 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
     assert Map.has_key?(data, "http://inserted")
   end
 
+  test "fetches user featured when it has string IDs" do
+    featured_url = "https://example.com/alisaie/collections/featured"
+    dead_url = "https://example.com/users/alisaie/statuses/108311386746229284"
+
+    featured_data =
+      "test/fixtures/mastodon/featured_collection.json"
+      |> File.read!()
+
+    Tesla.Mock.mock(fn
+      %{
+        method: :get,
+        url: ^featured_url
+      } ->
+        %Tesla.Env{
+          status: 200,
+          body: featured_data,
+          headers: [{"content-type", "application/activity+json"}]
+        }
+
+      %{
+        method: :get,
+        url: ^dead_url
+      } ->
+        %Tesla.Env{
+          status: 404,
+          body: "{}",
+          headers: [{"content-type", "application/activity+json"}]
+        }
+    end)
+
+    {:ok, %{}} = ActivityPub.fetch_and_prepare_featured_from_ap_id(featured_url)
+  end
+
   test "it fetches the appropriate tag-restricted posts" do
     user = insert(:user)
 
@@ -495,7 +523,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       assert activity.data["ok"] == data["ok"]
       assert activity.data["id"] == given_id
       assert activity.data["context"] == "blabla"
-      assert activity.data["context_id"]
     end
 
     test "adds a context when none is there" do
@@ -517,8 +544,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
 
       assert is_binary(activity.data["context"])
       assert is_binary(object.data["context"])
-      assert activity.data["context_id"]
-      assert object.data["context_id"]
     end
 
     test "adds an id to a given object if it lacks one and is a note and inserts it to the object database" do
@@ -538,42 +563,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       {:ok, %Activity{} = activity} = ActivityPub.insert(data)
       assert object = Object.normalize(activity, fetch: false)
       assert is_binary(object.data["id"])
-    end
-  end
-
-  describe "listen activities" do
-    test "does not increase user note count" do
-      user = insert(:user)
-
-      {:ok, activity} =
-        ActivityPub.listen(%{
-          to: ["https://www.w3.org/ns/activitystreams#Public"],
-          actor: user,
-          context: "",
-          object: %{
-            "actor" => user.ap_id,
-            "to" => ["https://www.w3.org/ns/activitystreams#Public"],
-            "artist" => "lain",
-            "title" => "lain radio episode 1",
-            "length" => 180_000,
-            "type" => "Audio"
-          }
-        })
-
-      assert activity.actor == user.ap_id
-
-      user = User.get_cached_by_id(user.id)
-      assert user.note_count == 0
-    end
-
-    test "can be fetched into a timeline" do
-      _listen_activity_1 = insert(:listen)
-      _listen_activity_2 = insert(:listen)
-      _listen_activity_3 = insert(:listen)
-
-      timeline = ActivityPub.fetch_activities([], %{type: ["Listen"]})
-
-      assert length(timeline) == 3
     end
   end
 
@@ -1383,6 +1372,21 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       assert embedded_object["object"] == followed.ap_id
       assert embedded_object["id"] == follow_activity.data["id"]
     end
+
+    test "it removes the follow activity if it was remote" do
+      follower = insert(:user, local: false)
+      followed = insert(:user)
+
+      {:ok, _, _, follow_activity} = CommonAPI.follow(follower, followed)
+      {:ok, activity} = ActivityPub.unfollow(follower, followed, nil, false)
+
+      assert activity.data["type"] == "Undo"
+      assert activity.data["actor"] == follower.ap_id
+
+      activity = Activity.get_by_id(follow_activity.id)
+      assert is_nil(activity)
+      assert is_nil(Utils.fetch_latest_follow(follower, followed))
+    end
   end
 
   describe "timeline post-processing" do
@@ -1553,7 +1557,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
                })
 
       assert Repo.aggregate(Activity, :count, :id) == 1
-      assert Repo.aggregate(Object, :count, :id) == 2
+      assert Repo.aggregate(Object, :count, :id) == 1
       assert Repo.aggregate(Notification, :count, :id) == 0
     end
   end

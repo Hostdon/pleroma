@@ -145,7 +145,6 @@ defmodule Pleroma.User do
     field(:also_known_as, {:array, ObjectValidators.ObjectID}, default: [])
     field(:inbox, :string)
     field(:shared_inbox, :string)
-    field(:accepts_chat_messages, :boolean, default: nil)
     field(:last_active_at, :naive_datetime)
     field(:disclose_client, :boolean, default: true)
     field(:pinned_objects, :map, default: %{})
@@ -193,17 +192,6 @@ defmodule Pleroma.User do
       #   :notification_muter_users, :subscribee_users
       has_many(incoming_relation_source, through: [incoming_relation, :source])
     end
-
-    # `:blocks` is deprecated (replaced with `blocked_users` relation)
-    field(:blocks, {:array, :string}, default: [])
-    # `:mutes` is deprecated (replaced with `muted_users` relation)
-    field(:mutes, {:array, :string}, default: [])
-    # `:muted_reblogs` is deprecated (replaced with `reblog_muted_users` relation)
-    field(:muted_reblogs, {:array, :string}, default: [])
-    # `:muted_notifications` is deprecated (replaced with `notification_muted_users` relation)
-    field(:muted_notifications, {:array, :string}, default: [])
-    # `:subscribers` is deprecated (replaced with `subscriber_users` relation)
-    field(:subscribers, {:array, :string}, default: [])
 
     embeds_one(
       :multi_factor_authentication_settings,
@@ -466,7 +454,6 @@ defmodule Pleroma.User do
         :invisible,
         :actor_type,
         :also_known_as,
-        :accepts_chat_messages,
         :pinned_objects
       ]
     )
@@ -527,7 +514,6 @@ defmodule Pleroma.User do
         :pleroma_settings_store,
         :is_discoverable,
         :actor_type,
-        :accepts_chat_messages,
         :disclose_client
       ]
     )
@@ -677,8 +663,6 @@ defmodule Pleroma.User do
   # Used to auto-register LDAP accounts which won't have a password hash stored locally
   def register_changeset_ldap(struct, params = %{password: password})
       when is_nil(password) do
-    params = Map.put_new(params, :accepts_chat_messages, true)
-
     params =
       if Map.has_key?(params, :email) do
         Map.put_new(params, :email, params[:email])
@@ -690,8 +674,7 @@ defmodule Pleroma.User do
     |> cast(params, [
       :name,
       :nickname,
-      :email,
-      :accepts_chat_messages
+      :email
     ])
     |> validate_required([:name, :nickname])
     |> unique_constraint(:nickname)
@@ -706,7 +689,6 @@ defmodule Pleroma.User do
     bio_limit = Config.get([:instance, :user_bio_length], 5000)
     name_limit = Config.get([:instance, :user_name_length], 100)
     reason_limit = Config.get([:instance, :registration_reason_length], 500)
-    params = Map.put_new(params, :accepts_chat_messages, true)
 
     confirmed? =
       if is_nil(opts[:confirmed]) do
@@ -734,7 +716,6 @@ defmodule Pleroma.User do
       :password,
       :password_confirmation,
       :emoji,
-      :accepts_chat_messages,
       :registration_reason,
       :language
     ])
@@ -774,12 +755,12 @@ defmodule Pleroma.User do
     end
   end
 
-  defp put_ap_id(changeset) do
+  def put_ap_id(changeset) do
     ap_id = ap_id(%User{nickname: get_field(changeset, :nickname)})
     put_change(changeset, :ap_id, ap_id)
   end
 
-  defp put_following_and_follower_and_featured_address(changeset) do
+  def put_following_and_follower_and_featured_address(changeset) do
     user = %User{nickname: get_field(changeset, :nickname)}
     followers = ap_followers(user)
     following = ap_following(user)
@@ -837,8 +818,7 @@ defmodule Pleroma.User do
          {:ok, user} <- set_cache(user),
          {:ok, _} <- maybe_send_registration_email(user),
          {:ok, _} <- maybe_send_welcome_email(user),
-         {:ok, _} <- maybe_send_welcome_message(user),
-         {:ok, _} <- maybe_send_welcome_chat_message(user) do
+         {:ok, _} <- maybe_send_welcome_message(user) do
       {:ok, user}
     end
   end
@@ -866,15 +846,6 @@ defmodule Pleroma.User do
   defp maybe_send_welcome_message(user) do
     if User.WelcomeMessage.enabled?() do
       User.WelcomeMessage.post_message(user)
-      {:ok, :enqueued}
-    else
-      {:ok, :noop}
-    end
-  end
-
-  defp maybe_send_welcome_chat_message(user) do
-    if User.WelcomeChatMessage.enabled?() do
-      User.WelcomeChatMessage.post_message(user)
       {:ok, :enqueued}
     else
       {:ok, :noop}
@@ -2095,7 +2066,7 @@ defmodule Pleroma.User do
     |> Enum.map(&String.downcase/1)
   end
 
-  defp local_nickname_regex do
+  def local_nickname_regex do
     if Config.get([:instance, :extended_nickname_format]) do
       @extended_local_nickname_regex
     else

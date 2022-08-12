@@ -15,7 +15,6 @@ defmodule Pleroma.Config.TransferTask do
 
   defp reboot_time_keys,
     do: [
-      {:pleroma, :shout},
       {:pleroma, Oban},
       {:pleroma, :rate_limit},
       {:pleroma, :markup},
@@ -51,8 +50,7 @@ defmodule Pleroma.Config.TransferTask do
 
       started_applications = Application.started_applications()
 
-      # TODO: some problem with prometheus after restart!
-      reject = [nil, :prometheus, :postgrex]
+      reject = [nil, :postgrex]
 
       reject =
         if restart_pleroma? do

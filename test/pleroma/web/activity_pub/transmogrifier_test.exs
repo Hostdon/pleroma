@@ -107,6 +107,22 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
       assert activity.data["target"] == new_user.ap_id
       assert activity.data["type"] == "Move"
     end
+
+    test "it fixes both the Create and object contexts in a reply" do
+      insert(:user, ap_id: "https://mk.absturztau.be/users/8ozbzjs3o8")
+      insert(:user, ap_id: "https://p.helene.moe/users/helene")
+
+      create_activity =
+        "test/fixtures/create-pleroma-reply-to-misskey-thread.json"
+        |> File.read!()
+        |> Jason.decode!()
+
+      assert {:ok, %Activity{} = activity} = Transmogrifier.handle_incoming(create_activity)
+
+      object = Object.normalize(activity, fetch: false)
+
+      assert activity.data["context"] == object.data["context"]
+    end
   end
 
   describe "prepare outgoing" do
@@ -216,7 +232,6 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
       assert is_nil(modified["object"]["like_count"])
       assert is_nil(modified["object"]["announcements"])
       assert is_nil(modified["object"]["announcement_count"])
-      assert is_nil(modified["object"]["context_id"])
       assert is_nil(modified["object"]["generator"])
     end
 
@@ -231,7 +246,6 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
       assert is_nil(modified["object"]["like_count"])
       assert is_nil(modified["object"]["announcements"])
       assert is_nil(modified["object"]["announcement_count"])
-      assert is_nil(modified["object"]["context_id"])
       assert is_nil(modified["object"]["likes"])
     end
 
@@ -271,20 +285,6 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
       {:ok, modified} = Transmogrifier.prepare_outgoing(activity.data)
 
       assert is_nil(modified["bcc"])
-    end
-
-    test "it can handle Listen activities" do
-      listen_activity = insert(:listen)
-
-      {:ok, modified} = Transmogrifier.prepare_outgoing(listen_activity.data)
-
-      assert modified["type"] == "Listen"
-
-      user = insert(:user)
-
-      {:ok, activity} = CommonAPI.listen(user, %{"title" => "lain radio episode 1"})
-
-      {:ok, _modified} = Transmogrifier.prepare_outgoing(activity.data)
     end
 
     test "custom emoji urls are URI encoded" do

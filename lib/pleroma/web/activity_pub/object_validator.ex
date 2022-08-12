@@ -23,8 +23,6 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidator do
   alias Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator
   alias Pleroma.Web.ActivityPub.ObjectValidators.AudioVideoValidator
   alias Pleroma.Web.ActivityPub.ObjectValidators.BlockValidator
-  alias Pleroma.Web.ActivityPub.ObjectValidators.ChatMessageValidator
-  alias Pleroma.Web.ActivityPub.ObjectValidators.CreateChatMessageValidator
   alias Pleroma.Web.ActivityPub.ObjectValidators.CreateGenericValidator
   alias Pleroma.Web.ActivityPub.ObjectValidators.DeleteValidator
   alias Pleroma.Web.ActivityPub.ObjectValidators.EmojiReactValidator
@@ -84,21 +82,6 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidator do
   end
 
   def validate(
-        %{"type" => "Create", "object" => %{"type" => "ChatMessage"} = object} = create_activity,
-        meta
-      ) do
-    with {:ok, object_data} <- cast_and_apply(object),
-         meta = Keyword.put(meta, :object_data, object_data |> stringify_keys),
-         {:ok, create_activity} <-
-           create_activity
-           |> CreateChatMessageValidator.cast_and_validate(meta)
-           |> Ecto.Changeset.apply_action(:insert) do
-      create_activity = stringify_keys(create_activity)
-      {:ok, create_activity, meta}
-    end
-  end
-
-  def validate(
         %{"type" => "Create", "object" => %{"type" => objtype} = object} = create_activity,
         meta
       )
@@ -143,7 +126,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidator do
 
   def validate(%{"type" => type} = object, meta)
       when type in ~w[Accept Reject Follow Update Like EmojiReact Announce
-      ChatMessage Answer] do
+      Answer] do
     validator =
       case type do
         "Accept" -> AcceptRejectValidator
@@ -153,7 +136,6 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidator do
         "Like" -> LikeValidator
         "EmojiReact" -> EmojiReactValidator
         "Announce" -> AnnounceValidator
-        "ChatMessage" -> ChatMessageValidator
         "Answer" -> AnswerValidator
       end
 
@@ -177,10 +159,6 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidator do
   end
 
   def validate(o, m), do: {:error, {:validator_not_set, {o, m}}}
-
-  def cast_and_apply(%{"type" => "ChatMessage"} = object) do
-    ChatMessageValidator.cast_and_apply(object)
-  end
 
   def cast_and_apply(%{"type" => "Question"} = object) do
     QuestionValidator.cast_and_apply(object)

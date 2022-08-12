@@ -259,8 +259,7 @@ defmodule Pleroma.Web.CommonAPI.Utils do
   @doc """
   Formatting text to plain text, BBCode, HTML, or Markdown
   """
-  def format_input(text, format, options)
-      when format in ["text/plain", "text/x.misskeymarkdown"] do
+  def format_input(text, "text/plain", options) do
     text
     |> Formatter.html_escape("text/plain")
     |> Formatter.linkify(options)
@@ -282,6 +281,15 @@ defmodule Pleroma.Web.CommonAPI.Utils do
     text
     |> Formatter.html_escape("text/html")
     |> Formatter.linkify(options)
+  end
+
+  def format_input(text, "text/x.misskeymarkdown", options) do
+    text
+    |> Formatter.linkify(options)
+    |> Formatter.html_escape("text/x.misskeymarkdown")
+    |> (fn {text, mentions, tags} ->
+          {String.replace(text, ~r/\r?\n/, "<br>"), mentions, tags}
+        end).()
   end
 
   def format_input(text, "text/markdown", options) do
@@ -449,35 +457,6 @@ defmodule Pleroma.Web.CommonAPI.Utils do
   end
 
   def get_report_statuses(_, _), do: {:ok, nil}
-
-  # DEPRECATED mostly, context objects are now created at insertion time.
-  def context_to_conversation_id(context) do
-    with %Object{id: id} <- Object.get_cached_by_ap_id(context) do
-      id
-    else
-      _e ->
-        changeset = Object.context_mapping(context)
-
-        case Repo.insert(changeset) do
-          {:ok, %{id: id}} ->
-            id
-
-          # This should be solved by an upsert, but it seems ecto
-          # has problems accessing the constraint inside the jsonb.
-          {:error, _} ->
-            Object.get_cached_by_ap_id(context).id
-        end
-    end
-  end
-
-  def conversation_id_to_context(id) do
-    with %Object{data: %{"id" => context}} <- Repo.get(Object, id) do
-      context
-    else
-      _e ->
-        {:error, dgettext("errors", "No such conversation")}
-    end
-  end
 
   def validate_character_limit("" = _full_payload, [] = _attachments) do
     {:error, dgettext("errors", "Cannot post an empty status without attachments")}

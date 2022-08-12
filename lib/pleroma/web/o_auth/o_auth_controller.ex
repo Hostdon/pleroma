@@ -101,7 +101,8 @@ defmodule Pleroma.Web.OAuth.OAuthController do
       scopes: scopes,
       redirect_uri: params["redirect_uri"],
       state: params["state"],
-      params: params
+      params: params,
+      view_module: OAuthView
     })
   end
 
@@ -160,7 +161,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     # Enforcing the view to reuse the template when calling from other controllers
     conn
     |> put_view(OAuthView)
-    |> render("oob_authorization_created.html", %{auth: auth})
+    |> render("oob_authorization_created.html", %{auth: auth, view_module: OAuthView})
   end
 
   def after_create_authorization(%Plug.Conn{} = conn, %Authorization{} = auth, %{

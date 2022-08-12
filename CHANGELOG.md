@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Added
+- extended runtime module support, see config cheatsheet
+- quote posting; quotes are limited to public posts
+
+### Changed
+- quarantining is now considered absolutely; public activities are no longer
+  an exception.
+- also merged quarantine and mrf reject - quarantine is now deprecated
+- flavours:
+  - amd64 is built for debian stable. Compatible with ubuntu 20.
+  - ubuntu-jammy is built for... well, ubuntu 22 (LTS)
+  - amd64-musl is built for alpine 3.16
+
+### Fixed
+- Updated mastoFE path, for the newer version
+
+### Removed
+- Scrobbling support
+  - `/api/v1/pleroma/scrobble`
+  - `/api/v1/pleroma/accounts/{id}/scrobbles`
+- Deprecated endpoints
+  - `/api/v1/pleroma/chats`
+  - `/api/v1/notifications/dismiss`
+  - `/api/v1/search`
+  - `/api/v1/statuses/{id}/card` 
+- Chats, they were half-baked. Just use PMs.
+- Prometheus, it causes massive slowdown
+
 ## 2022.07
 
 ### Added
@@ -144,6 +174,7 @@ you might end up in a situation where you don't have an ability to get it.
 - Attachment dimensions and blurhashes are federated when available.
 - Mastodon API: support `poll` notification.
 - Pinned posts federation
+- Possibility to discover users like `user@example.org`, while Akkoma is working on `akkoma.example.org`. Additional configuration required.
 
 ### Fixed
 - Don't crash so hard when email settings are invalid.

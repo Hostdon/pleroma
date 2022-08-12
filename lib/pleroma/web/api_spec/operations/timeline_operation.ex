@@ -43,7 +43,7 @@ defmodule Pleroma.Web.ApiSpec.TimelineOperation do
       tags: ["Timelines"],
       summary: "Direct timeline",
       description:
-        "View statuses with a “direct” scope addressed to the account. Using this endpoint is discouraged, please use [conversations](#tag/Conversations) or [chats](#tag/Chats).",
+        "View statuses with a “direct” scope addressed to the account. Using this endpoint is discouraged, please use [conversations](#tag/Conversations).",
       parameters: [with_muted_param() | pagination_params()],
       security: [%{"oAuth" => ["read:statuses"]}],
       operationId: "TimelineController.direct",
@@ -68,6 +68,26 @@ defmodule Pleroma.Web.ApiSpec.TimelineOperation do
         reply_visibility_param() | pagination_params()
       ],
       operationId: "TimelineController.public",
+      responses: %{
+        200 => Operation.response("Array of Status", "application/json", array_of_statuses()),
+        401 => Operation.response("Error", "application/json", ApiError)
+      }
+    }
+  end
+
+  def bubble_operation do
+    %Operation{
+      tags: ["Timelines"],
+      summary: "Bubble timeline",
+      security: [%{"oAuth" => ["read:statuses"]}],
+      parameters: [
+        only_media_param(),
+        remote_param(),
+        with_muted_param(),
+        exclude_visibilities_param(),
+        reply_visibility_param() | pagination_params()
+      ],
+      operationId: "TimelineController.bubble",
       responses: %{
         200 => Operation.response("Array of Status", "application/json", array_of_statuses()),
         401 => Operation.response("Error", "application/json", ApiError)

@@ -11,22 +11,22 @@
 
 <meta name="theme-color" content="<%= Config.get([:manifest, :theme_color]) %>" />
 
-<script crossorigin='anonymous' src="/packs/locales.js"></script>
-<script crossorigin='anonymous' src="/packs/locales/glitch/en.js"></script>
+<script crossorigin='anonymous' src="/packs/js/locales.js"></script>
+<script crossorigin='anonymous' src="/packs/js/locales/glitch/en.js"></script>
 
-<link rel='preload' as='script' crossorigin='anonymous' href='/packs/features/getting_started.js'>
-<link rel='preload' as='script' crossorigin='anonymous' href='/packs/features/compose.js'>
-<link rel='preload' as='script' crossorigin='anonymous' href='/packs/features/home_timeline.js'>
-<link rel='preload' as='script' crossorigin='anonymous' href='/packs/features/notifications.js'>
+<link rel='preload' as='script' crossorigin='anonymous' href='/packs/js/features/getting_started.js'>
+<link rel='preload' as='script' crossorigin='anonymous' href='/packs/js/features/compose.js'>
+<link rel='preload' as='script' crossorigin='anonymous' href='/packs/js/features/home_timeline.js'>
+<link rel='preload' as='script' crossorigin='anonymous' href='/packs/js/features/notifications.js'>
 <script id='initial-state' type='application/json'><%= initial_state(@token, @user, @custom_emojis) %></script>
 
-<script src="/packs/core/common.js"></script>
-<link rel="stylesheet" media="all" href="/packs/core/common.css" />
+<script src="/packs/js/core/common.js"></script>
+<link rel="stylesheet" media="all" href="/packs/css/core/common.css" />
 
-<script src="/packs/flavours/glitch/common.js"></script>
-<link rel="stylesheet" media="all" href="/packs/flavours/glitch/common.css" />
+<script src="/packs/js/flavours/glitch/common.js"></script>
+<link rel="stylesheet" media="all" href="/packs/css/flavours/glitch/common.css" />
 
-<script src="/packs/flavours/glitch/home.js"></script>
+<script src="/packs/js/flavours/glitch/home.js"></script>
 </head>
 <body class='app-body no-reduce-motion system-font'>
   <div class='app-holder' data-props='{&quot;locale&quot;:&quot;en&quot;}' id='mastodon'>

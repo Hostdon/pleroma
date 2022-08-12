@@ -70,7 +70,8 @@ defmodule Pleroma.Web.Nodeinfo.Nodeinfo do
         features: features,
         restrictedNicknames: Config.get([Pleroma.User, :restricted_nicknames]),
         skipThreadContainment: Config.get([:instance, :skip_thread_containment], false),
-        privilegedStaff: Config.get([:instance, :privileged_staff])
+        privilegedStaff: Config.get([:instance, :privileged_staff]),
+        localBubbleInstances: Config.get([:instance, :local_bubble], [])
       }
     }
   end

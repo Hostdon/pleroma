@@ -215,7 +215,6 @@ config :pleroma, :instance,
   ],
   allow_relay: true,
   public: true,
-  quarantined_instances: [],
   static_dir: "instance/static/",
   allowed_post_formats: [
     "text/plain",
@@ -259,15 +258,11 @@ config :pleroma, :instance,
   show_reactions: true,
   password_reset_token_validity: 60 * 60 * 24,
   profile_directory: true,
-  privileged_staff: false
+  privileged_staff: false,
+  local_bubble: []
 
 config :pleroma, :welcome,
   direct_message: [
-    enabled: false,
-    sender_nickname: nil,
-    message: nil
-  ],
-  chat_message: [
     enabled: false,
     sender_nickname: nil,
     message: nil
@@ -410,6 +405,8 @@ config :pleroma, :mrf_activity_expiration, days: 365
 config :pleroma, :mrf_vocabulary,
   accept: [],
   reject: []
+
+config :pleroma, :mrf_inline_quote, prefix: "RE"
 
 # threshold of 7 days
 config :pleroma, :mrf_object_age,
@@ -638,13 +635,6 @@ config :pleroma, Pleroma.Emails.UserEmail,
 
 config :pleroma, Pleroma.Emails.NewUsersDigestEmail, enabled: false
 
-config :prometheus, Pleroma.Web.Endpoint.MetricsExporter,
-  enabled: false,
-  auth: false,
-  ip_whitelist: [],
-  path: "/api/pleroma/app_metrics",
-  format: :text
-
 config :pleroma, Pleroma.ScheduledActivity,
   daily_user_limit: 25,
   total_user_limit: 300,
@@ -720,6 +710,7 @@ config :pleroma, :static_fe, enabled: false
 config :pleroma, :frontends,
   primary: %{"name" => "pleroma-fe", "ref" => "stable"},
   admin: %{"name" => "admin-fe", "ref" => "stable"},
+  mastodon: %{"name" => "mastodon-fe", "ref" => "akkoma"},
   swagger: %{
     "name" => "swagger-ui",
     "ref" => "stable",
@@ -738,9 +729,10 @@ config :pleroma, :frontends,
     "mastodon-fe" => %{
       "name" => "mastodon-fe",
       "git" => "https://akkoma.dev/AkkomaGang/masto-fe",
-      "build_url" => "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/masto-fe.zip",
+      "build_url" =>
+        "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/${ref}/masto-fe.zip",
       "build_dir" => "distribution",
-      "ref" => "develop"
+      "ref" => "akkoma"
     },
     "admin-fe" => %{
       "name" => "admin-fe",
@@ -754,7 +746,7 @@ config :pleroma, :frontends,
       "git" => "https://gitlab.com/soapbox-pub/soapbox-fe",
       "build_url" =>
         "https://gitlab.com/soapbox-pub/soapbox-fe/-/jobs/artifacts/${ref}/download?job=build-production",
-      "ref" => "v1.0.0",
+      "ref" => "v2.0.0",
       "build_dir" => "static"
     },
     # For developers - enables a swagger frontend to view the openapi spec
@@ -815,6 +807,8 @@ config :pleroma, ConcurrentLimiter, [
   {Pleroma.Web.ActivityPub.MRF.MediaProxyWarmingPolicy, [max_running: 5, max_waiting: 5]},
   {Pleroma.Search, [max_running: 30, max_waiting: 50]}
 ]
+
+config :pleroma, Pleroma.Web.WebFinger, domain: nil, update_nickname_on_user_fetch: true
 
 config :pleroma, Pleroma.Search, module: Pleroma.Search.DatabaseSearch
 

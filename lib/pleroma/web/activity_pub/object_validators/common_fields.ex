@@ -7,7 +7,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.CommonFields do
   alias Pleroma.Web.ActivityPub.ObjectValidators.AttachmentValidator
   alias Pleroma.Web.ActivityPub.ObjectValidators.TagValidator
 
-  # Activities and Objects, except (Create)ChatMessage
+  # Activities and Objects
   defmacro message_fields do
     quote bind_quoted: binding() do
       field(:type, :string)
@@ -38,7 +38,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.CommonFields do
     end
   end
 
-  # Basically objects that aren't ChatMessage and Answer
+  # Basically objects that aren't Answer
   defmacro status_object_fields do
     quote bind_quoted: binding() do
       # TODO: Remove actor on objects
@@ -51,14 +51,13 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.CommonFields do
       field(:summary, :string)
 
       field(:context, :string)
-      # short identifier for PleromaFE to group statuses by context
-      field(:context_id, :integer)
 
       field(:sensitive, :boolean, default: false)
       field(:replies_count, :integer, default: 0)
       field(:like_count, :integer, default: 0)
       field(:announcement_count, :integer, default: 0)
       field(:inReplyTo, ObjectValidators.ObjectID)
+      field(:quoteUri, ObjectValidators.ObjectID)
       field(:url, ObjectValidators.Uri)
 
       field(:likes, {:array, ObjectValidators.ObjectID}, default: [])

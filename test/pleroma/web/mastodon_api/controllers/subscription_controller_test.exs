@@ -113,7 +113,6 @@ defmodule Pleroma.Web.MastodonAPI.SubscriptionControllerTest do
               "favourite" => true,
               "follow" => true,
               "reblog" => true,
-              "pleroma:chat_mention" => true,
               "pleroma:emoji_reaction" => true
             }
           },
@@ -129,7 +128,6 @@ defmodule Pleroma.Web.MastodonAPI.SubscriptionControllerTest do
                  "favourite" => true,
                  "follow" => true,
                  "reblog" => true,
-                 "pleroma:chat_mention" => true,
                  "pleroma:emoji_reaction" => true
                },
                "endpoint" => subscription.endpoint,
@@ -185,7 +183,6 @@ defmodule Pleroma.Web.MastodonAPI.SubscriptionControllerTest do
               "favourite" => true,
               "follow" => true,
               "reblog" => true,
-              "pleroma:chat_mention" => true,
               "pleroma:emoji_reaction" => true
             }
           }
@@ -204,7 +201,6 @@ defmodule Pleroma.Web.MastodonAPI.SubscriptionControllerTest do
               "favourite" => false,
               "follow" => false,
               "reblog" => false,
-              "pleroma:chat_mention" => false,
               "pleroma:emoji_reaction" => false
             }
           }
@@ -217,7 +213,6 @@ defmodule Pleroma.Web.MastodonAPI.SubscriptionControllerTest do
           "favourite" => false,
           "follow" => false,
           "reblog" => false,
-          "pleroma:chat_mention" => false,
           "pleroma:emoji_reaction" => false
         },
         "endpoint" => "https://example.com/example/1234",

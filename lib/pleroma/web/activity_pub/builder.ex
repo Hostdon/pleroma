@@ -168,6 +168,7 @@ defmodule Pleroma.Web.ActivityPub.Builder do
         "tag" => Keyword.values(draft.tags) |> Enum.uniq()
       }
       |> add_in_reply_to(draft.in_reply_to)
+      |> add_quote(draft.quote)
       |> Map.merge(draft.extra)
 
     {:ok, data, []}
@@ -183,27 +184,13 @@ defmodule Pleroma.Web.ActivityPub.Builder do
     end
   end
 
-  def chat_message(actor, recipient, content, opts \\ []) do
-    basic = %{
-      "id" => Utils.generate_object_id(),
-      "actor" => actor.ap_id,
-      "type" => "ChatMessage",
-      "to" => [recipient],
-      "content" => content,
-      "published" => DateTime.utc_now() |> DateTime.to_iso8601(),
-      "emoji" => Emoji.Formatter.get_emoji_map(content)
-    }
+  defp add_quote(object, nil), do: object
 
-    case opts[:attachment] do
-      %Object{data: attachment_data} ->
-        {
-          :ok,
-          Map.put(basic, "attachment", attachment_data),
-          []
-        }
-
-      _ ->
-        {:ok, basic, []}
+  defp add_quote(object, quote) do
+    with %Object{} = quote_object <- Object.normalize(quote, fetch: false) do
+      Map.put(object, "quoteUri", quote_object.data["id"])
+    else
+      _ -> object
     end
   end
 

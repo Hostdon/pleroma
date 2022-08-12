@@ -133,6 +133,7 @@ defmodule Pleroma.Web.NodeInfoTest do
 
     default_features = [
       "pleroma_api",
+      "akkoma_api",
       "mastodon_api",
       "mastodon_api_streaming",
       "polls",
@@ -140,8 +141,7 @@ defmodule Pleroma.Web.NodeInfoTest do
       "shareable_emoji_packs",
       "multifetch",
       "pleroma_emoji_reactions",
-      "pleroma:api/v1/notifications:include_types_filter",
-      "pleroma_chat_messages"
+      "pleroma:api/v1/notifications:include_types_filter"
     ]
 
     assert MapSet.subset?(
@@ -186,6 +186,25 @@ defmodule Pleroma.Web.NodeInfoTest do
 
       assert response["metadata"]["federation"]["quarantined_instances_info"] == expected_config
     end
+  end
+
+  test "Bubble instances", %{conn: conn} do
+    clear_config([:instance, :local_bubble], [])
+
+    response =
+      conn
+      |> get("/nodeinfo/2.1.json")
+      |> json_response(:ok)
+
+    assert response["metadata"]["localBubbleInstances"] == []
+    clear_config([:instance, :local_bubble], ["example.com"])
+
+    response =
+      conn
+      |> get("/nodeinfo/2.1.json")
+      |> json_response(:ok)
+
+    assert response["metadata"]["localBubbleInstances"] == ["example.com"]
   end
 
   describe "MRF SimplePolicy" do

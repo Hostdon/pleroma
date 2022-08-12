@@ -37,6 +37,13 @@ defmodule Pleroma.Search.Elasticsearch.Parsers.Activity do
   end
 
   def parse(q) do
-    Enum.map(q, &to_es/1)
+    [
+      %{
+        exists: %{
+          field: "content"
+        }
+      }
+    ] ++
+      Enum.map(q, &to_es/1)
   end
 end

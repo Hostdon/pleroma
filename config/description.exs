@@ -691,7 +691,7 @@ config :pleroma, :config_description, [
         key_placeholder: "instance",
         value_placeholder: "reason",
         description:
-          "List of ActivityPub instances where private (DMs, followers-only) activities will not be sent and the reason for doing so",
+          "(Deprecated, will be removed in next release) List of ActivityPub instances where activities will not be sent, and the reason for doing so",
         suggestions: [
           {"quarantined.com", "Reason"},
           {"*.quarantined.com", "Reason"}
@@ -946,7 +946,13 @@ config :pleroma, :config_description, [
         key: :privileged_staff,
         type: :boolean,
         description:
-          "Let moderators access sensitive data (e.g. updating user credentials, get password reset token, delete users, index and read private statuses and chats)"
+          "Let moderators access sensitive data (e.g. updating user credentials, get password reset token, delete users, index and read private statuses)"
+      },
+      %{
+        key: :local_bubble,
+        type: {:list, :string},
+        description:
+          "List of instances that make up your local bubble (closely-related instances). Used to populate the 'bubble' timeline (domain only)."
       }
     ]
   },
@@ -978,35 +984,6 @@ config :pleroma, :config_description, [
             key: :sender_nickname,
             type: :string,
             description: "The nickname of the local user that sends a welcome message",
-            suggestions: [
-              "lain"
-            ]
-          }
-        ]
-      },
-      %{
-        key: :chat_message,
-        type: :keyword,
-        descpiption: "Chat message settings",
-        children: [
-          %{
-            key: :enabled,
-            type: :boolean,
-            description: "Enables sending a chat message to newly registered users"
-          },
-          %{
-            key: :message,
-            type: :string,
-            description:
-              "A message that will be sent to newly registered users as a chat message",
-            suggestions: [
-              "Hello, welcome on board!"
-            ]
-          },
-          %{
-            key: :sender_nickname,
-            type: :string,
-            description: "The nickname of the local user that sends a welcome chat message",
             suggestions: [
               "lain"
             ]
@@ -1465,13 +1442,14 @@ config :pleroma, :config_description, [
       %{
         key: :theme_color,
         type: :string,
-        description: "Describe the theme color of the app",
+        description: "Describe the theme color of the app - this is only used for mastodon-fe",
         suggestions: ["#282c37", "mediumpurple"]
       },
       %{
         key: :background_color,
         type: :string,
-        description: "Describe the background color of the app",
+        description:
+          "Describe the background color of the app - this is only used for mastodon-fe",
         suggestions: ["#191b22", "aliceblue"]
       }
     ]
@@ -1677,6 +1655,11 @@ config :pleroma, :config_description, [
         key: :sign_object_fetches,
         type: :boolean,
         description: "Sign object fetches with HTTP signatures"
+      },
+      %{
+        key: :authorized_fetch_mode,
+        type: :boolean,
+        description: "Require HTTP signatures on AP fetches"
       },
       %{
         key: :note_replies_output_limit,
@@ -2607,27 +2590,6 @@ config :pleroma, :config_description, [
   },
   %{
     group: :pleroma,
-    key: :shout,
-    type: :group,
-    description: "Pleroma shout settings",
-    children: [
-      %{
-        key: :enabled,
-        type: :boolean,
-        description: "Enables the backend Shoutbox chat feature."
-      },
-      %{
-        key: :limit,
-        type: :integer,
-        description: "Shout message character limit.",
-        suggestions: [
-          5_000
-        ]
-      }
-    ]
-  },
-  %{
-    group: :pleroma,
     key: :http,
     label: "HTTP",
     type: :group,
@@ -3090,6 +3052,12 @@ config :pleroma, :config_description, [
         children: installed_frontend_options
       },
       %{
+        key: :mastodon,
+        type: :map,
+        description: "Mastodon frontend",
+        children: installed_frontend_options
+      },
+      %{
         key: :swagger,
         type: :map,
         description: "Swagger API reference frontend",
@@ -3163,43 +3131,6 @@ config :pleroma, :config_description, [
         type: :integer,
         description: "Limit user to export not more often than once per N days",
         suggestions: [7]
-      }
-    ]
-  },
-  %{
-    group: :prometheus,
-    key: Pleroma.Web.Endpoint.MetricsExporter,
-    type: :group,
-    description: "Prometheus app metrics endpoint configuration",
-    children: [
-      %{
-        key: :enabled,
-        type: :boolean,
-        description: "[Pleroma extension] Enables app metrics endpoint."
-      },
-      %{
-        key: :ip_whitelist,
-        label: "IP Whitelist",
-        type: [{:list, :string}, {:list, :charlist}, {:list, :tuple}],
-        description: "Restrict access of app metrics endpoint to the specified IP addresses."
-      },
-      %{
-        key: :auth,
-        type: [:boolean, :tuple],
-        description: "Enables HTTP Basic Auth for app metrics endpoint.",
-        suggestion: [false, {:basic, "myusername", "mypassword"}]
-      },
-      %{
-        key: :path,
-        type: :string,
-        description: "App metrics endpoint URI path.",
-        suggestions: ["/api/pleroma/app_metrics"]
-      },
-      %{
-        key: :format,
-        type: :atom,
-        description: "App metrics endpoint output format.",
-        suggestions: [:text, :protobuf]
       }
     ]
   },
