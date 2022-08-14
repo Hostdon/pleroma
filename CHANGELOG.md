@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Removed
+- Non-finch HTTP adapters. `:tesla, :adapter` is now highly recommended to be set to the default.
+
+## 2022.08
+
 ### Added
 - extended runtime module support, see config cheatsheet
 - quote posting; quotes are limited to public posts

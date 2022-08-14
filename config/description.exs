@@ -2598,9 +2598,10 @@ config :pleroma, :config_description, [
       %{
         key: :proxy_url,
         label: "Proxy URL",
-        type: [:string, :tuple],
-        description: "Proxy URL",
-        suggestions: ["localhost:9020", {:socks5, :localhost, 3090}]
+        type: :string,
+        description:
+          "Proxy URL - of the format http://host:port. Advise setting in .exs instead of admin-fe due to this being set at boot-time.",
+        suggestions: ["http://localhost:3128"]
       },
       %{
         key: :user_agent,
