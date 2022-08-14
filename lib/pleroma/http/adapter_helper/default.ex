@@ -9,7 +9,7 @@ defmodule Pleroma.HTTP.AdapterHelper.Default do
 
   @spec options(keyword(), URI.t()) :: keyword()
   def options(opts, _uri) do
-    proxy = Pleroma.Config.get([:http, :proxy_url], nil)
+    proxy = Pleroma.Config.get([:http, :proxy_url])
     AdapterHelper.maybe_add_proxy(opts, AdapterHelper.format_proxy(proxy))
   end
 

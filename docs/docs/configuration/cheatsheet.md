@@ -521,7 +521,7 @@ Available caches:
 
 ### :http
 
-* `proxy_url`: an upstream proxy to fetch posts and/or media with, (default: `nil`)
+* `proxy_url`: an upstream proxy to fetch posts and/or media with, (default: `nil`); for example `http://127.0.0.1:3192`. Does not support SOCKS5 proxy, only http(s).
 * `send_user_agent`: should we include a user agent with HTTP requests? (default: `true`)
 * `user_agent`: what user agent should we use? (default: `:default`), must be string or `:default`
 * `adapter`: array of adapter options
