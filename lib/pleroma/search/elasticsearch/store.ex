@@ -42,7 +42,6 @@ defmodule Pleroma.Search.Elasticsearch.Store do
       results
       |> Enum.map(fn result -> result["_id"] end)
       |> Pleroma.Activity.all_by_ids_with_object()
-      |> Enum.sort(&(&1.inserted_at >= &2.inserted_at))
     else
       e ->
         Logger.error(e)
