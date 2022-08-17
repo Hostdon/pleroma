@@ -74,6 +74,8 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionController do
   defp filter(reactions, _), do: reactions
 
   def create(%{assigns: %{user: user}} = conn, %{id: activity_id, emoji: emoji}) do
+    emoji = Pleroma.Emoji.maybe_quote(emoji)
+
     with {:ok, _activity} <- CommonAPI.react_with_emoji(activity_id, user, emoji) do
       activity = Activity.get_by_id(activity_id)
 

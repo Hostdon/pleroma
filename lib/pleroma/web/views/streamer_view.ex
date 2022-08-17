@@ -11,8 +11,9 @@ defmodule Pleroma.Web.StreamerView do
   alias Pleroma.User
   alias Pleroma.Web.MastodonAPI.NotificationView
 
-  def render("update.json", %Activity{} = activity, %User{} = user) do
+  def render("update.json", %Activity{} = activity, %User{} = user, topic) do
     %{
+      stream: [topic],
       event: "update",
       payload:
         Pleroma.Web.MastodonAPI.StatusView.render(
@@ -25,8 +26,9 @@ defmodule Pleroma.Web.StreamerView do
     |> Jason.encode!()
   end
 
-  def render("notification.json", %Notification{} = notify, %User{} = user) do
+  def render("notification.json", %Notification{} = notify, %User{} = user, topic) do
     %{
+      stream: [topic],
       event: "notification",
       payload:
         NotificationView.render(
@@ -38,8 +40,9 @@ defmodule Pleroma.Web.StreamerView do
     |> Jason.encode!()
   end
 
-  def render("update.json", %Activity{} = activity) do
+  def render("update.json", %Activity{} = activity, topic) do
     %{
+      stream: [topic],
       event: "update",
       payload:
         Pleroma.Web.MastodonAPI.StatusView.render(
@@ -51,8 +54,9 @@ defmodule Pleroma.Web.StreamerView do
     |> Jason.encode!()
   end
 
-  def render("follow_relationships_update.json", item) do
+  def render("follow_relationships_update.json", item, topic) do
     %{
+      stream: [topic],
       event: "pleroma:follow_relationships_update",
       payload:
         %{
@@ -73,8 +77,9 @@ defmodule Pleroma.Web.StreamerView do
     |> Jason.encode!()
   end
 
-  def render("conversation.json", %Participation{} = participation) do
+  def render("conversation.json", %Participation{} = participation, topic) do
     %{
+      stream: [topic],
       event: "conversation",
       payload:
         Pleroma.Web.MastodonAPI.ConversationView.render("participation.json", %{

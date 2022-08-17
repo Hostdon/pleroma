@@ -31,9 +31,9 @@ defmodule Pleroma.Integration.MastodonWebsocketTest do
     WebsocketClient.start_link(self(), path, headers)
   end
 
-  test "refuses invalid requests" do
+  test "allows multi-streams" do
     capture_log(fn ->
-      assert {:error, {404, _}} = start_socket()
+      assert {:ok, _} = start_socket()
       assert {:error, {404, _}} = start_socket("?stream=ncjdk")
       Process.sleep(30)
     end)

@@ -157,7 +157,8 @@ defmodule Pleroma.Web.StreamerTest do
       Streamer.get_topic_and_add_socket("user", user, oauth_token)
       {:ok, activity} = CommonAPI.post(user, %{status: "hey"})
 
-      assert_receive {:render_with_user, _, _, ^activity}
+      stream_name = "user:#{user.id}"
+      assert_receive {:render_with_user, _, _, ^activity, ^stream_name}
       refute Streamer.filtered_by_user?(user, activity)
     end
 
@@ -168,7 +169,11 @@ defmodule Pleroma.Web.StreamerTest do
       {:ok, activity} = CommonAPI.post(other_user, %{status: "hey"})
       {:ok, announce} = CommonAPI.repeat(activity.id, user)
 
-      assert_receive {:render_with_user, Pleroma.Web.StreamerView, "update.json", ^announce}
+      stream_name = "user:#{user.id}"
+
+      assert_receive {:render_with_user, Pleroma.Web.StreamerView, "update.json", ^announce,
+                      ^stream_name}
+
       refute Streamer.filtered_by_user?(user, announce)
     end
 
@@ -221,7 +226,11 @@ defmodule Pleroma.Web.StreamerTest do
       {:ok, %Pleroma.Activity{data: _data, local: false} = announce} =
         Pleroma.Web.ActivityPub.Transmogrifier.handle_incoming(data)
 
-      assert_receive {:render_with_user, Pleroma.Web.StreamerView, "update.json", ^announce}
+      stream_name = "user:#{user.id}"
+
+      assert_receive {:render_with_user, Pleroma.Web.StreamerView, "update.json", ^announce,
+                      ^stream_name}
+
       refute Streamer.filtered_by_user?(user, announce)
     end
 
@@ -233,7 +242,7 @@ defmodule Pleroma.Web.StreamerTest do
       Streamer.get_topic_and_add_socket("user", user, oauth_token)
       Streamer.stream("user", notify)
 
-      assert_receive {:render_with_user, _, _, ^notify}
+      assert_receive {:render_with_user, _, _, ^notify, "user"}
       refute Streamer.filtered_by_user?(user, notify)
     end
 
@@ -245,7 +254,7 @@ defmodule Pleroma.Web.StreamerTest do
       Streamer.get_topic_and_add_socket("user:notification", user, oauth_token)
       Streamer.stream("user:notification", notify)
 
-      assert_receive {:render_with_user, _, _, ^notify}
+      assert_receive {:render_with_user, _, _, ^notify, "user:notification"}
       refute Streamer.filtered_by_user?(user, notify)
     end
 
@@ -291,7 +300,7 @@ defmodule Pleroma.Web.StreamerTest do
       Streamer.get_topic_and_add_socket("user:notification", user, oauth_token)
       {:ok, favorite_activity} = CommonAPI.favorite(user2, activity.id)
 
-      assert_receive {:render_with_user, _, "notification.json", notif}
+      assert_receive {:render_with_user, _, "notification.json", notif, "user:notification"}
       assert notif.activity.id == favorite_activity.id
       refute Streamer.filtered_by_user?(user, notif)
     end
@@ -320,7 +329,7 @@ defmodule Pleroma.Web.StreamerTest do
       Streamer.get_topic_and_add_socket("user:notification", user, oauth_token)
       {:ok, _follower, _followed, follow_activity} = CommonAPI.follow(user2, user)
 
-      assert_receive {:render_with_user, _, "notification.json", notif}
+      assert_receive {:render_with_user, _, "notification.json", notif, "user:notification"}
       assert notif.activity.id == follow_activity.id
       refute Streamer.filtered_by_user?(user, notif)
     end
@@ -384,7 +393,7 @@ defmodule Pleroma.Web.StreamerTest do
       Streamer.get_topic_and_add_socket("public", user, oauth_token)
 
       {:ok, activity} = CommonAPI.post(other_user, %{status: "Test"})
-      assert_receive {:render_with_user, _, _, ^activity}
+      assert_receive {:render_with_user, _, _, ^activity, "public"}
       refute Streamer.filtered_by_user?(other_user, activity)
     end
 
@@ -436,7 +445,7 @@ defmodule Pleroma.Web.StreamerTest do
 
       Streamer.get_topic_and_add_socket("public", user, oauth_token)
       Streamer.stream("public", activity)
-      assert_receive {:render_with_user, _, _, ^activity}
+      assert_receive {:render_with_user, _, _, ^activity, "public"}
       assert Streamer.filtered_by_user?(user, activity)
     end
 
@@ -458,7 +467,7 @@ defmodule Pleroma.Web.StreamerTest do
       Streamer.get_topic_and_add_socket("public", user, oauth_token)
       Streamer.stream("public", activity)
 
-      assert_receive {:render_with_user, _, _, ^activity}
+      assert_receive {:render_with_user, _, _, ^activity, "public"}
       refute Streamer.filtered_by_user?(user, activity)
     end
 
@@ -481,7 +490,7 @@ defmodule Pleroma.Web.StreamerTest do
       Streamer.get_topic_and_add_socket("public", user, oauth_token)
       Streamer.stream("public", activity)
 
-      assert_receive {:render_with_user, _, _, ^activity}
+      assert_receive {:render_with_user, _, _, ^activity, "public"}
       refute Streamer.filtered_by_user?(user, activity)
     end
   end
@@ -495,7 +504,7 @@ defmodule Pleroma.Web.StreamerTest do
 
       Streamer.get_topic_and_add_socket("public", user, oauth_token)
       {:ok, activity} = CommonAPI.post(blocked_user, %{status: "Test"})
-      assert_receive {:render_with_user, _, _, ^activity}
+      assert_receive {:render_with_user, _, _, ^activity, "public"}
       assert Streamer.filtered_by_user?(user, activity)
     end
 
@@ -512,17 +521,17 @@ defmodule Pleroma.Web.StreamerTest do
 
       {:ok, activity_one} = CommonAPI.post(friend, %{status: "hey! @#{blockee.nickname}"})
 
-      assert_receive {:render_with_user, _, _, ^activity_one}
+      assert_receive {:render_with_user, _, _, ^activity_one, "public"}
       assert Streamer.filtered_by_user?(blocker, activity_one)
 
       {:ok, activity_two} = CommonAPI.post(blockee, %{status: "hey! @#{friend.nickname}"})
 
-      assert_receive {:render_with_user, _, _, ^activity_two}
+      assert_receive {:render_with_user, _, _, ^activity_two, "public"}
       assert Streamer.filtered_by_user?(blocker, activity_two)
 
       {:ok, activity_three} = CommonAPI.post(blockee, %{status: "hey! @#{blocker.nickname}"})
 
-      assert_receive {:render_with_user, _, _, ^activity_three}
+      assert_receive {:render_with_user, _, _, ^activity_three, "public"}
       assert Streamer.filtered_by_user?(blocker, activity_three)
     end
   end
@@ -583,7 +592,8 @@ defmodule Pleroma.Web.StreamerTest do
           visibility: "private"
         })
 
-      assert_receive {:render_with_user, _, _, ^activity}
+      stream_name = "list:#{list.id}"
+      assert_receive {:render_with_user, _, _, ^activity, ^stream_name}
       refute Streamer.filtered_by_user?(user_a, activity)
     end
   end
@@ -601,7 +611,8 @@ defmodule Pleroma.Web.StreamerTest do
 
       Streamer.get_topic_and_add_socket("user", user1, user1_token)
       {:ok, announce_activity} = CommonAPI.repeat(create_activity.id, user2)
-      assert_receive {:render_with_user, _, _, ^announce_activity}
+      stream_name = "user:#{user1.id}"
+      assert_receive {:render_with_user, _, _, ^announce_activity, ^stream_name}
       assert Streamer.filtered_by_user?(user1, announce_activity)
     end
 
@@ -617,7 +628,7 @@ defmodule Pleroma.Web.StreamerTest do
       Streamer.get_topic_and_add_socket("user", user1, user1_token)
       {:ok, _announce_activity} = CommonAPI.repeat(create_activity.id, user2)
 
-      assert_receive {:render_with_user, _, "notification.json", notif}
+      assert_receive {:render_with_user, _, "notification.json", notif, "user"}
       assert Streamer.filtered_by_user?(user1, notif)
     end
 
@@ -633,7 +644,7 @@ defmodule Pleroma.Web.StreamerTest do
       Streamer.get_topic_and_add_socket("user", user1, user1_token)
       {:ok, _favorite_activity} = CommonAPI.favorite(user2, create_activity.id)
 
-      assert_receive {:render_with_user, _, "notification.json", notif}
+      assert_receive {:render_with_user, _, "notification.json", notif, "user"}
       refute Streamer.filtered_by_user?(user1, notif)
     end
   end
@@ -648,7 +659,8 @@ defmodule Pleroma.Web.StreamerTest do
       {:ok, activity} = CommonAPI.post(user, %{status: "super hot take"})
       {:ok, _} = CommonAPI.add_mute(user2, activity)
 
-      assert_receive {:render_with_user, _, _, ^activity}
+      stream_name = "user:#{user2.id}"
+      assert_receive {:render_with_user, _, _, ^activity, ^stream_name}
       assert Streamer.filtered_by_user?(user2, activity)
     end
   end
@@ -690,7 +702,8 @@ defmodule Pleroma.Web.StreamerTest do
         })
 
       create_activity_id = create_activity.id
-      assert_receive {:render_with_user, _, _, ^create_activity}
+      stream_name = "direct:#{user.id}"
+      assert_receive {:render_with_user, _, _, ^create_activity, ^stream_name}
       assert_receive {:text, received_conversation1}
       assert %{"event" => "conversation", "payload" => _} = Jason.decode!(received_conversation1)
 
@@ -725,8 +738,9 @@ defmodule Pleroma.Web.StreamerTest do
           visibility: "direct"
         })
 
-      assert_receive {:render_with_user, _, _, ^create_activity}
-      assert_receive {:render_with_user, _, _, ^create_activity2}
+      stream_name = "direct:#{user.id}"
+      assert_receive {:render_with_user, _, _, ^create_activity, ^stream_name}
+      assert_receive {:render_with_user, _, _, ^create_activity2, ^stream_name}
       assert_receive {:text, received_conversation1}
       assert %{"event" => "conversation", "payload" => _} = Jason.decode!(received_conversation1)
       assert_receive {:text, received_conversation1}

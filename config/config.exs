@@ -734,6 +734,14 @@ config :pleroma, :frontends,
       "build_dir" => "distribution",
       "ref" => "akkoma"
     },
+    "fedibird-fe" => %{
+      "name" => "fedibird-fe",
+      "git" => "https://akkoma.dev/AkkomaGang/fedibird-fe",
+      "build_url" =>
+        "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/${ref}/fedibird-fe.zip",
+      "build_dir" => "distribution",
+      "ref" => "akkoma"
+    },
     "admin-fe" => %{
       "name" => "admin-fe",
       "git" => "https://akkoma.dev/AkkomaGang/admin-fe",

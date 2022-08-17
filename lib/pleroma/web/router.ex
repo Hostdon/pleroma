@@ -457,6 +457,11 @@ defmodule Pleroma.Web.Router do
     get("/federation_status", InstancesController, :show)
   end
 
+  scope "/api/v1", Pleroma.Web.PleromaAPI do
+    pipe_through(:authenticated_api)
+    put("/statuses/:id/emoji_reactions/:emoji", EmojiReactionController, :create)
+  end
+
   scope "/api/v1", Pleroma.Web.MastodonAPI do
     pipe_through(:authenticated_api)
 

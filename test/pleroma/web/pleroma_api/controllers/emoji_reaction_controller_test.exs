@@ -31,7 +31,13 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionControllerTest do
     assert to_string(activity.id) == id
 
     assert result["pleroma"]["emoji_reactions"] == [
-             %{"name" => "☕", "count" => 1, "me" => true, "url" => nil}
+             %{
+               "name" => "☕",
+               "count" => 1,
+               "me" => true,
+               "url" => nil,
+               "account_ids" => [other_user.id]
+             }
            ]
 
     {:ok, activity} = CommonAPI.post(user, %{status: "#cofe"})
@@ -54,7 +60,8 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionControllerTest do
                "name" => "dinosaur",
                "count" => 1,
                "me" => true,
-               "url" => "http://localhost:4001/emoji/dino walking.gif"
+               "url" => "http://localhost:4001/emoji/dino walking.gif",
+               "account_ids" => [other_user.id]
              }
            ]
 
