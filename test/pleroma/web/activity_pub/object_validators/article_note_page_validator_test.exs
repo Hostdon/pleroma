@@ -96,10 +96,9 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidatorTest 
       %{
         valid?: true,
         changes: %{
-          content: content,
+          content: "this does not get replaced",
           source: %{
-            "content" =>
-              "@akkoma_user @remote_user @full_tag_remote_user@misskey.local.live @oops_not_a_mention linkifylink #dancedance $[jelly mfm goes here] \n\n## aaa",
+            "content" => content,
             "mediaType" => "text/x.misskeymarkdown"
           }
         }
@@ -129,22 +128,20 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidatorTest 
         |> File.read!()
         |> Jason.decode!()
 
-      expected_content =
-        "<span class=\"h-card\"><a class=\"u-url mention\" data-user=\"#{local_user.id}\" href=\"#{local_user.ap_id}\" rel=\"ugc\">@<span>akkoma_user</span></a></span> linkifylink <a class=\"hashtag\" data-tag=\"dancedance\" href=\"http://localhost:4001/tag/dancedance\">#dancedance</a> $[jelly mfm goes here] <br><br>## aaa"
-
       changes = ArticleNotePageValidator.cast_and_validate(note)
 
       %{
         valid?: true,
         changes: %{
           source: %{
-            "content" => "@akkoma_user linkifylink #dancedance $[jelly mfm goes here] \n\n## aaa",
+            "content" => content,
             "mediaType" => "text/x.misskeymarkdown"
           }
         }
       } = changes
 
-      assert changes.changes[:content] == expected_content
+      assert content =~
+               "<span class=\"h-card\"><a class=\"u-url mention\" data-user=\"#{local_user.id}\" href=\"#{local_user.ap_id}\" rel=\"ugc\">@<span>akkoma_user</span></a></span>"
     end
   end
 end

@@ -119,7 +119,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
     {linked, _, _} =
       Utils.format_input(content, "text/x.misskeymarkdown", mention_handler: mention_handler)
 
-    Map.put(object, "content", linked)
+    put_in(object, ["source", "content"], linked)
   end
 
   defp fix_misskey_content(%{"_misskey_content" => content} = object) when is_binary(content) do
@@ -132,10 +132,9 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
 
     object
     |> Map.put("source", %{
-      "content" => content,
+      "content" => linked,
       "mediaType" => "text/x.misskeymarkdown"
     })
-    |> Map.put("content", linked)
     |> Map.delete("_misskey_content")
   end
 

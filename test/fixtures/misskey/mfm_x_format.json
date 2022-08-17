@@ -3,7 +3,7 @@
   "type": "Note",
   "attributedTo": "https://misskey.local.live/users/92hzkskwgy",
   "summary": null,
-  "content": "this gets replaced",
+  "content": "this does not get replaced",
   "source": {
     "content": "@akkoma_user @remote_user @full_tag_remote_user@misskey.local.live @oops_not_a_mention linkifylink #dancedance $[jelly mfm goes here] \n\n## aaa",
     "mediaType": "text/x.misskeymarkdown"

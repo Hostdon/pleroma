@@ -1169,7 +1169,6 @@ config :pleroma, :config_description, [
             hideFilteredStatuses: false,
             hideMutedPosts: false,
             hidePostStats: false,
-            hideSitename: false,
             hideUserStats: false,
             loginMethod: "password",
             logo: "/static/logo.svg",
@@ -1234,12 +1233,6 @@ config :pleroma, :config_description, [
             label: "Hide post stats",
             type: :boolean,
             description: "Hide notices statistics (repeats, favorites, ...)"
-          },
-          %{
-            key: :hideSitename,
-            label: "Hide Sitename",
-            type: :boolean,
-            description: "Hides instance name from PleromaFE banner"
           },
           %{
             key: :hideUserStats,
@@ -1350,6 +1343,42 @@ config :pleroma, :config_description, [
             type: :string,
             description: "Which theme to use. Available themes are defined in styles.json",
             suggestions: ["pleroma-dark"]
+          },
+          %{
+            key: :showPanelNavShortcuts,
+            label: "Show timeline panel nav shortcuts",
+            type: :boolean,
+            description: "Whether to put timeline nav tabs on the top of the panel"
+          },
+          %{
+            key: :showNavShortcuts,
+            label: "Show navbar shortcuts",
+            type: :boolean,
+            description: "Whether to put extra navigation options on the navbar"
+          },
+          %{
+            key: :showWiderShortcuts,
+            label: "Increase navbar shortcut spacing",
+            type: :boolean,
+            description: "Whether to add extra space between navbar icons"
+          },
+          %{
+            key: :hideSiteFavicon,
+            label: "Hide site favicon",
+            type: :boolean,
+            description: "Whether to hide the instance favicon from the navbar"
+          },
+          %{
+            key: :hideSiteName,
+            label: "Hide site name",
+            type: :boolean,
+            description: "Whether to hide the site name from the navbar"
+          },
+          %{
+            key: :renderMisskeyMarkdown,
+            label: "Render misskey markdown",
+            type: :boolean,
+            description: "Whether to render Misskey-flavoured markdown"
           }
         ]
       },
