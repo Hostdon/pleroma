@@ -96,9 +96,8 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidatorTest 
       %{
         valid?: true,
         changes: %{
-          content: "this does not get replaced",
+          content: content,
           source: %{
-            "content" => content,
             "mediaType" => "text/x.misskeymarkdown"
           }
         }
@@ -114,7 +113,9 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidatorTest 
                "<span class=\"h-card\"><a class=\"u-url mention\" data-user=\"#{full_tag_remote_user.id}\" href=\"#{full_tag_remote_user.ap_id}\" rel=\"ugc\">@<span>full_tag_remote_user</span></a></span>"
 
       assert content =~ "@oops_not_a_mention"
-      assert content =~ "$[jelly mfm goes here] <br><br>## aaa"
+
+      assert content =~
+               "<span class=\"mfm\" style=\"display: inline-block; animation: 1s linear 0s infinite normal both running mfm-rubberBand;\">mfm goes here</span> </p>aaa"
     end
 
     test "a misskey MFM status with a _misskey_content field should work and be linked", _ do
@@ -133,9 +134,10 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidatorTest 
       %{
         valid?: true,
         changes: %{
+          content: content,
           source: %{
-            "content" => content,
-            "mediaType" => "text/x.misskeymarkdown"
+            "mediaType" => "text/x.misskeymarkdown",
+            "content" => "@akkoma_user linkifylink #dancedance $[jelly mfm goes here] \n\n## aaa"
           }
         }
       } = changes

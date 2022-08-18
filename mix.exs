@@ -129,7 +129,7 @@ defmodule Pleroma.Mixfile do
        override: true},
       {:bcrypt_elixir, "~> 2.2"},
       {:trailing_format_plug, "~> 0.0.7"},
-      {:fast_sanitize, "~> 0.2.0"},
+      {:fast_sanitize, "~> 0.2.3"},
       {:html_entities, "~> 0.5", override: true},
       {:phoenix_html, "~> 3.1", override: true},
       {:calendar, "~> 1.0"},
@@ -191,6 +191,9 @@ defmodule Pleroma.Mixfile do
       {:ecto_psql_extras, "~> 0.6"},
       {:elasticsearch,
        git: "https://akkoma.dev/AkkomaGang/elasticsearch-elixir.git", ref: "main"},
+      {:mfm_parser,
+       git: "https://akkoma.dev/AkkomaGang/mfm-parser.git",
+       ref: "5054e0ba1ebcbd9a7916aec219528e3e58057241"},
 
       # indirect dependency version override
       {:plug, "~> 1.10.4", override: true},

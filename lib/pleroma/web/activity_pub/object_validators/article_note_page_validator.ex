@@ -108,6 +108,8 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
   end
 
   # https://github.com/misskey-dev/misskey/pull/8787
+  # Misskey has an awful tendency to drop all custom formatting when it sends remotely
+  # So this basically reprocesses their MFM source
   defp fix_misskey_content(
          %{"source" => %{"mediaType" => "text/x.misskeymarkdown", "content" => content}} = object
        )
@@ -119,7 +121,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
     {linked, _, _} =
       Utils.format_input(content, "text/x.misskeymarkdown", mention_handler: mention_handler)
 
-    put_in(object, ["source", "content"], linked)
+    Map.put(object, "content", linked)
   end
 
   defp fix_misskey_content(%{"_misskey_content" => content} = object) when is_binary(content) do
@@ -132,9 +134,10 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
 
     object
     |> Map.put("source", %{
-      "content" => linked,
+      "content" => content,
       "mediaType" => "text/x.misskeymarkdown"
     })
+    |> Map.put("content", linked)
     |> Map.delete("_misskey_content")
   end
 

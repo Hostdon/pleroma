@@ -285,11 +285,11 @@ defmodule Pleroma.Web.CommonAPI.Utils do
 
   def format_input(text, "text/x.misskeymarkdown", options) do
     text
+    |> Formatter.markdown_to_html()
+    |> MfmParser.Parser.parse()
+    |> MfmParser.Encoder.to_html()
     |> Formatter.linkify(options)
-    |> Formatter.html_escape("text/x.misskeymarkdown")
-    |> (fn {text, mentions, tags} ->
-          {String.replace(text, ~r/\r?\n/, "<br>"), mentions, tags}
-        end).()
+    |> Formatter.html_escape("text/html")
   end
 
   def format_input(text, "text/markdown", options) do
