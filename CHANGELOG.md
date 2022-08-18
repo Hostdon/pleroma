@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 - support for fedibird-fe, and non-breaking API parity for it to function
 
+### Changed
+- MFM parsing is now done on the backend by a modified version of ilja's parser -> https://akkoma.dev/AkkomaGang/mfm-parser
+
 ### Fixed
 - Compatibility with latest meilisearch
 - Resolution of nested mix tasks (i.e search.meilisearch) in OTP releases
