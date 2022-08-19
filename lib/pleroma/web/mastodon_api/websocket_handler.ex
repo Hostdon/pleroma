@@ -59,7 +59,7 @@ defmodule Pleroma.Web.MastodonAPI.WebsocketHandler do
       "#{__MODULE__} accepted websocket connection for user #{(state.user || %{id: "anonymous"}).id}, topic #{state.topic}"
     )
 
-    Streamer.add_socket(state.topic, state.user)
+    Streamer.add_socket(state.topic, state.oauth_token)
     {:ok, %{state | timer: timer()}}
   end
 
@@ -137,6 +137,10 @@ defmodule Pleroma.Web.MastodonAPI.WebsocketHandler do
   # `@idle_timeout`.
   def websocket_info(:tick, state) do
     {:reply, :ping, %{state | timer: nil, count: 0}, :hibernate}
+  end
+
+  def websocket_info(:close, state) do
+    {:stop, state}
   end
 
   # State can be `[]` only in case we terminate before switching to websocket,
