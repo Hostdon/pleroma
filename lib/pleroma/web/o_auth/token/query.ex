@@ -23,9 +23,19 @@ defmodule Pleroma.Web.OAuth.Token.Query do
     from(q in query, where: q.token == ^token)
   end
 
+  @spec get_unexpired_by_app_and_user(query, String.t()) :: query
+  def get_unexpired_by_app_and_user(query \\ Token, app_id, %Pleroma.User{id: user_id}) do
+    time = NaiveDateTime.utc_now()
+
+    from(q in query,
+      where: q.app_id == ^app_id and q.valid_until > ^time and q.user_id == ^user_id,
+      limit: 1
+    )
+  end
+
   @spec get_by_app(query, String.t()) :: query
   def get_by_app(query \\ Token, app_id) do
-    from(q in query, where: q.app_id == ^app_id)
+    from(q in query, where: q.app_id == ^app_id, limit: 1)
   end
 
   @spec get_by_id(query, String.t()) :: query
