@@ -5,6 +5,7 @@
 defmodule Pleroma.Web.OAuth.OAuthController do
   use Pleroma.Web, :controller
 
+  alias Pleroma.Helpers.AuthHelper
   alias Pleroma.Helpers.UriHelper
   alias Pleroma.Maps
   alias Pleroma.MFA
@@ -71,62 +72,38 @@ defmodule Pleroma.Web.OAuth.OAuthController do
 
   def authorize(%Plug.Conn{} = conn, params), do: do_authorize(conn, params)
 
-  defp maybe_remove_token(%Plug.Conn{assigns: %{token: %{app: id}}} = conn, %App{id: id}) do
-    conn
-  end
-
-  defp maybe_remove_token(conn, _app) do
-    conn
-    |> assign(:token, nil)
-  end
-
   defp do_authorize(%Plug.Conn{} = conn, params) do
     app = Repo.get_by(App, client_id: params["client_id"])
-    conn = maybe_remove_token(conn, app)
     available_scopes = (app && app.scopes) || []
     scopes = Scopes.fetch_scopes(params, available_scopes)
 
-    # if we already have a token for this specific setup, we can use that
-    with false <- Params.truthy_param?(params["force_login"]),
-         %App{} <- app,
-         %{assigns: %{user: %Pleroma.User{} = user}} <- conn,
-         {:ok, %Token{} = token} <- Token.get_preexisting_by_app_and_user(app, user),
-         true <- scopes == token.scopes do
-      token = Repo.preload(token, :app)
+    user =
+      with %{assigns: %{user: %User{} = user}} <- conn do
+        user
+      else
+        _ -> nil
+      end
 
-      conn
-      |> assign(:token, token)
-      |> handle_existing_authorization(params)
-    else
-      _ ->
-        user =
-          with %{assigns: %{user: %User{} = user}} <- conn do
-            user
-          else
-            _ -> nil
-          end
+    scopes =
+      if scopes == [] do
+        available_scopes
+      else
+        scopes
+      end
 
-        scopes =
-          if scopes == [] do
-            available_scopes
-          else
-            scopes
-          end
-
-        # Note: `params` might differ from `conn.params`; use `@params` not `@conn.params` in template
-        render(conn, Authenticator.auth_template(), %{
-          user: user,
-          app: app && Map.delete(app, :client_secret),
-          response_type: params["response_type"],
-          client_id: params["client_id"],
-          available_scopes: available_scopes,
-          scopes: scopes,
-          redirect_uri: params["redirect_uri"],
-          state: params["state"],
-          params: params,
-          view_module: OAuthView
-        })
-    end
+    # Note: `params` might differ from `conn.params`; use `@params` not `@conn.params` in template
+    render(conn, Authenticator.auth_template(), %{
+      user: user,
+      app: app && Map.delete(app, :client_secret),
+      response_type: params["response_type"],
+      client_id: params["client_id"],
+      available_scopes: available_scopes,
+      scopes: scopes,
+      redirect_uri: params["redirect_uri"],
+      state: params["state"],
+      params: params,
+      view_module: OAuthView
+    })
   end
 
   defp handle_existing_authorization(
@@ -341,8 +318,9 @@ defmodule Pleroma.Web.OAuth.OAuthController do
   # Bad request
   def token_exchange(%Plug.Conn{} = conn, params), do: bad_request(conn, params)
 
-  def after_token_exchange(%Plug.Conn{} = conn, %{token: _token} = view_params) do
+  def after_token_exchange(%Plug.Conn{} = conn, %{token: token} = view_params) do
     conn
+    |> AuthHelper.put_session_token(token.token)
     |> json(OAuthView.render("token.json", view_params))
   end
 
@@ -401,7 +379,15 @@ defmodule Pleroma.Web.OAuth.OAuthController do
 
   def token_revoke(%Plug.Conn{} = conn, %{"token" => token}) do
     with {:ok, %Token{} = oauth_token} <- Token.get_by_token(token),
-         {:ok, _oauth_token} <- RevokeToken.revoke(oauth_token) do
+         {:ok, oauth_token} <- RevokeToken.revoke(oauth_token) do
+      conn =
+        with session_token = AuthHelper.get_session_token(conn),
+             %Token{token: ^session_token} <- oauth_token do
+          AuthHelper.delete_session_token(conn)
+        else
+          _ -> conn
+        end
+
       json(conn, %{})
     else
       _error ->

@@ -7,6 +7,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
   import Pleroma.Factory
 
+  alias Pleroma.Helpers.AuthHelper
   alias Pleroma.MFA
   alias Pleroma.MFA.TOTP
   alias Pleroma.Repo
@@ -455,7 +456,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
       conn =
         conn
-        |> put_req_header("authorization", "Bearer #{token.token}")
+        |> AuthHelper.put_session_token(token.token)
         |> get(
           "/oauth/authorize",
           %{
@@ -470,127 +471,23 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       assert html_response(conn, 200) =~ ~s(type="submit")
     end
 
-    test "reuses authentication if the user is authenticated with another client",
+    test "renders authentication page if user is already authenticated but user request with another client",
          %{
+           app: app,
            conn: conn
          } do
-      user = insert(:user)
-
-      app = insert(:oauth_app, redirect_uris: "https://redirect.url")
-      other_app = insert(:oauth_app, redirect_uris: "https://redirect.url")
-
-      token = insert(:oauth_token, user: user, app: app)
-      reusable_token = insert(:oauth_token, app: other_app, user: user)
+      token = insert(:oauth_token, app: app)
 
       conn =
         conn
-        |> put_req_header("authorization", "Bearer #{token.token}")
+        |> AuthHelper.put_session_token(token.token)
         |> get(
           "/oauth/authorize",
           %{
             "response_type" => "code",
-            "client_id" => other_app.client_id,
-            "redirect_uri" => OAuthController.default_redirect_uri(other_app),
+            "client_id" => "another_client_id",
+            "redirect_uri" => OAuthController.default_redirect_uri(app),
             "scope" => "read"
-          }
-        )
-
-      assert URI.decode(redirected_to(conn)) ==
-               "https://redirect.url?access_token=#{reusable_token.token}"
-    end
-
-    test "does not reuse other people's tokens",
-         %{
-           conn: conn
-         } do
-      user = insert(:user)
-      other_user = insert(:user)
-
-      app = insert(:oauth_app, redirect_uris: "https://redirect.url")
-      other_app = insert(:oauth_app, redirect_uris: "https://redirect.url")
-
-      token = insert(:oauth_token, user: user, app: app)
-      _not_reusable_token = insert(:oauth_token, app: other_app, user: other_user)
-
-      conn =
-        conn
-        |> put_req_header("authorization", "Bearer #{token.token}")
-        |> get(
-          "/oauth/authorize",
-          %{
-            "response_type" => "code",
-            "client_id" => other_app.client_id,
-            "redirect_uri" => OAuthController.default_redirect_uri(other_app),
-            "scope" => "read"
-          }
-        )
-
-      assert html_response(conn, 200) =~ ~s(type="submit")
-    end
-
-    test "does not reuse expired tokens",
-         %{
-           conn: conn
-         } do
-      user = insert(:user)
-
-      app = insert(:oauth_app, redirect_uris: "https://redirect.url")
-
-      other_app = insert(:oauth_app, redirect_uris: "https://redirect.url")
-
-      token = insert(:oauth_token, user: user, app: app)
-
-      _not_reusable_token =
-        insert(:oauth_token,
-          app: other_app,
-          user: user,
-          valid_until: NaiveDateTime.add(NaiveDateTime.utc_now(), -60 * 100)
-        )
-
-      conn =
-        conn
-        |> put_req_header("authorization", "Bearer #{token.token}")
-        |> get(
-          "/oauth/authorize",
-          %{
-            "response_type" => "code",
-            "client_id" => other_app.client_id,
-            "redirect_uri" => OAuthController.default_redirect_uri(other_app),
-            "scope" => "read"
-          }
-        )
-
-      assert html_response(conn, 200) =~ ~s(type="submit")
-    end
-
-    test "does not reuse tokens with the wrong scopes",
-         %{
-           conn: conn
-         } do
-      user = insert(:user)
-
-      app = insert(:oauth_app, redirect_uris: "https://redirect.url")
-
-      other_app = insert(:oauth_app, redirect_uris: "https://redirect.url")
-
-      token = insert(:oauth_token, user: user, app: app, scopes: ["read"])
-
-      _not_reusable_token =
-        insert(:oauth_token,
-          app: other_app,
-          user: user
-        )
-
-      conn =
-        conn
-        |> put_req_header("authorization", "Bearer #{token.token}")
-        |> get(
-          "/oauth/authorize",
-          %{
-            "response_type" => "code",
-            "client_id" => other_app.client_id,
-            "redirect_uri" => OAuthController.default_redirect_uri(other_app),
-            "scope" => "read write"
           }
         )
 
@@ -606,7 +503,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
       conn =
         conn
-        |> put_req_header("authorization", "Bearer #{token.token}")
+        |> AuthHelper.put_session_token(token.token)
         |> get(
           "/oauth/authorize",
           %{
@@ -632,7 +529,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
       conn =
         conn
-        |> put_req_header("authorization", "Bearer #{token.token}")
+        |> AuthHelper.put_session_token(token.token)
         |> get(
           "/oauth/authorize",
           %{
@@ -656,7 +553,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
       conn =
         conn
-        |> put_req_header("authorization", "Bearer #{token.token}")
+        |> AuthHelper.put_session_token(token.token)
         |> get(
           "/oauth/authorize",
           %{
@@ -712,6 +609,41 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
         assert auth
         assert auth.scopes == expected_scopes
       end
+    end
+
+    test "authorize from cookie" do
+      user = insert(:user)
+      app = insert(:oauth_app)
+      oauth_token = insert(:oauth_token, user: user, app: app)
+      redirect_uri = OAuthController.default_redirect_uri(app)
+
+      conn =
+        build_conn()
+        |> Plug.Session.call(Plug.Session.init(@session_opts))
+        |> fetch_session()
+        |> AuthHelper.put_session_token(oauth_token.token)
+        |> post(
+          "/oauth/authorize",
+          %{
+            "authorization" => %{
+              "name" => user.nickname,
+              "client_id" => app.client_id,
+              "redirect_uri" => redirect_uri,
+              "scope" => app.scopes,
+              "state" => "statepassed"
+            }
+          }
+        )
+
+      target = redirected_to(conn)
+      assert target =~ redirect_uri
+
+      query = URI.parse(target).query |> URI.query_decoder() |> Map.new()
+
+      assert %{"state" => "statepassed", "code" => code} = query
+      auth = Repo.get_by(Authorization, token: code)
+      assert auth
+      assert auth.scopes == app.scopes
     end
 
     test "redirect to on two-factor auth page" do
@@ -1286,7 +1218,6 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
       response =
         build_conn()
-        |> put_req_header("authorization", "Bearer #{access_token.token}")
         |> post("/oauth/token", %{
           "grant_type" => "refresh_token",
           "refresh_token" => access_token.refresh_token,
@@ -1336,11 +1267,12 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
         build_conn()
         |> Plug.Session.call(Plug.Session.init(@session_opts))
         |> fetch_session()
-        |> put_req_header("authorization", "Bearer #{oauth_token.token}")
+        |> AuthHelper.put_session_token(oauth_token.token)
         |> post("/oauth/revoke", %{"token" => oauth_token.token})
 
       assert json_response(conn, 200)
 
+      refute AuthHelper.get_session_token(conn)
       assert Token.get_by_token(oauth_token.token) == {:error, :not_found}
     end
 
@@ -1354,11 +1286,12 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
         build_conn()
         |> Plug.Session.call(Plug.Session.init(@session_opts))
         |> fetch_session()
-        |> put_req_header("authorization", "Bearer #{oauth_token.token}")
+        |> AuthHelper.put_session_token(oauth_token.token)
         |> post("/oauth/revoke", %{"token" => other_app_oauth_token.token})
 
       assert json_response(conn, 200)
 
+      assert AuthHelper.get_session_token(conn) == oauth_token.token
       assert Token.get_by_token(other_app_oauth_token.token) == {:error, :not_found}
     end
 
