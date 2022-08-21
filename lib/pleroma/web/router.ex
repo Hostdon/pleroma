@@ -57,6 +57,7 @@ defmodule Pleroma.Web.Router do
 
   pipeline :after_auth do
     plug(Pleroma.Web.Plugs.UserEnabledPlug)
+    plug(Pleroma.Web.Plugs.SetUserSessionIdPlug)
     plug(Pleroma.Web.Plugs.EnsureUserTokenAssignsPlug)
     plug(Pleroma.Web.Plugs.UserTrackingPlug)
   end
@@ -792,8 +793,10 @@ defmodule Pleroma.Web.Router do
 
     get("/web/login", MastodonAPI.AuthController, :login)
     delete("/auth/sign_out", MastodonAPI.AuthController, :logout)
-    get("/web/*path", MastoFEController, :index)
+
     post("/auth/password", MastodonAPI.AuthController, :password_reset)
+
+    get("/web/*path", MastoFEController, :index)
 
     get("/embed/:id", EmbedController, :show)
   end
