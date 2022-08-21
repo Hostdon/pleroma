@@ -623,15 +623,19 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
   defp maybe_render_quote(nil, _), do: nil
 
   defp maybe_render_quote(quote, opts) do
-    if opts[:do_not_recurse] || !visible_for_user?(quote, opts[:for]) do
-      nil
-    else
+    with %User{} = quoted_user <- User.get_cached_by_ap_id(quote.actor),
+         false <- Map.get(opts, :do_not_recurse, false),
+         true <- visible_for_user?(quote, opts[:for]),
+         false <- User.blocks?(opts[:for], quoted_user),
+         false <- User.mutes?(opts[:for], quoted_user) do
       opts =
         opts
         |> Map.put(:activity, quote)
         |> Map.put(:do_not_recurse, true)
 
       render("show.json", opts)
+    else
+      _ -> nil
     end
   end
 end

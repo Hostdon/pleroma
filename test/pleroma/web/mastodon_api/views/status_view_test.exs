@@ -428,6 +428,34 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
     assert is_nil(status.quote)
   end
 
+  test "a quote from a user we block" do
+    user = insert(:user)
+    other_user = insert(:user)
+    blocked_user = insert(:user)
+
+    {:ok, _relationship} = User.block(user, blocked_user)
+
+    {:ok, activity} = CommonAPI.post(blocked_user, %{status: ":< i am ANGERY"})
+    {:ok, quote_activity} = CommonAPI.post(other_user, %{status: "hehe", quote_id: activity.id})
+
+    status = StatusView.render("show.json", %{activity: quote_activity, for: user})
+    assert is_nil(status.quote)
+  end
+
+  test "a quote from a user we mute" do
+    user = insert(:user)
+    other_user = insert(:user)
+    blocked_user = insert(:user)
+
+    {:ok, _relationship} = User.mute(user, blocked_user)
+
+    {:ok, activity} = CommonAPI.post(blocked_user, %{status: ":< i am ANGERY"})
+    {:ok, quote_activity} = CommonAPI.post(other_user, %{status: "hehe", quote_id: activity.id})
+
+    status = StatusView.render("show.json", %{activity: quote_activity, for: user})
+    assert is_nil(status.quote)
+  end
+
   test "contains mentions" do
     user = insert(:user)
     mentioned = insert(:user)
