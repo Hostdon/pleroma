@@ -7,7 +7,6 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
   import Pleroma.Factory
 
-  alias Pleroma.Helpers.AuthHelper
   alias Pleroma.MFA
   alias Pleroma.MFA.TOTP
   alias Pleroma.Repo
@@ -456,7 +455,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
       conn =
         conn
-        |> AuthHelper.put_session_token(token.token)
+        |> put_req_header("authorization", "Bearer #{token.token}")
         |> get(
           "/oauth/authorize",
           %{
@@ -480,7 +479,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
       conn =
         conn
-        |> AuthHelper.put_session_token(token.token)
+        |> put_req_header("authorization", "Bearer #{token.token}")
         |> get(
           "/oauth/authorize",
           %{
@@ -503,7 +502,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
       conn =
         conn
-        |> AuthHelper.put_session_token(token.token)
+        |> put_req_header("authorization", "Bearer #{token.token}")
         |> get(
           "/oauth/authorize",
           %{
@@ -529,7 +528,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
       conn =
         conn
-        |> AuthHelper.put_session_token(token.token)
+        |> put_req_header("authorization", "Bearer #{token.token}")
         |> get(
           "/oauth/authorize",
           %{
@@ -553,7 +552,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
       conn =
         conn
-        |> AuthHelper.put_session_token(token.token)
+        |> put_req_header("authorization", "Bearer #{token.token}")
         |> get(
           "/oauth/authorize",
           %{
@@ -609,41 +608,6 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
         assert auth
         assert auth.scopes == expected_scopes
       end
-    end
-
-    test "authorize from cookie" do
-      user = insert(:user)
-      app = insert(:oauth_app)
-      oauth_token = insert(:oauth_token, user: user, app: app)
-      redirect_uri = OAuthController.default_redirect_uri(app)
-
-      conn =
-        build_conn()
-        |> Plug.Session.call(Plug.Session.init(@session_opts))
-        |> fetch_session()
-        |> AuthHelper.put_session_token(oauth_token.token)
-        |> post(
-          "/oauth/authorize",
-          %{
-            "authorization" => %{
-              "name" => user.nickname,
-              "client_id" => app.client_id,
-              "redirect_uri" => redirect_uri,
-              "scope" => app.scopes,
-              "state" => "statepassed"
-            }
-          }
-        )
-
-      target = redirected_to(conn)
-      assert target =~ redirect_uri
-
-      query = URI.parse(target).query |> URI.query_decoder() |> Map.new()
-
-      assert %{"state" => "statepassed", "code" => code} = query
-      auth = Repo.get_by(Authorization, token: code)
-      assert auth
-      assert auth.scopes == app.scopes
     end
 
     test "redirect to on two-factor auth page" do
@@ -1218,6 +1182,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
       response =
         build_conn()
+        |> put_req_header("authorization", "Bearer #{access_token.token}")
         |> post("/oauth/token", %{
           "grant_type" => "refresh_token",
           "refresh_token" => access_token.refresh_token,
@@ -1267,12 +1232,11 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
         build_conn()
         |> Plug.Session.call(Plug.Session.init(@session_opts))
         |> fetch_session()
-        |> AuthHelper.put_session_token(oauth_token.token)
+        |> put_req_header("authorization", "Bearer #{oauth_token.token}")
         |> post("/oauth/revoke", %{"token" => oauth_token.token})
 
       assert json_response(conn, 200)
 
-      refute AuthHelper.get_session_token(conn)
       assert Token.get_by_token(oauth_token.token) == {:error, :not_found}
     end
 
@@ -1286,12 +1250,11 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
         build_conn()
         |> Plug.Session.call(Plug.Session.init(@session_opts))
         |> fetch_session()
-        |> AuthHelper.put_session_token(oauth_token.token)
+        |> put_req_header("authorization", "Bearer #{oauth_token.token}")
         |> post("/oauth/revoke", %{"token" => other_app_oauth_token.token})
 
       assert json_response(conn, 200)
 
-      assert AuthHelper.get_session_token(conn) == oauth_token.token
       assert Token.get_by_token(other_app_oauth_token.token) == {:error, :not_found}
     end
 

@@ -8,7 +8,6 @@ defmodule Pleroma.Web.Plugs.OAuthPlug do
   import Plug.Conn
   import Ecto.Query
 
-  alias Pleroma.Helpers.AuthHelper
   alias Pleroma.Repo
   alias Pleroma.User
   alias Pleroma.Web.OAuth.App
@@ -17,8 +16,6 @@ defmodule Pleroma.Web.Plugs.OAuthPlug do
   @realm_reg Regex.compile!("Bearer\:?\s+(.*)$", "i")
 
   def init(options), do: options
-
-  def call(%{assigns: %{user: %User{}}} = conn, _), do: conn
 
   def call(conn, _) do
     with {:ok, token_str} <- fetch_token_str(conn) do
@@ -82,7 +79,7 @@ defmodule Pleroma.Web.Plugs.OAuthPlug do
     with {:ok, token} <- fetch_token_str(headers) do
       {:ok, token}
     else
-      _ -> fetch_token_from_session(conn)
+      _ -> :no_token_found
     end
   end
 
@@ -96,12 +93,4 @@ defmodule Pleroma.Web.Plugs.OAuthPlug do
   end
 
   defp fetch_token_str([]), do: :no_token_found
-
-  @spec fetch_token_from_session(Plug.Conn.t()) :: :no_token_found | {:ok, String.t()}
-  defp fetch_token_from_session(conn) do
-    case AuthHelper.get_session_token(conn) do
-      nil -> :no_token_found
-      token -> {:ok, token}
-    end
-  end
 end

@@ -39,6 +39,12 @@ defmodule Pleroma.Web.OAuth.Token do
     |> Repo.find_resource()
   end
 
+  def get_by_app(%App{} = app) do
+    app.id
+    |> Query.get_unexpired_by_app()
+    |> Repo.find_resource()
+  end
+
   @doc "Gets token for app by access token"
   @spec get_by_token(App.t(), String.t()) :: {:ok, t()} | {:error, :not_found}
   def get_by_token(%App{id: app_id} = _app, token) do
