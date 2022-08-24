@@ -23,7 +23,15 @@ defmodule Mix.Pleroma do
     Pleroma.Config.Oban.warn()
     Pleroma.Application.limiters_setup()
     Application.put_env(:phoenix, :serve_endpoints, false, persistent: true)
-    Finch.start_link(name: MyFinch)
+
+    proxy_url = Pleroma.Config.get([:http, :proxy_url])
+    proxy = Pleroma.HTTP.AdapterHelper.format_proxy(proxy_url)
+
+    finch_config =
+      [:http, :adapter]
+      |> Pleroma.Config.get([])
+      |> Pleroma.HTTP.AdapterHelper.maybe_add_proxy_pool(proxy)
+      |> Keyword.put(:name, MyFinch)
 
     unless System.get_env("DEBUG") do
       Logger.remove_backend(:console)
@@ -45,6 +53,7 @@ defmodule Mix.Pleroma do
         Pleroma.Emoji,
         {Pleroma.Config.TransferTask, false},
         Pleroma.Web.Endpoint,
+        {Finch, finch_config},
         {Oban, oban_config},
         {Majic.Pool,
          [name: Pleroma.MajicPool, pool_size: Pleroma.Config.get([:majic_pool, :size], 2)]}

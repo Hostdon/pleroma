@@ -620,13 +620,14 @@ defmodule Pleroma.UserTest do
       assert changeset.valid?
     end
 
-    test "it sets the password_hash and ap_id" do
+    test "it sets the password_hash, ap_id and PEM key" do
       changeset = User.register_changeset(%User{}, @full_user_data)
 
       assert changeset.valid?
 
       assert is_binary(changeset.changes[:password_hash])
       assert changeset.changes[:ap_id] == User.ap_id(%User{nickname: @full_user_data.nickname})
+      assert is_binary(changeset.changes[:keys])
 
       assert changeset.changes.follower_address == "#{changeset.changes.ap_id}/followers"
     end
