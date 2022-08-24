@@ -258,6 +258,25 @@ defmodule Mix.Tasks.Pleroma.User do
     end
   end
 
+  def run(["refetch_public_keys"]) do
+    start_pleroma()
+
+    Pleroma.User.Query.build(%{
+      external: true,
+      is_active: true
+    })
+    |> refetch_public_keys()
+  end
+
+  def run(["refetch_public_keys" | rest]) do
+    start_pleroma()
+
+    Pleroma.User.Query.build(%{
+      ap_id: rest
+    })
+    |> refetch_public_keys()
+  end
+
   def run(["invite" | rest]) do
     {options, [], []} =
       OptionParser.parse(rest,
@@ -517,6 +536,26 @@ defmodule Mix.Tasks.Pleroma.User do
       {:follow_data, _} ->
         shell_error("No follow data for #{local_user} and #{remote_user}")
     end
+  end
+
+  defp refetch_public_keys(query) do
+    query
+    |> Pleroma.Repo.chunk_stream(50, :batches)
+    |> Stream.each(fn users ->
+      users
+      |> Enum.each(fn user ->
+        IO.puts("Re-Resolving: #{user.ap_id}")
+
+        with {:ok, user} <- Pleroma.User.fetch_by_ap_id(user.ap_id),
+             changeset <- Pleroma.User.update_changeset(user),
+             {:ok, _user} <- Pleroma.User.update_and_set_cache(changeset) do
+          :ok
+        else
+          error -> IO.puts("Could not resolve: #{user.ap_id}, #{inspect(error)}")
+        end
+      end)
+    end)
+    |> Stream.run()
   end
 
   defp set_moderator(user, value) do
