@@ -27,7 +27,8 @@ defmodule Pleroma.Web.MastodonAPI.AuthController do
   def login(conn, %{"code" => auth_token} = params) do
     with {:ok, app} <- local_mastofe_app(),
          {:ok, auth} <- Authorization.get_by_token(app, auth_token),
-         {:ok, oauth_token} <- Token.exchange_token(app, auth) do
+         %User{} = user <- User.get_cached_by_id(auth.user_id),
+         {:ok, oauth_token} <- Token.get_or_exchange_token(auth, app, user) do
       redirect_to =
         conn
         |> local_mastodon_post_login_path()

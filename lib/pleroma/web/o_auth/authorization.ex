@@ -94,4 +94,9 @@ defmodule Pleroma.Web.OAuth.Authorization do
     from(t in __MODULE__, where: t.app_id == ^app_id and t.token == ^token)
     |> Repo.find_resource()
   end
+
+  def get_preeexisting_by_app_and_user(%App{id: app_id} = _app, %User{id: user_id} = _user) do
+    from(t in __MODULE__, where: t.app_id == ^app_id and t.user_id == ^user_id, limit: 1)
+    |> Repo.find_resource()
+  end
 end
