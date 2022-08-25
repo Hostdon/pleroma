@@ -197,6 +197,7 @@ config :pleroma, :instance,
   avatar_upload_limit: 2_000_000,
   background_upload_limit: 4_000_000,
   banner_upload_limit: 4_000_000,
+  languages: ["en"],
   poll_limits: %{
     max_options: 20,
     max_option_chars: 200,

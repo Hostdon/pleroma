@@ -510,6 +510,16 @@ config :pleroma, :config_description, [
         ]
       },
       %{
+        key: :languages,
+        type: {:list, :string},
+        description: "Languages the instance uses",
+        suggestions: [
+          "en",
+          "ja",
+          "fr"
+        ]
+      },
+      %{
         key: :email,
         label: "Admin Email Address",
         type: :string,
