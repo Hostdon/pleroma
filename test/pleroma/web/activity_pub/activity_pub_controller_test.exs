@@ -782,6 +782,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
         |> String.replace("{{status_id}}", status_id)
 
       status_url = "https://example.com/users/lain/statuses/#{status_id}"
+      replies_url = status_url <> "/replies?only_other_accounts=true&page=true"
 
       user =
         File.read!("test/fixtures/users_mock/user.json")
@@ -818,6 +819,16 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
               |> File.read!()
               |> String.replace("{{domain}}", "example.com")
               |> String.replace("{{nickname}}", "lain"),
+            headers: [{"content-type", "application/activity+json"}]
+          }
+
+        %{
+          method: :get,
+          url: ^replies_url
+        } ->
+          %Tesla.Env{
+            status: 404,
+            body: "",
             headers: [{"content-type", "application/activity+json"}]
           }
       end)

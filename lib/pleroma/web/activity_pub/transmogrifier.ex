@@ -19,6 +19,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   alias Pleroma.Web.ActivityPub.Pipeline
   alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.ActivityPub.Visibility
+  alias Pleroma.Web.ActivityPub.ObjectValidators.CommonFixes
   alias Pleroma.Web.Federator
   alias Pleroma.Workers.TransmogrifierWorker
 
@@ -95,29 +96,6 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     |> Map.put("cc", final_cc)
   end
 
-  # if as:Public is addressed, then make sure the followers collection is also addressed
-  # so that the activities will be delivered to local users.
-  def fix_implicit_addressing(%{"to" => to, "cc" => cc} = object, followers_collection) do
-    recipients = to ++ cc
-
-    if followers_collection not in recipients do
-      cond do
-        Pleroma.Constants.as_public() in cc ->
-          to = to ++ [followers_collection]
-          Map.put(object, "to", to)
-
-        Pleroma.Constants.as_public() in to ->
-          cc = cc ++ [followers_collection]
-          Map.put(object, "cc", cc)
-
-        true ->
-          object
-      end
-    else
-      object
-    end
-  end
-
   def fix_addressing(object) do
     {:ok, %User{follower_address: follower_collection}} =
       object
@@ -130,7 +108,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     |> fix_addressing_list("bto")
     |> fix_addressing_list("bcc")
     |> fix_explicit_addressing(follower_collection)
-    |> fix_implicit_addressing(follower_collection)
+    |> CommonFixes.fix_implicit_addressing(follower_collection)
   end
 
   def fix_actor(%{"attributedTo" => actor} = object) do

@@ -13,7 +13,6 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.CreateGenericValidator do
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ObjectValidators.CommonFixes
   alias Pleroma.Web.ActivityPub.ObjectValidators.CommonValidations
-  alias Pleroma.Web.ActivityPub.Transmogrifier
 
   import Ecto.Changeset
 
@@ -67,7 +66,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.CreateGenericValidator do
     |> CommonFixes.cast_and_filter_recipients("cc", follower_collection, object["cc"])
     |> CommonFixes.cast_and_filter_recipients("bto", follower_collection, object["bto"])
     |> CommonFixes.cast_and_filter_recipients("bcc", follower_collection, object["bcc"])
-    |> Transmogrifier.fix_implicit_addressing(follower_collection)
+    |> CommonFixes.fix_implicit_addressing(follower_collection)
   end
 
   def fix(data, meta) do

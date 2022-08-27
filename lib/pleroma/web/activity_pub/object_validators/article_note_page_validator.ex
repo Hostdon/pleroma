@@ -6,7 +6,6 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
   use Ecto.Schema
   alias Pleroma.User
   alias Pleroma.EctoType.ActivityPub.ObjectValidators
-  alias Pleroma.Object.Fetcher
   alias Pleroma.Web.CommonAPI.Utils
   alias Pleroma.Web.ActivityPub.ObjectValidators.CommonFixes
   alias Pleroma.Web.ActivityPub.ObjectValidators.CommonValidations
@@ -58,19 +57,10 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
   defp fix_tag(%{"tag" => tag} = data) when is_map(tag), do: Map.put(data, "tag", [tag])
   defp fix_tag(data), do: Map.drop(data, ["tag"])
 
-  defp fix_replies(%{"replies" => %{"first" => %{"items" => replies}}} = data)
-       when is_list(replies),
-       do: Map.put(data, "replies", replies)
-
-  defp fix_replies(%{"replies" => %{"items" => replies}} = data) when is_list(replies),
-    do: Map.put(data, "replies", replies)
-
-  defp fix_replies(%{"replies" => replies} = data) when is_bitstring(replies),
-    do: Map.drop(data, ["replies"])
+  defp fix_replies(%{"replies" => replies} = data) when is_list(replies), do: data
 
   defp fix_replies(%{"replies" => %{"first" => first}} = data) do
-    with {:ok, %{"orderedItems" => replies}} <-
-           Fetcher.fetch_and_contain_remote_object_from_id(first) do
+    with {:ok, replies} <- Akkoma.Collections.Fetcher.fetch_collection(first) do
       Map.put(data, "replies", replies)
     else
       {:error, _} ->
@@ -79,7 +69,10 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
     end
   end
 
-  defp fix_replies(data), do: data
+  defp fix_replies(%{"replies" => %{"items" => replies}} = data) when is_list(replies),
+    do: Map.put(data, "replies", replies)
+
+  defp fix_replies(data), do: Map.delete(data, "replies")
 
   defp remote_mention_resolver(
          %{"id" => ap_id, "tag" => tags},
