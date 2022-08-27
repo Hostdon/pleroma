@@ -794,7 +794,8 @@ config :pleroma, Pleroma.Web.ApiSpec.CastAndValidate, strict: false
 config :pleroma, :mrf,
   policies: [Pleroma.Web.ActivityPub.MRF.ObjectAgePolicy, Pleroma.Web.ActivityPub.MRF.TagPolicy],
   transparency: true,
-  transparency_exclusions: []
+  transparency_exclusions: [],
+  transparency_obfuscate_domains: []
 
 config :ex_aws, http_client: Pleroma.HTTP.ExAws
 

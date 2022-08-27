@@ -41,6 +41,16 @@ defmodule Pleroma.Web.ActivityPub.MRF do
           suggestions: [
             "exclusion.com"
           ]
+        },
+        %{
+          key: :transparency_obfuscate_domains,
+          label: "MRF domain obfuscation",
+          type: {:list, :string},
+          description:
+            "Obfuscate domains in MRF transparency. This is useful if the domain you're blocking contains words you don't want displayed, but still want to disclose the MRF settings.",
+          suggestions: [
+            "badword.com"
+          ]
         }
       ]
     }

@@ -216,6 +216,43 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
   end
 
+  describe "describe/1" do
+    test "returns a description of the policy" do
+      clear_config([:mrf_simple, :reject], [
+        {"remote.instance", "did not give my catboy a burg"}
+      ])
+
+      assert {:ok, %{mrf_simple: %{reject: ["remote.instance"]}}} = SimplePolicy.describe()
+    end
+
+    test "excludes domains listed in :transparency_exclusions" do
+      clear_config([:mrf, :transparency_exclusions], [{"remote.instance", ":("}])
+
+      clear_config([:mrf_simple, :reject], [
+        {"remote.instance", "did not give my catboy a burg"}
+      ])
+
+      {:ok, description} = SimplePolicy.describe()
+      assert %{mrf_simple: %{reject: []}} = description
+      assert description[:mrf_simple_info][:reject] == nil
+    end
+
+    test "obfuscates domains listed in :transparency_obfuscate_domains" do
+      clear_config([:mrf, :transparency_obfuscate_domains], ["remote.instance", "a.b"])
+
+      clear_config([:mrf_simple, :reject], [
+        {"remote.instance", "did not give my catboy a burg"},
+        {"a.b", "spam-poked me on facebook in 2006"}
+      ])
+
+      assert {:ok,
+              %{
+                mrf_simple: %{reject: ["rem***.*****nce", "a.b"]},
+                mrf_simple_info: %{reject: %{"rem***.*****nce" => %{}}}
+              }} = SimplePolicy.describe()
+    end
+  end
+
   defp build_ftl_actor_and_message do
     actor = insert(:user)
 
