@@ -20,6 +20,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Resolution of nested mix tasks (i.e search.meilisearch) in OTP releases
 - Elasticsearch returning likes and repeats, displaying as posts
 - Ensure key generation happens at registration-time to prevent potential race-conditions
+- Ensured websockets get closed on logout
+- Allowed GoToSocial-style `?query_string` signatures
 
 ### Removed
 - Non-finch HTTP adapters. `:tesla, :adapter` is now highly recommended to be set to the default.
