@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - support for fedibird-fe, and non-breaking API parity for it to function
 - support for setting instance languages in metadata
 - support for reusing oauth tokens, and not requiring new authorizations
+- the ability to obfuscate domains in your MRF descriptions
 
 ### Changed
 - MFM parsing is now done on the backend by a modified version of ilja's parser -> https://akkoma.dev/AkkomaGang/mfm-parser
