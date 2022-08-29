@@ -406,6 +406,22 @@ defmodule Pleroma.Web.ApiSpec.StatusOperation do
     }
   end
 
+  def translate_operation do
+    %Operation{
+      tags: ["Retrieve status translation"],
+      summary: "Translate status",
+      description: "View the translation of a given status",
+      operationId: "StatusController.translation",
+      security: [%{"oAuth" => ["read:statuses"]}],
+      parameters: [id_param(), language_param()],
+      responses: %{
+        200 => Operation.response("Translation", "application/json", translation()),
+        400 => Operation.response("Error", "application/json", ApiError),
+        404 => Operation.response("Not Found", "application/json", ApiError)
+      }
+    }
+  end
+
   def array_of_statuses do
     %Schema{type: :array, items: Status, example: [Status.schema().example]}
   end
@@ -552,6 +568,10 @@ defmodule Pleroma.Web.ApiSpec.StatusOperation do
     )
   end
 
+  defp language_param do
+    Operation.parameter(:language, :path, :string, "ISO 639 language code", example: "en")
+  end
+
   defp status_response do
     Operation.response("Status", "application/json", Status)
   end
@@ -570,6 +590,22 @@ defmodule Pleroma.Web.ApiSpec.StatusOperation do
       example: %{
         "ancestors" => [Status.schema().example],
         "descendants" => [Status.schema().example]
+      }
+    }
+  end
+
+  defp translation do
+    %Schema{
+      title: "StatusTranslation",
+      description: "The translation of a status.",
+      type: :object,
+      required: [:detected_language, :text],
+      properties: %{
+        detected_language: %Schema{
+          type: :string,
+          description: "The detected language of the text"
+        },
+        text: %Schema{type: :string, description: "The translated text"}
       }
     }
   end

@@ -81,6 +81,9 @@ defmodule Pleroma.Web.MastodonAPI.InstanceView do
       if Config.get([:instance, :profile_directory]) do
         "profile_directory"
       end,
+      if Config.get([:translator, :enabled], false) do
+        "akkoma:machine_translation"
+      end,
       "custom_emoji_reactions"
     ]
     |> Enum.filter(& &1)

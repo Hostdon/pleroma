@@ -14,6 +14,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusController do
   alias Pleroma.Bookmark
   alias Pleroma.Object
   alias Pleroma.Repo
+  alias Pleroma.Config
   alias Pleroma.ScheduledActivity
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
@@ -30,6 +31,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusController do
   plug(:skip_public_check when action in [:index, :show])
 
   @unauthenticated_access %{fallback: :proceed_unauthenticated, scopes: []}
+  @cachex Pleroma.Config.get([:cachex, :provider], Cachex)
 
   plug(
     OAuthScopesPlug,
@@ -37,7 +39,8 @@ defmodule Pleroma.Web.MastodonAPI.StatusController do
     when action in [
            :index,
            :show,
-           :context
+           :context,
+           :translate
          ]
   )
 
@@ -416,6 +419,46 @@ defmodule Pleroma.Web.MastodonAPI.StatusController do
       for: user,
       as: :activity
     )
+  end
+
+  @doc "GET /api/v1/statuses/:id/translations/:language"
+  def translate(%{assigns: %{user: user}} = conn, %{id: id, language: language}) do
+    with {:enabled, true} <- {:enabled, Config.get([:translator, :enabled])},
+         %Activity{} = activity <- Activity.get_by_id_with_object(id),
+         {:visible, true} <- {:visible, Visibility.visible_for_user?(activity, user)},
+         translation_module <- Config.get([:translator, :module]),
+         {:ok, detected, translation} <-
+           fetch_or_translate(
+             activity.id,
+             activity.object.data["content"],
+             language,
+             translation_module
+           ) do
+      json(conn, %{detected_language: detected, text: translation})
+    else
+      {:enabled, false} ->
+        conn
+        |> put_status(:bad_request)
+        |> json(%{"error" => "Translation is not enabled"})
+
+      {:visible, false} ->
+        {:error, :not_found}
+
+      e ->
+        e
+    end
+  end
+
+  defp fetch_or_translate(status_id, text, language, translation_module) do
+    @cachex.fetch!(:user_cache, "translations:#{status_id}:#{language}", fn _ ->
+      value = translation_module.translate(text, language)
+
+      with {:ok, _, _} <- value do
+        value
+      else
+        _ -> {:ignore, value}
+      end
+    end)
   end
 
   defp put_application(params, %{assigns: %{token: %Token{user: %User{} = user} = token}} = _conn) do

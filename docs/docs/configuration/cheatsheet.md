@@ -1159,3 +1159,28 @@ Each job has these settings:
 
 * `:max_running` - max concurrently runnings jobs
 * `:max_waiting` - max waiting jobs
+
+### Translation Settings
+
+Settings to automatically translate statuses for end users. Currently supported
+translation services are DeepL and LibreTranslate.
+
+Translations are available at `/api/v1/statuses/:id/translations/:language`, where
+`language` is the target language code (e.g `en`)
+
+### `:translator`
+
+- `:enabled` - enables translation
+- `:module` - Sets module to be used
+  - Either `Pleroma.Akkoma.Translators.DeepL` or `Pleroma.Akkoma.Translators.LibreTranslate`
+
+### `:deepl`
+
+- `:api_key` - API key for DeepL
+- `:tier` - API tier
+  - either `:free` or `:pro`
+
+### `:libre_translate`
+
+- `:url` - URL of LibreTranslate instance
+- `:api_key` - API key for LibreTranslate

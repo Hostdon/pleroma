@@ -2071,4 +2071,76 @@ defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
                |> json_response_and_validate_schema(422)
     end
   end
+
+  describe "translating statuses" do
+    setup do
+      clear_config([:translator, :enabled], true)
+      clear_config([:translator, :module], Pleroma.Akkoma.Translators.DeepL)
+      clear_config([:deepl, :api_key], "deepl_api_key")
+      oauth_access(["read:statuses"])
+    end
+
+    test "should return text and detected language", %{conn: conn} do
+      clear_config([:deepl, :tier], :free)
+
+      Tesla.Mock.mock_global(fn
+        %{method: :post, url: "https://api-free.deepl.com/v2/translate"} ->
+          %Tesla.Env{
+            status: 200,
+            body:
+              Jason.encode!(%{
+                translations: [
+                  %{
+                    "text" => "Tell me, for whom do you fight?",
+                    "detected_source_language" => "ja"
+                  }
+                ]
+              })
+          }
+      end)
+
+      user = insert(:user)
+      {:ok, to_translate} = CommonAPI.post(user, %{status: "何のために闘う?"})
+
+      conn =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> get("/api/v1/statuses/#{to_translate.id}/translations/en")
+
+      response = json_response_and_validate_schema(conn, 200)
+
+      assert response["text"] == "Tell me, for whom do you fight?"
+      assert response["detected_language"] == "ja"
+    end
+
+    test "should not allow translating of statuses you cannot see", %{conn: conn} do
+      clear_config([:deepl, :tier], :free)
+
+      Tesla.Mock.mock_global(fn
+        %{method: :post, url: "https://api-free.deepl.com/v2/translate"} ->
+          %Tesla.Env{
+            status: 200,
+            body:
+              Jason.encode!(%{
+                translations: [
+                  %{
+                    "text" => "Tell me, for whom do you fight?",
+                    "detected_source_language" => "ja"
+                  }
+                ]
+              })
+          }
+      end)
+
+      user = insert(:user)
+      {:ok, to_translate} = CommonAPI.post(user, %{status: "何のために闘う?", visibility: "private"})
+
+      conn =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> get("/api/v1/statuses/#{to_translate.id}/translations/en")
+
+      json_response_and_validate_schema(conn, 404)
+    end
+  end
 end
