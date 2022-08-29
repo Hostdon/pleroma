@@ -845,7 +845,7 @@ config :pleroma, Pleroma.Search.Elasticsearch.Cluster,
 
 config :pleroma, :translator,
   enabled: false,
-  module: Akkoma.Translators.DeepL
+  module: Pleroma.Akkoma.Translators.DeepL
 
 config :pleroma, :deepl,
   # either :free or :pro
