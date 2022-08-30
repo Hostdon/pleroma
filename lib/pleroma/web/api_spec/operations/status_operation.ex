@@ -413,7 +413,7 @@ defmodule Pleroma.Web.ApiSpec.StatusOperation do
       description: "View the translation of a given status",
       operationId: "StatusController.translation",
       security: [%{"oAuth" => ["read:statuses"]}],
-      parameters: [id_param(), language_param()],
+      parameters: [id_param(), language_param(), source_language_param()],
       responses: %{
         200 => Operation.response("Translation", "application/json", translation()),
         400 => Operation.response("Error", "application/json", ApiError),
@@ -570,6 +570,10 @@ defmodule Pleroma.Web.ApiSpec.StatusOperation do
 
   defp language_param do
     Operation.parameter(:language, :path, :string, "ISO 639 language code", example: "en")
+  end
+
+  defp source_language_param do
+    Operation.parameter(:from, :query, :string, "ISO 639 language code", example: "en")
   end
 
   defp status_response do

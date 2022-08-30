@@ -462,6 +462,11 @@ defmodule Pleroma.Web.Router do
     put("/statuses/:id/emoji_reactions/:emoji", EmojiReactionController, :create)
   end
 
+  scope "/api/v1/akkoma", Pleroma.Web.AkkomaAPI do
+    pipe_through(:authenticated_api)
+    get("/translation/languages", TranslationController, :languages)
+  end
+
   scope "/api/v1", Pleroma.Web.MastodonAPI do
     pipe_through(:authenticated_api)
 

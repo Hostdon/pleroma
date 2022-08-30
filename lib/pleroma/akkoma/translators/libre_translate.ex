@@ -14,10 +14,33 @@ defmodule Pleroma.Akkoma.Translators.LibreTranslate do
   end
 
   @impl Pleroma.Akkoma.Translator
-  def translate(string, to_language) do
-    with {:ok, %{status: 200} = response} <- do_request(string, to_language),
+  def languages do
+    with {:ok, %{status: 200} = response} <- do_languages(),
          {:ok, body} <- Jason.decode(response.body) do
-      %{"translatedText" => translated, "detectedLanguage" => %{"language" => detected}} = body
+      resp = Enum.map(body, fn %{"code" => code, "name" => name} -> %{code: code, name: name} end)
+      {:ok, resp}
+    else
+      {:ok, %{status: status} = response} ->
+        Logger.warning("LibreTranslate: Request rejected: #{inspect(response)}")
+        {:error, "LibreTranslate request failed (code #{status})"}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  @impl Pleroma.Akkoma.Translator
+  def translate(string, from_language, to_language) do
+    with {:ok, %{status: 200} = response} <- do_request(string, from_language, to_language),
+         {:ok, body} <- Jason.decode(response.body) do
+      %{"translatedText" => translated} = body
+
+      detected =
+        if Map.has_key?(body, "detectedLanguage") do
+          get_in(body, ["detectedLanguage", "language"])
+        else
+          from_language
+        end
 
       {:ok, detected, translated}
     else
@@ -30,7 +53,7 @@ defmodule Pleroma.Akkoma.Translators.LibreTranslate do
     end
   end
 
-  defp do_request(string, to_language) do
+  defp do_request(string, from_language, to_language) do
     url = URI.parse(url())
     url = %{url | path: "/translate"}
 
@@ -38,7 +61,7 @@ defmodule Pleroma.Akkoma.Translators.LibreTranslate do
       to_string(url),
       Jason.encode!(%{
         q: string,
-        source: "auto",
+        source: if(is_nil(from_language), do: "auto", else: from_language),
         target: to_language,
         format: "html",
         api_key: api_key()
@@ -47,5 +70,12 @@ defmodule Pleroma.Akkoma.Translators.LibreTranslate do
         {"content-type", "application/json"}
       ]
     )
+  end
+
+  defp do_languages() do
+    url = URI.parse(url())
+    url = %{url | path: "/languages"}
+
+    HTTP.get(to_string(url))
   end
 end

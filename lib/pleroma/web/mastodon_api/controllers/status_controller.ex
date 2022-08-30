@@ -422,7 +422,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusController do
   end
 
   @doc "GET /api/v1/statuses/:id/translations/:language"
-  def translate(%{assigns: %{user: user}} = conn, %{id: id, language: language}) do
+  def translate(%{assigns: %{user: user}} = conn, %{id: id, language: language} = params) do
     with {:enabled, true} <- {:enabled, Config.get([:translator, :enabled])},
          %Activity{} = activity <- Activity.get_by_id_with_object(id),
          {:visible, true} <- {:visible, Visibility.visible_for_user?(activity, user)},
@@ -431,6 +431,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusController do
            fetch_or_translate(
              activity.id,
              activity.object.data["content"],
+             Map.get(params, :from, nil),
              language,
              translation_module
            ) do
@@ -449,16 +450,20 @@ defmodule Pleroma.Web.MastodonAPI.StatusController do
     end
   end
 
-  defp fetch_or_translate(status_id, text, language, translation_module) do
-    @cachex.fetch!(:user_cache, "translations:#{status_id}:#{language}", fn _ ->
-      value = translation_module.translate(text, language)
+  defp fetch_or_translate(status_id, text, source_language, target_language, translation_module) do
+    @cachex.fetch!(
+      :translations_cache,
+      "translations:#{status_id}:#{source_language}:#{target_language}",
+      fn _ ->
+        value = translation_module.translate(text, source_language, target_language)
 
-      with {:ok, _, _} <- value do
-        value
-      else
-        _ -> {:ignore, value}
+        with {:ok, _, _} <- value do
+          value
+        else
+          _ -> {:ignore, value}
+        end
       end
-    end)
+    )
   end
 
   defp put_application(params, %{assigns: %{token: %Token{user: %User{} = user} = token}} = _conn) do
