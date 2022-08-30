@@ -32,9 +32,23 @@ defmodule Pleroma.Akkoma.Translators.DeepLTest do
                 }
               ])
           }
+
+        %{method: :get, url: "https://api-free.deepl.com/v2/languages?type=source"} ->
+          %Tesla.Env{
+            status: 200,
+            body:
+              Jason.encode!([
+                %{
+                  "language" => "JA",
+                  "name" => "Japanese",
+                  "supports_formality" => false
+                }
+              ])
+          }
       end)
 
-      assert {:ok, [%{code: "BG", name: "Bulgarian"}, %{code: "CS", name: "Czech"}]} =
+      assert {:ok, [%{code: "JA", name: "Japanese"}],
+              [%{code: "BG", name: "Bulgarian"}, %{code: "CS", name: "Czech"}]} =
                DeepL.languages()
     end
 

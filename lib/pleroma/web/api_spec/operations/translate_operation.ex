@@ -17,22 +17,34 @@ defmodule Pleroma.Web.ApiSpec.TranslationOperation do
       operationId: "AkkomaAPI.TranslationController.languages",
       security: [%{"oAuth" => ["read:statuses"]}],
       responses: %{
-        200 => Operation.response("Translation", "application/json", languages_schema())
+        200 =>
+          Operation.response("Translation", "application/json", source_dest_languages_schema())
+      }
+    }
+  end
+
+  defp source_dest_languages_schema do
+    %Schema{
+      type: :object,
+      required: [:source, :target],
+      properties: %{
+        source: languages_schema(),
+        target: languages_schema()
       }
     }
   end
 
   defp languages_schema do
     %Schema{
-      type: "array",
+      type: :array,
       items: %Schema{
-        type: "object",
+        type: :object,
         properties: %{
           code: %Schema{
-            type: "string"
+            type: :string
           },
           name: %Schema{
-            type: "string"
+            type: :string
           }
         }
       }

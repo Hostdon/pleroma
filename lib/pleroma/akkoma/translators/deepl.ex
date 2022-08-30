@@ -23,12 +23,21 @@ defmodule Pleroma.Akkoma.Translators.DeepL do
 
   @impl Pleroma.Akkoma.Translator
   def languages do
-    with {:ok, %{status: 200} = response} <- do_languages(),
-         {:ok, body} <- Jason.decode(response.body) do
-      resp =
-        Enum.map(body, fn %{"language" => code, "name" => name} -> %{code: code, name: name} end)
+    with {:ok, %{status: 200} = source_response} <- do_languages("source"),
+         {:ok, %{status: 200} = dest_response} <- do_languages("target"),
+         {:ok, source_body} <- Jason.decode(source_response.body),
+         {:ok, dest_body} <- Jason.decode(dest_response.body) do
+      source_resp =
+        Enum.map(source_body, fn %{"language" => code, "name" => name} ->
+          %{code: code, name: name}
+        end)
 
-      {:ok, resp}
+      dest_resp =
+        Enum.map(dest_body, fn %{"language" => code, "name" => name} ->
+          %{code: code, name: name}
+        end)
+
+      {:ok, source_resp, dest_resp}
     else
       {:ok, %{status: status} = response} ->
         Logger.warning("DeepL: Request rejected: #{inspect(response)}")
@@ -80,9 +89,9 @@ defmodule Pleroma.Akkoma.Translators.DeepL do
   defp maybe_add_source(opts, nil), do: opts
   defp maybe_add_source(opts, lang), do: Map.put(opts, :source_lang, lang)
 
-  defp do_languages() do
+  defp do_languages(type) do
     HTTP.get(
-      base_url(tier()) <> "languages?type=target",
+      base_url(tier()) <> "languages?type=#{type}",
       [
         {"authorization", "DeepL-Auth-Key #{api_key()}"}
       ]

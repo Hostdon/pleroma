@@ -21,9 +21,9 @@ defmodule Pleroma.Web.AkkomaAPI.TranslationController do
 
   @doc "GET /api/v1/akkoma/translation/languages"
   def languages(conn, _params) do
-    with {:ok, languages} <- get_languages() do
+    with {:ok, source_languages, dest_languages} <- get_languages() do
       conn
-      |> json(languages)
+      |> json(%{source: source_languages, target: dest_languages})
     else
       e -> IO.inspect(e)
     end
@@ -33,8 +33,8 @@ defmodule Pleroma.Web.AkkomaAPI.TranslationController do
     module = Pleroma.Config.get([:translator, :module])
 
     @cachex.fetch!(:translations_cache, "languages:#{module}}", fn _ ->
-      with {:ok, languages} <- module.languages() do
-        {:ok, languages}
+      with {:ok, source_languages, dest_languages} <- module.languages() do
+        {:ok, source_languages, dest_languages}
       else
         {:error, err} -> {:ignore, {:error, err}}
       end

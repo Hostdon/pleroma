@@ -29,7 +29,8 @@ defmodule Pleroma.Akkoma.Translators.LibreTranslateTest do
           }
       end)
 
-      assert {:ok, [%{code: "en", name: "English"}, %{code: "ar", name: "Arabic"}]} =
+      assert {:ok, [%{code: "en", name: "English"}, %{code: "ar", name: "Arabic"}],
+              [%{code: "en", name: "English"}, %{code: "ar", name: "Arabic"}]} =
                LibreTranslate.languages()
     end
 

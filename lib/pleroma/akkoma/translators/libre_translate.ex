@@ -18,7 +18,8 @@ defmodule Pleroma.Akkoma.Translators.LibreTranslate do
     with {:ok, %{status: 200} = response} <- do_languages(),
          {:ok, body} <- Jason.decode(response.body) do
       resp = Enum.map(body, fn %{"code" => code, "name" => name} -> %{code: code, name: name} end)
-      {:ok, resp}
+      # No separate source/dest
+      {:ok, resp, resp}
     else
       {:ok, %{status: status} = response} ->
         Logger.warning("LibreTranslate: Request rejected: #{inspect(response)}")
