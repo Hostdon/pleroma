@@ -6,7 +6,18 @@
   <body>
     <h3>Welcome to Akkoma!</h3>
     <p>If you're seeing this page, your server works!</p>
-    <p>In order to get a frontend to show here, you'll need to set up <code>:pleroma, :frontends, primary</code> and install your frontend of choice</p>
-    <a href="https://docs.akkoma.dev/stable/configuration/cheatsheet/#frontend-management">Documentation</a>
+    <p>In order to get a frontend to show here, you'll need to set up <code>:pleroma, :frontends, primary</code> and install your frontend of choice, in most cases this will just be:</p>
+    <pre>
+        <code lang="bash">
+        # OTP
+        ./bin/pleroma_ctl frontend install pleroma-fe --ref stable
+        # Source
+        mix pleroma.frontend install pleroma-fe --ref stable
+
+        ## you can do the same thing for admin-fe if you so wish
+        </code>
+    </pre>
+    <p><a href="https://docs.akkoma.dev/stable/administration/CLI_tasks/frontend/">Installation Command Documentation</a></p>
+    <p><a href="https://docs.akkoma.dev/stable/configuration/cheatsheet/#frontend-management">Config Documentation</a></p>
   </body>
 </html>
