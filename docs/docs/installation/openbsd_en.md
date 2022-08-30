@@ -250,6 +250,8 @@ If your instance is up and running, you can create your first user with administ
 LC_ALL=en_US.UTF-8 MIX_ENV=prod mix pleroma.user new <username> <your@emailaddress> --admin
 ```
 
+{! installation/frontends.include !}
+
 #### Further reading
 
 {! installation/further_reading.include !}

@@ -306,6 +306,8 @@ su akkoma -s $SHELL -lc "./bin/pleroma_ctl user new joeuser joeuser@sld.tld --ad
 ```
 This will create an account withe the username of 'joeuser' with the email address of joeuser@sld.tld, and set that user's account as an admin. This will result in a link that you can paste into the browser, which logs you in and enables you to set the password.
 
+{! installation/frontends.include !}
+
 ## Further reading
 
 {! installation/further_reading.include !}

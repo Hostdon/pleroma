@@ -206,6 +206,9 @@ If your instance is up and running, you can create your first user with administ
 ```shell
 sudo -Hu akkoma MIX_ENV=prod mix pleroma.user new <username> <your@emailaddress> --admin
 ```
+
+{! installation/frontends.include !}
+
 ## Conclusion
 
 Restart nginx with `# service nginx restart` and you should be up and running.

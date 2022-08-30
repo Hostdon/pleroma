@@ -1,0 +1,25 @@
+#### Installing Frontends
+
+Once your backend server is functional, you'll also want to
+probably install frontends.
+
+These are no longer bundled with the distribution and need an extra
+command to install.
+
+For most installations, the following will suffice:
+
+=== "OTP" 
+    ```sh
+    ./bin/pleroma_ctl frontend install pleroma-fe --ref stable
+    # and also, if desired
+    ./bin/pleroma_ctl frontend install admin-fe --ref stable
+    ```
+
+=== "From Source"
+    ```sh
+    mix pleroma.frontend install pleroma-fe --ref stable
+    mix pleroma.frontend install admin-fe --ref stable
+    ```
+
+For more customised installations, refer to [Frontend Management](../../configuration/frontend_management)
+
