@@ -427,13 +427,12 @@ defmodule Pleroma.NotificationTest do
 
       {:ok, _, _, _activity} = CommonAPI.follow(user, followed_user)
       assert FollowingRelationship.following?(user, followed_user)
-      assert [notification] = Notification.for_user(followed_user)
+      assert [_notification] = Notification.for_user(followed_user)
 
       CommonAPI.unfollow(user, followed_user)
       {:ok, _, _, _activity_dupe} = CommonAPI.follow(user, followed_user)
 
-      notification_id = notification.id
-      assert [%{id: ^notification_id}] = Notification.for_user(followed_user)
+      assert Enum.count(Notification.for_user(followed_user)) == 1
     end
 
     test "dismisses the notification on follow request rejection" do

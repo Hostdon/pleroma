@@ -331,9 +331,9 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   defp do_unfollow(follower, followed, activity_id, local) when local == true do
     with %Activity{} = follow_activity <- fetch_latest_follow(follower, followed),
-         {:ok, follow_activity} <- update_follow_state(follow_activity, "cancelled"),
          unfollow_data <- make_unfollow_data(follower, followed, follow_activity, activity_id),
          {:ok, activity} <- insert(unfollow_data, local),
+         {:ok, _activity} <- Repo.delete(follow_activity),
          _ <- notify_and_stream(activity),
          :ok <- maybe_federate(activity) do
       {:ok, activity}
@@ -349,7 +349,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     with %Activity{} = follow_activity <- fetch_latest_follow(follower, followed),
          {:ok, _activity} <- Repo.delete(follow_activity),
          unfollow_data <- make_unfollow_data(follower, followed, follow_activity, activity_id),
-         unfollow_activity <- remote_unfollow_data(unfollow_data),
+         unfollow_activity <- make_unfollow_activity(unfollow_data, false),
          _ <- notify_and_stream(unfollow_activity) do
       {:ok, unfollow_activity}
     else
@@ -358,12 +358,12 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     end
   end
 
-  defp remote_unfollow_data(data) do
+  defp make_unfollow_activity(data, local) do
     {recipients, _, _} = get_recipients(data)
 
     %Activity{
       data: data,
-      local: false,
+      local: local,
       actor: data["actor"],
       recipients: recipients
     }

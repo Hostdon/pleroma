@@ -472,18 +472,6 @@ defmodule Pleroma.Web.ActivityPub.Utils do
     {:ok, activity}
   end
 
-  def update_follow_state(
-        %Activity{} = activity,
-        state
-      ) do
-    new_data = Map.put(activity.data, "state", state)
-    changeset = Changeset.change(activity, data: new_data)
-
-    with {:ok, activity} <- Repo.update(changeset) do
-      {:ok, activity}
-    end
-  end
-
   @doc """
   Makes a follow activity data for the given follower and followed
   """

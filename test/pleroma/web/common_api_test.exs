@@ -1058,24 +1058,23 @@ defmodule Pleroma.Web.CommonAPITest do
       refute User.subscribed_to?(follower, followed)
     end
 
-    test "cancels a pending follow for a local user" do
+    test "removes a pending follow for a local user" do
       follower = insert(:user)
       followed = insert(:user, is_locked: true)
 
-      assert {:ok, follower, followed, %{id: activity_id, data: %{"state" => "pending"}}} =
+      assert {:ok, follower, followed, %{id: _activity_id, data: %{"state" => "pending"}}} =
                CommonAPI.follow(follower, followed)
 
       assert User.get_follow_state(follower, followed) == :follow_pending
       assert {:ok, follower} = CommonAPI.unfollow(follower, followed)
       assert User.get_follow_state(follower, followed) == nil
 
-      assert %{id: ^activity_id, data: %{"state" => "cancelled"}} =
-               Pleroma.Web.ActivityPub.Utils.fetch_latest_follow(follower, followed)
+      assert is_nil(Pleroma.Web.ActivityPub.Utils.fetch_latest_follow(follower, followed))
 
       assert %{
                data: %{
                  "type" => "Undo",
-                 "object" => %{"type" => "Follow", "state" => "cancelled"}
+                 "object" => %{"type" => "Follow"}
                }
              } = Pleroma.Web.ActivityPub.Utils.fetch_latest_undo(follower)
     end
@@ -1084,20 +1083,19 @@ defmodule Pleroma.Web.CommonAPITest do
       follower = insert(:user)
       followed = insert(:user, is_locked: true, local: false, ap_enabled: true)
 
-      assert {:ok, follower, followed, %{id: activity_id, data: %{"state" => "pending"}}} =
+      assert {:ok, follower, followed, %{id: _activity_id, data: %{"state" => "pending"}}} =
                CommonAPI.follow(follower, followed)
 
       assert User.get_follow_state(follower, followed) == :follow_pending
       assert {:ok, follower} = CommonAPI.unfollow(follower, followed)
       assert User.get_follow_state(follower, followed) == nil
 
-      assert %{id: ^activity_id, data: %{"state" => "cancelled"}} =
-               Pleroma.Web.ActivityPub.Utils.fetch_latest_follow(follower, followed)
+      assert is_nil(Pleroma.Web.ActivityPub.Utils.fetch_latest_follow(follower, followed))
 
       assert %{
                data: %{
                  "type" => "Undo",
-                 "object" => %{"type" => "Follow", "state" => "cancelled"}
+                 "object" => %{"type" => "Follow"}
                }
              } = Pleroma.Web.ActivityPub.Utils.fetch_latest_undo(follower)
     end
