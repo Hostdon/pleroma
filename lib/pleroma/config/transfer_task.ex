@@ -38,7 +38,6 @@ defmodule Pleroma.Config.TransferTask do
   def load_and_update_env(deleted_settings \\ [], restart_pleroma? \\ true) do
     with {_, true} <- {:configurable, Config.get(:configurable_from_database)} do
       # We need to restart applications for loaded settings take effect
-
       {logger, other} =
         (Repo.all(ConfigDB) ++ deleted_settings)
         |> Enum.map(&merge_with_default/1)
@@ -85,7 +84,12 @@ defmodule Pleroma.Config.TransferTask do
   end
 
   defp merge_with_default(%{group: group, key: key, value: value} = setting) do
-    default = Config.Holder.default_config(group, key)
+    default =
+      if group == :pleroma do
+        Config.get([key], Config.Holder.default_config(group, key))
+      else
+        Config.Holder.default_config(group, key)
+      end
 
     merged =
       cond do
