@@ -13,7 +13,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.EmojiReactValidator do
   import Pleroma.Web.ActivityPub.ObjectValidators.CommonValidations
 
   @primary_key false
-  @emoji_regex ~r/:[A-Za-z0-9_-]+:/
+  @emoji_regex ~r/:[A-Za-z0-9_-]+(@.+)?:/
 
   embedded_schema do
     quote do

@@ -587,7 +587,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
 
   defp build_emoji_map(emoji, users, url, current_user) do
     %{
-      name: emoji,
+      name: Pleroma.Web.PleromaAPI.EmojiReactionView.emoji_name(emoji, url),
       count: length(users),
       url: MediaProxy.url(url),
       me: !!(current_user && current_user.ap_id in users),

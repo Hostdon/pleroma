@@ -209,7 +209,8 @@ defmodule Pleroma.Web.CommonAPI do
          {:ok, activity, _} <- Pipeline.common_pipeline(emoji_react, local: true) do
       {:ok, activity}
     else
-      _ -> {:error, dgettext("errors", "Could not add reaction emoji")}
+      _ ->
+        {:error, dgettext("errors", "Could not add reaction emoji")}
     end
   end
 
