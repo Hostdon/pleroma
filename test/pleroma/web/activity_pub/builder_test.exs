@@ -82,23 +82,27 @@ defmodule Pleroma.Web.ActivityPub.BuilderTest do
     test "remote custom emoji" do
       user = insert(:user)
       other_user = insert(:user, local: false)
-      note = insert(:note, data: %{"reactions" => [["wow", [other_user.ap_id], "https://remote/emoji/wow"]]})
+
+      note =
+        insert(:note,
+          data: %{"reactions" => [["wow", [other_user.ap_id], "https://remote/emoji/wow"]]}
+        )
 
       assert {:ok,
-               %{
-                 "content" => ":wow:",
-                 "type" => "EmojiReact",
-                 "tag" => [
-                   %{
-                     "name" => ":wow:",
-                     "id" => "https://remote/emoji/wow",
-                     "icon" => %{
-                       "type" => "Image",
-                       "url" => "https://remote/emoji/wow"
-                     }
-                   }
-                 ]
-               }, []} = Builder.emoji_react(user, note, ":wow@remote:")
+              %{
+                "content" => ":wow:",
+                "type" => "EmojiReact",
+                "tag" => [
+                  %{
+                    "name" => ":wow:",
+                    "id" => "https://remote/emoji/wow",
+                    "icon" => %{
+                      "type" => "Image",
+                      "url" => "https://remote/emoji/wow"
+                    }
+                  }
+                ]
+              }, []} = Builder.emoji_react(user, note, ":wow@remote:")
     end
   end
 end

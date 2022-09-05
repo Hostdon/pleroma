@@ -95,7 +95,11 @@ defmodule Pleroma.Web.ActivityPub.MRF do
   def get_policies do
     Pleroma.Config.get([:mrf, :policies], [])
     |> get_policies()
-    |> Enum.concat([Pleroma.Web.ActivityPub.MRF.HashtagPolicy])
+    |> Enum.concat([
+      Pleroma.Web.ActivityPub.MRF.HashtagPolicy,
+      Pleroma.Web.ActivityPub.MRF.InlineQuotePolicy
+    ])
+    |> Enum.uniq()
   end
 
   defp get_policies(policy) when is_atom(policy), do: [policy]
