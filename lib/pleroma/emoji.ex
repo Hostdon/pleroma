@@ -188,6 +188,11 @@ defmodule Pleroma.Emoji do
 
   def emoji_url(_), do: nil
 
+  def emoji_name_with_instance(name, url) do
+    url = url |> URI.parse() |> Map.get(:host)
+    "#{name}@#{url}"
+  end
+
   emoji_qualification_map =
     emojis
     |> Enum.filter(&String.contains?(&1, "\uFE0F"))
