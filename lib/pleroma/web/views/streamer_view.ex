@@ -26,6 +26,23 @@ defmodule Pleroma.Web.StreamerView do
     |> Jason.encode!()
   end
 
+  def render("status_update.json", %Activity{} = activity, %User{} = user, topic) do
+    activity = Activity.get_create_by_object_ap_id_with_object(activity.object.data["id"])
+
+    %{
+      stream: [topic],
+      event: "status.update",
+      payload:
+        Pleroma.Web.MastodonAPI.StatusView.render(
+          "show.json",
+          activity: activity,
+          for: user
+        )
+        |> Jason.encode!()
+    }
+    |> Jason.encode!()
+  end
+
   def render("notification.json", %Notification{} = notify, %User{} = user, topic) do
     %{
       stream: [topic],
@@ -44,6 +61,22 @@ defmodule Pleroma.Web.StreamerView do
     %{
       stream: [topic],
       event: "update",
+      payload:
+        Pleroma.Web.MastodonAPI.StatusView.render(
+          "show.json",
+          activity: activity
+        )
+        |> Jason.encode!()
+    }
+    |> Jason.encode!()
+  end
+
+  def render("status_update.json", %Activity{} = activity, topic) do
+    activity = Activity.get_create_by_object_ap_id_with_object(activity.object.data["id"])
+
+    %{
+      stream: [topic],
+      event: "status.update",
       payload:
         Pleroma.Web.MastodonAPI.StatusView.render(
           "show.json",

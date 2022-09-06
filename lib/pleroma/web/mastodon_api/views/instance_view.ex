@@ -65,6 +65,7 @@ defmodule Pleroma.Web.MastodonAPI.InstanceView do
       "shareable_emoji_packs",
       "multifetch",
       "pleroma:api/v1/notifications:include_types_filter",
+      "editing",
       if Config.get([:media_proxy, :enabled]) do
         "media_proxy"
       end,

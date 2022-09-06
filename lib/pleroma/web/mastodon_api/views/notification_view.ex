@@ -17,7 +17,11 @@ defmodule Pleroma.Web.MastodonAPI.NotificationView do
   alias Pleroma.Web.MastodonAPI.NotificationView
   alias Pleroma.Web.MastodonAPI.StatusView
 
-  @parent_types ~w{Like Announce EmojiReact}
+  defp object_id_for(%{data: %{"object" => %{"id" => id}}}) when is_binary(id), do: id
+
+  defp object_id_for(%{data: %{"object" => id}}) when is_binary(id), do: id
+
+  @parent_types ~w{Like Announce EmojiReact Update}
 
   def render("index.json", %{notifications: notifications, for: reading_user} = opts) do
     activities = Enum.map(notifications, & &1.activity)
@@ -28,7 +32,7 @@ defmodule Pleroma.Web.MastodonAPI.NotificationView do
         %{data: %{"type" => type}} ->
           type in @parent_types
       end)
-      |> Enum.map(& &1.data["object"])
+      |> Enum.map(&object_id_for/1)
       |> Activity.create_by_object_ap_id()
       |> Activity.with_preloaded_object(:left)
       |> Pleroma.Repo.all()
@@ -76,9 +80,9 @@ defmodule Pleroma.Web.MastodonAPI.NotificationView do
 
     parent_activity_fn = fn ->
       if opts[:parent_activities] do
-        Activity.Queries.find_by_object_ap_id(opts[:parent_activities], activity.data["object"])
+        Activity.Queries.find_by_object_ap_id(opts[:parent_activities], object_id_for(activity))
       else
-        Activity.get_create_by_object_ap_id(activity.data["object"])
+        Activity.get_create_by_object_ap_id(object_id_for(activity))
       end
     end
 
@@ -105,6 +109,9 @@ defmodule Pleroma.Web.MastodonAPI.NotificationView do
         put_status(response, parent_activity_fn.(), reading_user, status_render_opts)
 
       "reblog" ->
+        put_status(response, parent_activity_fn.(), reading_user, status_render_opts)
+
+      "update" ->
         put_status(response, parent_activity_fn.(), reading_user, status_render_opts)
 
       "move" ->
