@@ -85,7 +85,8 @@ defmodule Pleroma.Web.MastodonAPI.InstanceView do
       if Config.get([:translator, :enabled], false) do
         "akkoma:machine_translation"
       end,
-      "custom_emoji_reactions"
+      "custom_emoji_reactions",
+      "pleroma:get:main/ostatus"
     ]
     |> Enum.filter(& &1)
   end
