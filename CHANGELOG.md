@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## 2022.09
 
 ### Added
 - support for fedibird-fe, and non-breaking API parity for it to function
@@ -13,9 +13,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - the ability to obfuscate domains in your MRF descriptions
 - automatic translation of statuses via DeepL or LibreTranslate
 - ability to edit posts
+- ability to react with remote emoji
 
 ### Changed
 - MFM parsing is now done on the backend by a modified version of ilja's parser -> https://akkoma.dev/AkkomaGang/mfm-parser
+- InlineQuotePolicy is now on by default
 
 ### Fixed
 - Compatibility with latest meilisearch
