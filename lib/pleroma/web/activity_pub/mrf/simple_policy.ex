@@ -256,9 +256,34 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
 
   def filter(object), do: {:ok, object}
 
+  defp obfuscate(string) when is_binary(string) do
+    string
+    |> to_charlist()
+    |> Enum.with_index()
+    |> Enum.map(fn
+      {?., _index} ->
+        ?.
+
+      {char, index} ->
+        if 3 <= index && index < String.length(string) - 3, do: ?*, else: char
+    end)
+    |> to_string()
+  end
+
+  defp maybe_obfuscate(host, obfuscations) do
+    if MRF.subdomain_match?(obfuscations, host) do
+      obfuscate(host)
+    else
+      host
+    end
+  end
+
   @impl true
   def describe do
     exclusions = Config.get([:mrf, :transparency_exclusions]) |> MRF.instance_list_from_tuples()
+
+    obfuscations =
+      Config.get([:mrf, :transparency_obfuscate_domains], []) |> MRF.subdomains_regex()
 
     mrf_simple_excluded =
       Config.get(:mrf_simple)
@@ -269,7 +294,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
     mrf_simple =
       mrf_simple_excluded
       |> Enum.map(fn {rule, instances} ->
-        {rule, Enum.map(instances, fn {host, _} -> host end)}
+        {rule, Enum.map(instances, fn {host, _} -> maybe_obfuscate(host, obfuscations) end)}
       end)
       |> Map.new()
 
@@ -286,7 +311,9 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
       |> Enum.map(fn {rule, instances} ->
         instances =
           instances
-          |> Enum.map(fn {host, reason} -> {host, %{"reason" => reason}} end)
+          |> Enum.map(fn {host, reason} ->
+            {maybe_obfuscate(host, obfuscations), %{"reason" => reason}}
+          end)
           |> Map.new()
 
         {rule, instances}

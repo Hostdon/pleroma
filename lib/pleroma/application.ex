@@ -63,7 +63,8 @@ defmodule Pleroma.Application do
         Pleroma.Repo,
         Config.TransferTask,
         Pleroma.Emoji,
-        Pleroma.Web.Plugs.RateLimiter.Supervisor
+        Pleroma.Web.Plugs.RateLimiter.Supervisor,
+        {Task.Supervisor, name: Pleroma.TaskSupervisor}
       ] ++
         cachex_children() ++
         http_children() ++
@@ -149,11 +150,13 @@ defmodule Pleroma.Application do
       build_cachex("object", default_ttl: 25_000, ttl_interval: 1000, limit: 2500),
       build_cachex("rich_media", default_ttl: :timer.minutes(120), limit: 5000),
       build_cachex("scrubber", limit: 2500),
+      build_cachex("scrubber_management", limit: 2500),
       build_cachex("idempotency", expiration: idempotency_expiration(), limit: 2500),
       build_cachex("web_resp", limit: 2500),
       build_cachex("emoji_packs", expiration: emoji_packs_expiration(), limit: 10),
       build_cachex("failed_proxy_url", limit: 2500),
-      build_cachex("banned_urls", default_ttl: :timer.hours(24 * 30), limit: 5_000)
+      build_cachex("banned_urls", default_ttl: :timer.hours(24 * 30), limit: 5_000),
+      build_cachex("translations", default_ttl: :timer.hours(24 * 30), limit: 2500)
     ]
   end
 

@@ -48,4 +48,61 @@ defmodule Pleroma.Web.ActivityPub.BuilderTest do
       assert {:ok, ^expected, []} = Builder.note(draft)
     end
   end
+
+  describe "emoji_react/1" do
+    test "unicode emoji" do
+      user = insert(:user)
+      note = insert(:note)
+
+      assert {:ok, %{"content" => "👍", "type" => "EmojiReact"}, []} =
+               Builder.emoji_react(user, note, "👍")
+    end
+
+    test "custom emoji" do
+      user = insert(:user)
+      note = insert(:note)
+
+      assert {:ok,
+              %{
+                "content" => ":dinosaur:",
+                "type" => "EmojiReact",
+                "tag" => [
+                  %{
+                    "name" => ":dinosaur:",
+                    "id" => "http://localhost:4001/emoji/dino walking.gif",
+                    "icon" => %{
+                      "type" => "Image",
+                      "url" => "http://localhost:4001/emoji/dino walking.gif"
+                    }
+                  }
+                ]
+              }, []} = Builder.emoji_react(user, note, ":dinosaur:")
+    end
+
+    test "remote custom emoji" do
+      user = insert(:user)
+      other_user = insert(:user, local: false)
+
+      note =
+        insert(:note,
+          data: %{"reactions" => [["wow", [other_user.ap_id], "https://remote/emoji/wow"]]}
+        )
+
+      assert {:ok,
+              %{
+                "content" => ":wow:",
+                "type" => "EmojiReact",
+                "tag" => [
+                  %{
+                    "name" => ":wow:",
+                    "id" => "https://remote/emoji/wow",
+                    "icon" => %{
+                      "type" => "Image",
+                      "url" => "https://remote/emoji/wow"
+                    }
+                  }
+                ]
+              }, []} = Builder.emoji_react(user, note, ":wow@remote:")
+    end
+  end
 end

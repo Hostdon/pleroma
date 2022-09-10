@@ -19,6 +19,10 @@ config :pleroma, :frontends,
   admin: %{
     "name" => "admin-fe",
     "ref" => "stable"
+  },
+  mastodon: %{
+    "name" => "mastodon-fe",
+    "ref" => "akkoma"
   }
 ```
 
@@ -26,11 +30,17 @@ This would serve the frontend from the the folder at `$instance_static/frontends
 
 Refer to [the frontend CLI task](../../administration/CLI_tasks/frontend) for how to install the frontend's files
 
-If you wish masto-fe to also be enabled, you will also need to run the install task for `mastodon-fe`. Not doing this will lead to the frontend not working.
-
 If you choose not to install a frontend for whatever reason, it is recommended that you enable [`:static_fe`](#static_fe) to allow remote users to click "view remote source". Don't bother with this if you've got no unauthenticated access though.
 
 You can also replace the default "no frontend" page by placing an `index.html` file under your `instance/static/` directory.
+
+## Mastodon-FE
+
+Akkoma supports both [glitchsoc](https://github.com/glitch-soc/mastodon)'s more "vanilla" mastodon frontend,
+as well as [fedibird](https://github.com/fedibird/mastodon)'s extended frontend which has near-feature-parity with akkoma (with quoting and reactions).
+
+To enable either one, you must run the `frontend.install` task for either `mastodon-fe` or `fedibird-fe` (both `--ref akkoma`), then make sure
+`:pleroma, :frontends, :mastodon` references the one you want.
 
 ## Swagger (openAPI) documentation viewer
 

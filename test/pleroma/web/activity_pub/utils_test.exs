@@ -229,29 +229,6 @@ defmodule Pleroma.Web.ActivityPub.UtilsTest do
     end
   end
 
-  describe "update_follow_state/2" do
-    test "updates the state of the given follow activity" do
-      user = insert(:user, is_locked: true)
-      follower = insert(:user)
-
-      {:ok, _, _, follow_activity} = CommonAPI.follow(follower, user)
-      {:ok, _, _, follow_activity_two} = CommonAPI.follow(follower, user)
-
-      data =
-        follow_activity_two.data
-        |> Map.put("state", "accept")
-
-      cng = Ecto.Changeset.change(follow_activity_two, data: data)
-
-      {:ok, follow_activity_two} = Repo.update(cng)
-
-      {:ok, follow_activity_two} = Utils.update_follow_state(follow_activity_two, "reject")
-
-      assert refresh_record(follow_activity).data["state"] == "pending"
-      assert refresh_record(follow_activity_two).data["state"] == "reject"
-    end
-  end
-
   describe "update_element_in_object/3" do
     test "updates likes" do
       user = insert(:user)

@@ -7,8 +7,8 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.CommonFixes do
   alias Pleroma.Object
   alias Pleroma.Object.Containment
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.Transmogrifier
   alias Pleroma.Web.ActivityPub.Utils
+  require Pleroma.Constants
 
   def cast_and_filter_recipients(message, field, follower_collection, field_fallback \\ []) do
     {:ok, data} = ObjectValidators.Recipients.cast(message[field] || field_fallback)
@@ -32,7 +32,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.CommonFixes do
     |> cast_and_filter_recipients("cc", follower_collection)
     |> cast_and_filter_recipients("bto", follower_collection)
     |> cast_and_filter_recipients("bcc", follower_collection)
-    |> Transmogrifier.fix_implicit_addressing(follower_collection)
+    |> fix_implicit_addressing(follower_collection)
   end
 
   def fix_activity_addressing(activity) do
@@ -43,7 +43,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.CommonFixes do
     |> cast_and_filter_recipients("cc", follower_collection)
     |> cast_and_filter_recipients("bto", follower_collection)
     |> cast_and_filter_recipients("bcc", follower_collection)
-    |> Transmogrifier.fix_implicit_addressing(follower_collection)
+    |> fix_implicit_addressing(follower_collection)
   end
 
   def fix_actor(data) do
@@ -72,5 +72,28 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.CommonFixes do
     to = ((data["to"] || []) ++ [actor]) |> Enum.uniq()
 
     Map.put(data, "to", to)
+  end
+
+  # if as:Public is addressed, then make sure the followers collection is also addressed
+  # so that the activities will be delivered to local users.
+  def fix_implicit_addressing(%{"to" => to, "cc" => cc} = object, followers_collection) do
+    recipients = to ++ cc
+
+    if followers_collection not in recipients do
+      cond do
+        Pleroma.Constants.as_public() in cc ->
+          to = to ++ [followers_collection]
+          Map.put(object, "to", to)
+
+        Pleroma.Constants.as_public() in to ->
+          cc = cc ++ [followers_collection]
+          Map.put(object, "cc", cc)
+
+        true ->
+          object
+      end
+    else
+      object
+    end
   end
 end

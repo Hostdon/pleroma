@@ -41,6 +41,16 @@ defmodule Pleroma.Web.ActivityPub.MRF do
           suggestions: [
             "exclusion.com"
           ]
+        },
+        %{
+          key: :transparency_obfuscate_domains,
+          label: "MRF domain obfuscation",
+          type: {:list, :string},
+          description:
+            "Obfuscate domains in MRF transparency. This is useful if the domain you're blocking contains words you don't want displayed, but still want to disclose the MRF settings.",
+          suggestions: [
+            "badword.com"
+          ]
         }
       ]
     }
@@ -53,10 +63,53 @@ defmodule Pleroma.Web.ActivityPub.MRF do
 
   @required_description_keys [:key, :related_policy]
 
+  def filter_one(policy, message) do
+    should_plug_history? =
+      if function_exported?(policy, :history_awareness, 0) do
+        policy.history_awareness()
+      else
+        :manual
+      end
+      |> Kernel.==(:auto)
+
+    if not should_plug_history? do
+      policy.filter(message)
+    else
+      main_result = policy.filter(message)
+
+      with {_, {:ok, main_message}} <- {:main, main_result},
+           {_,
+            %{
+              "formerRepresentations" => %{
+                "orderedItems" => [_ | _]
+              }
+            }} = {_, object} <- {:object, message["object"]},
+           {_, {:ok, new_history}} <-
+             {:history,
+              Pleroma.Object.Updater.for_each_history_item(
+                object["formerRepresentations"],
+                object,
+                fn item ->
+                  with {:ok, filtered} <- policy.filter(Map.put(message, "object", item)) do
+                    {:ok, filtered["object"]}
+                  else
+                    e -> e
+                  end
+                end
+              )} do
+        {:ok, put_in(main_message, ["object", "formerRepresentations"], new_history)}
+      else
+        {:main, _} -> main_result
+        {:object, _} -> main_result
+        {:history, e} -> e
+      end
+    end
+  end
+
   def filter(policies, %{} = message) do
     policies
     |> Enum.reduce({:ok, message}, fn
-      policy, {:ok, message} -> policy.filter(message)
+      policy, {:ok, message} -> filter_one(policy, message)
       _, error -> error
     end)
   end
@@ -85,7 +138,11 @@ defmodule Pleroma.Web.ActivityPub.MRF do
   def get_policies do
     Pleroma.Config.get([:mrf, :policies], [])
     |> get_policies()
-    |> Enum.concat([Pleroma.Web.ActivityPub.MRF.HashtagPolicy])
+    |> Enum.concat([
+      Pleroma.Web.ActivityPub.MRF.HashtagPolicy,
+      Pleroma.Web.ActivityPub.MRF.InlineQuotePolicy
+    ])
+    |> Enum.uniq()
   end
 
   defp get_policies(policy) when is_atom(policy), do: [policy]

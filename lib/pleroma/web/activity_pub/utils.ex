@@ -329,7 +329,7 @@ defmodule Pleroma.Web.ActivityPub.Utils do
         object
       ) do
     reactions = get_cached_emoji_reactions(object)
-    emoji = stripped_emoji_name(emoji)
+    emoji = Pleroma.Emoji.stripped_name(emoji)
     url = emoji_url(emoji, activity)
 
     new_reactions =
@@ -356,12 +356,6 @@ defmodule Pleroma.Web.ActivityPub.Utils do
     update_element_in_object("reaction", new_reactions, object, count)
   end
 
-  defp stripped_emoji_name(name) do
-    name
-    |> String.replace_leading(":", "")
-    |> String.replace_trailing(":", "")
-  end
-
   defp emoji_url(
          name,
          %Activity{
@@ -384,7 +378,7 @@ defmodule Pleroma.Web.ActivityPub.Utils do
         %Activity{data: %{"content" => emoji, "actor" => actor}} = activity,
         object
       ) do
-    emoji = stripped_emoji_name(emoji)
+    emoji = Pleroma.Emoji.stripped_name(emoji)
     reactions = get_cached_emoji_reactions(object)
     url = emoji_url(emoji, activity)
 
@@ -472,18 +466,6 @@ defmodule Pleroma.Web.ActivityPub.Utils do
     {:ok, activity}
   end
 
-  def update_follow_state(
-        %Activity{} = activity,
-        state
-      ) do
-    new_data = Map.put(activity.data, "state", state)
-    changeset = Changeset.change(activity, data: new_data)
-
-    with {:ok, activity} <- Repo.update(changeset) do
-      {:ok, activity}
-    end
-  end
-
   @doc """
   Makes a follow activity data for the given follower and followed
   """
@@ -525,17 +507,35 @@ defmodule Pleroma.Web.ActivityPub.Utils do
 
   def get_latest_reaction(internal_activity_id, %{ap_id: ap_id}, emoji) do
     %{data: %{"object" => object_ap_id}} = Activity.get_by_id(internal_activity_id)
-
     emoji = Pleroma.Emoji.maybe_quote(emoji)
 
     "EmojiReact"
     |> Activity.Queries.by_type()
     |> where(actor: ^ap_id)
-    |> where([activity], fragment("?->>'content' = ?", activity.data, ^emoji))
+    |> custom_emoji_discriminator(emoji)
     |> Activity.Queries.by_object_id(object_ap_id)
     |> order_by([activity], fragment("? desc nulls last", activity.id))
     |> limit(1)
     |> Repo.one()
+  end
+
+  defp custom_emoji_discriminator(query, emoji) do
+    if String.contains?(emoji, "@") do
+      stripped = Pleroma.Emoji.stripped_name(emoji)
+      [name, domain] = String.split(stripped, "@")
+      domain_pattern = "%" <> domain <> "%"
+      emoji_pattern = Pleroma.Emoji.maybe_quote(name)
+
+      query
+      |> where([activity], fragment("?->>'content' = ?
+        AND EXISTS (
+          SELECT FROM jsonb_array_elements(?->'tag') elem
+          WHERE elem->>'id' ILIKE ?
+        )", activity.data, ^emoji_pattern, activity.data, ^domain_pattern))
+    else
+      query
+      |> where([activity], fragment("?->>'content' = ?", activity.data, ^emoji))
+    end
   end
 
   #### Announce-related helpers

@@ -70,6 +70,16 @@ defmodule Pleroma.Web.OAuth.Token do
     end
   end
 
+  def get_preeexisting_by_app_and_user(app, user) do
+    Query.get_by_app(app.id)
+    |> Query.get_by_user(user.id)
+    |> Query.get_unexpired()
+    |> Query.preload([:user])
+    |> Query.sort_by_inserted_at()
+    |> Query.limit(1)
+    |> Repo.find_resource()
+  end
+
   defp put_token(changeset) do
     changeset
     |> change(%{token: Token.Utils.generate_token()})
@@ -84,6 +94,14 @@ defmodule Pleroma.Web.OAuth.Token do
     |> change(%{refresh_token: refresh_token})
     |> validate_required([:refresh_token])
     |> unique_constraint(:refresh_token)
+  end
+
+  def get_or_exchange_token(%Authorization{} = auth, %App{} = app, %User{} = user) do
+    if auth.used do
+      get_preeexisting_by_app_and_user(app, user)
+    else
+      exchange_token(app, auth)
+    end
   end
 
   defp put_valid_until(changeset, attrs) do

@@ -510,6 +510,16 @@ config :pleroma, :config_description, [
         ]
       },
       %{
+        key: :languages,
+        type: {:list, :string},
+        description: "Languages the instance uses",
+        suggestions: [
+          "en",
+          "ja",
+          "fr"
+        ]
+      },
+      %{
         key: :email,
         label: "Admin Email Address",
         type: :string,
@@ -1169,7 +1179,6 @@ config :pleroma, :config_description, [
             hideFilteredStatuses: false,
             hideMutedPosts: false,
             hidePostStats: false,
-            hideSitename: false,
             hideUserStats: false,
             loginMethod: "password",
             logo: "/static/logo.svg",
@@ -1234,12 +1243,6 @@ config :pleroma, :config_description, [
             label: "Hide post stats",
             type: :boolean,
             description: "Hide notices statistics (repeats, favorites, ...)"
-          },
-          %{
-            key: :hideSitename,
-            label: "Hide Sitename",
-            type: :boolean,
-            description: "Hides instance name from PleromaFE banner"
           },
           %{
             key: :hideUserStats,
@@ -1350,6 +1353,42 @@ config :pleroma, :config_description, [
             type: :string,
             description: "Which theme to use. Available themes are defined in styles.json",
             suggestions: ["pleroma-dark"]
+          },
+          %{
+            key: :showPanelNavShortcuts,
+            label: "Show timeline panel nav shortcuts",
+            type: :boolean,
+            description: "Whether to put timeline nav tabs on the top of the panel"
+          },
+          %{
+            key: :showNavShortcuts,
+            label: "Show navbar shortcuts",
+            type: :boolean,
+            description: "Whether to put extra navigation options on the navbar"
+          },
+          %{
+            key: :showWiderShortcuts,
+            label: "Increase navbar shortcut spacing",
+            type: :boolean,
+            description: "Whether to add extra space between navbar icons"
+          },
+          %{
+            key: :hideSiteFavicon,
+            label: "Hide site favicon",
+            type: :boolean,
+            description: "Whether to hide the instance favicon from the navbar"
+          },
+          %{
+            key: :hideSiteName,
+            label: "Hide site name",
+            type: :boolean,
+            description: "Whether to hide the site name from the navbar"
+          },
+          %{
+            key: :renderMisskeyMarkdown,
+            label: "Render misskey markdown",
+            type: :boolean,
+            description: "Whether to render Misskey-flavoured markdown"
           }
         ]
       },
@@ -3187,13 +3226,14 @@ config :pleroma, :config_description, [
     group: :pleroma,
     key: Pleroma.Search,
     type: :group,
+    label: "Search",
     description: "General search settings.",
     children: [
       %{
         key: :module,
-        type: :keyword,
+        type: :module,
         description: "Selected search module.",
-        suggestion: [Pleroma.Search.DatabaseSearch, Pleroma.Search.Meilisearch]
+        suggestions: {:list_behaviour_implementations, Pleroma.Search.SearchBackend}
       }
     ]
   },
@@ -3218,7 +3258,7 @@ config :pleroma, :config_description, [
       },
       %{
         key: :initial_indexing_chunk_size,
-        type: :int,
+        type: :integer,
         description:
           "Amount of posts in a batch when running the initial indexing operation. Should probably not be more than 100000" <>
             " since there's a limit on maximum insert size",
@@ -3229,6 +3269,7 @@ config :pleroma, :config_description, [
   %{
     group: :pleroma,
     key: Pleroma.Search.Elasticsearch.Cluster,
+    label: "Elasticsearch",
     type: :group,
     description: "Elasticsearch settings.",
     children: [
@@ -3295,19 +3336,80 @@ config :pleroma, :config_description, [
               },
               %{
                 key: :bulk_page_size,
-                type: :int,
+                type: :integer,
                 description: "Size for bulk put requests, mostly used on building the index",
                 suggestion: [5000]
               },
               %{
                 key: :bulk_wait_interval,
-                type: :int,
+                type: :integer,
                 description: "Time to wait between bulk put requests (in ms)",
                 suggestion: [15_000]
               }
             ]
           }
         ]
+      }
+    ]
+  },
+  %{
+    group: :pleroma,
+    key: :translator,
+    type: :group,
+    description: "Translation Settings",
+    children: [
+      %{
+        key: :enabled,
+        type: :boolean,
+        description: "Is translation enabled?",
+        suggestion: [true, false]
+      },
+      %{
+        key: :module,
+        type: :module,
+        description: "Translation module.",
+        suggestions: {:list_behaviour_implementations, Pleroma.Akkoma.Translator}
+      }
+    ]
+  },
+  %{
+    group: :pleroma,
+    key: :deepl,
+    label: "DeepL",
+    type: :group,
+    description: "DeepL Settings.",
+    children: [
+      %{
+        key: :tier,
+        type: {:dropdown, :atom},
+        description: "API Tier",
+        suggestions: [:free, :pro]
+      },
+      %{
+        key: :api_key,
+        type: :string,
+        description: "API key for DeepL",
+        suggestions: [nil]
+      }
+    ]
+  },
+  %{
+    group: :pleroma,
+    key: :libre_translate,
+    type: :group,
+    description: "LibreTranslate Settings.",
+    children: [
+      %{
+        key: :url,
+        type: :string,
+        description: "URL for libretranslate",
+        suggestion: [nil]
+      },
+      %{
+        key: :api_key,
+        type: :string,
+        description: "API key for libretranslate",
+        suggestion: [nil]
       }
     ]
   }

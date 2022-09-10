@@ -4,8 +4,8 @@ defmodule Pleroma.Mixfile do
   def project do
     [
       app: :pleroma,
-      version: version("3.1.0"),
-      elixir: "~> 1.9",
+      version: version("3.2.0"),
+      elixir: "~> 1.12",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       elixirc_options: [warnings_as_errors: warnings_as_errors()],
@@ -129,7 +129,7 @@ defmodule Pleroma.Mixfile do
        override: true},
       {:bcrypt_elixir, "~> 2.2"},
       {:trailing_format_plug, "~> 0.0.7"},
-      {:fast_sanitize, "~> 0.2.0"},
+      {:fast_sanitize, "~> 0.2.3"},
       {:html_entities, "~> 0.5", override: true},
       {:phoenix_html, "~> 3.1", override: true},
       {:calendar, "~> 1.0"},
@@ -191,6 +191,9 @@ defmodule Pleroma.Mixfile do
       {:ecto_psql_extras, "~> 0.6"},
       {:elasticsearch,
        git: "https://akkoma.dev/AkkomaGang/elasticsearch-elixir.git", ref: "main"},
+      {:mfm_parser,
+       git: "https://akkoma.dev/AkkomaGang/mfm-parser.git",
+       ref: "912fba81152d4d572e457fd5427f9875b2bc3dbe"},
 
       # indirect dependency version override
       {:plug, "~> 1.10.4", override: true},
@@ -203,7 +206,7 @@ defmodule Pleroma.Mixfile do
       # temporary downgrade for excoveralls, hackney until hackney max_connections bug will be fixed
       {:excoveralls, "0.12.3", only: :test},
       {:mox, "~> 1.0", only: :test},
-      {:websocket_client, git: "https://github.com/jeremyong/websocket_client.git", only: :test}
+      {:websockex, "~> 0.4.3", only: :test}
     ] ++ oauth_deps()
   end
 

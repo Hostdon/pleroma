@@ -14,6 +14,7 @@ defmodule Pleroma.Web.MastoFEView do
 
     %{
       meta: %{
+        title: Config.get([:instance, :name]),
         streaming_api_base_url: Pleroma.Web.Endpoint.websocket_url(),
         access_token: token,
         locale: "en",
@@ -27,7 +28,11 @@ defmodule Pleroma.Web.MastoFEView do
         display_sensitive_media: false,
         reduce_motion: false,
         max_toot_chars: limit,
-        mascot: User.get_mascot(user)["url"]
+        mascot: User.get_mascot(user)["url"],
+        show_quote_button: true,
+        enable_reaction: true,
+        compact_reaction: false,
+        advanced_layout: true
       },
       poll_limits: Config.get([:instance, :poll_limits]),
       rights: %{
@@ -56,6 +61,7 @@ defmodule Pleroma.Web.MastoFEView do
           "video\/mp4"
         ]
       },
+      lists: [],
       settings: user.mastofe_settings || %{},
       push_subscription: nil,
       accounts: %{user.id => render(AccountView, "show.json", user: user, for: user)},

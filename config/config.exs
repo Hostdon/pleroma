@@ -197,6 +197,7 @@ config :pleroma, :instance,
   avatar_upload_limit: 2_000_000,
   background_upload_limit: 4_000_000,
   banner_upload_limit: 4_000_000,
+  languages: ["en"],
   poll_limits: %{
     max_options: 20,
     max_option_chars: 200,
@@ -734,6 +735,14 @@ config :pleroma, :frontends,
       "build_dir" => "distribution",
       "ref" => "akkoma"
     },
+    "fedibird-fe" => %{
+      "name" => "fedibird-fe",
+      "git" => "https://akkoma.dev/AkkomaGang/fedibird-fe",
+      "build_url" =>
+        "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/${ref}/fedibird-fe.zip",
+      "build_dir" => "distribution",
+      "ref" => "akkoma"
+    },
     "admin-fe" => %{
       "name" => "admin-fe",
       "git" => "https://akkoma.dev/AkkomaGang/admin-fe",
@@ -785,7 +794,8 @@ config :pleroma, Pleroma.Web.ApiSpec.CastAndValidate, strict: false
 config :pleroma, :mrf,
   policies: [Pleroma.Web.ActivityPub.MRF.ObjectAgePolicy, Pleroma.Web.ActivityPub.MRF.TagPolicy],
   transparency: true,
-  transparency_exclusions: []
+  transparency_exclusions: [],
+  transparency_obfuscate_domains: []
 
 config :ex_aws, http_client: Pleroma.HTTP.ExAws
 
@@ -832,6 +842,19 @@ config :pleroma, Pleroma.Search.Elasticsearch.Cluster,
       bulk_wait_interval: 15_000
     }
   }
+
+config :pleroma, :translator,
+  enabled: false,
+  module: Pleroma.Akkoma.Translators.DeepL
+
+config :pleroma, :deepl,
+  # either :free or :pro
+  tier: :free,
+  api_key: ""
+
+config :pleroma, :libre_translate,
+  url: "http://127.0.0.1:5000",
+  api_key: nil
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

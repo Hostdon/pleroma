@@ -1058,24 +1058,23 @@ defmodule Pleroma.Web.CommonAPITest do
       refute User.subscribed_to?(follower, followed)
     end
 
-    test "cancels a pending follow for a local user" do
+    test "removes a pending follow for a local user" do
       follower = insert(:user)
       followed = insert(:user, is_locked: true)
 
-      assert {:ok, follower, followed, %{id: activity_id, data: %{"state" => "pending"}}} =
+      assert {:ok, follower, followed, %{id: _activity_id, data: %{"state" => "pending"}}} =
                CommonAPI.follow(follower, followed)
 
       assert User.get_follow_state(follower, followed) == :follow_pending
       assert {:ok, follower} = CommonAPI.unfollow(follower, followed)
       assert User.get_follow_state(follower, followed) == nil
 
-      assert %{id: ^activity_id, data: %{"state" => "cancelled"}} =
-               Pleroma.Web.ActivityPub.Utils.fetch_latest_follow(follower, followed)
+      assert is_nil(Pleroma.Web.ActivityPub.Utils.fetch_latest_follow(follower, followed))
 
       assert %{
                data: %{
                  "type" => "Undo",
-                 "object" => %{"type" => "Follow", "state" => "cancelled"}
+                 "object" => %{"type" => "Follow"}
                }
              } = Pleroma.Web.ActivityPub.Utils.fetch_latest_undo(follower)
     end
@@ -1084,20 +1083,19 @@ defmodule Pleroma.Web.CommonAPITest do
       follower = insert(:user)
       followed = insert(:user, is_locked: true, local: false, ap_enabled: true)
 
-      assert {:ok, follower, followed, %{id: activity_id, data: %{"state" => "pending"}}} =
+      assert {:ok, follower, followed, %{id: _activity_id, data: %{"state" => "pending"}}} =
                CommonAPI.follow(follower, followed)
 
       assert User.get_follow_state(follower, followed) == :follow_pending
       assert {:ok, follower} = CommonAPI.unfollow(follower, followed)
       assert User.get_follow_state(follower, followed) == nil
 
-      assert %{id: ^activity_id, data: %{"state" => "cancelled"}} =
-               Pleroma.Web.ActivityPub.Utils.fetch_latest_follow(follower, followed)
+      assert is_nil(Pleroma.Web.ActivityPub.Utils.fetch_latest_follow(follower, followed))
 
       assert %{
                data: %{
                  "type" => "Undo",
-                 "object" => %{"type" => "Follow", "state" => "cancelled"}
+                 "object" => %{"type" => "Follow"}
                }
              } = Pleroma.Web.ActivityPub.Utils.fetch_latest_undo(follower)
     end
@@ -1313,6 +1311,130 @@ defmodule Pleroma.Web.CommonAPITest do
         assert Visibility.is_local_public?(activity)
         refute called(Pleroma.Web.Federator.publish(activity))
       end
+    end
+  end
+
+  describe "update/3" do
+    test "updates a post" do
+      user = insert(:user)
+      {:ok, activity} = CommonAPI.post(user, %{status: "foo1", spoiler_text: "title 1"})
+
+      {:ok, updated} = CommonAPI.update(user, activity, %{status: "updated 2"})
+
+      updated_object = Object.normalize(updated)
+      assert updated_object.data["content"] == "updated 2"
+      assert Map.get(updated_object.data, "summary", "") == ""
+      assert Map.has_key?(updated_object.data, "updated")
+    end
+
+    test "does not change visibility" do
+      user = insert(:user)
+
+      {:ok, activity} =
+        CommonAPI.post(user, %{status: "foo1", spoiler_text: "title 1", visibility: "private"})
+
+      {:ok, updated} = CommonAPI.update(user, activity, %{status: "updated 2"})
+
+      updated_object = Object.normalize(updated)
+      assert updated_object.data["content"] == "updated 2"
+      assert Map.get(updated_object.data, "summary", "") == ""
+      assert Visibility.get_visibility(updated_object) == "private"
+      assert Visibility.get_visibility(updated) == "private"
+    end
+
+    test "updates a post with emoji" do
+      [{emoji1, _}, {emoji2, _} | _] = Pleroma.Emoji.get_all()
+
+      user = insert(:user)
+
+      {:ok, activity} =
+        CommonAPI.post(user, %{status: "foo1", spoiler_text: "title 1 :#{emoji1}:"})
+
+      {:ok, updated} = CommonAPI.update(user, activity, %{status: "updated 2 :#{emoji2}:"})
+
+      updated_object = Object.normalize(updated)
+      assert updated_object.data["content"] == "updated 2 :#{emoji2}:"
+      assert %{^emoji2 => _} = updated_object.data["emoji"]
+    end
+
+    test "updates a post with emoji and federate properly" do
+      [{emoji1, _}, {emoji2, _} | _] = Pleroma.Emoji.get_all()
+
+      user = insert(:user)
+
+      {:ok, activity} =
+        CommonAPI.post(user, %{status: "foo1", spoiler_text: "title 1 :#{emoji1}:"})
+
+      clear_config([:instance, :federating], true)
+
+      with_mock Pleroma.Web.Federator,
+        publish: fn _p -> nil end do
+        {:ok, updated} = CommonAPI.update(user, activity, %{status: "updated 2 :#{emoji2}:"})
+
+        assert updated.data["object"]["content"] == "updated 2 :#{emoji2}:"
+        assert %{^emoji2 => _} = updated.data["object"]["emoji"]
+
+        assert called(Pleroma.Web.Federator.publish(updated))
+      end
+    end
+
+    test "editing a post that copied a remote title with remote emoji should keep that emoji" do
+      remote_emoji_uri = "https://remote.org/emoji.png"
+
+      note =
+        insert(
+          :note,
+          data: %{
+            "summary" => ":remoteemoji:",
+            "emoji" => %{
+              "remoteemoji" => remote_emoji_uri
+            },
+            "tag" => [
+              %{
+                "type" => "Emoji",
+                "name" => "remoteemoji",
+                "icon" => %{"url" => remote_emoji_uri}
+              }
+            ]
+          }
+        )
+
+      note_activity = insert(:note_activity, note: note)
+
+      user = insert(:user)
+
+      {:ok, reply} =
+        CommonAPI.post(user, %{
+          status: "reply",
+          spoiler_text: ":remoteemoji:",
+          in_reply_to_id: note_activity.id
+        })
+
+      assert reply.object.data["emoji"]["remoteemoji"] == remote_emoji_uri
+
+      {:ok, edit} =
+        CommonAPI.update(user, reply, %{status: "reply mew mew", spoiler_text: ":remoteemoji:"})
+
+      edited_note = Pleroma.Object.normalize(edit)
+
+      assert edited_note.data["emoji"]["remoteemoji"] == remote_emoji_uri
+    end
+
+    test "respects MRF" do
+      user = insert(:user)
+
+      clear_config([:mrf, :policies], [Pleroma.Web.ActivityPub.MRF.KeywordPolicy])
+      clear_config([:mrf_keyword, :replace], [{"updated", "mewmew"}])
+
+      {:ok, activity} = CommonAPI.post(user, %{status: "foo1", spoiler_text: "updated 1"})
+      assert Object.normalize(activity).data["summary"] == "mewmew 1"
+
+      {:ok, updated} = CommonAPI.update(user, activity, %{status: "updated 2"})
+
+      updated_object = Object.normalize(updated)
+      assert updated_object.data["content"] == "mewmew 2"
+      assert Map.get(updated_object.data, "summary", "") == ""
+      assert Map.has_key?(updated_object.data, "updated")
     end
   end
 end

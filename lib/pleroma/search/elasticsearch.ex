@@ -23,7 +23,7 @@ defmodule Pleroma.Search.Elasticsearch do
         timeout: "5s",
         sort: [
           "_score",
-          %{_timestamp: %{order: "desc", format: "basic_date_time"}}
+          %{"_timestamp" => %{order: "desc", format: "basic_date_time"}}
         ],
         query: %{
           bool: %{
@@ -62,8 +62,12 @@ defmodule Pleroma.Search.Elasticsearch do
       Task.async(fn ->
         q = es_query(:activity, parsed_query, offset, limit)
 
-        Pleroma.Search.Elasticsearch.Store.search(:activities, q)
-        |> Enum.filter(fn x -> Visibility.visible_for_user?(x, user) end)
+        :activities
+        |> Pleroma.Search.Elasticsearch.Store.search(q)
+        |> Enum.filter(fn x ->
+          x.data["type"] == "Create" && x.object.data["type"] == "Note" &&
+            Visibility.visible_for_user?(x, user)
+        end)
       end)
 
     activity_results = Task.await(activity_task)

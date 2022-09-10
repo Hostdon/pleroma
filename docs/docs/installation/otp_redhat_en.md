@@ -279,6 +279,7 @@ After that, run the `pleroma_ctl migrate` command as usual to perform database m
 
 As it currently stands, your OTP build will only be compatible for the specific RedHat distribution you've built it on. Fedora builds only work on Fedora, Centos builds only on Centos, RedHat builds only on RedHat. Secondly, for Fedora, they will also be bound to the specific Fedora release. This is because different releases of Fedora may have significant changes made in some of the required packages and libraries.
 
+{! installation/frontends.include !}
 
 {! installation/further_reading.include !}
 

@@ -202,6 +202,8 @@ incorrect timestamps. You should have ntpd running.
 
 * <https://catgirl.science>
 
+{! installation/frontends.include !}
+
 #### Further reading
 
 {! installation/further_reading.include !}

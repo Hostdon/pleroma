@@ -36,7 +36,7 @@ defmodule Pleroma.Web.Streamer do
           {:ok, topic :: String.t()} | {:error, :bad_topic} | {:error, :unauthorized}
   def get_topic_and_add_socket(stream, user, oauth_token, params \\ %{}) do
     with {:ok, topic} <- get_topic(stream, user, oauth_token, params) do
-      add_socket(topic, user)
+      add_socket(topic, oauth_token)
     end
   end
 
@@ -114,15 +114,20 @@ defmodule Pleroma.Web.Streamer do
     {:error, :unauthorized}
   end
 
+  # mastodon multi-topic WS
+  def get_topic(nil, _user, _oauth_token, _params) do
+    {:ok, :multi}
+  end
+
   def get_topic(_stream, _user, _oauth_token, _params) do
     {:error, :bad_topic}
   end
 
   @doc "Registers the process for streaming. Use `get_topic/3` to get the full authorized topic."
-  def add_socket(topic, user) do
+  def add_socket(topic, oauth_token) do
     if should_env_send?() do
-      auth? = if user, do: true
-      Registry.register(@registry, topic, auth?)
+      oauth_token_id = if oauth_token, do: oauth_token.id, else: false
+      Registry.register(@registry, topic, oauth_token_id)
     end
 
     {:ok, topic}
@@ -186,8 +191,8 @@ defmodule Pleroma.Web.Streamer do
   end
 
   defp do_stream("follow_relationship", item) do
-    text = StreamerView.render("follow_relationships_update.json", item)
     user_topic = "user:#{item.follower.id}"
+    text = StreamerView.render("follow_relationships_update.json", item, user_topic)
 
     Logger.debug("Trying to push follow relationship update to #{user_topic}\n\n")
 
@@ -235,7 +240,7 @@ defmodule Pleroma.Web.Streamer do
        when topic in ["user", "user:notification"] do
     Registry.dispatch(@registry, "#{topic}:#{item.user_id}", fn list ->
       Enum.each(list, fn {pid, _auth} ->
-        send(pid, {:render_with_user, StreamerView, "notification.json", item})
+        send(pid, {:render_with_user, StreamerView, "notification.json", item, topic})
       end)
     end)
   end
@@ -259,7 +264,7 @@ defmodule Pleroma.Web.Streamer do
   end
 
   defp push_to_socket(topic, %Participation{} = participation) do
-    rendered = StreamerView.render("conversation.json", participation)
+    rendered = StreamerView.render("conversation.json", participation, topic)
 
     Registry.dispatch(@registry, topic, fn list ->
       Enum.each(list, fn {pid, _} ->
@@ -282,13 +287,34 @@ defmodule Pleroma.Web.Streamer do
 
   defp push_to_socket(_topic, %Activity{data: %{"type" => "Delete"}}), do: :noop
 
-  defp push_to_socket(topic, item) do
-    anon_render = StreamerView.render("update.json", item)
+  defp push_to_socket(topic, %Activity{data: %{"type" => "Update"}} = item) do
+    create_activity =
+      Pleroma.Activity.get_create_by_object_ap_id(item.object.data["id"])
+      |> Map.put(:object, item.object)
+
+    anon_render = StreamerView.render("status_update.json", create_activity, topic)
 
     Registry.dispatch(@registry, topic, fn list ->
       Enum.each(list, fn {pid, auth?} ->
         if auth? do
-          send(pid, {:render_with_user, StreamerView, "update.json", item})
+          send(
+            pid,
+            {:render_with_user, StreamerView, "status_update.json", create_activity, topic}
+          )
+        else
+          send(pid, {:text, anon_render})
+        end
+      end)
+    end)
+  end
+
+  defp push_to_socket(topic, item) do
+    anon_render = StreamerView.render("update.json", item, topic)
+
+    Registry.dispatch(@registry, topic, fn list ->
+      Enum.each(list, fn {pid, auth?} ->
+        if auth? do
+          send(pid, {:render_with_user, StreamerView, "update.json", item, topic})
         else
           send(pid, {:text, anon_render})
         end
@@ -303,6 +329,22 @@ defmodule Pleroma.Web.Streamer do
       true
     else
       ActivityPub.contain_activity(activity, user)
+    end
+  end
+
+  def close_streams_by_oauth_token(oauth_token) do
+    if should_env_send?() do
+      Registry.select(
+        @registry,
+        [
+          {
+            {:"$1", :"$2", :"$3"},
+            [{:==, :"$3", oauth_token.id}],
+            [:"$2"]
+          }
+        ]
+      )
+      |> Enum.each(fn pid -> send(pid, :close) end)
     end
   end
 

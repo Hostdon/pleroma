@@ -293,6 +293,8 @@ akkoma$ MIX_ENV=prod mix pleroma.user new <username> <your@emailaddress> --admin
 
 If you opted to allow sudo for the `akkoma` user but would like to remove the ability for greater security, now might be a good time to edit `/etc/sudoers` and/or change the groups the `akkoma` user belongs to. Be sure to restart the akkoma service afterwards to ensure it picks up on the changes.
 
+{! installation/frontends.include !}
+
 #### Further reading
 
 {! installation/further_reading.include !}

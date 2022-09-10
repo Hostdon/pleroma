@@ -38,6 +38,19 @@ defmodule Pleroma.Web.OAuth.Token.Query do
     from(q in query, where: q.user_id == ^user_id)
   end
 
+  def get_unexpired(query) do
+    now = NaiveDateTime.utc_now()
+    from(q in query, where: q.valid_until > ^now)
+  end
+
+  def limit(query, limit) do
+    from(q in query, limit: ^limit)
+  end
+
+  def sort_by_inserted_at(query) do
+    from(q in query, order_by: [desc: :updated_at])
+  end
+
   @spec preload(query, any) :: query
   def preload(query \\ Token, assoc_preload \\ [])
 

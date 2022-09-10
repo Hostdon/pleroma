@@ -32,8 +32,15 @@ defmodule Pleroma.Web.MastodonAPI.WebsocketHandler do
           req
         end
 
-      {:cowboy_websocket, req, %{user: user, topic: topic, count: 0, timer: nil},
-       %{idle_timeout: @timeout}}
+      {:cowboy_websocket, req,
+       %{
+         user: user,
+         topic: topic,
+         count: 0,
+         timer: nil,
+         subscriptions: [],
+         oauth_token: oauth_token
+       }, %{idle_timeout: @timeout}}
     else
       {:error, :bad_topic} ->
         Logger.debug("#{__MODULE__} bad topic #{inspect(req)}")
@@ -52,7 +59,7 @@ defmodule Pleroma.Web.MastodonAPI.WebsocketHandler do
       "#{__MODULE__} accepted websocket connection for user #{(state.user || %{id: "anonymous"}).id}, topic #{state.topic}"
     )
 
-    Streamer.add_socket(state.topic, state.user)
+    Streamer.add_socket(state.topic, state.oauth_token)
     {:ok, %{state | timer: timer()}}
   end
 
@@ -65,9 +72,38 @@ defmodule Pleroma.Web.MastodonAPI.WebsocketHandler do
   # We only receive pings for now
   def websocket_handle(:ping, state), do: {:ok, state}
 
-  def websocket_handle({:text, "ping"}, state) do
+  def websocket_handle({:text, ping}, state) when ping in ~w[ping PING] do
     if state.timer, do: Process.cancel_timer(state.timer)
     {:reply, {:text, "pong"}, %{state | timer: timer()}}
+  end
+
+  def websocket_handle({:text, text}, state) do
+    with {:ok, json} <- Jason.decode(text) do
+      websocket_handle({:json, json}, state)
+    else
+      _ ->
+        Logger.error("#{__MODULE__} received text frame: #{text}")
+        {:ok, state}
+    end
+  end
+
+  def websocket_handle(
+        {:json, %{"type" => "subscribe", "stream" => stream_name}},
+        %{user: user, oauth_token: token} = state
+      ) do
+    with {:ok, topic} <- Streamer.get_topic(stream_name, user, token, %{}) do
+      new_subscriptions =
+        [topic | Map.get(state, :subscriptions, [])]
+        |> Enum.uniq()
+
+      {:ok, _topic} = Streamer.add_socket(topic, user)
+
+      {:ok, Map.put(state, :subscriptions, new_subscriptions)}
+    else
+      _ ->
+        Logger.error("#{__MODULE__} received invalid topic: #{stream_name}")
+        {:ok, state}
+    end
   end
 
   def websocket_handle(frame, state) do
@@ -75,11 +111,11 @@ defmodule Pleroma.Web.MastodonAPI.WebsocketHandler do
     {:ok, state}
   end
 
-  def websocket_info({:render_with_user, view, template, item}, state) do
+  def websocket_info({:render_with_user, view, template, item, topic}, state) do
     user = %User{} = User.get_cached_by_ap_id(state.user.ap_id)
 
     unless Streamer.filtered_by_user?(user, item) do
-      websocket_info({:text, view.render(template, item, user)}, %{state | user: user})
+      websocket_info({:text, view.render(template, item, user, topic)}, %{state | user: user})
     else
       {:ok, state}
     end
@@ -101,6 +137,10 @@ defmodule Pleroma.Web.MastodonAPI.WebsocketHandler do
   # `@idle_timeout`.
   def websocket_info(:tick, state) do
     {:reply, :ping, %{state | timer: nil, count: 0}, :hibernate}
+  end
+
+  def websocket_info(:close, state) do
+    {:stop, state}
   end
 
   # State can be `[]` only in case we terminate before switching to websocket,

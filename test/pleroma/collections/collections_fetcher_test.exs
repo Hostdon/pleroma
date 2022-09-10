@@ -30,7 +30,7 @@ defmodule Akkoma.Collections.FetcherTest do
         }
     end)
 
-    {:ok, objects} = Fetcher.fetch_collection_by_ap_id(ap_id)
+    {:ok, objects} = Fetcher.fetch_collection(ap_id)
     assert [%{"type" => "Create"}, %{"type" => "Like"}] = objects
   end
 
@@ -53,7 +53,7 @@ defmodule Akkoma.Collections.FetcherTest do
         }
     end)
 
-    {:ok, objects} = Fetcher.fetch_collection_by_ap_id(ap_id)
+    {:ok, objects} = Fetcher.fetch_collection(ap_id)
     assert [%{"type" => "Create"}, %{"type" => "Like"}] = objects
   end
 
@@ -106,7 +106,7 @@ defmodule Akkoma.Collections.FetcherTest do
         }
     end)
 
-    {:ok, objects} = Fetcher.fetch_collection_by_ap_id(ap_id)
+    {:ok, objects} = Fetcher.fetch_collection(ap_id)
     assert [%{"type" => "Create"}, %{"type" => "Like"}] = objects
   end
 
@@ -161,7 +161,58 @@ defmodule Akkoma.Collections.FetcherTest do
         }
     end)
 
-    {:ok, objects} = Fetcher.fetch_collection_by_ap_id(ap_id)
+    {:ok, objects} = Fetcher.fetch_collection(ap_id)
+    assert [%{"type" => "Create"}] = objects
+  end
+
+  test "it should stop fetching when we hit a 404" do
+    clear_config([:activitypub, :max_collection_objects], 1)
+
+    unordered_collection =
+      "test/fixtures/collections/unordered_page_reference.json"
+      |> File.read!()
+
+    first_page =
+      "test/fixtures/collections/unordered_page_first.json"
+      |> File.read!()
+
+    ap_id = "https://example.com/collection/unordered_page_reference"
+    first_page_id = "https://example.com/collection/unordered_page_reference?page=1"
+    second_page_id = "https://example.com/collection/unordered_page_reference?page=2"
+
+    Tesla.Mock.mock(fn
+      %{
+        method: :get,
+        url: ^ap_id
+      } ->
+        %Tesla.Env{
+          status: 200,
+          body: unordered_collection,
+          headers: [{"content-type", "application/activity+json"}]
+        }
+
+      %{
+        method: :get,
+        url: ^first_page_id
+      } ->
+        %Tesla.Env{
+          status: 200,
+          body: first_page,
+          headers: [{"content-type", "application/activity+json"}]
+        }
+
+      %{
+        method: :get,
+        url: ^second_page_id
+      } ->
+        %Tesla.Env{
+          status: 404,
+          body: nil,
+          headers: [{"content-type", "application/activity+json"}]
+        }
+    end)
+
+    {:ok, objects} = Fetcher.fetch_collection(ap_id)
     assert [%{"type" => "Create"}] = objects
   end
 end

@@ -37,7 +37,7 @@ defmodule Pleroma.Web.CommonAPI.Utils do
 
   def attachments_from_ids_no_descs(ids) do
     Enum.map(ids, fn media_id ->
-      case Repo.get(Object, media_id) do
+      case get_attachment(media_id) do
         %Object{data: data} -> data
         _ -> nil
       end
@@ -51,11 +51,15 @@ defmodule Pleroma.Web.CommonAPI.Utils do
     {_, descs} = Jason.decode(descs_str)
 
     Enum.map(ids, fn media_id ->
-      with %Object{data: data} <- Repo.get(Object, media_id) do
+      with %Object{data: data} <- get_attachment(media_id) do
         Map.put(data, "name", descs[media_id])
       end
     end)
     |> Enum.reject(&is_nil/1)
+  end
+
+  defp get_attachment(media_id) do
+    Repo.get(Object, media_id)
   end
 
   @spec get_to_and_cc(ActivityDraft.t()) :: {list(String.t()), list(String.t())}
@@ -219,7 +223,7 @@ defmodule Pleroma.Web.CommonAPI.Utils do
     |> maybe_add_attachments(draft.attachments, attachment_links)
   end
 
-  defp get_content_type(content_type) do
+  def get_content_type(content_type) do
     if Enum.member?(Config.get([:instance, :allowed_post_formats]), content_type) do
       content_type
     else
@@ -285,11 +289,11 @@ defmodule Pleroma.Web.CommonAPI.Utils do
 
   def format_input(text, "text/x.misskeymarkdown", options) do
     text
+    |> Formatter.markdown_to_html()
+    |> MfmParser.Parser.parse()
+    |> MfmParser.Encoder.to_html()
     |> Formatter.linkify(options)
-    |> Formatter.html_escape("text/x.misskeymarkdown")
-    |> (fn {text, mentions, tags} ->
-          {String.replace(text, ~r/\r?\n/, "<br>"), mentions, tags}
-        end).()
+    |> Formatter.html_escape("text/html")
   end
 
   def format_input(text, "text/markdown", options) do

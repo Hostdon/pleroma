@@ -9,6 +9,7 @@ defmodule Pleroma.Helpers.AuthHelper do
   import Plug.Conn
 
   @oauth_token_session_key :oauth_token
+  @oauth_user_session_key :oauth_user
 
   @doc """
   Skips OAuth permissions (scopes) checks, assigns nil `:token`.
@@ -42,5 +43,17 @@ defmodule Pleroma.Helpers.AuthHelper do
   @doc "Deletes OAuth token string from session"
   def delete_session_token(%Conn{} = conn) do
     delete_session(conn, @oauth_token_session_key)
+  end
+
+  def put_session_user(%Conn{} = conn, user) do
+    put_session(conn, @oauth_user_session_key, user)
+  end
+
+  def delete_session_user(%Conn{} = conn) do
+    delete_session(conn, @oauth_user_session_key)
+  end
+
+  def get_session_user(%Conn{} = conn) do
+    get_session(conn, @oauth_user_session_key)
   end
 end

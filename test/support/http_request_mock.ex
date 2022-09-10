@@ -407,6 +407,15 @@ defmodule HttpRequestMock do
      }}
   end
 
+  def get(
+        "http://mastodon.example.org/users/admin/statuses/99512778738411822/replies?min_id=99512778738411824&page=true",
+        _,
+        _,
+        _
+      ) do
+    {:ok, %Tesla.Env{status: 404, body: ""}}
+  end
+
   def get("http://mastodon.example.org/users/relay", _, _, [
         {"accept", "application/activity+json"}
       ]) do

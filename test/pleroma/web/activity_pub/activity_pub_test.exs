@@ -1373,6 +1373,25 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       assert embedded_object["id"] == follow_activity.data["id"]
     end
 
+    test "it removes the follow activity if it was local" do
+      follower = insert(:user, local: true)
+      followed = insert(:user)
+
+      {:ok, _, _, follow_activity} = CommonAPI.follow(follower, followed)
+      {:ok, activity} = ActivityPub.unfollow(follower, followed, nil, true)
+
+      assert activity.data["type"] == "Undo"
+      assert activity.data["actor"] == follower.ap_id
+
+      follow_activity = Activity.get_by_id(follow_activity.id)
+      assert is_nil(follow_activity)
+      assert is_nil(Utils.fetch_latest_follow(follower, followed))
+
+      # We need to keep our own undo
+      undo_activity = Activity.get_by_ap_id(activity.data["id"])
+      refute is_nil(undo_activity)
+    end
+
     test "it removes the follow activity if it was remote" do
       follower = insert(:user, local: false)
       followed = insert(:user)
@@ -1383,9 +1402,12 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       assert activity.data["type"] == "Undo"
       assert activity.data["actor"] == follower.ap_id
 
-      activity = Activity.get_by_id(follow_activity.id)
-      assert is_nil(activity)
+      follow_activity = Activity.get_by_id(follow_activity.id)
+      assert is_nil(follow_activity)
       assert is_nil(Utils.fetch_latest_follow(follower, followed))
+
+      undo_activity = Activity.get_by_ap_id(activity.data["id"])
+      assert is_nil(undo_activity)
     end
   end
 

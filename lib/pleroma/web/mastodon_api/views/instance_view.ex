@@ -26,7 +26,7 @@ defmodule Pleroma.Web.MastodonAPI.InstanceView do
       thumbnail:
         URI.merge(Pleroma.Web.Endpoint.url(), Keyword.get(instance, :instance_thumbnail))
         |> to_string,
-      languages: ["en"],
+      languages: Keyword.get(instance, :languages, ["en"]),
       registrations: Keyword.get(instance, :registrations_open),
       approval_required: Keyword.get(instance, :account_approval_required),
       # Extra (not present in Mastodon):
@@ -65,6 +65,7 @@ defmodule Pleroma.Web.MastodonAPI.InstanceView do
       "shareable_emoji_packs",
       "multifetch",
       "pleroma:api/v1/notifications:include_types_filter",
+      "editing",
       if Config.get([:media_proxy, :enabled]) do
         "media_proxy"
       end,
@@ -81,7 +82,11 @@ defmodule Pleroma.Web.MastodonAPI.InstanceView do
       if Config.get([:instance, :profile_directory]) do
         "profile_directory"
       end,
-      "custom_emoji_reactions"
+      if Config.get([:translator, :enabled], false) do
+        "akkoma:machine_translation"
+      end,
+      "custom_emoji_reactions",
+      "pleroma:get:main/ostatus"
     ]
     |> Enum.filter(& &1)
   end

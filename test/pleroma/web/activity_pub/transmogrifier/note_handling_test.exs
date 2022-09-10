@@ -380,7 +380,6 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier.NoteHandlingTest do
       clear_config([:instance, :federation_incoming_replies_max_depth], 10)
 
       {:ok, activity} = Transmogrifier.handle_incoming(data)
-
       object = Object.normalize(activity.data["object"])
 
       assert object.data["replies"] == items

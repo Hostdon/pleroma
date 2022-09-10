@@ -2,6 +2,8 @@
 
 *a smallish microblogging platform, aka the cooler pleroma*
 
+![English OK](https://img.shields.io/badge/English-OK-blueviolet) ![日本語OK](https://img.shields.io/badge/%E6%97%A5%E6%9C%AC%E8%AA%9E-OK-blueviolet)
+
 ## About 
 
 This is a fork of Pleroma, which is a microblogging server software that can federate (= exchange messages with) other servers that support ActivityPub. What that means is that you can host a server for yourself or your friends and stay in control of your online identity, but still exchange messages with people on larger servers. Akkoma will federate with all servers that implement ActivityPub, like Friendica, GNU Social, Hubzilla, Mastodon, Misskey, Peertube, and Pixelfed.

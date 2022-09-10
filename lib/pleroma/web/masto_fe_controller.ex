@@ -27,9 +27,21 @@ defmodule Pleroma.Web.MastoFEController do
   def index(conn, _params) do
     with %{assigns: %{user: %User{} = user, token: %Token{app_id: token_app_id} = token}} <- conn,
          {:ok, %{id: ^token_app_id}} <- AuthController.local_mastofe_app() do
+      flavour =
+        [:frontends, :mastodon]
+        |> Pleroma.Config.get()
+        |> Map.get("name", "mastodon-fe")
+
+      index =
+        if flavour == "fedibird-fe" do
+          "fedibird.index.html"
+        else
+          "glitchsoc.index.html"
+        end
+
       conn
       |> put_layout(false)
-      |> render("index.html",
+      |> render(index,
         token: token.token,
         user: user,
         custom_emojis: Pleroma.Emoji.get_all()

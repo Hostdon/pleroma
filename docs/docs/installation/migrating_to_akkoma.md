@@ -1,7 +1,5 @@
 # Migrating to Akkoma
 
-**Akkoma does not currently have a stable release, until 3.0, all builds should be considered "develop"**
-
 ## Why should you migrate?
 
 aside from actually responsive maintainer(s)? let's lookie here, we've got:
@@ -11,6 +9,8 @@ aside from actually responsive maintainer(s)? let's lookie here, we've got:
 - elasticsearch support (because pleroma search is GARBAGE)
 - latest develop pleroma-fe additions
 - local-only posting
+- automatic post translation
+- the mastodon frontend back in all its glory
 - probably more, this is like 3.5 years of IHBA additions finally compiled
 
 ## Actually migrating
@@ -43,14 +43,14 @@ This will just be setting the update URL - find your flavour from the [mapping o
 ```bash
 export FLAVOUR=[the flavour you found above]
 
-./bin/pleroma_ctl update --zip-url https://akkoma-updates.s3-website.fr-par.scw.cloud/develop/akkoma-$FLAVOUR.zip
+./bin/pleroma_ctl update --zip-url https://akkoma-updates.s3-website.fr-par.scw.cloud/stable/akkoma-$FLAVOUR.zip
 ./bin/pleroma_ctl migrate
 ```
 
 Then restart. When updating in the future, you canjust use
 
 ```bash
-./bin/pleroma_ctl update --branch develop
+./bin/pleroma_ctl update --branch stable
 ```
 
 ## Frontend changes
@@ -62,17 +62,18 @@ your upgrade path here depends on your setup
 
 You'll need to run a couple of commands,
 
-```bash
-# From source
-mix pleroma.frontend install pleroma-fe
-# you'll probably want this too
-mix pleroma.frontend install admin-fe
+=== "OTP"
+    ```sh
+    ./bin/pleroma_ctl frontend install pleroma-fe --ref stable
+    # and also, if desired
+    ./bin/pleroma_ctl frontend install admin-fe --ref stable
+    ```
 
-# OTP
-./bin/pleroma_ctl frontend install pleroma-fe
-# you'll probably want this too
-./bin/pleroma_ctl frontend install admin-fe
-```
+=== "From Source"
+    ```sh
+    mix pleroma.frontend install pleroma-fe --ref stable
+    mix pleroma.frontend install admin-fe --ref stable
+    ```
 
 ### I've run the mix task to install a frontend
 

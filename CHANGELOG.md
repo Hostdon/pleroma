@@ -4,7 +4,33 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## 2022.09
+
+### Added
+- support for fedibird-fe, and non-breaking API parity for it to function
+- support for setting instance languages in metadata
+- support for reusing oauth tokens, and not requiring new authorizations
+- the ability to obfuscate domains in your MRF descriptions
+- automatic translation of statuses via DeepL or LibreTranslate
+- ability to edit posts
+- ability to react with remote emoji
+
+### Changed
+- MFM parsing is now done on the backend by a modified version of ilja's parser -> https://akkoma.dev/AkkomaGang/mfm-parser
+- InlineQuotePolicy is now on by default
+
+### Fixed
+- Compatibility with latest meilisearch
+- Resolution of nested mix tasks (i.e search.meilisearch) in OTP releases
+- Elasticsearch returning likes and repeats, displaying as posts
+- Ensure key generation happens at registration-time to prevent potential race-conditions
+- Ensured websockets get closed on logout
+- Allowed GoToSocial-style `?query_string` signatures
+
+### Removed
+- Non-finch HTTP adapters. `:tesla, :adapter` is now highly recommended to be set to the default.
+
+## 2022.08
 
 ### Removed
 - Non-finch HTTP adapters. `:tesla, :adapter` is now highly recommended to be set to the default.
@@ -23,6 +49,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - amd64 is built for debian stable. Compatible with ubuntu 20.
   - ubuntu-jammy is built for... well, ubuntu 22 (LTS)
   - amd64-musl is built for alpine 3.16
+- Enable remote users to interact with posts
 
 ### Fixed
 - Updated mastoFE path, for the newer version

@@ -27,11 +27,11 @@ defmodule Pleroma.Web.Plugs.HTTPSignaturePlug do
     end
   end
 
-  def route_aliases(%{path_info: ["objects", id]}) do
+  def route_aliases(%{path_info: ["objects", id], query_string: query_string}) do
     ap_id = Router.Helpers.o_status_url(Pleroma.Web.Endpoint, :object, id)
 
     with %Activity{} = activity <- Activity.get_by_object_ap_id_with_object(ap_id) do
-      ["/notice/#{activity.id}"]
+      ["/notice/#{activity.id}", "/notice/#{activity.id}?#{query_string}"]
     else
       _ -> []
     end
@@ -64,7 +64,9 @@ defmodule Pleroma.Web.Plugs.HTTPSignaturePlug do
     if has_signature_header?(conn) do
       # set (request-target) header to the appropriate value
       # we also replace the digest header with the one we computed
-      possible_paths = route_aliases(conn) ++ [conn.request_path]
+      possible_paths =
+        route_aliases(conn) ++ [conn.request_path, conn.request_path <> "?#{conn.query_string}"]
+
       assign_valid_signature_on_route_aliases(conn, possible_paths)
     else
       Logger.debug("No signature header!")

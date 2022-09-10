@@ -8,6 +8,18 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionView do
   alias Pleroma.Web.MastodonAPI.AccountView
   alias Pleroma.Web.MediaProxy
 
+  def emoji_name(emoji, nil), do: emoji
+
+  def emoji_name(emoji, url) do
+    url = URI.parse(url)
+
+    if url.host == Pleroma.Web.Endpoint.host() do
+      emoji
+    else
+      "#{emoji}@#{url.host}"
+    end
+  end
+
   def render("index.json", %{emoji_reactions: emoji_reactions} = opts) do
     render_many(emoji_reactions, __MODULE__, "show.json", opts)
   end
@@ -16,7 +28,7 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionView do
     users = fetch_users(user_ap_ids)
 
     %{
-      name: emoji,
+      name: emoji_name(emoji, url),
       count: length(users),
       accounts: render(AccountView, "index.json", users: users, for: user),
       url: MediaProxy.url(url),
