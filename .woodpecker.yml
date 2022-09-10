@@ -112,7 +112,7 @@ pipeline:
       - /bin/sh /entrypoint.sh
 
   debian-bullseye:
-    image: akkoma/debian
+    image: elixir:1.13.4
     <<: *on-release
     environment:
       MIX_ENV: prod
