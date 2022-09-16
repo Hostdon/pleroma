@@ -48,6 +48,7 @@ config :pleroma, ecto_repos: [Pleroma.Repo]
 
 config :pleroma, Pleroma.Repo,
   telemetry_event: [Pleroma.Repo.Instrumenter],
+  queue_target: 20_000,
   migration_lock: nil
 
 config :pleroma, Pleroma.Captcha,
