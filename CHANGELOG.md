@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 - MFM parsing is now done on the backend by a modified version of ilja's parser -> https://akkoma.dev/AkkomaGang/mfm-parser
 - InlineQuotePolicy is now on by default
+- Enable remote users to interact with posts
 
 ### Fixed
 - Compatibility with latest meilisearch
@@ -49,7 +50,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - amd64 is built for debian stable. Compatible with ubuntu 20.
   - ubuntu-jammy is built for... well, ubuntu 22 (LTS)
   - amd64-musl is built for alpine 3.16
-- Enable remote users to interact with posts
 
 ### Fixed
 - Updated mastoFE path, for the newer version
