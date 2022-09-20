@@ -142,7 +142,7 @@ pipeline:
   # Canonical amd64-musl
   musl:
     image: hexpm/elixir:1.13.4-erlang-24.3.4.5-alpine-3.15.6
-    <<: *on-stable
+    <<: *on-release
     environment:
       MIX_ENV: prod
     commands:
