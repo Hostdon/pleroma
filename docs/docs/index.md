@@ -7,6 +7,20 @@ It actually consists of two components: a backend, named simply Akkoma, and a us
 It's part of what we call the fediverse, a federated network of instances which speak common protocols and can communicate with each other.
 One account on an instance is enough to talk to the entire fediverse!
 
+## Community Channels
+
+### IRC
+
+For support or general questions, pop over to #akkoma and #akkoma-dev at [irc.akkoma.dev](https://irc.akkoma.dev) (port 6697, SSL)
+
+### Discourse
+
+For more general meta-discussion, for example discussion of potential future features, head on over to [meta.akkoma.dev](https://meta.akkoma.dev)
+
+### Dev diaries and release notifications
+
+will be posted via [@akkoma@ihba](https://ihatebeinga.live/users/akkoma)
+
 ## How can I use it?
 
 Akkoma instances are already widely deployed, a list can be found at <https://the-federation.info/pleroma> and <https://fediverse.network/pleroma>.
@@ -26,3 +40,4 @@ Just add a "/web" after your instance url (e.g. <https://pleroma.soykaf.com/web>
 The Mastodon interface is from the Glitch-soc fork. For more information on the Mastodon interface you can check the [Mastodon](https://docs.joinmastodon.org/) and [Glitch-soc](https://glitch-soc.github.io/docs/) documentation.
 
 Remember, what you see is only the frontend part of Mastodon, the backend is still Akkoma.
+

@@ -47,7 +47,7 @@ defmodule Pleroma.Search.MeilisearchTest do
                    Jason.decode!(body)
                  )
 
-          json(%{updateId: 1})
+          json(%{taskUid: 1})
       end)
 
       {:ok, activity} =
@@ -100,11 +100,11 @@ defmodule Pleroma.Search.MeilisearchTest do
                    Jason.decode!(body)
                  )
 
-          json(%{updateId: 1})
+          json(%{taskUid: 1})
 
         %{method: :delete, url: "http://127.0.0.1:7700/indexes/objects/documents/" <> id} ->
           assert String.length(id) > 1
-          json(%{updateId: 2})
+          json(%{taskUid: 2})
       end)
 
       {:ok, activity} =

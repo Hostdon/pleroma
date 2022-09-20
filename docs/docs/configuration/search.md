@@ -141,8 +141,7 @@ You then need to set the URL and authentication credentials if relevant.
 
 ### Initial indexing
 
-After setting up the configuration, you'll want to index all of your already existsing posts. Only public posts are indexed.  You'll only
-have to do it one time, but it might take a while, depending on the amount of posts your instance has seen. 
+After setting up the configuration, you'll want to index all of your already existsing posts. You'll only have to do it one time, but it might take a while, depending on the amount of posts your instance has seen. 
 
 The sequence of actions is as follows:
 
