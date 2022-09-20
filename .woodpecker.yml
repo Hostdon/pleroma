@@ -14,6 +14,14 @@ variables:
         - stable
         - refs/tags/v*
         - refs/tags/stable-*
+  - &on-stable
+    when:
+      event:
+        - push
+        - tag
+      branch:
+        - stable
+        - refs/tags/stable-*
   - &on-point-release
     when:
       event:
@@ -110,6 +118,8 @@ pipeline:
       - export SOURCE=akkoma-ubuntu-jammy.zip
       - export DEST=scaleway:akkoma-updates/$${CI_COMMIT_TAG:-"$CI_COMMIT_BRANCH"}/akkoma-ubuntu-jammy.zip
       - /bin/sh /entrypoint.sh
+      - export DEST=scaleway:akkoma-updates/$${CI_COMMIT_TAG:-"$CI_COMMIT_BRANCH"}/akkoma-amd64-ubuntu-jammy.zip
+      - /bin/sh /entrypoint.sh
 
   debian-bullseye:
     image: elixir:1.13.4
@@ -142,7 +152,7 @@ pipeline:
   # Canonical amd64-musl
   musl:
     image: elixir:1.13.4-alpine
-    <<: *on-release
+    <<: *on-stable
     environment:
       MIX_ENV: prod
     commands:
@@ -157,7 +167,7 @@ pipeline:
 
   release-musl:
     image: akkoma/releaser
-    <<: *on-release
+    <<: *on-stable
     secrets: *scw-secrets
     commands:
       - export SOURCE=akkoma-amd64-musl.zip
