@@ -87,7 +87,7 @@ pipeline:
 
   # Canonical amd64
   ubuntu22:
-    image: hexpm/elixir:1.13.4-erlang-25.0.2-ubuntu-jammy-20220428
+    image: hexpm/elixir:1.13.4-erlang-24.3.4.5-ubuntu-jammy-20220428
     <<: *on-release
     environment:
       MIX_ENV: prod
@@ -112,7 +112,7 @@ pipeline:
       - /bin/sh /entrypoint.sh
 
   debian-bullseye:
-    image: akkoma/debian
+    image: hexpm/elixir:1.13.4-erlang-24.3.4.5-debian-bullseye-20220801
     <<: *on-release
     environment:
       MIX_ENV: prod
@@ -141,8 +141,8 @@ pipeline:
 
   # Canonical amd64-musl
   musl:
-    image: elixir:1.13.4-alpine
-    <<: *on-release
+    image: hexpm/elixir:1.13.4-erlang-24.3.4.5-alpine-3.15.6
+    <<: *on-stable
     environment:
       MIX_ENV: prod
     commands:
