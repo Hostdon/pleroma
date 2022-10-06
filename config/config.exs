@@ -261,7 +261,8 @@ config :pleroma, :instance,
   password_reset_token_validity: 60 * 60 * 24,
   profile_directory: true,
   privileged_staff: false,
-  local_bubble: []
+  local_bubble: [],
+  max_frontend_settings_json_chars: 100_000
 
 config :pleroma, :welcome,
   direct_message: [

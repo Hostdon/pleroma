@@ -4,12 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## Unreleased
+## 2022.10
+
+### Added
+- Ability to sync frontend profiles between clients, with a name attached
+- Status card generation will now use the media summary if it is available
 
 ### Changed
+- Emoji updated to latest 15.0 draft
 - **Breaking**: `/api/v1/pleroma/backups` endpoints now requires `read:backups` scope instead of `read:accounts`
 
 ### Fixed
+- OAuthPlug no longer joins with the database every call and uses the user cache
+- Undo activities no longer try to look up by ID, and render correctly
 - prevent false-errors from meilisearch
 
 ## 2022.09
