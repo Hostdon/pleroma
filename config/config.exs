@@ -48,6 +48,7 @@ config :pleroma, ecto_repos: [Pleroma.Repo]
 
 config :pleroma, Pleroma.Repo,
   telemetry_event: [Pleroma.Repo.Instrumenter],
+  queue_target: 20_000,
   migration_lock: nil
 
 config :pleroma, Pleroma.Captcha,
@@ -260,7 +261,8 @@ config :pleroma, :instance,
   password_reset_token_validity: 60 * 60 * 24,
   profile_directory: true,
   privileged_staff: false,
-  local_bubble: []
+  local_bubble: [],
+  max_frontend_settings_json_chars: 100_000
 
 config :pleroma, :welcome,
   direct_message: [
@@ -752,9 +754,9 @@ config :pleroma, :frontends,
     },
     "soapbox-fe" => %{
       "name" => "soapbox-fe",
-      "git" => "https://gitlab.com/soapbox-pub/soapbox-fe",
+      "git" => "https://gitlab.com/soapbox-pub/soapbox",
       "build_url" =>
-        "https://gitlab.com/soapbox-pub/soapbox-fe/-/jobs/artifacts/${ref}/download?job=build-production",
+        "https://gitlab.com/soapbox-pub/soapbox/-/jobs/artifacts/${ref}/download?job=build-production",
       "ref" => "v2.0.0",
       "build_dir" => "static"
     },

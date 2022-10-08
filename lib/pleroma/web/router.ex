@@ -466,6 +466,26 @@ defmodule Pleroma.Web.Router do
   scope "/api/v1/akkoma", Pleroma.Web.AkkomaAPI do
     pipe_through(:authenticated_api)
     get("/translation/languages", TranslationController, :languages)
+
+    get("/frontend_settings/:frontend_name", FrontendSettingsController, :list_profiles)
+
+    get(
+      "/frontend_settings/:frontend_name/:profile_name",
+      FrontendSettingsController,
+      :get_profile
+    )
+
+    put(
+      "/frontend_settings/:frontend_name/:profile_name",
+      FrontendSettingsController,
+      :update_profile
+    )
+
+    delete(
+      "/frontend_settings/:frontend_name/:profile_name",
+      FrontendSettingsController,
+      :delete_profile
+    )
   end
 
   scope "/api/v1", Pleroma.Web.MastodonAPI do

@@ -620,15 +620,15 @@ defmodule Pleroma.UserTest do
       assert changeset.valid?
     end
 
-    test "it sets the password_hash, ap_id and PEM key" do
+    test "it sets the password_hash, ap_id, private key and followers collection address" do
       changeset = User.register_changeset(%User{}, @full_user_data)
 
       assert changeset.valid?
 
       assert is_binary(changeset.changes[:password_hash])
+      assert is_binary(changeset.changes[:keys])
       assert changeset.changes[:ap_id] == User.ap_id(%User{nickname: @full_user_data.nickname})
       assert is_binary(changeset.changes[:keys])
-
       assert changeset.changes.follower_address == "#{changeset.changes.ap_id}/followers"
     end
 
@@ -736,6 +736,13 @@ defmodule Pleroma.UserTest do
       {:ok, fetched_user} = User.get_or_fetch(ap_id)
       freshed_user = refresh_record(user)
       assert freshed_user == fetched_user
+    end
+
+    test "gets an existing user by nickname starting with http" do
+      user = insert(:user, nickname: "httpssome")
+      {:ok, fetched_user} = User.get_or_fetch("httpssome")
+
+      assert user == fetched_user
     end
   end
 
@@ -2127,21 +2134,6 @@ defmodule Pleroma.UserTest do
       Enum.each(inactive, fn user ->
         assert user.id in inactive_users_ids
       end)
-    end
-  end
-
-  describe "ensure_keys_present" do
-    test "it creates keys for a user and stores them in info" do
-      user = insert(:user)
-      refute is_binary(user.keys)
-      {:ok, user} = User.ensure_keys_present(user)
-      assert is_binary(user.keys)
-    end
-
-    test "it doesn't create keys if there already are some" do
-      user = insert(:user, keys: "xxx")
-      {:ok, user} = User.ensure_keys_present(user)
-      assert user.keys == "xxx"
     end
   end
 

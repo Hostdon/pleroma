@@ -165,6 +165,8 @@ defmodule Pleroma.User do
     has_many(:outgoing_relationships, UserRelationship, foreign_key: :source_id)
     has_many(:incoming_relationships, UserRelationship, foreign_key: :target_id)
 
+    has_many(:frontend_profiles, Pleroma.Akkoma.FrontendSettingsProfile)
+
     for {relationship_type,
          [
            {outgoing_relation, outgoing_relation_target},
@@ -681,9 +683,9 @@ defmodule Pleroma.User do
     |> validate_exclusion(:nickname, Config.get([User, :restricted_nicknames]))
     |> validate_format(:nickname, local_nickname_regex())
     |> put_ap_id()
-    |> put_keys()
     |> unique_constraint(:ap_id)
     |> put_following_and_follower_and_featured_address()
+    |> put_private_key()
   end
 
   def register_changeset(struct, params \\ %{}, opts \\ []) do
@@ -741,10 +743,10 @@ defmodule Pleroma.User do
     |> validate_length(:registration_reason, max: reason_limit)
     |> maybe_validate_required_email(opts[:external])
     |> put_password_hash
-    |> put_keys()
     |> put_ap_id()
     |> unique_constraint(:ap_id)
     |> put_following_and_follower_and_featured_address()
+    |> put_private_key()
   end
 
   def maybe_validate_required_email(changeset, true), do: changeset
@@ -755,11 +757,6 @@ defmodule Pleroma.User do
     else
       changeset
     end
-  end
-
-  def put_keys(changeset) do
-    {:ok, pem} = Keys.generate_rsa_pem()
-    put_change(changeset, :keys, pem)
   end
 
   def put_ap_id(changeset) do
@@ -777,6 +774,11 @@ defmodule Pleroma.User do
     |> put_change(:follower_address, followers)
     |> put_change(:following_address, following)
     |> put_change(:featured_address, featured)
+  end
+
+  defp put_private_key(changeset) do
+    {:ok, pem} = Keys.generate_rsa_pem()
+    put_change(changeset, :keys, pem)
   end
 
   defp autofollow_users(user) do
@@ -1955,6 +1957,7 @@ defmodule Pleroma.User do
       follower_address: uri <> "/followers"
     }
     |> change
+    |> put_private_key()
     |> unique_constraint(:nickname)
     |> Repo.insert()
     |> set_cache()
@@ -1987,7 +1990,8 @@ defmodule Pleroma.User do
 
   @doc "Gets or fetch a user by uri or nickname."
   @spec get_or_fetch(String.t()) :: {:ok, User.t()} | {:error, String.t()}
-  def get_or_fetch("http" <> _host = uri), do: get_or_fetch_by_ap_id(uri)
+  def get_or_fetch("http://" <> _host = uri), do: get_or_fetch_by_ap_id(uri)
+  def get_or_fetch("https://" <> _host = uri), do: get_or_fetch_by_ap_id(uri)
   def get_or_fetch(nickname), do: get_or_fetch_by_nickname(nickname)
 
   # wait a period of time and return newest version of the User structs
@@ -2218,17 +2222,6 @@ defmodule Pleroma.User do
         "mime_type" => mascot[:mime_type]
       }
     }
-  end
-
-  def ensure_keys_present(%{keys: keys} = user) when not is_nil(keys), do: {:ok, user}
-
-  def ensure_keys_present(%User{} = user) do
-    with {:ok, pem} <- Keys.generate_rsa_pem() do
-      user
-      |> cast(%{keys: pem}, [:keys])
-      |> validate_required([:keys])
-      |> update_and_set_cache()
-    end
   end
 
   def get_ap_ids_by_nicknames(nicknames) do

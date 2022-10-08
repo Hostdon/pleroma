@@ -14,11 +14,12 @@ apt -yq install tor
 
 **WARNING:** Onion instances not using a Tor version supporting V3 addresses will not be able to federate with you. 
 
-Create the hidden service for your Akkoma instance in `/etc/tor/torrc`:
+Create the hidden service for your Akkoma instance in `/etc/tor/torrc`, with an HTTP tunnel:
 ```
 HiddenServiceDir /var/lib/tor/akkoma_hidden_service/
 HiddenServicePort 80 127.0.0.1:8099
 HiddenServiceVersion 3  # Remove if Tor version is below 0.3 ( tor --version )
+HTTPTunnelPort 9080
 ```
 Restart Tor to generate an adress:
 ```
@@ -35,7 +36,7 @@ Next, edit your Akkoma config.
 If running in prod, navigate to your Akkoma directory, edit `config/prod.secret.exs`
 and append this line:
 ```
-config :pleroma, :http, proxy_url: {:socks5, :localhost, 9050}
+config :pleroma, :http, proxy_url: "http://localhost:9080"
 ```
 In your Akkoma directory, assuming you're running prod,
 run the following:

@@ -14,6 +14,10 @@ su akkoma -s $SHELL -lc "./bin/pleroma_ctl update"
 su akkoma -s $SHELL -lc "./bin/pleroma_ctl migrate"
 ```
 
+If you selected an alternate flavour on installation, 
+you _may_ need to specify `--flavour`, in the same way as 
+[when installing](../../installation/otp_en#detecting-flavour).
+
 ## For from source installations (using git)
 
 1. Go to the working directory of Akkoma (default is `/opt/akkoma`)

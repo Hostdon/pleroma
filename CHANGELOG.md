@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2022.10
+
+### Added
+- Ability to sync frontend profiles between clients, with a name attached
+- Status card generation will now use the media summary if it is available
+
+### Changed
+- Emoji updated to latest 15.0 draft
+- **Breaking**: `/api/v1/pleroma/backups` endpoints now requires `read:backups` scope instead of `read:accounts`
+
+### Fixed
+- OAuthPlug no longer joins with the database every call and uses the user cache
+- Undo activities no longer try to look up by ID, and render correctly
+- prevent false-errors from meilisearch
+
 ## 2022.09
 
 ### Added
@@ -18,6 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 - MFM parsing is now done on the backend by a modified version of ilja's parser -> https://akkoma.dev/AkkomaGang/mfm-parser
 - InlineQuotePolicy is now on by default
+- Enable remote users to interact with posts
 
 ### Fixed
 - Compatibility with latest meilisearch
@@ -49,7 +65,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - amd64 is built for debian stable. Compatible with ubuntu 20.
   - ubuntu-jammy is built for... well, ubuntu 22 (LTS)
   - amd64-musl is built for alpine 3.16
-- Enable remote users to interact with posts
 
 ### Fixed
 - Updated mastoFE path, for the newer version

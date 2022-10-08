@@ -21,7 +21,7 @@ This will only save the theme for you personally. To make it available to the wh
 
 ### Upload the theme to the server
 
-Themes can be found in the [static directory](static_dir.md). Create `STATIC-DIR/static/themes/` if needed and copy your theme there. Next you need to add an entry for your theme to `STATIC-DIR/static/styles.json`. If you use a from source installation, you'll first need to copy the file from `priv/static/static/styles.json`.
+Themes can be found in the [static directory](static_dir.md). Create `STATIC-DIR/static/themes/` if needed and copy your theme there. Next you need to add an entry for your theme to `STATIC-DIR/static/styles.json`. If you use a from source installation, you'll first need to copy the file from `STATIC-DIR/frontends/pleroma-fe/REF/static/styles.json` (where `REF` is `stable` or `develop` depending on which ref you decided to install).
 
 Example of `styles.json` where we add our own `my-awesome-theme.json`
 ```json

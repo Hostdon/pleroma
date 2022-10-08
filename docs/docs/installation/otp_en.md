@@ -19,12 +19,12 @@ This is a little more complex than it used to be (thanks ubuntu)
 
 Use the following mapping to figure out your flavour:
 
-| distribution  | flavour      |
-| ------------- | ------------ |
-| debian stable | amd64        |
-| ubuntu focal  | amd64        |
-| ubuntu jammy  | ubuntu-jammy |
-| alpine        | amd64-musl   |
+| distribution  | flavour            | available branches  |
+| ------------- | ------------------ | ------------------- |
+| debian stable | amd64              | develop, stable     |
+| ubuntu focal  | amd64              | develop, stable     |
+| ubuntu jammy  | amd64-ubuntu-jammy | develop, stable     |
+| alpine        | amd64-musl         | stable              |
 
 Other similar distributions will _probably_ work, but if it is not listed above, there is no official
 support.
