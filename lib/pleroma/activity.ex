@@ -369,7 +369,7 @@ defmodule Pleroma.Activity do
 
   def restrict_deactivated_users(query) do
     query
-    |> join(:inner, [activity], user in User, as: :user, on: activity.actor == user.ap_id and user.is_active == true)
+    |> join(:inner_lateral, [activity], active in fragment("SELECT is_active from users WHERE ap_id = ? AND is_active = TRUE", activity.actor))
   end
 
   defdelegate search(user, query, options \\ []), to: Pleroma.Search.DatabaseSearch
