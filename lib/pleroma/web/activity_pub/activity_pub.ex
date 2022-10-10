@@ -507,6 +507,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   defp fetch_paginated_optimized(query, opts, pagination) do
     # Note: tag-filtering funcs may apply "ORDER BY objects.id DESC",
     #   and extra sorting on "activities.id DESC NULLS LAST" would worse the query plan
+    IO.inspect(Repo.to_sql(:all, query))
     opts = Map.put(opts, :skip_extra_order, true)
 
     Pagination.fetch_paginated(query, opts, pagination)
