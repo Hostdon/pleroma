@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Changes
 - Follows no longer override domain blocks, a domain block is final
+- Deletes are now the lowest priority to publish and will be handled after creates
 
 ## 2022.10
 

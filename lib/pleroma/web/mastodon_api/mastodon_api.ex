@@ -63,16 +63,11 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPI do
   def get_notifications(user, params \\ %{}) do
     options = cast_params(params)
 
-    query =
-      user
-      |> Notification.for_user_query(options)
-      |> restrict(:include_types, options)
-      |> restrict(:exclude_types, options)
-      |> restrict(:account_ap_id, options)
-
-    IO.inspect(Pleroma.Repo.to_sql(:all, query))
-
-    query
+    user
+    |> Notification.for_user_query(options)
+    |> restrict(:include_types, options)
+    |> restrict(:exclude_types, options)
+    |> restrict(:account_ap_id, options)
     |> Pagination.fetch_paginated(params)
   end
 
