@@ -240,30 +240,6 @@ defmodule Pleroma.FollowingRelationship do
     end)
   end
 
-  @doc """
-  For a query with joined activity,
-  keeps rows where activity's actor is followed by user -or- is NOT domain-blocked by user.
-  """
-  def keep_following_or_not_domain_blocked(query, user) do
-    where(
-      query,
-      [_, activity],
-      fragment(
-        # "(actor's domain NOT in domain_blocks) OR (actor IS in followed AP IDs)"
-        """
-        NOT (substring(? from '.*://([^/]*)') = ANY(?)) OR
-          ? = ANY(SELECT ap_id FROM users AS u INNER JOIN following_relationships AS fr
-            ON u.id = fr.following_id WHERE fr.follower_id = ? AND fr.state = ?)
-        """,
-        activity.actor,
-        ^user.domain_blocks,
-        activity.actor,
-        ^User.binary_id(user.id),
-        ^accept_state_code()
-      )
-    )
-  end
-
   defp validate_not_self_relationship(%Changeset{} = changeset) do
     changeset
     |> validate_follower_id_following_id_inequality()

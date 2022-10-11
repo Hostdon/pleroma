@@ -138,7 +138,24 @@ defmodule Pleroma.Notification do
 
     query
     |> where([n, a], a.actor not in ^blocked_ap_ids)
-    |> FollowingRelationship.keep_following_or_not_domain_blocked(user)
+    |> restrict_domain_blocked(user)
+  end
+
+  defp restrict_domain_blocked(query, user) do
+    where(
+      query,
+      [_, activity],
+      fragment(
+        # "(actor's domain NOT in domain_blocks)"
+        """
+        NOT (
+          substring(? from '.*://([^/]*)') = ANY(?)
+        )
+        """,
+        activity.actor,
+        ^user.domain_blocks
+      )
+    )
   end
 
   defp exclude_blockers(query, user) do
