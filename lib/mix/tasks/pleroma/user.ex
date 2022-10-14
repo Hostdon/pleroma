@@ -538,6 +538,12 @@ defmodule Mix.Tasks.Pleroma.User do
     end
   end
 
+  def run(["convert_id", id]) do
+    {:ok, uuid} = FlakeId.Ecto.Type.dump(id)
+    {:ok, raw_id} = Ecto.UUID.load(uuid)
+    shell_info(raw_id)
+  end
+
   defp refetch_public_keys(query) do
     query
     |> Pleroma.Repo.chunk_stream(50, :batches)

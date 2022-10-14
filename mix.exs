@@ -4,7 +4,7 @@ defmodule Pleroma.Mixfile do
   def project do
     [
       app: :pleroma,
-      version: version("3.3.0"),
+      version: version("3.3.1"),
       elixir: "~> 1.12",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
@@ -120,7 +120,7 @@ defmodule Pleroma.Mixfile do
       {:phoenix_pubsub, "~> 2.1"},
       {:phoenix_ecto, "~> 4.4"},
       {:ecto_enum, "~> 1.4"},
-      {:ecto_sql, "~> 3.8.3"},
+      {:ecto_sql, "~> 3.9.0"},
       {:postgrex, ">= 0.16.3"},
       {:oban, "~> 2.12.1"},
       {:gettext,

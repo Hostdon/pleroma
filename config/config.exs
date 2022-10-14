@@ -569,7 +569,10 @@ config :pleroma, Oban,
     mute_expire: 5,
     search_indexing: 10
   ],
-  plugins: [Oban.Plugins.Pruner],
+  plugins: [
+    Oban.Plugins.Pruner,
+    {Oban.Plugins.Reindexer, schedule: "@weekly"}
+  ],
   crontab: [
     {"0 0 * * 0", Pleroma.Workers.Cron.DigestEmailsWorker},
     {"0 0 * * *", Pleroma.Workers.Cron.NewUsersDigestWorker}

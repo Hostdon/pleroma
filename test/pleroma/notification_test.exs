@@ -1149,18 +1149,6 @@ defmodule Pleroma.NotificationTest do
       assert Notification.for_user(user) == []
     end
 
-    test "it returns notifications for domain-blocked but followed user" do
-      user = insert(:user)
-      blocked = insert(:user, ap_id: "http://some-domain.com")
-
-      {:ok, user} = User.block_domain(user, "some-domain.com")
-      {:ok, _, _} = User.follow(user, blocked)
-
-      {:ok, _activity} = CommonAPI.post(blocked, %{status: "hey @#{user.nickname}"})
-
-      assert length(Notification.for_user(user)) == 1
-    end
-
     test "it doesn't return notifications for muted thread", %{user: user} do
       another_user = insert(:user)
 

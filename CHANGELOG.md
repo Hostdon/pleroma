@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## Unreleased
+
+## Changes
+- Follows no longer override domain blocks, a domain block is final
+- Deletes are now the lowest priority to publish and will be handled after creates
+
 ## 2022.10
 
 ### Added
@@ -13,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 - Emoji updated to latest 15.0 draft
 - **Breaking**: `/api/v1/pleroma/backups` endpoints now requires `read:backups` scope instead of `read:accounts`
+- Verify that the signature on posts is not domain blocked, and belongs to the correct user
 
 ### Fixed
 - OAuthPlug no longer joins with the database every call and uses the user cache
