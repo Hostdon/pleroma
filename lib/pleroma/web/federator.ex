@@ -53,11 +53,18 @@ defmodule Pleroma.Web.Federator do
 
   @impl true
   def publish(%{data: %{"object" => object}} = activity) when is_map(object) or is_list(object) do
-    PublisherWorker.enqueue("publish", %{
-      "activity_id" => activity.id,
-      "object_data" => Jason.encode!(object)
-    })
+    PublisherWorker.enqueue(
+      "publish",
+      %{
+        "activity_id" => activity.id,
+        "object_data" => Jason.encode!(object)
+      },
+      priority: publish_priority(activity)
+    )
   end
+
+  defp publish_priority(%{type: "Delete"}), do: 3
+  defp publish_priority(_), do: 0
 
   # Job Worker Callbacks
 
