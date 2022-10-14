@@ -108,8 +108,8 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
       Config.get([:mrf_simple, :reject], [])
   end
 
-  defp should_federate?(inbox) do
-    %{host: host} = URI.parse(inbox)
+  def should_federate?(url) do
+    %{host: host} = URI.parse(url)
 
     quarantined_instances =
       blocked_instances()

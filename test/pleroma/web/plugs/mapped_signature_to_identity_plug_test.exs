@@ -9,6 +9,8 @@ defmodule Pleroma.Web.Plugs.MappedSignatureToIdentityPlugTest do
   import Tesla.Mock
   import Plug.Conn
 
+  import Pleroma.Tests.Helpers, only: [clear_config: 2]
+
   setup do
     mock(fn env -> apply(HttpRequestMock, :request, [env]) end)
     :ok
@@ -42,6 +44,26 @@ defmodule Pleroma.Web.Plugs.MappedSignatureToIdentityPlugTest do
     conn =
       build_conn(:post, "/doesntmattter", %{"actor" => "http://mastodon.example.org/users/admin"})
       |> set_signature("https://niu.moe/users/rye")
+      |> MappedSignatureToIdentityPlug.call(%{})
+
+    assert %{valid_signature: false} == conn.assigns
+  end
+
+  test "it considers a mapped identity to be invalid when the associated instance is blocked" do
+    clear_config([:activitypub, :authorized_fetch_mode], true)
+
+    clear_config([:mrf_simple, :reject], [
+      {"mastodon.example.org", "anime is banned"}
+    ])
+
+    on_exit(fn ->
+      Pleroma.Config.put([:activitypub, :authorized_fetch_mode], false)
+      Pleroma.Config.put([:mrf_simple, :reject], [])
+    end)
+
+    conn =
+      build_conn(:post, "/doesntmattter", %{"actor" => "http://mastodon.example.org/users/admin"})
+      |> set_signature("http://mastodon.example.org/users/admin")
       |> MappedSignatureToIdentityPlug.call(%{})
 
     assert %{valid_signature: false} == conn.assigns
