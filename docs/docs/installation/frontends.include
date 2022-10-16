@@ -21,5 +21,11 @@ For most installations, the following will suffice:
     mix pleroma.frontend install admin-fe --ref stable
     ```
 
+=== "Docker"
+    ```sh
+    ./docker-resources/manage.sh mix pleroma.frontend install pleroma-fe --ref stable
+    ./docker-resources/manage.sh mix pleroma.frontend install admin-fe --ref stable
+    ```
+
 For more customised installations, refer to [Frontend Management](../../configuration/frontend_management)
 

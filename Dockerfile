@@ -1,21 +1,9 @@
-FROM elixir:1.13.4-alpine as build
-
-COPY . .
+FROM hexpm/elixir:1.13.4-erlang-24.3.4.5-alpine-3.15.6
 
 ENV MIX_ENV=prod
 
-RUN apk add git gcc g++ musl-dev make cmake file-dev &&\
-	echo "import Config" > config/prod.secret.exs &&\
-	mix local.hex --force &&\
-	mix local.rebar --force &&\
-	mix deps.get --only prod &&\
-	mkdir release &&\
-	mix release --path release
-
-FROM alpine:3.16
-
-ARG BUILD_DATE
-ARG VCS_REF
+ARG HOME=/opt/akkoma
+ARG DATA=/var/lib/akkoma
 
 LABEL org.opencontainers.image.title="akkoma" \
     org.opencontainers.image.description="Akkoma for Docker" \
@@ -26,25 +14,21 @@ LABEL org.opencontainers.image.title="akkoma" \
     org.opencontainers.image.revision=$VCS_REF \
     org.opencontainers.image.created=$BUILD_DATE
 
-ARG HOME=/opt/akkoma
-ARG DATA=/var/lib/akkoma
-
-RUN apk update &&\
-	apk add exiftool ffmpeg imagemagick libmagic ncurses postgresql-client &&\
-	adduser --system --shell /bin/false --home ${HOME} akkoma &&\
-	mkdir -p ${DATA}/uploads &&\
-	mkdir -p ${DATA}/static &&\
-	chown -R akkoma ${DATA} &&\
-	mkdir -p /etc/akkoma &&\
-	chown -R akkoma /etc/akkoma
-
-USER akkoma
-
-COPY --from=build --chown=akkoma:0 /release ${HOME}
-
-COPY ./config/docker.exs /etc/akkoma/config.exs
-COPY ./docker-entrypoint.sh ${HOME}
+RUN apk add git gcc g++ musl-dev make cmake file-dev exiftool ffmpeg imagemagick libmagic ncurses postgresql-client
 
 EXPOSE 4000
 
-ENTRYPOINT ["/opt/akkoma/docker-entrypoint.sh"]
+ARG UID=1000
+ARG GID=1000
+ARG UNAME=akkoma
+
+RUN addgroup -g $GID $UNAME
+RUN adduser -u $UID -G $UNAME -D -h $HOME $UNAME
+
+WORKDIR /opt/akkoma
+
+USER $UNAME
+RUN mix local.hex --force &&\
+    mix local.rebar --force
+
+CMD ["/opt/akkoma/docker-entrypoint.sh"]
