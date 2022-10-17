@@ -150,7 +150,7 @@ git pull
 ./docker-resources/manage.sh mix deps.get
 ./docker-resources/manage.sh mix compile
 ./docker-resources/manage.sh mix ecto.migrate
-docker-compose restart akkoma
+docker-compose restart akkoma db
 ```
 
 #### Further reading
