@@ -6,6 +6,8 @@ This guide will show you how to get akkoma working in a docker container,
 if you want isolation, or if you run a distribution not supported by the OTP
 releases.
 
+If you want to migrate from or OTP to docker, check out [the migration guide](./migrating_to_docker_en.md).
+
 ### Prepare the system
 
 * Install docker and docker-compose
@@ -43,9 +45,6 @@ in our compose environment.
 
 ```bash
 mkdir pgdata
-# if you want to use caddy
-mkdir caddy-data
-mkdir caddy-config
 ./docker-resources/manage.sh mix deps.get
 ./docker-resources/manage.sh mix compile
 ./docker-resources/manage.sh mix pleroma.instance gen
@@ -118,6 +117,8 @@ You've got two options.
 This is by far the easiest option. It'll handle HTTPS and all that for you. 
 
 ```bash
+mkdir caddy-data
+mkdir caddy-config
 cp docker-resources/Caddyfile.example docker-resources/Caddyfile
 ```
 
