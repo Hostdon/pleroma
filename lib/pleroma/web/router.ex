@@ -509,6 +509,7 @@ defmodule Pleroma.Web.Router do
     post("/accounts/:id/mute", AccountController, :mute)
     post("/accounts/:id/unmute", AccountController, :unmute)
     post("/accounts/:id/note", AccountController, :note)
+    post("/accounts/:id/remove_from_followers", AccountController, :remove_from_followers)
 
     get("/conversations", ConversationController, :index)
     post("/conversations/:id/read", ConversationController, :mark_as_read)

@@ -76,15 +76,16 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
 
   plug(
     OAuthScopesPlug,
-    %{scopes: ["follow", "write:follows"]} when action in [:follow_by_uri, :follow, :unfollow]
+    %{scopes: ["follow", "write:follows"]}
+    when action in [:follow_by_uri, :follow, :unfollow, :remove_from_followers]
   )
 
   plug(OAuthScopesPlug, %{scopes: ["follow", "read:mutes"]} when action == :mutes)
 
   plug(OAuthScopesPlug, %{scopes: ["follow", "write:mutes"]} when action in [:mute, :unmute])
 
-  @relationship_actions [:follow, :unfollow]
-  @needs_account ~W(followers following lists follow unfollow mute unmute block unblock note)a
+  @relationship_actions [:follow, :unfollow, :remove_from_followers]
+  @needs_account ~W(followers following lists follow unfollow mute unmute block unblock note remove_from_followers)a
 
   plug(
     RateLimiter,
@@ -444,6 +445,20 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
       ) do
     with {:ok, _user_note} <- UserNote.create(noter, target, comment) do
       render(conn, "relationship.json", user: noter, target: target)
+    end
+  end
+
+  @doc "POST /api/v1/accounts/:id/remove_from_followers"
+  def remove_from_followers(%{assigns: %{user: %{id: id}, account: %{id: id}}}, _params) do
+    {:error, "Can not unfollow yourself"}
+  end
+
+  def remove_from_followers(%{assigns: %{user: followed, account: follower}} = conn, _params) do
+    with {:ok, follower} <- CommonAPI.reject_follow_request(follower, followed) do
+      render(conn, "relationship.json", user: followed, target: follower)
+    else
+      nil ->
+        render_error(conn, :not_found, "Record not found")
     end
   end
 
