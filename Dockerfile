@@ -3,7 +3,6 @@ FROM hexpm/elixir:1.13.4-erlang-24.3.4.5-alpine-3.15.6
 ENV MIX_ENV=prod
 
 ARG HOME=/opt/akkoma
-ARG DATA=/var/lib/akkoma
 
 LABEL org.opencontainers.image.title="akkoma" \
     org.opencontainers.image.description="Akkoma for Docker" \
