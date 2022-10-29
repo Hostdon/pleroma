@@ -1392,9 +1392,9 @@ config :pleroma, :config_description, [
           },
           %{
             key: :stopGifs,
-            label: "Pause animated images until you hover on them",
+            label: "Stop Gifs",
             type: :boolean,
-            description: "Whether to play gifs by default"
+            description: "Whether to pause animated images until they're hovered on"
           }
         ]
       },
