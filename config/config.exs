@@ -185,7 +185,7 @@ config :pleroma, :http,
   adapter: []
 
 config :pleroma, :instance,
-  name: "Pleroma",
+  name: "Akkoma",
   email: "example@example.com",
   notify_email: "noreply@example.com",
   description: "Akkoma: The cooler fediverse server",
