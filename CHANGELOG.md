@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+## UPGRADE NOTES
+- Change your instance blocks to remove any `*.` prefixes. `example.com` will block `*.example.com` by default now
+
 ## Added
 - Officially supported docker release
 - Ability to remove followers unilaterally without a block
@@ -14,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Changes
 - Follows no longer override domain blocks, a domain block is final
 - Deletes are now the lowest priority to publish and will be handled after creates
+- Domain blocks are now subdomain-matches by default
 
 ## Fixed
 - Registrations via ldap are now compatible with the latest OTP24

@@ -444,17 +444,20 @@ defmodule Pleroma.UserTest do
     end
 
     setup do:
-            clear_config(:mrf_simple,
-              media_removal: [],
-              media_nsfw: [],
-              federated_timeline_removal: [],
-              report_removal: [],
-              reject: [],
-              followers_only: [],
-              accept: [],
-              avatar_removal: [],
-              banner_removal: [],
-              reject_deletes: []
+            clear_config(
+              [:mrf_simple],
+              %{
+                media_removal: [],
+                media_nsfw: [],
+                federated_timeline_removal: [],
+                report_removal: [],
+                reject: [],
+                followers_only: [],
+                accept: [],
+                avatar_removal: [],
+                banner_removal: [],
+                reject_deletes: []
+              }
             )
 
     setup do:
@@ -1324,7 +1327,7 @@ defmodule Pleroma.UserTest do
       collateral_user =
         insert(:user, %{ap_id: "https://another-awful-and-rude-instance.com/user/bully"})
 
-      {:ok, user} = User.block_domain(user, "*.awful-and-rude-instance.com")
+      {:ok, user} = User.block_domain(user, "awful-and-rude-instance.com")
 
       refute User.blocks?(user, collateral_user)
     end
@@ -1342,7 +1345,7 @@ defmodule Pleroma.UserTest do
 
       user_domain = insert(:user, %{ap_id: "https://awful-and-rude-instance.com/user/bully"})
 
-      {:ok, user} = User.block_domain(user, "*.awful-and-rude-instance.com")
+      {:ok, user} = User.block_domain(user, "awful-and-rude-instance.com")
 
       assert User.blocks?(user, user_from_subdomain)
       assert User.blocks?(user, user_with_two_subdomains)

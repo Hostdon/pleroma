@@ -149,9 +149,18 @@ defmodule Pleroma.Web.ActivityPub.MRF do
   defp get_policies(policies) when is_list(policies), do: policies
   defp get_policies(_), do: []
 
+  # Matches the following:
+  # - https://baddomain.net
+  # - https://extra.baddomain.net/
+  # Does NOT match the following:
+  # - https://maybebaddomain.net/
+  def subdomain_regex(domain) do
+    ~r/^(.+\.)?#{Regex.escape(domain)}$/i
+  end
+
   @spec subdomains_regex([String.t()]) :: [Regex.t()]
   def subdomains_regex(domains) when is_list(domains) do
-    for domain <- domains, do: ~r(^#{String.replace(domain, "*.", "(.*\\.)*")}$)i
+    Enum.map(domains, &subdomain_regex/1)
   end
 
   @spec subdomain_match?([Regex.t()], String.t()) :: boolean()
