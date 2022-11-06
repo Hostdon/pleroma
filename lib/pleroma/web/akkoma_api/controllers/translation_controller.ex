@@ -21,10 +21,12 @@ defmodule Pleroma.Web.AkkomaAPI.TranslationController do
 
   @doc "GET /api/v1/akkoma/translation/languages"
   def languages(conn, _params) do
-    with {:ok, source_languages, dest_languages} <- get_languages() do
+    with {:enabled, true} <- {:enabled, Pleroma.Config.get([:translator, :enabled])},
+         {:ok, source_languages, dest_languages} <- get_languages() do
       conn
       |> json(%{source: source_languages, target: dest_languages})
     else
+      {:enabled, false} -> json(conn, %{})
       e -> IO.inspect(e)
     end
   end
