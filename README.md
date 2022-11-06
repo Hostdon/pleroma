@@ -14,6 +14,27 @@ For clients it supports the [Mastodon client API](https://docs.joinmastodon.org/
 
 - [Client Applications for Akkoma](https://docs.akkoma.dev/stable/clients/)
 
+## Differences with Pleroma
+
+Akkoma is a faster-paced fork, it has a varied and potentially experimental feature set tailored specifically to the corner of the fediverse inhabited by the project
+creator and contributors.
+
+This should not be considered a one-for-one match with pleroma; it is more opinionated in many ways, and has a smaller community (which is good or
+bad depending on your view)
+
+For example, Akkoma has:
+- Custom Emoji reactions (compatible with misskey)
+- Misskey-flavoured markdown support
+- Elasticsearch and Meilisearch support for search
+- Mastodon frontend (Glitch-Soc and Fedibird flavours) support
+- Automatic post translation via DeepL or LibreTranslate
+- A multitude of heavy modifications to the Pleroma Frontend (Pleroma-FE)
+- The "bubble" concept, in which instance administrators can choose closely-related instances to make a "community of communities", so to say
+
+And takes a more opinionated stance on issues like Domain blocks, which are enforced far more on Akkoma.
+
+Take a look at the Changelog if you want a full list of recent changes, everything since 3.0 has been Akkoma.
+
 ## Installation
 
 ### OTP releases (Recommended)
