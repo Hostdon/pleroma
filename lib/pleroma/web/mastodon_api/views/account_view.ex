@@ -186,6 +186,16 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
     render_many(targets, AccountView, "relationship.json", render_opts)
   end
 
+  def render("instance.json", %{instance: %Pleroma.Instances.Instance{} = instance}) do
+    %{
+      name: instance.host,
+      favicon: instance.favicon |> MediaProxy.url(),
+      nodeinfo: instance.nodeinfo
+    }
+  end
+
+  def render("instance.json", _), do: nil
+
   defp do_render("show.json", %{user: user} = opts) do
     user = User.sanitize_html(user, User.html_filter_policy(opts[:for]))
     display_name = user.name || user.nickname
@@ -230,16 +240,20 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
         %{}
       end
 
-    favicon =
-      if Pleroma.Config.get([:instances_favicons, :enabled]) do
-        user
-        |> Map.get(:ap_id, "")
-        |> URI.parse()
-        |> URI.merge("/")
-        |> Pleroma.Instances.Instance.get_or_update_favicon()
-        |> MediaProxy.url()
+    instance =
+      with {:ok, instance} <- Pleroma.Instances.Instance.get_cached_by_url(user.ap_id) do
+        instance
       else
+        _ ->
+          nil
+      end
+
+    favicon =
+      if is_nil(instance) do
         nil
+      else
+        instance.favicon
+        |> MediaProxy.url()
       end
 
     %{
@@ -271,7 +285,9 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
         }
       },
       last_status_at: user.last_status_at,
-
+      akkoma: %{
+        instance: render("instance.json", %{instance: instance})
+      },
       # Pleroma extensions
       # Note: it's insecure to output :email but fully-qualified nickname may serve as safe stub
       fqn: User.full_nickname(user),

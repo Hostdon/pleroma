@@ -36,6 +36,15 @@ defmodule Pleroma.Factory do
     }
   end
 
+  def instance_factory(attrs \\ %{}) do
+    %Pleroma.Instances.Instance{
+      host: attrs[:domain] || "example.com",
+      nodeinfo: %{version: "2.0", openRegistrations: true},
+      unreachable_since: nil
+    }
+    |> Map.merge(attrs)
+  end
+
   def user_factory(attrs \\ %{}) do
     pem = Enum.random(@rsa_keys)
 
@@ -519,13 +528,6 @@ defmodule Pleroma.Factory do
       website: "https://example.com",
       client_id: Ecto.UUID.generate(),
       client_secret: "aaa;/&bbb"
-    }
-  end
-
-  def instance_factory do
-    %Pleroma.Instances.Instance{
-      host: "domain.com",
-      unreachable_since: nil
     }
   end
 

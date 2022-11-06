@@ -3048,6 +3048,19 @@ config :pleroma, :config_description, [
     ]
   },
   %{
+    group: :pleroma,
+    key: :instances_nodeinfo,
+    type: :group,
+    description: "Control favicons for instances",
+    children: [
+      %{
+        key: :enabled,
+        type: :boolean,
+        description: "Allow/disallow getting instance nodeinfo"
+      }
+    ]
+  },
+  %{
     group: :ex_aws,
     key: :s3,
     type: :group,

@@ -567,7 +567,8 @@ config :pleroma, Oban,
     attachments_cleanup: 1,
     new_users_digest: 1,
     mute_expire: 5,
-    search_indexing: 10
+    search_indexing: 10,
+    nodeinfo_fetcher: 1
   ],
   plugins: [
     Oban.Plugins.Pruner,
@@ -806,7 +807,8 @@ config :ex_aws, http_client: Pleroma.HTTP.ExAws
 
 config :web_push_encryption, http_client: Pleroma.HTTP.WebPush
 
-config :pleroma, :instances_favicons, enabled: false
+config :pleroma, :instances_favicons, enabled: true
+config :pleroma, :instances_nodeinfo, enabled: true
 
 config :floki, :html_parser, Floki.HTMLParser.FastHtml
 

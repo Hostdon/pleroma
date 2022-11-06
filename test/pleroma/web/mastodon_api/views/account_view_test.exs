@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
-  use Pleroma.DataCase
+  use Pleroma.DataCase, async: false
 
   alias Pleroma.User
   alias Pleroma.UserRelationship
@@ -12,6 +12,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
 
   import Pleroma.Factory
   import Tesla.Mock
+  import Mock
 
   setup do
     mock(fn env -> apply(HttpRequestMock, :request, [env]) end)
@@ -25,6 +26,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
 
     user =
       insert(:user, %{
+        ap_id: "https://example.com/users/chikichikibanban",
         follower_count: 3,
         note_count: 5,
         background: background_image,
@@ -38,6 +40,8 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
         also_known_as: ["https://shitposter.zone/users/shp"]
       })
 
+    insert(:instance, %{host: "example.com", nodeinfo: %{version: "2.1"}})
+
     expected = %{
       id: to_string(user.id),
       username: "shp",
@@ -50,6 +54,15 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
       statuses_count: 5,
       note: "<span>valid html</span>. a<br/>b<br/>c<br/>d<br/>f &#39;&amp;&lt;&gt;&quot;",
       url: user.ap_id,
+      akkoma: %{
+        instance: %{
+          name: "example.com",
+          nodeinfo: %{
+            "version" => "2.1"
+          },
+          favicon: nil
+        }
+      },
       avatar: "http://localhost:4001/images/avi.png",
       avatar_static: "http://localhost:4001/images/avi.png",
       header: "http://localhost:4001/images/banner.png",
@@ -98,9 +111,57 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
     assert expected == AccountView.render("show.json", %{user: user, skip_visibility_check: true})
   end
 
+  describe "nodeinfo" do
+    setup do
+      [
+        user: insert(:user, ap_id: "https://somewhere.example.com/users/chikichikibanban"),
+        instance:
+          insert(:instance, %{
+            host: "somewhere.example.com",
+            favicon: "https://example.com/favicon.ico"
+          })
+      ]
+    end
+
+    test "is embedded in the account view", %{user: user} do
+      assert %{
+               akkoma: %{
+                 instance: %{
+                   name: "somewhere.example.com",
+                   nodeinfo: %{
+                     "version" => "2.0"
+                   },
+                   favicon: "https://example.com/favicon.ico"
+                 }
+               }
+             } = AccountView.render("show.json", %{user: user, skip_visibility_check: true})
+    end
+
+    test "uses local nodeinfo for local users" do
+      user = insert(:user)
+
+      assert %{
+               akkoma: %{
+                 instance: %{
+                   name: "localhost",
+                   nodeinfo: %{
+                     software: %{
+                       name: "akkoma"
+                     }
+                   }
+                 }
+               }
+             } = AccountView.render("show.json", %{user: user, skip_visibility_check: true})
+    end
+  end
+
   describe "favicon" do
     setup do
-      [user: insert(:user)]
+      [
+        user: insert(:user, ap_id: "https://example.com/users/chikichikibanban"),
+        instance:
+          insert(:instance, %{host: "example.com", favicon: "https://example.com/favicon.ico"})
+      ]
     end
 
     test "is parsed when :instance_favicons is enabled", %{user: user} do
@@ -108,13 +169,14 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
 
       assert %{
                pleroma: %{
-                 favicon:
-                   "https://shitposter.club/plugins/Qvitter/img/gnusocial-favicons/favicon-16x16.png"
+                 favicon: "https://example.com/favicon.ico"
                }
              } = AccountView.render("show.json", %{user: user, skip_visibility_check: true})
     end
 
-    test "is nil when :instances_favicons is disabled", %{user: user} do
+    test "is nil when we have no instance", %{user: user} do
+      user = %{user | ap_id: "https://wowee.example.com/users/2"}
+
       assert %{pleroma: %{favicon: nil}} =
                AccountView.render("show.json", %{user: user, skip_visibility_check: true})
     end
@@ -176,11 +238,18 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
       },
       fqn: "shp@shitposter.club",
       last_status_at: nil,
+      akkoma: %{
+        instance: %{
+          name: "localhost",
+          favicon: "http://localhost:4001/favicon.png",
+          nodeinfo: %{version: "2.0"}
+        }
+      },
       pleroma: %{
         ap_id: user.ap_id,
         also_known_as: [],
         background_image: nil,
-        favicon: nil,
+        favicon: "http://localhost:4001/favicon.png",
         is_confirmed: true,
         tags: [],
         is_admin: false,
@@ -196,7 +265,13 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
       }
     }
 
-    assert expected == AccountView.render("show.json", %{user: user, skip_visibility_check: true})
+    with_mock(
+      Pleroma.Web.Nodeinfo.NodeinfoController,
+      raw_nodeinfo: fn -> %{version: "2.0"} end
+    ) do
+      assert expected ==
+               AccountView.render("show.json", %{user: user, skip_visibility_check: true})
+    end
   end
 
   test "Represent a Funkwhale channel" do
@@ -578,6 +653,8 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
         emoji: %{"joker_smile" => "https://evil.website/society.png"}
       )
 
+    insert(:instance, %{host: "localhost", favicon: "https://evil.website/favicon.png"})
+
     with media_preview_enabled <- [false, true] do
       clear_config([:media_preview_proxy, :enabled], media_preview_enabled)
 
@@ -585,6 +662,9 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
       |> Enum.all?(fn
         {key, url} when key in [:avatar, :avatar_static, :header, :header_static] ->
           String.starts_with?(url, Pleroma.Web.Endpoint.url())
+
+        {:akkoma, %{instance: %{favicon: favicon_url}}} ->
+          String.starts_with?(favicon_url, Pleroma.Web.Endpoint.url())
 
         {:emojis, emojis} ->
           Enum.all?(emojis, fn %{url: url, static_url: static_url} ->
@@ -597,5 +677,11 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
       end)
       |> assert()
     end
+  end
+
+  test "returns nil in the instance field when no instance is held locally" do
+    user = insert(:user, ap_id: "https://example.com/users/1")
+    view = AccountView.render("show.json", %{user: user, skip_visibility_check: true})
+    assert view[:akkoma][:instance] == nil
   end
 end

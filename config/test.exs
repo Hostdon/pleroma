@@ -139,6 +139,8 @@ config :pleroma, Pleroma.Search.Meilisearch, url: "http://127.0.0.1:7700/", priv
 # Reduce recompilation time
 # https://dashbit.co/blog/speeding-up-re-compilation-of-elixir-projects
 config :phoenix, :plug_init_mode, :runtime
+config :pleroma, :instances_favicons, enabled: false
+config :pleroma, :instances_nodeinfo, enabled: false
 
 if File.exists?("./config/test.secret.exs") do
   import_config "test.secret.exs"

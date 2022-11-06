@@ -192,6 +192,7 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
   # - Increase the user note count
   # - Increase the reply count
   # - Increase replies count
+  # - Ask for scraping of nodeinfo
   # - Set up ActivityExpiration
   # - Set up notifications
   # - Index incoming posts for search (if needed)
@@ -208,6 +209,10 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
       end
 
       reply_depth = (meta[:depth] || 0) + 1
+
+      Pleroma.Workers.NodeInfoFetcherWorker.enqueue("process", %{
+        "source_url" => activity.data["actor"]
+      })
 
       # FIXME: Force inReplyTo to replies
       if Pleroma.Web.Federator.allowed_thread_distance?(reply_depth) and
@@ -234,7 +239,9 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
 
       {:ok, activity, meta}
     else
-      e -> Repo.rollback(e)
+      e ->
+        Logger.error(inspect(e))
+        Repo.rollback(e)
     end
   end
 
