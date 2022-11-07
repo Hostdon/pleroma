@@ -34,6 +34,15 @@ git pull -r
 # to run "git merge stable" instead (or develop if you want)
 ```
 
+### WARNING - Migrating from Pleroma Develop
+If you are on pleroma develop, and have updated since 2022-08, you may have issues with database migrations.
+
+Please roll back the given migrations:
+
+```bash
+MIX_ENV=prod mix ecto.rollback --migrations-path priv/repo/optional_migrations/pleroma_develop_rollbacks -n3
+```
+
 Then compile, migrate and restart as usual.
 
 ## From OTP
