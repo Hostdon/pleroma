@@ -154,6 +154,8 @@ defmodule Pleroma.Web.ActivityPub.MRF do
   # - https://extra.baddomain.net/
   # Does NOT match the following:
   # - https://maybebaddomain.net/
+  def subdomain_regex("*." <> domain), do: subdomain_regex(domain)
+
   def subdomain_regex(domain) do
     ~r/^(.+\.)?#{Regex.escape(domain)}$/i
   end

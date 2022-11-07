@@ -10,7 +10,7 @@ defmodule Pleroma.Web.ActivityPub.MRFTest do
   test "subdomains_regex/1" do
     assert MRF.subdomains_regex(["unsafe.tld", "*.unsafe.tld"]) == [
              ~r/^(.+\.)?unsafe\.tld$/i,
-             ~r/^(.+\.)?\*\.unsafe\.tld$/i
+             ~r/^(.+\.)?unsafe\.tld$/i
            ]
   end
 

@@ -46,8 +46,8 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "match with wildcard domain" do
-      clear_config([:mrf_simple, :media_removal], [{"remote.instance", "Whatever reason"}])
-      media_message = build_media_message("sub.remote.instance")
+      clear_config([:mrf_simple, :media_removal], [{"*.remote.instance", "Whatever reason"}])
+      media_message = build_media_message()
       local_message = build_local_message()
 
       assert SimplePolicy.filter(media_message) ==
@@ -81,8 +81,8 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "match with wildcard domain" do
-      clear_config([:mrf_simple, :media_nsfw], [{"remote.instance", "yeah yeah"}])
-      media_message = build_media_message("sub.remote.instance")
+      clear_config([:mrf_simple, :media_nsfw], [{"*.remote.instance", "yeah yeah"}])
+      media_message = build_media_message()
       local_message = build_local_message()
 
       assert SimplePolicy.filter(media_message) ==
@@ -92,9 +92,9 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
   end
 
-  defp build_media_message(domain \\ "remote.instance") do
+  defp build_media_message do
     %{
-      "actor" => "https://#{domain}/users/bob",
+      "actor" => "https://remote.instance/users/bob",
       "type" => "Create",
       "object" => %{
         "attachment" => [%{}],
@@ -124,8 +124,8 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "match with wildcard domain" do
-      clear_config([:mrf_simple, :report_removal], [{"remote.instance", "suya"}])
-      report_message = build_report_message("sub.remote.instance")
+      clear_config([:mrf_simple, :report_removal], [{"*.remote.instance", "suya"}])
+      report_message = build_report_message()
       local_message = build_local_message()
 
       assert {:reject, _} = SimplePolicy.filter(report_message)
@@ -133,9 +133,9 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
   end
 
-  defp build_report_message(domain \\ "remote.instance") do
+  defp build_report_message do
     %{
-      "actor" => "https://#{domain}/users/bob",
+      "actor" => "https://remote.instance/users/bob",
       "type" => "Flag"
     }
   end
@@ -143,7 +143,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
   describe "when :federated_timeline_removal" do
     test "is empty" do
       clear_config([:mrf_simple, :federated_timeline_removal], [])
-      {_, ftl_message} = build_ftl_actor_and_message("https://remote.instance/users/bob")
+      {_, ftl_message} = build_ftl_actor_and_message()
       local_message = build_local_message()
 
       assert SimplePolicy.filter(ftl_message) == {:ok, ftl_message}
@@ -151,7 +151,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "has a matching host" do
-      {actor, ftl_message} = build_ftl_actor_and_message("https://remote.instance/users/bob")
+      {actor, ftl_message} = build_ftl_actor_and_message()
 
       ftl_message_actor_host =
         ftl_message
@@ -172,7 +172,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "match with wildcard domain" do
-      {actor, ftl_message} = build_ftl_actor_and_message("https://sub.remote.instance/users/bob")
+      {actor, ftl_message} = build_ftl_actor_and_message()
 
       ftl_message_actor_host =
         ftl_message
@@ -181,7 +181,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
         |> Map.fetch!(:host)
 
       clear_config([:mrf_simple, :federated_timeline_removal], [
-        {ftl_message_actor_host, "owo"}
+        {"*." <> ftl_message_actor_host, "owo"}
       ])
 
       local_message = build_local_message()
@@ -196,7 +196,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "has a matching host but only as:Public in to" do
-      {_actor, ftl_message} = build_ftl_actor_and_message("https://remote.instance/users/bob")
+      {_actor, ftl_message} = build_ftl_actor_and_message()
 
       ftl_message_actor_host =
         ftl_message
@@ -253,8 +253,8 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
   end
 
-  defp build_ftl_actor_and_message(ap_id) do
-    actor = insert(:user, ap_id: ap_id)
+  defp build_ftl_actor_and_message do
+    actor = insert(:user)
 
     {actor,
      %{
@@ -282,9 +282,9 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "activity matches with wildcard domain" do
-      clear_config([:mrf_simple, :reject], [{"remote.instance", ""}])
+      clear_config([:mrf_simple, :reject], [{"*.remote.instance", ""}])
 
-      remote_message = build_remote_message("sub.remote.instance")
+      remote_message = build_remote_message()
 
       assert {:reject, _} = SimplePolicy.filter(remote_message)
     end
@@ -325,7 +325,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
   describe "when :followers_only" do
     test "is empty" do
       clear_config([:mrf_simple, :followers_only], [])
-      {_, ftl_message} = build_ftl_actor_and_message("https://remote.instance/users/alice")
+      {_, ftl_message} = build_ftl_actor_and_message()
       local_message = build_local_message()
 
       assert SimplePolicy.filter(ftl_message) == {:ok, ftl_message}
@@ -412,10 +412,10 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "activity matches with wildcard domain" do
-      clear_config([:mrf_simple, :accept], [{"remote.instance", ""}])
+      clear_config([:mrf_simple, :accept], [{"*.remote.instance", ""}])
 
       local_message = build_local_message()
-      remote_message = build_remote_message("sub.remote.instance")
+      remote_message = build_remote_message()
 
       assert SimplePolicy.filter(local_message) == {:ok, local_message}
       assert SimplePolicy.filter(remote_message) == {:ok, remote_message}
@@ -457,9 +457,9 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "match with wildcard domain" do
-      clear_config([:mrf_simple, :avatar_removal], [{"remote.instance", ""}])
+      clear_config([:mrf_simple, :avatar_removal], [{"*.remote.instance", ""}])
 
-      remote_user = build_remote_user("sub.remote.instance")
+      remote_user = build_remote_user()
       {:ok, filtered} = SimplePolicy.filter(remote_user)
 
       refute filtered["icon"]
@@ -493,9 +493,9 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "match with wildcard domain" do
-      clear_config([:mrf_simple, :banner_removal], [{"remote.instance", ""}])
+      clear_config([:mrf_simple, :banner_removal], [{"*.remote.instance", ""}])
 
-      remote_user = build_remote_user("sub.remote.instance")
+      remote_user = build_remote_user()
       {:ok, filtered} = SimplePolicy.filter(remote_user)
 
       refute filtered["image"]
@@ -553,10 +553,10 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
   end
 
   describe "when :reject_deletes match with wildcard domain" do
-    setup do: clear_config([:mrf_simple, :reject_deletes], [{"remote.instance", ""}])
+    setup do: clear_config([:mrf_simple, :reject_deletes], [{"*.remote.instance", ""}])
 
     test "it rejects the deletion" do
-      deletion_message = build_remote_deletion_message("sub.remote.instance")
+      deletion_message = build_remote_deletion_message()
 
       assert {:reject, _} = SimplePolicy.filter(deletion_message)
     end
@@ -570,13 +570,13 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     }
   end
 
-  defp build_remote_message(domain \\ "remote.instance") do
-    %{"actor" => "https://#{domain}/users/bob"}
+  defp build_remote_message do
+    %{"actor" => "https://remote.instance/users/bob"}
   end
 
-  defp build_remote_user(domain \\ "remote.instance") do
+  defp build_remote_user do
     %{
-      "id" => "https://#{domain}/users/bob",
+      "id" => "https://remote.instance/users/bob",
       "icon" => %{
         "url" => "http://example.com/image.jpg",
         "type" => "Image"
@@ -589,10 +589,10 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     }
   end
 
-  defp build_remote_deletion_message(domain \\ "remote.instance") do
+  defp build_remote_deletion_message do
     %{
       "type" => "Delete",
-      "actor" => "https://#{domain}/users/bob"
+      "actor" => "https://remote.instance/users/bob"
     }
   end
 end
