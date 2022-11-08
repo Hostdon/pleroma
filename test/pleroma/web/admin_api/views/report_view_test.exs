@@ -45,7 +45,7 @@ defmodule Pleroma.Web.AdminAPI.ReportViewTest do
       ReportView.render("show.json", Report.extract_report_info(activity))
       |> Map.delete(:created_at)
 
-    assert result == expected
+    assert Jason.encode!(result) == Jason.encode!(expected)
   end
 
   test "includes reported statuses" do

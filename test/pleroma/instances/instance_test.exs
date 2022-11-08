@@ -136,7 +136,7 @@ defmodule Pleroma.Instances.InstanceTest do
           }
       end)
 
-      assert {:ok, true} ==
+      assert {:ok, %Instance{host: "favicon.example.org"}} =
                Instance.update_metadata(URI.parse("https://favicon.example.org/"))
 
       {:ok, instance} = Instance.get_cached_by_url("https://favicon.example.org/")
@@ -177,7 +177,7 @@ defmodule Pleroma.Instances.InstanceTest do
           }
       end)
 
-      assert {:ok, true} ==
+      assert {:ok, %Instance{host: "long-favicon.example.org"}} =
                Instance.update_metadata(URI.parse("https://long-favicon.example.org/"))
 
       {:ok, instance} = Instance.get_cached_by_url("https://long-favicon.example.org/")
@@ -214,7 +214,7 @@ defmodule Pleroma.Instances.InstanceTest do
       end)
 
       refute capture_log(fn ->
-               assert {:ok, true} =
+               assert {:ok, %Instance{host: "no-favicon.example.org"}} =
                         Instance.update_metadata(URI.parse("https://no-favicon.example.org/"))
              end) =~ "Instance.update_metadata(\"https://no-favicon.example.org/\") error: "
     end
@@ -241,7 +241,7 @@ defmodule Pleroma.Instances.InstanceTest do
           }
       end)
 
-      assert {:ok, true} ==
+      assert {:ok, %Instance{host: "bad-nodeinfo.example.org"}} =
                Instance.update_metadata(URI.parse("https://bad-nodeinfo.example.org/"))
 
       {:ok, instance} = Instance.get_cached_by_url("https://bad-nodeinfo.example.org/")
@@ -277,7 +277,7 @@ defmodule Pleroma.Instances.InstanceTest do
           }
       end)
 
-      assert {:ok, true} ==
+      assert {:ok, %Instance{host: "bad-nodeinfo.example.org"}} =
                Instance.update_metadata(URI.parse("https://bad-nodeinfo.example.org/"))
 
       {:ok, instance} = Instance.get_cached_by_url("https://bad-nodeinfo.example.org/")
@@ -315,7 +315,7 @@ defmodule Pleroma.Instances.InstanceTest do
           }
       end)
 
-      assert {:ok, true} ==
+      assert {:ok, %Instance{host: "bad-nodeinfo.example.org"}} =
                Instance.update_metadata(URI.parse("https://bad-nodeinfo.example.org/"))
 
       {:ok, instance} = Instance.get_cached_by_url("https://bad-nodeinfo.example.org/")

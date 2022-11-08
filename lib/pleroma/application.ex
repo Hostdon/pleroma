@@ -157,7 +157,7 @@ defmodule Pleroma.Application do
       build_cachex("failed_proxy_url", limit: 2500),
       build_cachex("banned_urls", default_ttl: :timer.hours(24 * 30), limit: 5_000),
       build_cachex("translations", default_ttl: :timer.hours(24 * 30), limit: 2500),
-      build_cachex("instances", default_ttl: :timer.hours(24), limit: 2500)
+      build_cachex("instances", default_ttl: :timer.hours(24), ttl_interval: 1000, limit: 2500)
     ]
   end
 

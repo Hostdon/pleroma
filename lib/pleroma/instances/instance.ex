@@ -176,17 +176,14 @@ defmodule Pleroma.Instances.Instance do
         favicon = scrape_favicon(uri)
         nodeinfo = scrape_nodeinfo(uri)
 
-        {:ok, instance} =
-          existing_record
-          |> changeset(%{
-            host: host,
-            favicon: favicon,
-            nodeinfo: nodeinfo,
-            metadata_updated_at: NaiveDateTime.utc_now()
-          })
-          |> Repo.update()
-
-        @cachex.put(:instances_cache, "instances:#{host}", instance)
+        existing_record
+        |> changeset(%{
+          host: host,
+          favicon: favicon,
+          nodeinfo: nodeinfo,
+          metadata_updated_at: NaiveDateTime.utc_now()
+        })
+        |> Repo.update()
       else
         {:discard, "Does not require update"}
       end
@@ -205,8 +202,6 @@ defmodule Pleroma.Instances.Instance do
           metadata_updated_at: NaiveDateTime.utc_now()
         })
         |> Repo.insert()
-
-      @cachex.put(:instances_cache, "instances:#{host}", instance)
     end
   end
 
