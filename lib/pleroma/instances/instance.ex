@@ -193,15 +193,14 @@ defmodule Pleroma.Instances.Instance do
 
       Logger.info("Creating metadata for #{host}")
 
-      {:ok, instance} =
-        %Instance{}
-        |> changeset(%{
-          host: host,
-          favicon: favicon,
-          nodeinfo: nodeinfo,
-          metadata_updated_at: NaiveDateTime.utc_now()
-        })
-        |> Repo.insert()
+      %Instance{}
+      |> changeset(%{
+        host: host,
+        favicon: favicon,
+        nodeinfo: nodeinfo,
+        metadata_updated_at: NaiveDateTime.utc_now()
+      })
+      |> Repo.insert()
     end
   end
 
