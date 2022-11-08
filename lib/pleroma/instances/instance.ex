@@ -159,7 +159,7 @@ defmodule Pleroma.Instances.Instance do
   end
 
   def update_metadata(%URI{host: host} = uri) do
-    Logger.info("Checking metadata for #{host}")
+    Logger.debug("Checking metadata for #{host}")
     existing_record = Repo.get_by(Instance, %{host: host})
 
     if reachable?(host) do
