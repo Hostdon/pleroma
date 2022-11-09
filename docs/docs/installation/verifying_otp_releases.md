@@ -4,7 +4,7 @@ All stable OTP releases are cryptographically signed, to allow
 you to verify the integrity if you choose to.
 
 Releases are signed with [Signify](https://man.openbsd.org/signify.1),
-with [the public key in the main repository](https://akkoma.dev/AkkomaGang/akkoma/src/branch/develop/SIGNING_KEY.pub)
+with [the public key in the main repository](https://akkoma.dev/AkkomaGang/akkoma/src/branch/stable/SIGNING_KEY.pub)
 
 Release URLs will always be of the form
 
