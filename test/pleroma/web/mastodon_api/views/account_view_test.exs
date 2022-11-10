@@ -347,6 +347,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
       subscribing: false,
       notifying: false,
       requested: false,
+      requested_by: false,
       domain_blocking: false,
       showing_reblogs: true,
       endorsed: false,
@@ -430,6 +431,24 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
 
       test_relationship_rendering(user, other_user, expected)
     end
+  end
+
+  test "represent a relationship for a user with an inbound pending follow request" do
+    follower = insert(:user)
+    followed = insert(:user, is_locked: true)
+
+    {:ok, follower, followed, _} = CommonAPI.follow(follower, followed)
+
+    follower = User.get_cached_by_id(follower.id)
+    followed = User.get_cached_by_id(followed.id)
+
+    expected =
+      Map.merge(
+        @blank_response,
+        %{requested_by: true, followed_by: false, id: to_string(follower.id)}
+      )
+
+    test_relationship_rendering(followed, follower, expected)
   end
 
   test "returns the settings store if the requesting user is the represented user and it's requested specifically" do
