@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Officially supported docker release
 - Ability to remove followers unilaterally without a block
 - Scraping of nodeinfo from remote instances to display instance info
+- `requested_by` in relationships when the user has requested to follow you
 
 ## Changes
 - Follows no longer override domain blocks, a domain block is final
