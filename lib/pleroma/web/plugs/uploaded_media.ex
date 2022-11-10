@@ -35,7 +35,7 @@ defmodule Pleroma.Web.Plugs.UploadedMedia do
     conn =
       case fetch_query_params(conn) do
         %{query_params: %{"name" => name}} = conn ->
-          name = String.replace(name, "\"", "\\\"")
+          name = escape_header_value(name)
 
           put_resp_header(conn, "content-disposition", "filename=\"#{name}\"")
 
@@ -97,5 +97,12 @@ defmodule Pleroma.Web.Plugs.UploadedMedia do
     conn
     |> send_resp(:internal_server_error, dgettext("errors", "Internal Error"))
     |> halt()
+  end
+
+  defp escape_header_value(value) do
+    value
+    |> String.replace("\"", "\\\"")
+    |> String.replace("\\r", "")
+    |> String.replace("\\n", "")
   end
 end
