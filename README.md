@@ -8,7 +8,7 @@
 
 This is a fork of Pleroma, which is a microblogging server software that can federate (= exchange messages with) other servers that support ActivityPub. What that means is that you can host a server for yourself or your friends and stay in control of your online identity, but still exchange messages with people on larger servers. Akkoma will federate with all servers that implement ActivityPub, like Friendica, GNU Social, Hubzilla, Mastodon, Misskey, Peertube, and Pixelfed.
 
-Akkoma is written in Elixir and uses PostgresSQL for data storage.
+Akkoma is written in Elixir and uses PostgreSQL for data storage.
 
 For clients it supports the [Mastodon client API](https://docs.joinmastodon.org/api/guidelines/) with Pleroma extensions (see the API section on <https://docs.akkoma.dev/stable/>).
 
