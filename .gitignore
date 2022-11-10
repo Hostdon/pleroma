@@ -1,5 +1,6 @@
 # App artifacts
 docs/site
+*.zip
 *.sw*
 secret
 /_build
