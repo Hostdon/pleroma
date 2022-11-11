@@ -104,12 +104,13 @@ defmodule Pleroma.Web.Plugs.HTTPSecurityPlug do
         {[img_src, " https:"], [media_src, " https:"]}
       end
 
-    connect_src = if Config.get([:media_proxy, :enabled]) do
-      sources = build_csp_multimedia_source_list()
-      ["connect-src 'self' blob: ", static_url, ?\s, websocket_url, ?\s, sources]
-    else
-      ["connect-src 'self' blob: ", static_url, ?\s, websocket_url]
-    end
+    connect_src =
+      if Config.get([:media_proxy, :enabled]) do
+        sources = build_csp_multimedia_source_list()
+        ["connect-src 'self' blob: ", static_url, ?\s, websocket_url, ?\s, sources]
+      else
+        ["connect-src 'self' blob: ", static_url, ?\s, websocket_url]
+      end
 
     script_src =
       if Config.get(:env) == :dev do

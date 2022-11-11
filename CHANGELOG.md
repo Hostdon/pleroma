@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## Unreleased
+## 2022.11
 
 ## Added
 - Officially supported docker release
@@ -19,6 +19,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Fixed
 - Registrations via ldap are now compatible with the latest OTP24
+
+## Update notes
+- If you use LDAP and run from source, please update your elixir/erlang
+  to the latest. The changes in OTP24.3 are breaking.
+- You can now remove the leading `*.` from domain blocks, but you do not have to.
 
 ## 2022.10
 
