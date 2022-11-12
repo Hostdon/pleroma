@@ -46,15 +46,13 @@ If your platform is not supported, or you just want to be able to edit the sourc
 - [Alpine Linux](https://docs.akkoma.dev/stable/installation/alpine_linux_en/)
 - [Arch Linux](https://docs.akkoma.dev/stable/installation/arch_linux_en/)
 - [Debian-based](https://docs.akkoma.dev/stable/installation/debian_based_en/)
-- [Debian-based (jp)](https://docs.akkoma.dev/stable/installation/debian_based_jp/)
 - [FreeBSD](https://docs.akkoma.dev/stable/installation/freebsd_en/)
 - [Gentoo Linux](https://docs.akkoma.dev/stable/installation/gentoo_en/)
 - [NetBSD](https://docs.akkoma.dev/stable/installation/netbsd_en/)
 - [OpenBSD](https://docs.akkoma.dev/stable/installation/openbsd_en/)
-- [OpenBSD (fi)](https://docs.akkoma.dev/stable/installation/openbsd_fi/)
 
 ### Docker
-While we don’t provide docker files, other people have written very good ones. Take a look at <https://github.com/angristan/docker-pleroma> or <https://glitch.sh/sn0w/pleroma-docker>.
+Docker installation is supported via [this setup](https://docs.akkoma.dev/stable/installation/docker_en/)
 
 ### Compilation Troubleshooting
 If you ever encounter compilation issues during the updating of Akkoma, you can try these commands and see if they fix things:
@@ -66,3 +64,4 @@ If you ever encounter compilation issues during the updating of Akkoma, you can 
 
 ## Documentation
 - https://docs.akkoma.dev/stable
+- https://docs.akkoma.dev/develop
