@@ -4,7 +4,7 @@ defmodule Pleroma.Mixfile do
   def project do
     [
       app: :pleroma,
-      version: version("3.3.1"),
+      version: version("3.4.0"),
       elixir: "~> 1.12",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
@@ -139,7 +139,7 @@ defmodule Pleroma.Mixfile do
       {:castore, "~> 0.1"},
       {:cowlib, "~> 2.9", override: true},
       {:gun, "~> 2.0.0-rc.1", override: true},
-      {:finch, "~> 0.10.0"},
+      {:finch, "~> 0.13.0"},
       {:jason, "~> 1.2"},
       {:mogrify, "~> 0.9.1"},
       {:ex_aws, "~> 2.1.6"},

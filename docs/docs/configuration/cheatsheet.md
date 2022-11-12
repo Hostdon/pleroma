@@ -59,6 +59,7 @@ To add configuration to your config file, you can copy it from the base config. 
 * `cleanup_attachments`: Remove attachments along with statuses. Does not affect duplicate files and attachments without status. Enabling this will increase load to database when deleting statuses on larger instances.
 * `show_reactions`: Let favourites and emoji reactions be viewed through the API (default: `true`).
 * `password_reset_token_validity`: The time after which reset tokens aren't accepted anymore, in seconds (default: one day).
+* `local_bubble`: Array of domains representing instances closely related to yours. Used to populate the `bubble` timeline. e.g `['example.com']`, (default: `[]`)
 
 ## :database
 * `improved_hashtag_timeline`: Setting to force toggle / force disable improved hashtags timeline. `:enabled` forces hashtags to be fetched from `hashtags` table for hashtags timeline. `:disabled` forces object-embedded hashtags to be used (slower). Keep it `:auto` for automatic behaviour (it is auto-set to `:enabled` [unless overridden] when HashtagsTableMigrator completes).

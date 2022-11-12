@@ -1389,6 +1389,12 @@ config :pleroma, :config_description, [
             label: "Render misskey markdown",
             type: :boolean,
             description: "Whether to render Misskey-flavoured markdown"
+          },
+          %{
+            key: :stopGifs,
+            label: "Stop Gifs",
+            type: :boolean,
+            description: "Whether to pause animated images until they're hovered on"
           }
         ]
       },
@@ -3038,6 +3044,19 @@ config :pleroma, :config_description, [
         key: :enabled,
         type: :boolean,
         description: "Allow/disallow displaying and getting instances favicons"
+      }
+    ]
+  },
+  %{
+    group: :pleroma,
+    key: :instances_nodeinfo,
+    type: :group,
+    description: "Control favicons for instances",
+    children: [
+      %{
+        key: :enabled,
+        type: :boolean,
+        description: "Allow/disallow getting instance nodeinfo"
       }
     ]
   },

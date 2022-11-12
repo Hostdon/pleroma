@@ -21,6 +21,35 @@ defmodule Pleroma.Web.ActivityPub.SideEffectsTest do
   import Mock
   import Pleroma.Factory
 
+  describe "handle" do
+    test "it queues a fetch of instance information" do
+      author = insert(:user, local: false, ap_id: "https://wowee.example.com/users/1")
+      recipient = insert(:user, local: true)
+
+      {:ok, note_data, _meta} =
+        Builder.note(%Pleroma.Web.CommonAPI.ActivityDraft{
+          user: author,
+          to: [recipient.ap_id],
+          mentions: [recipient],
+          content_html: "hey",
+          extra: %{"id" => "https://wowee.example.com/notes/1"}
+        })
+
+      {:ok, create_activity_data, _meta} =
+        Builder.create(author, note_data["id"], [recipient.ap_id])
+
+      {:ok, create_activity, _meta} = ActivityPub.persist(create_activity_data, local: false)
+
+      {:ok, _create_activity, _meta} =
+        SideEffects.handle(create_activity, local: false, object_data: note_data)
+
+      assert_enqueued(
+        worker: Pleroma.Workers.NodeInfoFetcherWorker,
+        args: %{"op" => "process", "source_url" => "https://wowee.example.com/users/1"}
+      )
+    end
+  end
+
   describe "handle_after_transaction" do
     test "it streams out notifications and streams" do
       author = insert(:user, local: true)

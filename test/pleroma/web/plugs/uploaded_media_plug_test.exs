@@ -40,4 +40,15 @@ defmodule Pleroma.Web.Plugs.UploadedMediaPlugTest do
              &(&1 == {"content-disposition", "filename=\"\\\"cofe\\\".gif\""})
            )
   end
+
+  test "removes control characters from the Content-Disposition header", %{
+    attachment_url: attachment_url
+  } do
+    conn = get(build_conn(), attachment_url <> "?name=\"cofe\".gif\\r\\n")
+
+    assert Enum.any?(
+             conn.resp_headers,
+             &(&1 == {"content-disposition", "filename=\"\\\"cofe\\\".gif\""})
+           )
+  end
 end

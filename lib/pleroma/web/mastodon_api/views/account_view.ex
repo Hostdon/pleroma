@@ -94,12 +94,12 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
 
     followed_by =
       if following_relationships do
-        case FollowingRelationship.find(following_relationships, target, reading_user) do
-          %{state: :follow_accept} -> true
-          _ -> false
-        end
+        target_to_user_following_relation =
+          FollowingRelationship.find(following_relationships, target, reading_user)
+
+        User.get_follow_state(target, reading_user, target_to_user_following_relation)
       else
-        User.following?(target, reading_user)
+        User.get_follow_state(target, reading_user)
       end
 
     subscribing =
@@ -115,7 +115,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
     %{
       id: to_string(target.id),
       following: follow_state == :follow_accept,
-      followed_by: followed_by,
+      followed_by: followed_by == :follow_accept,
       blocking:
         UserRelationship.exists?(
           user_relationships,
@@ -151,6 +151,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
       subscribing: subscribing,
       notifying: subscribing,
       requested: follow_state == :follow_pending,
+      requested_by: followed_by == :follow_pending,
       domain_blocking: User.blocks_domain?(reading_user, target),
       showing_reblogs:
         not UserRelationship.exists?(
@@ -185,6 +186,16 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
     render_opts = %{as: :target, user: user, relationships: relationships_opt}
     render_many(targets, AccountView, "relationship.json", render_opts)
   end
+
+  def render("instance.json", %{instance: %Pleroma.Instances.Instance{} = instance}) do
+    %{
+      name: instance.host,
+      favicon: instance.favicon |> MediaProxy.url(),
+      nodeinfo: instance.nodeinfo
+    }
+  end
+
+  def render("instance.json", _), do: nil
 
   defp do_render("show.json", %{user: user} = opts) do
     user = User.sanitize_html(user, User.html_filter_policy(opts[:for]))
@@ -230,16 +241,20 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
         %{}
       end
 
-    favicon =
-      if Pleroma.Config.get([:instances_favicons, :enabled]) do
-        user
-        |> Map.get(:ap_id, "")
-        |> URI.parse()
-        |> URI.merge("/")
-        |> Pleroma.Instances.Instance.get_or_update_favicon()
-        |> MediaProxy.url()
+    instance =
+      with {:ok, instance} <- Pleroma.Instances.Instance.get_cached_by_url(user.ap_id) do
+        instance
       else
+        _ ->
+          nil
+      end
+
+    favicon =
+      if is_nil(instance) do
         nil
+      else
+        instance.favicon
+        |> MediaProxy.url()
       end
 
     %{
@@ -271,7 +286,9 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
         }
       },
       last_status_at: user.last_status_at,
-
+      akkoma: %{
+        instance: render("instance.json", %{instance: instance})
+      },
       # Pleroma extensions
       # Note: it's insecure to output :email but fully-qualified nickname may serve as safe stub
       fqn: User.full_nickname(user),

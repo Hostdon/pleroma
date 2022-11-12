@@ -59,9 +59,9 @@ defmodule Pleroma.Web.Plugs.HTTPSecurityPlugTest do
 
       assert csp =~ ~r|report-uri https://endpoint.com;report-to csp-endpoint;|
 
-      [reply_to] = Conn.get_resp_header(conn, "reply-to")
+      [report_to] = Conn.get_resp_header(conn, "report-to")
 
-      assert reply_to ==
+      assert report_to ==
                "{\"endpoints\":[{\"url\":\"https://endpoint.com\"}],\"group\":\"csp-endpoint\",\"max-age\":10886400}"
     end
 
@@ -100,12 +100,14 @@ defmodule Pleroma.Web.Plugs.HTTPSecurityPlugTest do
       url = "https://example.com"
       clear_config([:media_proxy, :base_url], url)
       assert_media_img_src(conn, url)
+      assert_connect_src(conn, url)
     end
 
     test "upload with base url", %{conn: conn} do
       url = "https://example2.com"
       clear_config([Pleroma.Upload, :base_url], url)
       assert_media_img_src(conn, url)
+      assert_connect_src(conn, url)
     end
 
     test "with S3 public endpoint", %{conn: conn} do
@@ -136,6 +138,12 @@ defmodule Pleroma.Web.Plugs.HTTPSecurityPlugTest do
     [csp] = Conn.get_resp_header(conn, "content-security-policy")
     assert csp =~ "media-src 'self' #{url};"
     assert csp =~ "img-src 'self' data: blob: #{url};"
+  end
+
+  defp assert_connect_src(conn, url) do
+    conn = get(conn, "/api/v1/instance")
+    [csp] = Conn.get_resp_header(conn, "content-security-policy")
+    assert csp =~ ~r/connect-src 'self' blob: [^;]+ #{url}/
   end
 
   test "it does not send CSP headers when disabled", %{conn: conn} do

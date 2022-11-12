@@ -4,11 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## Unreleased
+## 2022.11
+
+## Added
+- Officially supported docker release
+- Ability to remove followers unilaterally without a block
+- Scraping of nodeinfo from remote instances to display instance info
+- `requested_by` in relationships when the user has requested to follow you
 
 ## Changes
 - Follows no longer override domain blocks, a domain block is final
 - Deletes are now the lowest priority to publish and will be handled after creates
+- Domain blocks are now subdomain-matches by default
+
+## Fixed
+- Registrations via ldap are now compatible with the latest OTP24
+
+## Update notes
+- If you use LDAP and run from source, please update your elixir/erlang
+  to the latest. The changes in OTP24.3 are breaking.
+- You can now remove the leading `*.` from domain blocks, but you do not have to.
 
 ## 2022.10
 

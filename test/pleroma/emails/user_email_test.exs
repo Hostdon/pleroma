@@ -27,7 +27,7 @@ defmodule Pleroma.Emails.UserEmailTest do
     token = %Pleroma.UserInviteToken{token: "test-token"}
     email = UserEmail.user_invitation_email(user, token, "test@test.com", "Jonh")
     assert email.from == {config[:name], config[:notify_email]}
-    assert email.subject == "Invitation to Pleroma"
+    assert email.subject == "Invitation to Akkoma"
     assert email.to == [{"Jonh", "test@test.com"}]
 
     assert email.html_body =~

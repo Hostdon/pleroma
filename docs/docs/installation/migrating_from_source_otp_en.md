@@ -87,7 +87,7 @@ export FLAVOUR="amd64-musl"
 # Clone the release build into a temporary directory and unpack it
 # Replace `stable` with `unstable` if you want to run the unstable branch
 su akkoma -s $SHELL -lc "
-curl 'https://akkoma-updates.s3-website.fr-par.scw.cloud/develop/akkoma-$FLAVOUR.zip' -o /tmp/akkoma.zip
+curl 'https://akkoma-updates.s3-website.fr-par.scw.cloud/stable/akkoma-$FLAVOUR.zip' -o /tmp/akkoma.zip
 unzip /tmp/akkoma.zip -d /tmp/
 "
 
