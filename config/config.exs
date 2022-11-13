@@ -584,6 +584,27 @@ config :pleroma, :workers,
     federator_incoming: 5,
     federator_outgoing: 5,
     search_indexing: 2
+  ],
+  timeout: [
+    activity_expiration: :timer.seconds(5),
+    token_expiration: :timer.seconds(5),
+    filter_expiration: :timer.seconds(5),
+    backup: :timer.seconds(900),
+    federator_incoming: :timer.seconds(10),
+    federator_outgoing: :timer.seconds(10),
+    ingestion_queue: :timer.seconds(5),
+    web_push: :timer.seconds(5),
+    mailer: :timer.seconds(5),
+    transmogrifier: :timer.seconds(5),
+    scheduled_activities: :timer.seconds(5),
+    poll_notifications: :timer.seconds(5),
+    background: :timer.seconds(5),
+    remote_fetcher: :timer.seconds(10),
+    attachments_cleanup: :timer.seconds(900),
+    new_users_digest: :timer.seconds(10),
+    mute_expire: :timer.seconds(5),
+    search_indexing: :timer.seconds(5),
+    nodeinfo_fetcher: :timer.seconds(10)
   ]
 
 config :pleroma, Pleroma.Formatter,

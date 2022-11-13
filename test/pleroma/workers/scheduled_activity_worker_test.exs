@@ -49,4 +49,9 @@ defmodule Pleroma.Workers.ScheduledActivityWorkerTest do
              ScheduledActivityWorker.perform(%Oban.Job{args: %{"activity_id" => 42}})
            end) =~ "Couldn't find scheduled activity: 42"
   end
+
+  test "has a timeout" do
+    clear_config([:workers, :timeout, :scheduled_activities], :timer.minutes(5))
+    assert ScheduledActivityWorker.timeout(nil) == :timer.minutes(5)
+  end
 end

@@ -56,4 +56,9 @@ defmodule Pleroma.Workers.PurgeExpiredActivityTest do
     assert {:error, :activity_not_found} =
              perform_job(Pleroma.Workers.PurgeExpiredActivity, %{activity_id: "some_if"})
   end
+
+  test "has a timeout" do
+    clear_config([:workers, :timeout, :activity_expiration], 50)
+    assert Pleroma.Workers.PurgeExpiredActivity.timeout(%Oban.Job{}) == 50
+  end
 end
