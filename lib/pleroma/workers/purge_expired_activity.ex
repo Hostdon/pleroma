@@ -29,7 +29,7 @@ defmodule Pleroma.Workers.PurgeExpiredActivity do
 
   @impl Oban.Worker
   def timeout(_job) do
-    Pleroma.Config.get([:workers, :timeout, :activity_expiration]) || :timer.minutes(1)
+    Pleroma.Config.get([:workers, :timeout, :activity_expiration], :timer.minutes(1))
   end
 
   @impl true

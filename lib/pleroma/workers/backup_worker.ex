@@ -16,7 +16,7 @@ defmodule Pleroma.Workers.BackupWorker do
 
   @impl Oban.Worker
   def timeout(_job) do
-    Pleroma.Config.get([:workers, :timeout, :backup]) || :timer.minutes(1)
+    Pleroma.Config.get([:workers, :timeout, :backup], :timer.minutes(1))
   end
 
   def schedule_deletion(backup) do

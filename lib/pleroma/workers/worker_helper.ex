@@ -47,7 +47,7 @@ defmodule Pleroma.Workers.WorkerHelper do
       @impl Oban.Worker
       def timeout(_job) do
         queue_atom = String.to_atom(unquote(queue))
-        Config.get([:workers, :timeout, queue_atom]) || :timer.minutes(1)
+        Config.get([:workers, :timeout, queue_atom], :timer.minutes(1))
       end
     end
   end

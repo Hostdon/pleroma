@@ -26,7 +26,7 @@ defmodule Pleroma.Workers.PurgeExpiredFilter do
 
   @impl Oban.Worker
   def timeout(_job) do
-    Pleroma.Config.get([:workers, :timeout, :filter_expiration]) || :timer.minutes(1)
+    Pleroma.Config.get([:workers, :timeout, :filter_expiration], :timer.minutes(1))
   end
 
   @impl true
