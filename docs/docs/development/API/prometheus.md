@@ -40,5 +40,5 @@ The following is a config example to use with [Grafana](https://grafana.com)
     metrics_path: /api/pleroma/app_metrics
     scheme: https
     static_configs:
-    - targets: ['pleroma.soykaf.com']
+    - targets: ['otp.akkoma.dev']
 ```
