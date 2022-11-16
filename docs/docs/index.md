@@ -23,7 +23,7 @@ will be posted via [@akkoma@ihba](https://ihatebeinga.live/users/akkoma)
 
 ## How can I use it?
 
-Akkoma instances are already widely deployed, a list can be found at <https://the-federation.info/pleroma> and <https://fediverse.network/pleroma>.
+Akkoma instances are already widely deployed, a list can be found at <https://the-federation.info/akkoma> and <https://akkoma.fediverse.observer/list>.
 
 If you don't feel like joining an existing instance, but instead prefer to deploy your own instance, that's easy too!
 Installation instructions can be found in the installation section of these docs.
