@@ -968,6 +968,25 @@ defmodule Pleroma.UserTest do
 
       assert user.last_refreshed_at == orig_user.last_refreshed_at
     end
+
+    test "it doesn't fail on invalid alsoKnownAs entries" do
+      Tesla.Mock.mock(fn
+        %{url: "https://mbp.example.com/"} ->
+          %Tesla.Env{
+            status: 200,
+            body:
+              "test/fixtures/microblogpub/user_with_invalid_also_known_as.json"
+              |> File.read!(),
+            headers: [{"content-type", "application/activity+json"}]
+          }
+
+        _ ->
+          %Tesla.Env{status: 404}
+      end)
+
+      assert {:ok, %User{also_known_as: []}} =
+               User.get_or_fetch_by_ap_id("https://mbp.example.com/")
+    end
   end
 
   test "returns an ap_id for a user" do

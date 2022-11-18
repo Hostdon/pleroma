@@ -1,0 +1,57 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    {
+      "Hashtag": "as:Hashtag",
+      "sensitive": "as:sensitive",
+      "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+      "alsoKnownAs": {
+        "@id": "as:alsoKnownAs",
+        "@type": "@id"
+      },
+      "movedTo": {
+        "@id": "as:movedTo",
+        "@type": "@id"
+      },
+      "toot": "http://joinmastodon.org/ns#",
+      "featured": {
+        "@id": "toot:featured",
+        "@type": "@id"
+      },
+      "Emoji": "toot:Emoji",
+      "blurhash": "toot:blurhash",
+      "votersCount": "toot:votersCount",
+      "schema": "http://schema.org#",
+      "PropertyValue": "schema:PropertyValue",
+      "value": "schema:value",
+      "ostatus": "http://ostatus.org#",
+      "conversation": "ostatus:conversation"
+    }
+  ],
+  "type": "Person",
+  "id": "https://mbp.example.com",
+  "following": "https://mbp.example.com/following",
+  "followers": "https://mbp.example.com/followers",
+  "featured": "https://mbp.example.com/featured",
+  "inbox": "https://mbp.example.com/inbox",
+  "outbox": "https://mbp.example.com/outbox",
+  "preferredUsername": "MBP",
+  "name": "MBP",
+  "summary": "wowee",
+  "endpoints": {
+    "sharedInbox": "https://mbp.example.com/inbox"
+  },
+  "url": "https://mbp.example.com/",
+  "manuallyApprovesFollowers": false,
+  "attachment": [],
+  "icon": {
+    "mediaType": "image/jpeg",
+    "type": "Image",
+    "url": "https://beta.4201337.xyz/static/denise.jpg"
+  },
+  "tag": [],
+  "alsoKnownAs": [
+    "example@elsewhere.com"
+  ]
+}

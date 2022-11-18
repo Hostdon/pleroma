@@ -1530,6 +1530,18 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     # we request WebFinger here
     nickname = additional[:nickname_from_acct] || generate_nickname(data)
 
+    # also_known_as must be a URL
+    also_known_as =
+      data
+      |> Map.get("alsoKnownAs", [])
+      |> Enum.filter(fn url ->
+        case URI.parse(url) do
+          %URI{scheme: "http"} -> true
+          %URI{scheme: "https"} -> true
+          _ -> false
+        end
+      end)
+
     %{
       ap_id: data["id"],
       uri: get_actor_url(data["url"]),
@@ -1547,7 +1559,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       featured_address: featured_address,
       bio: data["summary"] || "",
       actor_type: actor_type,
-      also_known_as: Map.get(data, "alsoKnownAs", []),
+      also_known_as: also_known_as,
       public_key: public_key,
       inbox: data["inbox"],
       shared_inbox: shared_inbox,

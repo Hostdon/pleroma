@@ -1910,7 +1910,8 @@ defmodule Pleroma.User do
       {%User{} = user, _} ->
         {:ok, user}
 
-      _ ->
+      e ->
+        Logger.error("Could not fetch user, #{inspect(e)}")
         {:error, :not_found}
     end
   end
