@@ -23,7 +23,7 @@ This sets the `secure` flag on Akkoma’s session cookie. This makes sure, that 
 
 This will send additional HTTP security headers to the clients, including:
 
-* `X-XSS-Protection: "1; mode=block"`
+* `X-XSS-Protection: "0"`
 * `X-Permitted-Cross-Domain-Policies: "none"`
 * `X-Frame-Options: "DENY"`
 * `X-Content-Type-Options: "nosniff"`

@@ -42,7 +42,7 @@ defmodule Pleroma.Web.Plugs.HTTPSecurityPlug do
     custom_http_frontend_headers = custom_http_frontend_headers()
 
     headers = [
-      {"x-xss-protection", "1; mode=block"},
+      {"x-xss-protection", "0"},
       {"x-permitted-cross-domain-policies", "none"},
       {"x-frame-options", "DENY"},
       {"x-content-type-options", "nosniff"},

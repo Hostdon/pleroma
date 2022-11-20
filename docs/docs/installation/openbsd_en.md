@@ -160,7 +160,7 @@ http protocol plerup { # Protocol for upstream akkoma server
 	match request header append "X-Forwarded-For" value "$REMOTE_ADDR" # This two header and the next one are not strictly required by akkoma but adding them won't hurt
 	match request header append "X-Forwarded-By" value "$SERVER_ADDR:$SERVER_PORT"
 
-	match response header append "X-XSS-Protection" value "1; mode=block"
+	match response header append "X-XSS-Protection" value "0"
 	match response header append "X-Permitted-Cross-Domain-Policies" value "none"
 	match response header append "X-Frame-Options" value "DENY"
 	match response header append "X-Content-Type-Options" value "nosniff"
