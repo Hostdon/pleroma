@@ -89,6 +89,13 @@ config :pleroma, :frontend_configurations,
 
 Terms of Service will be shown to all users on the registration page. It's the best place where to write down the rules for your instance. You can modify the rules by adding and changing `$static_dir/static/terms-of-service.html`.
 
+## Favicon
+
+The favicon will display on the frontend, and in the browser tab. 
+
+Place a PNG file at `$static_dir/favicon.png` to change the favicon. Not that this
+is _one level above_ where the logo is placed, it should be on the same level as
+the `frontends` directory.
  	
 ## Styling rendered pages
 
