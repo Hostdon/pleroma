@@ -312,7 +312,6 @@ config :pleroma, :frontend_configurations,
     logo: "/static/logo.svg",
     logoMargin: ".1em",
     logoMask: true,
-    minimalScopesMode: false,
     noAttachmentLinks: false,
     nsfwCensorImage: "",
     postContentType: "text/plain",
@@ -324,7 +323,8 @@ config :pleroma, :frontend_configurations,
     showInstanceSpecificPanel: false,
     subjectLineBehavior: "email",
     theme: "pleroma-dark",
-    webPushNotifications: false
+    webPushNotifications: false,
+    conversationDisplay: "linear"
   },
   masto_fe: %{
     showInstanceSpecificPanel: true

@@ -1227,6 +1227,13 @@ config :pleroma, :config_description, [
             description: "Enables green text on lines prefixed with the > character"
           },
           %{
+            key: :conversationDisplay,
+            label: "Conversation display style",
+            type: :string,
+            description: "How to display conversations (linear or tree)",
+            suggestions: ["linear", "tree"]
+          },
+          %{
             key: :hideFilteredStatuses,
             label: "Hide Filtered Statuses",
             type: :boolean,
@@ -1273,14 +1280,6 @@ config :pleroma, :config_description, [
             description:
               "By default it assumes logo used will be monochrome with alpha channel to be compatible with both light and dark themes. " <>
                 "If you want a colorful logo you must disable logoMask."
-          },
-          %{
-            key: :minimalScopesMode,
-            label: "Minimal scopes mode",
-            type: :boolean,
-            description:
-              "Limit scope selection to Direct, User default, and Scope of post replying to. " <>
-                "Also prevents replying to a DM with a public post from PleromaFE."
           },
           %{
             key: :nsfwCensorImage,
