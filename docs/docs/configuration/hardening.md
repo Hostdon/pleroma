@@ -27,14 +27,13 @@ This will send additional HTTP security headers to the clients, including:
 * `X-Permitted-Cross-Domain-Policies: "none"`
 * `X-Frame-Options: "DENY"`
 * `X-Content-Type-Options: "nosniff"`
-* `X-Download-Options: "noopen"`
 
 A content security policy (CSP) will also be set:
 
 ```csp
 content-security-policy:
   default-src 'none';
-  base-uri 'self';
+  base-uri 'none';
   frame-ancestors 'none';
   img-src 'self' data: blob: https:;
   media-src 'self' https:;
@@ -51,10 +50,6 @@ content-security-policy:
 > Recommended value: `true`
 
 An additional “Strict transport security” header will be sent with the configured `sts_max_age` parameter. This tells the browser, that the domain should only be accessed over a secure HTTPs connection.
-
-#### `ct_max_age`
-
-An additional “Expect-CT” header will be sent with the configured `ct_max_age` parameter. This enforces the use of TLS certificates that are published in the certificate transparency log. (see [Expect-CT](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Expect-CT))
 
 #### `referrer_policy`
 

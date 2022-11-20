@@ -165,10 +165,9 @@ http protocol plerup { # Protocol for upstream akkoma server
 	match response header append "X-Frame-Options" value "DENY"
 	match response header append "X-Content-Type-Options" value "nosniff"
 	match response header append "Referrer-Policy" value "same-origin"
-	match response header append "X-Download-Options" value "noopen"
-	match response header append "Content-Security-Policy" value "default-src 'none'; base-uri 'self'; form-action 'self'; img-src 'self' data: https:; media-src 'self' https:; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'; connect-src 'self' wss://CHANGEME.tld; upgrade-insecure-requests;" # Modify "CHANGEME.tld" and set your instance's domain here
+	match response header append "Content-Security-Policy" value "default-src 'none'; base-uri 'none'; form-action 'self'; img-src 'self' data: https:; media-src 'self' https:; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'; connect-src 'self' wss://CHANGEME.tld; upgrade-insecure-requests;" # Modify "CHANGEME.tld" and set your instance's domain here
 	match request header append "Connection" value "upgrade"
-	#match response header append "Strict-Transport-Security" value "max-age=31536000; includeSubDomains" # Uncomment this only after you get HTTPS working.
+	#match response header append "Strict-Transport-Security" value "max-age=63072000; includeSubDomains; preload" # Uncomment this only after you get HTTPS working.
 
 	# If you do not want remote frontends to be able to access your Akkoma backend server, comment these lines
 	match response header append "Access-Control-Allow-Origin" value "*"

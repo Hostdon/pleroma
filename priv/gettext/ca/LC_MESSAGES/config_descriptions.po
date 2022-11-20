@@ -1938,12 +1938,6 @@ msgstr ""
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt "config description at :pleroma-:http_security > :ct_max_age"
-msgid "The maximum age for the Expect-CT header if sent"
-msgstr "The maximum age for the Expect-CT header if sent"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt "config description at :pleroma-:http_security > :enabled"
 msgid "Whether the managed content security policy is enabled"
 msgstr "Whether the managed content security policy is enabled"
@@ -4992,12 +4986,6 @@ msgstr "Send user agent"
 msgctxt "config label at :pleroma-:http > :user_agent"
 msgid "User agent"
 msgstr "User agent"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:http_security > :ct_max_age"
-msgid "CT max age"
-msgstr "CT max age"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy

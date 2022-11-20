@@ -160,7 +160,6 @@ server {
         add_header X-Frame-Options DENY;
         add_header X-Content-Type-Options nosniff;
         add_header Referrer-Policy same-origin;
-        add_header X-Download-Options noopen;
 
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;

@@ -17,7 +17,6 @@ defmodule Pleroma.Web.Plugs.HTTPSecurityPlugTest do
       refute Conn.get_resp_header(conn, "x-permitted-cross-domain-policies") == []
       refute Conn.get_resp_header(conn, "x-frame-options") == []
       refute Conn.get_resp_header(conn, "x-content-type-options") == []
-      refute Conn.get_resp_header(conn, "x-download-options") == []
       refute Conn.get_resp_header(conn, "referrer-policy") == []
       refute Conn.get_resp_header(conn, "content-security-policy") == []
     end
@@ -28,7 +27,6 @@ defmodule Pleroma.Web.Plugs.HTTPSecurityPlugTest do
       conn = get(conn, "/api/v1/instance")
 
       refute Conn.get_resp_header(conn, "strict-transport-security") == []
-      refute Conn.get_resp_header(conn, "expect-ct") == []
     end
 
     test "it does not send STS headers when disabled", %{conn: conn} do
@@ -37,7 +35,6 @@ defmodule Pleroma.Web.Plugs.HTTPSecurityPlugTest do
       conn = get(conn, "/api/v1/instance")
 
       assert Conn.get_resp_header(conn, "strict-transport-security") == []
-      assert Conn.get_resp_header(conn, "expect-ct") == []
     end
 
     test "referrer-policy header reflects configured value", %{conn: conn} do
@@ -155,7 +152,6 @@ defmodule Pleroma.Web.Plugs.HTTPSecurityPlugTest do
     assert Conn.get_resp_header(conn, "x-permitted-cross-domain-policies") == []
     assert Conn.get_resp_header(conn, "x-frame-options") == []
     assert Conn.get_resp_header(conn, "x-content-type-options") == []
-    assert Conn.get_resp_header(conn, "x-download-options") == []
     assert Conn.get_resp_header(conn, "referrer-policy") == []
     assert Conn.get_resp_header(conn, "content-security-policy") == []
   end

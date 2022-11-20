@@ -487,8 +487,7 @@ config :pleroma, Pleroma.Web.Preload,
 config :pleroma, :http_security,
   enabled: true,
   sts: false,
-  sts_max_age: 31_536_000,
-  ct_max_age: 2_592_000,
+  sts_max_age: 63_072_000,
   referrer_policy: "same-origin"
 
 config :cors_plug,
