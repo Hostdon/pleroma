@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## Unreleased
+
+## Changed
+- MastoAPI: Accept BooleanLike input on `/api/v1/accounts/:id/follow` (fixes follows with mastodon.py)
+
 ## 2022.11
 
 ## Added
@@ -12,7 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Scraping of nodeinfo from remote instances to display instance info
 - `requested_by` in relationships when the user has requested to follow you
 
-## Changes
+## Changed
 - Follows no longer override domain blocks, a domain block is final
 - Deletes are now the lowest priority to publish and will be handled after creates
 - Domain blocks are now subdomain-matches by default
