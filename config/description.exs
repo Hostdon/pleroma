@@ -2659,6 +2659,21 @@ config :pleroma, :config_description, [
     description: "HTTP settings",
     children: [
       %{
+        key: :pool_timeout,
+        label: "HTTP Pool Request Timeout",
+        type: :integer,
+        description: "Timeout for initiating HTTP requests (in ms, default 5000)",
+        suggestions: [5000]
+      },
+      %{
+        key: :receive_timeout,
+        label: "HTTP Receive Timeout",
+        type: :integer,
+        description:
+          "Timeout for waiting on remote servers to respond to HTTP requests (in ms, default 15000)",
+        suggestions: [15000]
+      },
+      %{
         key: :proxy_url,
         label: "Proxy URL",
         type: :string,

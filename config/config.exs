@@ -180,6 +180,8 @@ config :tesla, :adapter, {Tesla.Adapter.Finch, name: MyFinch}
 
 # Configures http settings, upstream proxy etc.
 config :pleroma, :http,
+  pool_timeout: :timer.seconds(5),
+  receive_timeout: :timer.seconds(15),
   proxy_url: nil,
   user_agent: :default,
   adapter: []

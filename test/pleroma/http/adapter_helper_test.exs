@@ -3,8 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.HTTP.AdapterHelperTest do
-  use ExUnit.Case, async: true
-
+  use Pleroma.DataCase, async: true
   alias Pleroma.HTTP.AdapterHelper
 
   describe "format_proxy/1" do
@@ -45,6 +44,26 @@ defmodule Pleroma.HTTP.AdapterHelperTest do
              ) == [
                pools: %{default: [conn_opts: [proxy: "proxy", already: "set"]]}
              ]
+    end
+  end
+
+  describe "timeout settings" do
+    test "should default to 5000/15000" do
+      options = AdapterHelper.options(%URI{host: 'somewhere'})
+      assert options[:pool_timeout] == 5000
+      assert options[:receive_timeout] == 15_000
+    end
+
+    test "pool_timeout should be overridden by :http, :pool_timeout" do
+      clear_config([:http, :pool_timeout], 10_000)
+      options = AdapterHelper.options(%URI{host: 'somewhere'})
+      assert options[:pool_timeout] == 10_000
+    end
+
+    test "receive_timeout should be overridden by :http, :receive_timeout" do
+      clear_config([:http, :receive_timeout], 20_000)
+      options = AdapterHelper.options(%URI{host: 'somewhere'})
+      assert options[:receive_timeout] == 20_000
     end
   end
 end

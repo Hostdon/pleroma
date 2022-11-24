@@ -523,6 +523,8 @@ Available caches:
 
 ### :http
 
+* `receive_timeout`: the amount of time, in ms, to wait for a remote server to respond to a request. (default: `15000`)
+* `pool_timeout`: the amount of time, in ms, to wait to check out an HTTP connection from the pool. This likely does not need changing unless your instance is _very_ busy with outbound requests. (default `5000`)
 * `proxy_url`: an upstream proxy to fetch posts and/or media with, (default: `nil`); for example `http://127.0.0.1:3192`. Does not support SOCKS5 proxy, only http(s).
 * `send_user_agent`: should we include a user agent with HTTP requests? (default: `true`)
 * `user_agent`: what user agent should we use? (default: `:default`), must be string or `:default`
