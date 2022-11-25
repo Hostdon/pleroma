@@ -217,7 +217,7 @@ config :pleroma, :instance,
   federation_publisher_modules: [
     Pleroma.Web.ActivityPub.Publisher
   ],
-  allow_relay: true,
+  allow_relay: false,
   public: true,
   static_dir: "instance/static/",
   allowed_post_formats: [
