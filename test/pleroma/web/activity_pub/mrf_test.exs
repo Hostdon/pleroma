@@ -77,7 +77,7 @@ defmodule Pleroma.Web.ActivityPub.MRFTest do
       clear_config([:mrf, :policies], [Pleroma.Web.ActivityPub.MRF.NoOpPolicy])
 
       expected = %{
-        mrf_policies: ["NoOpPolicy", "HashtagPolicy", "InlineQuotePolicy"],
+        mrf_policies: ["NoOpPolicy", "HashtagPolicy", "InlineQuotePolicy", "NormalizeMarkup"],
         mrf_hashtag: %{
           federated_timeline_removal: [],
           reject: [],
@@ -93,7 +93,7 @@ defmodule Pleroma.Web.ActivityPub.MRFTest do
       clear_config([:mrf, :policies], [MRFModuleMock])
 
       expected = %{
-        mrf_policies: ["MRFModuleMock", "HashtagPolicy", "InlineQuotePolicy"],
+        mrf_policies: ["MRFModuleMock", "HashtagPolicy", "InlineQuotePolicy", "NormalizeMarkup"],
         mrf_module_mock: "some config data",
         mrf_hashtag: %{
           federated_timeline_removal: [],

@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Changed
 - MastoAPI: Accept BooleanLike input on `/api/v1/accounts/:id/follow` (fixes follows with mastodon.py)
 - Relays from akkoma are now off by default
+- NormalizeMarkup MRF is now on by default
 
 ## 2022.11
 
