@@ -4,6 +4,7 @@
 
 defmodule Pleroma.InstancesTest do
   alias Pleroma.Instances
+  alias Pleroma.Instances.Instance
 
   use Pleroma.DataCase
 
@@ -119,6 +120,23 @@ defmodule Pleroma.InstancesTest do
 
       Instances.set_consistently_unreachable(host)
       refute Instances.reachable?(host)
+    end
+  end
+
+  describe "set_request_signatures/1" do
+    test "sets instance has request signatures" do
+      host = "domain.com"
+
+      {:ok, instance} = Instances.set_request_signatures(host)
+      assert instance.has_request_signatures
+
+      {:ok, cached_instance} = Instance.get_cached_by_url(host)
+      assert cached_instance.has_request_signatures
+    end
+
+    test "returns error status on non-binary input" do
+      assert {:error, _} = Instances.set_request_signatures(nil)
+      assert {:error, _} = Instances.set_request_signatures(1)
     end
   end
 end
