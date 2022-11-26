@@ -140,7 +140,8 @@ defmodule Pleroma.Web.ActivityPub.MRF do
     |> get_policies()
     |> Enum.concat([
       Pleroma.Web.ActivityPub.MRF.HashtagPolicy,
-      Pleroma.Web.ActivityPub.MRF.InlineQuotePolicy
+      Pleroma.Web.ActivityPub.MRF.InlineQuotePolicy,
+      Pleroma.Web.ActivityPub.MRF.NormalizeMarkup
     ])
     |> Enum.uniq()
   end

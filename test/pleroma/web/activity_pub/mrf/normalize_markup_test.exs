@@ -15,6 +15,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.NormalizeMarkupTest do
   this is a link with not allowed "rel" attribute: <a href="http://example.com/" rel="tag noallowed">example.com</a>
   this is an image: <img src="http://example.com/image.jpg"><br />
   <script>alert('hacked')</script>
+  <div class="wow no classes here">mean</div>
   """
 
   @expected """
@@ -25,6 +26,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.NormalizeMarkupTest do
   this is a link with not allowed &quot;rel&quot; attribute: <a href="http://example.com/">example.com</a>
   this is an image: <img src="http://example.com/image.jpg"/><br/>
   alert(&#39;hacked&#39;)
+  mean
   """
 
   test "it filter html tags" do
