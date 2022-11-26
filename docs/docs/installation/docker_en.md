@@ -51,7 +51,8 @@ mkdir pgdata
 ```
 
 This will ask you a few questions - the defaults are fine for most things,
-the database hostname is `db`, and you will want to set the ip to `0.0.0.0`.
+the database hostname is `db`, the database password is `akkoma`
+(not auto generated), and you will want to set the ip to `0.0.0.0`.
 
 Now we'll want to copy over the config it just created
 

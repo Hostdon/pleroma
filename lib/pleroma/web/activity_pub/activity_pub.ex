@@ -1674,7 +1674,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
         {:error, e}
 
       {:error, {:reject, reason} = e} ->
-        Logger.info("Rejected user #{ap_id}: #{inspect(reason)}")
+        Logger.debug("Rejected user #{ap_id}: #{inspect(reason)}")
         {:error, e}
 
       {:error, e} ->

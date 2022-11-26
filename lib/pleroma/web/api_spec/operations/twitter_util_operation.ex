@@ -81,7 +81,7 @@ defmodule Pleroma.Web.ApiSpec.TwitterUtilOperation do
   defp change_password_request do
     %Schema{
       title: "ChangePasswordRequest",
-      description: "POST body for changing the account's passowrd",
+      description: "POST body for changing the account's password",
       type: :object,
       required: [:password, :new_password, :new_password_confirmation],
       properties: %{

@@ -184,7 +184,7 @@ defmodule Pleroma.Object.Fetcher do
         nil
 
       {:reject, reason} ->
-        Logger.info("Rejected #{id} while fetching: #{inspect(reason)}")
+        Logger.debug("Rejected #{id} while fetching: #{inspect(reason)}")
         nil
 
       e ->
