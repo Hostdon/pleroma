@@ -22,7 +22,7 @@ defmodule Pleroma.Web.FederatorTest do
   end
 
   setup_all do: clear_config([:instance, :federating], true)
-  setup do: clear_config([:instance, :allow_relay])
+  setup do: clear_config([:instance, :allow_relay], true)
   setup do: clear_config([:mrf, :policies])
   setup do: clear_config([:mrf_keyword])
 

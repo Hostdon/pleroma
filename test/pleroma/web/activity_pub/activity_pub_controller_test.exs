@@ -33,7 +33,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
   setup do: clear_config([:instance, :federating], true)
 
   describe "/relay" do
-    setup do: clear_config([:instance, :allow_relay])
+    setup do: clear_config([:instance, :allow_relay], true)
 
     test "with the relay active, it returns the relay user", %{conn: conn} do
       res =
