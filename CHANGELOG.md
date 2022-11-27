@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - MastoAPI: Accept BooleanLike input on `/api/v1/accounts/:id/follow` (fixes follows with mastodon.py)
 - Relays from akkoma are now off by default
 - NormalizeMarkup MRF is now on by default
+- Follow/Block/Mute imports now spin off into *n* tasks to avoid the oban timeout
 
 ## 2022.11
 
