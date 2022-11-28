@@ -313,7 +313,7 @@ config :pleroma, :frontend_configurations,
     loginMethod: "password",
     logo: "/static/logo.svg",
     logoMargin: ".1em",
-    logoMask: true,
+    logoMask: false,
     noAttachmentLinks: false,
     nsfwCensorImage: "",
     postContentType: "text/plain",
@@ -346,12 +346,6 @@ config :pleroma, :assets,
   default_mascot: :pleroma_fox_tan
 
 config :pleroma, :manifest,
-  icons: [
-    %{
-      src: "/static/logo.svg",
-      type: "image/svg+xml"
-    }
-  ],
   theme_color: "#282c37",
   background_color: "#191b22"
 
