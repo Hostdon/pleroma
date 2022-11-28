@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Added
 - Config: HTTP timeout options, :pool\_timeout and :receive\_timeout
 - Added statistic gathering about instances which do/don't have signed fetches when they request from us
+- Ability to set a default post expiry time, after which the post will be deleted. If used in concert with ActivityExpiration MRF, the expiry which comes _sooner_ will be applied.
 
 ## Changed
 - MastoAPI: Accept BooleanLike input on `/api/v1/accounts/:id/follow` (fixes follows with mastodon.py)
