@@ -15,18 +15,6 @@ The MRF provides user-configurable policies. The default policy is `NoOpPolicy`,
 
 It is possible to use multiple, active MRF policies at the same time.
 
-## Quarantine Instances
-
-You have the ability to prevent from private / followers-only messages from federating with specific instances. Which means they will only get the public or unlisted messages from your instance.
-
-If, for example, you're using `MIX_ENV=prod` aka using production mode, you would open your configuration file located in `config/prod.secret.exs` and edit or add the option under your `:instance` config object. Then you would specify the instance within quotes.
-
-```elixir
-config :pleroma, :instance,
-  [...]
-  quarantined_instances: ["instance.example", "other.example"]
-```
-
 ## Using `SimplePolicy`
 
 `SimplePolicy` is capable of handling most common admin tasks.
@@ -41,7 +29,7 @@ config :pleroma, :mrf,
 
 Once `SimplePolicy` is enabled, you can configure various groups in the `:mrf_simple` config object. These groups are:
 
-* `reject`: Servers in this group will have their messages rejected.
+* `reject`: Servers in this group will have their messages rejected. Also outbound messages will not be sent to these servers.
 * `accept`: If not empty, only messages from these instances will be accepted (whitelist federation).
 * `media_nsfw`: Servers in this group will have the #nsfw tag and sensitive setting injected into incoming messages which contain media.
 * `media_removal`: Servers in this group will have media stripped from incoming messages.
