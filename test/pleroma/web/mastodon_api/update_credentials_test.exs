@@ -226,7 +226,7 @@ defmodule Pleroma.Web.MastodonAPI.UpdateCredentialsTest do
     test "does not allow negative integers other than -1 for TTL", %{conn: conn} do
       conn = patch(conn, "/api/v1/accounts/update_credentials", %{"status_ttl_days" => "-2"})
 
-      assert user_data = json_response_and_validate_schema(conn, 403)
+      assert json_response_and_validate_schema(conn, 403)
     end
 
     test "updates the user's AKAs", %{conn: conn} do

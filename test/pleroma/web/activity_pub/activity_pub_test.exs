@@ -8,6 +8,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
 
   alias Pleroma.Activity
   alias Pleroma.Builders.ActivityBuilder
+  alias Pleroma.Web.ActivityPub.Builder
   alias Pleroma.Config
   alias Pleroma.Notification
   alias Pleroma.Object
@@ -2612,5 +2613,29 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
 
     {:ok, user} = ActivityPub.make_user_from_ap_id("https://princess.cat/users/mewmew")
     assert user.name == " "
+  end
+
+  describe "persist/1" do
+    test "should not persist remote delete activities" do
+      poster = insert(:user, local: false)
+      {:ok, post} = CommonAPI.post(poster, %{status: "hhhhhh"})
+
+      {:ok, delete_data, meta} = Builder.delete(poster, post)
+      local_opts = Keyword.put(meta, :local, false)
+      {:ok, act, _meta} = ActivityPub.persist(delete_data, local_opts)
+      refute act.inserted_at
+    end
+
+    test "should not persist remote undo activities" do
+      poster = insert(:user, local: false)
+      liker = insert(:user, local: false)
+      {:ok, post} = CommonAPI.post(poster, %{status: "hhhhhh"})
+      {:ok, like} = CommonAPI.favorite(liker, post.id)
+
+      {:ok, undo_data, meta} = Builder.undo(liker, like)
+      local_opts = Keyword.put(meta, :local, false)
+      {:ok, act, _meta} = ActivityPub.persist(undo_data, local_opts)
+      refute act.inserted_at
+    end
   end
 end

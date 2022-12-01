@@ -222,7 +222,6 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
       |> Maps.put_if_present(:language, Pleroma.Web.Gettext.normalize_locale(params[:language]))
       |> Maps.put_if_present(:status_ttl_days, params[:status_ttl_days], status_ttl_days_value)
 
-    IO.inspect(user_params)
     # What happens here:
     #
     # We want to update the user through the pipeline, but the ActivityPub

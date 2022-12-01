@@ -159,3 +159,23 @@ Change `default_text_search_config` for database and (if necessary) text_search_
     ```
 
 See [PostgreSQL documentation](https://www.postgresql.org/docs/current/textsearch-configuration.html) and `docs/configuration/howto_search_cjk.md` for more detail.
+
+## Pruning old activities
+
+Over time, transient `Delete` activities and `Tombstone` objects
+can accumulate in your database, inflating its size. This is not ideal. 
+There is a periodic task to prune these transient objects, 
+but on first run this may take a while on older instances to catch up
+to the current day.
+
+=== "OTP"
+
+    ```sh
+    ./bin/pleroma_ctl database prune_task
+    ```
+
+=== "From Source"
+
+    ```sh
+    mix pleroma.database prune_task
+    ```

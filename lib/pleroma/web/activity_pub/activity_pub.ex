@@ -105,6 +105,23 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     end
   end
 
+  @unpersisted_activity_types ~w[Undo Delete Remove]
+  @impl true
+  def persist(%{"type" => type} = object, [local: false] = meta)
+      when type in @unpersisted_activity_types do
+    {:ok, object, meta}
+    {recipients, _, _} = get_recipients(object)
+
+    unpersisted = %Activity{
+      data: object,
+      local: false,
+      recipients: recipients,
+      actor: object["actor"]
+    }
+
+    {:ok, unpersisted, meta}
+  end
+
   @impl true
   def persist(object, meta) do
     with local <- Keyword.fetch!(meta, :local),
