@@ -452,15 +452,16 @@ defmodule Pleroma.Factory do
     }
   end
 
-  def follow_activity_factory do
-    follower = insert(:user)
-    followed = insert(:user)
+  def follow_activity_factory(attrs \\ %{}) do
+    follower = attrs[:follower] || insert(:user)
+    followed = attrs[:followed] || insert(:user)
 
     data = %{
       "id" => Pleroma.Web.ActivityPub.Utils.generate_activity_id(),
       "actor" => follower.ap_id,
       "type" => "Follow",
       "object" => followed.ap_id,
+      "state" => attrs[:state] || "pending",
       "published_at" => DateTime.utc_now() |> DateTime.to_iso8601()
     }
 

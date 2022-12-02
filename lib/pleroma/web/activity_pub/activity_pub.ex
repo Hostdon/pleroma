@@ -105,7 +105,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     end
   end
 
-  @unpersisted_activity_types ~w[Undo Delete Remove]
+  @unpersisted_activity_types ~w[Undo Delete Remove Accept Reject]
   @impl true
   def persist(%{"type" => type} = object, [local: false] = meta)
       when type in @unpersisted_activity_types do
