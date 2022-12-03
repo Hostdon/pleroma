@@ -35,6 +35,17 @@ defmodule Pleroma.Activity.Pruner do
     |> Repo.delete_all(timeout: :infinity)
   end
 
+  def prune_stale_follow_requests do
+    before_time = cutoff()
+
+    from(a in Activity,
+      where:
+        fragment("?->>'type' = ?", a.data, "Follow") and a.inserted_at < ^before_time and
+          fragment("?->>'state' = ?", a.data, "reject")
+    )
+    |> Repo.delete_all(timeout: :infinity)
+  end
+
   defp cutoff do
     DateTime.utc_now() |> Timex.shift(days: -@cutoff)
   end

@@ -469,6 +469,7 @@ defmodule Pleroma.Factory do
       data: data,
       actor: follower.ap_id
     }
+    |> Map.merge(attrs)
   end
 
   def report_activity_factory(attrs \\ %{}) do

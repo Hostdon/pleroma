@@ -15,6 +15,9 @@ defmodule Pleroma.Workers.Cron.PruneDatabaseWorker do
     Logger.info("Pruning old deletes")
     ActivityPruner.prune_deletes()
 
+    Logger.info("Pruning old follow requests")
+    ActivityPruner.prune_stale_follow_requests()
+
     Logger.info("Pruning old undos")
     ActivityPruner.prune_undos()
 

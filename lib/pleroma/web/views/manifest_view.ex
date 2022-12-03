@@ -13,14 +13,14 @@ defmodule Pleroma.Web.ManifestView do
       description: Config.get([:instance, :description]),
       icons: [
         %{
-            src: "/static/logo.svg",
-            type: "image/svg+xml"
+          src: "/static/logo.svg",
+          type: "image/svg+xml"
         },
         %{
-            src: "/static/logo-512.png",
-            sizes: "512x512",
-            type: "image/png",
-            purpose: "maskable"
+          src: "/static/logo-512.png",
+          sizes: "512x512",
+          type: "image/png",
+          purpose: "maskable"
         }
       ],
       theme_color: Config.get([:manifest, :theme_color]),

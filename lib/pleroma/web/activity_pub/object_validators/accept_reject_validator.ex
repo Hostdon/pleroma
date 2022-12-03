@@ -6,7 +6,6 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.AcceptRejectValidator do
   use Ecto.Schema
 
   alias Pleroma.Activity
-  alias Pleroma.Object
   alias Pleroma.User
 
   import Ecto.Changeset
