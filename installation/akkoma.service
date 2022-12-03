@@ -7,6 +7,9 @@ ExecReload=/bin/kill $MAINPID
 KillMode=process
 Restart=on-failure
 
+; Uncomment this if you're on Arch Linux
+; Evironment="PATH=/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl"
+
 ; Name of the user that runs the Akkoma service.
 User=akkoma
 ; Declares that Akkoma runs in production mode.
