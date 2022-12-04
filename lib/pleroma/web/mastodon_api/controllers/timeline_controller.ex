@@ -41,11 +41,6 @@ defmodule Pleroma.Web.MastodonAPI.TimelineController do
 
   # GET /api/v1/timelines/home
   def home(%{assigns: %{user: user}} = conn, params) do
-    followed_hashtags =
-      user
-      |> User.followed_hashtags()
-      |> Enum.map(& &1.id)
-
     params =
       params
       |> Map.put(:type, ["Create", "Announce"])
@@ -55,7 +50,6 @@ defmodule Pleroma.Web.MastodonAPI.TimelineController do
       |> Map.put(:announce_filtering_user, user)
       |> Map.put(:user, user)
       |> Map.put(:local_only, params[:local])
-      |> Map.put(:followed_hashtags, followed_hashtags)
       |> Map.delete(:local)
 
     activities =

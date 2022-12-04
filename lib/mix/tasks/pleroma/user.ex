@@ -471,15 +471,9 @@ defmodule Mix.Tasks.Pleroma.User do
 
   def run(["timeline_query", nickname]) do
     start_pleroma()
-
     params = %{local: true}
 
     with %User{local: true} = user <- User.get_cached_by_nickname(nickname) do
-      followed_hashtags =
-        user
-        |> User.followed_hashtags()
-        |> Enum.map(& &1.id)
-
       params =
         params
         |> Map.put(:type, ["Create", "Announce"])
@@ -490,7 +484,6 @@ defmodule Mix.Tasks.Pleroma.User do
         |> Map.put(:announce_filtering_user, user)
         |> Map.put(:user, user)
         |> Map.put(:local_only, params[:local])
-        |> Map.put(:hashtags, followed_hashtags)
         |> Map.delete(:local)
 
       _activities =
