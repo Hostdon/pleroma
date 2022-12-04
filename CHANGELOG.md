@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Ability to set a default post expiry time, after which the post will be deleted. If used in concert with ActivityExpiration MRF, the expiry which comes _sooner_ will be applied.
 - Regular task to prune local transient activities
 - Task to manually run the transient prune job (pleroma.database prune\_task)
+- Ability to follow hashtags
 
 ## Changed
 - MastoAPI: Accept BooleanLike input on `/api/v1/accounts/:id/follow` (fixes follows with mastodon.py)
