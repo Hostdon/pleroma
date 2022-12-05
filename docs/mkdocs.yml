@@ -1,11 +1,11 @@
 site_name: Akkoma Documentation
 theme:
-  favicon: 'images/akko_badday.png'
+  favicon: 'images/favicon.ico'
   name: 'material'
   custom_dir: 'theme'
   # Disable google fonts
   font: false
-  logo: 'images/akko_badday.png'
+  logo: 'images/logo.png'
   features:
     - navigation.tabs
     - toc.follow
