@@ -7,7 +7,10 @@ theme:
   font: false
   logo: 'images/akko_badday.png'
   features:
-    - tabs
+    - navigation.tabs
+    - toc.follow
+    - navigation.instant
+    - navigation.sections
   palette:
     primary: 'deep purple'
     accent: 'blue grey'
@@ -31,7 +34,8 @@ markdown_extensions:
   - pymdownx.tasklist:
       custom_checkbox: true
   - pymdownx.superfences
-  - pymdownx.tabbed
+  - pymdownx.tabbed:
+      alternate_style: true
   - pymdownx.details
   - markdown_include.include:
       base_path: docs
