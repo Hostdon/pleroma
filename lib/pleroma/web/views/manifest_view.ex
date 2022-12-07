@@ -21,6 +21,11 @@ defmodule Pleroma.Web.ManifestView do
           sizes: "512x512",
           type: "image/png",
           purpose: "maskable"
+        },
+        %{
+          src: "/static/logo-512.png",
+          sizes: "512x512",
+          type: "image/png"
         }
       ],
       theme_color: Config.get([:manifest, :theme_color]),
