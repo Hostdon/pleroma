@@ -723,7 +723,8 @@ config :pleroma, :config_description, [
           "text/plain",
           "text/html",
           "text/markdown",
-          "text/bbcode"
+          "text/bbcode",
+          "text/x.misskeymarkdown"
         ]
       },
       %{
@@ -1294,7 +1295,7 @@ config :pleroma, :config_description, [
             label: "Post Content Type",
             type: {:dropdown, :atom},
             description: "Default post formatting option",
-            suggestions: ["text/plain", "text/html", "text/markdown", "text/bbcode"]
+            suggestions: ["text/plain", "text/html", "text/markdown", "text/bbcode", "text/x.misskeymarkdown"]
           },
           %{
             key: :redirectRootNoLogin,
