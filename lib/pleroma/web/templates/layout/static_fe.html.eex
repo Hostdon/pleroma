@@ -6,10 +6,39 @@
     <title><%= Pleroma.Config.get([:instance, :name]) %></title>
     <%= Phoenix.HTML.raw(assigns[:meta] || "") %>
     <link rel="stylesheet" href="/static-fe/static-fe.css">
+    <link rel="icon" type="image/png" href="/favicon.png">
   </head>
   <body>
+    <div class="background-image"></div>
+    <nav>
+      <div class="inner-nav">
+        <a class="site-brand" href="/">
+          <img class="favicon" src="/favicon.png" />
+          <span><%= Pleroma.Config.get([:instance, :name]) %></span>
+        </a>
+      </div>
+    </nav>
     <div class="container">
-      <%= @inner_content %>
+      <div class="underlay"></div>
+	  <div class="column main">
+        <%= @inner_content %>
+      </div>
+      <div class="column sidebar">
+        <div class="about panel">
+          <div class="panel-heading">
+            <%= gettext("About %{instance}", instance: Pleroma.Config.get([:instance, :name])) %>
+          </div>
+          <div class="about-content">
+            <%= raw render_html("/static/terms-of-service.html") %>
+          </div>
+        </div>
+      </div>
     </div>
   </body>
 </html>
+
+<style>
+  :root {
+    --background-image: url("<%= Pleroma.Config.get([:instance, :background_image]) %>");
+  }
+</style>

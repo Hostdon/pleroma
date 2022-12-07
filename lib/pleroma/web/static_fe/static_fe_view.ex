@@ -8,7 +8,6 @@ defmodule Pleroma.Web.StaticFE.StaticFEView do
   alias Calendar.Strftime
   alias Pleroma.Emoji.Formatter
   alias Pleroma.User
-  alias Pleroma.Web.Endpoint
   alias Pleroma.Web.Gettext
   alias Pleroma.Web.MediaProxy
   alias Pleroma.Web.Metadata.Utils
@@ -22,17 +21,38 @@ defmodule Pleroma.Web.StaticFE.StaticFEView do
     Utils.fetch_media_type(@media_types, mediaType)
   end
 
+  def time_ago(date) do
+    {:ok, date, _} = DateTime.from_iso8601(date)
+    now = DateTime.utc_now()
+
+    Timex.from_now(date, now)
+  end
+
   def format_date(date) do
     {:ok, date, _} = DateTime.from_iso8601(date)
     Strftime.strftime!(date, "%Y/%m/%d %l:%M:%S %p UTC")
   end
 
-  def instance_name, do: Pleroma.Config.get([:instance, :name], "Pleroma")
+  def instance_name, do: Pleroma.Config.get([:instance, :name], "Akkoma")
 
   def open_content? do
     Pleroma.Config.get(
       [:frontend_configurations, :collapse_message_with_subjects],
-      true
+      false
     )
+  end
+
+  def get_attachment_name(%{"name" => name}), do: name
+
+  def get_attachment_name(_), do: ""
+
+  def poll_percentage(count, total_votes) do
+    case count do
+      0 ->
+        "0%"
+
+      _ ->
+        Integer.to_string(trunc(count / total_votes * 100)) <> "%"
+    end
   end
 end

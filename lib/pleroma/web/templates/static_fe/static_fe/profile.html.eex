@@ -1,31 +1,148 @@
-<header>
-  <h1><%= link instance_name(), to: "/" %></h1>
-
-  <h3>
-    <form class="pull-right collapse" method="POST" action="<%= Helpers.util_path(@conn, :remote_subscribe) %>">
-      <input type="hidden" name="nickname" value="<%= @user.nickname %>">
-      <input type="hidden" name="profile" value="">
-      <button type="submit" class="collapse"><%= Gettext.dpgettext("static_pages", "static fe profile page remote follow button", "Remote follow") %></button>
-    </form>
-    <%= raw Formatter.emojify(@user.name, @user.emoji) %> |
-    <%= link "@#{@user.nickname}@#{Endpoint.host()}", to: (@user.uri || @user.ap_id) %>
-  </h3>
-  <p><%= raw @user.bio %></p>
-</header>
-
-<main>
-  <div class="activity-stream">
-    <%= for activity <- @timeline do %>
-      <%= render("_notice.html", Map.put(activity, :selected, false)) %>
-    <% end %>
-    <p id="pagination">
-      <%= if @prev_page_id do %>
-        <%= link "«", to: "?min_id=" <> @prev_page_id %>
-      <% end %>
-      <%= if @prev_page_id && @next_page_id, do: " | " %>
-      <%= if @next_page_id do %>
-        <%= link "»", to: "?max_id=" <> @next_page_id %>
-      <% end %>
-    </p>
+<div class="panel profile">
+  <div class="user-header">
+    <div class="user-banner"></div>
+    <div class="user-info">
+      <div class="container">
+        <a href="<%= (@user.uri || @user.ap_id) %>" rel="author noopener">
+          <div class="avatar">
+            <img
+                class="u-photo" width="48" height="48"
+                src="<%= User.avatar_url(@user) |> MediaProxy.url %>"
+                title="<%= @user.nickname %>" alt="<%= @user.nickname %>"
+            />
+          </div>
+        </a>
+        <div class="user-summary">
+          <div class="top-line">
+            <span class="username">
+              <%= raw Formatter.emojify(@user.name, @user.emoji) %>
+            </span>
+            </div>
+          <div class="bottom-line">
+            <%= link "@#{@user.nickname}", to: (@user.uri || @user.ap_id), class: "account-name" %>
+            <%= if @user.is_admin && @user.show_role do %>
+            <span class="user-role"><%= gettext("Admin") %></span>
+            <% end %>
+            <%= if @user.is_moderator && @user.show_role do %>
+            <span class="user-role"><%= gettext("Moderator") %></span>
+            <% end %>
+            <%= if @user.actor_type == "Service" do %>
+            <span class="user-role"><%= gettext("Bot") %></span>
+            <% end %>
+            <%= if @user.is_locked do %>
+            <img class="fa-icon" src="/static-fe/svg/lock-solid.svg">
+            <% end %>
+          </div>
+        </div>
+      </div>
+      <div class="remote-follow">
+        <form method="POST" action="<%= Helpers.util_path(@conn, :remote_subscribe) %>">
+          <input type="hidden" name="nickname" value="<%= @user.nickname %>">
+          <input type="hidden" name="profile" value="">
+          <button type="submit" class="button-default"><%= Gettext.dpgettext("static_pages", "static fe profile page remote follow button", "Remote follow") %></button>
+        </form>
+      </div>
+    </div>
+    <div class="user-counts">
+      <div class="user-count">
+        <h5><%= gettext("Posts") %></h5>
+        <span><%= @user.note_count %></span>
+      </div>
+      <div class="user-count">
+        <h5><%= gettext("Following") %></h5>
+        <span><%= if @user.hide_follows_count do gettext("Hidden") else @user.following_count end %></span>
+      </div>
+      <div class="user-count">
+        <h5><%= gettext("Followers") %></h5>
+        <span><%= if @user.hide_followers_count do gettext("Hidden") else @user.follower_count end %></span>
+      </div>
+    </div>
+    <span class="user-bio"><%= raw Formatter.emojify(@user.bio, @user.emoji) %></span>
   </div>
-</main>
+  <div class="user-profile-fields">
+    <%= for field <- @user.fields do %>
+    <div class="user-profile-field">
+      <dt title="<%= field["name"] %>"><%= raw Formatter.emojify(field["name"], @user.emoji) %></dt>
+      <dd title="<%= field["value"] %>"><%= raw Formatter.emojify(field["value"], @user.emoji) %></dd>
+    </div>
+    <% end %>
+  </div>
+  <div class="tab-switcher">
+    <a href="<%= (@user.uri || @user.ap_id) %>">
+      <button class="button-default tab <%= if @tab == "posts" do %>active<% end %>">
+        <%= gettext("Posts") %>
+      </button>
+    </a>
+    <a href="<%= (@user.uri || @user.ap_id) %>/with_replies">
+      <button class="button-default tab <%= if @tab == "with_replies" do %>active<% end %>">
+        <%= gettext("With Replies") %>
+      </button>
+    </a>
+    <%= unless @user.hide_follows do %>
+    <a href="<%= (@user.uri || @user.ap_id) %>/following">
+      <button class="button-default tab <%= if @tab == "following" do %>active<% end %>">
+        <%= gettext("Following") %>
+      </button>
+    </a>
+    <% end %>
+    <%= unless @user.hide_followers do %>
+    <a href="<%= (@user.uri || @user.ap_id) %>/followers">
+      <button class="button-default tab <%= if @tab == "followers" do %>active<% end %>">
+        <%= gettext("Followers") %>
+      </button>
+    </a>
+    <% end %>
+    <a href="<%= (@user.uri || @user.ap_id) %>/media">
+      <button class="button-default tab <%= if @tab == "media" do %>active<% end %>">
+        <%= gettext("Media") %>
+      </button>
+    </a>
+  </div>
+  <%= if @prev_page_id do %>
+  <%= link gettext("Show newer"), to: "?min_id=" <> @prev_page_id, class: "load-posts" %>
+  <% end %>
+  <div class="activity-stream">
+    <%= if @tab in ["posts", "with_replies", "media"] do %>
+    <%= for activity <- @timeline do %>
+    <%= if(activity.user.id != @user.id) do %>
+    <div class="repeat-header">
+      <div class="left-side">
+        <a href="<%= (@user.uri || @user.ap_id) %>" rel="author noopener">
+          <div class="avatar">
+            <img
+              class="u-photo" width="48" height="48"
+              src="<%= User.avatar_url(@user) |> MediaProxy.url %>"
+              title="<%= @user.nickname %>" alt="<%= @user.nickname %>"
+            />
+          </div>
+        </a>
+      </div>
+      <div class="right-side">
+        <span class="username">
+          <a href="<%= (@user.uri || @user.ap_id) %>" class="account-name">
+            <%= raw Formatter.emojify(@user.name, @user.emoji) %>
+          </a>
+        </span>
+        <img class="fa-icon" src="/static-fe/svg/retweet-solid.svg">
+        <%= gettext("repeated") %>
+      </div>
+    </div>
+    <% end %>
+    <%= render("_notice.html", Map.put(activity, :selected, false)) %>
+    <% end %>
+    <% else %>
+    <%= for user <- @timeline do %>
+    <%= render("_user_card.html", %{user: user}) %>
+    <% end %>
+    <% end %>
+  </div>
+  <%= if @next_page_id do %>
+  <%= link gettext("Show older"), to: "?max_id=" <> @next_page_id, class: "load-posts" %>
+  <% end %>
+</div>
+
+<style>
+  :root {
+    --user-banner: url("<%= Pleroma.User.banner_url(@user) %>");
+  }
+</style>

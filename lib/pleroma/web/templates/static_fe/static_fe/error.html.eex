@@ -1,7 +1,8 @@
-<header>
-  <h1><%= gettext("Oops") %></h1>
-</header>
-
-<main>
-  <p><%= @message %></p>
-</main>
+<div class="panel">
+  <div class="panel-heading">
+    <%= gettext("Error") %>
+  </div>
+  <div class="status-container">
+    <%= @message %>
+  </div>
+</div>

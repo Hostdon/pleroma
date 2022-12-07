@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - NormalizeMarkup MRF is now on by default
 - Follow/Block/Mute imports now spin off into *n* tasks to avoid the oban timeout
 - Transient activities recieved from remote servers are no longer persisted in the database
+- Overhauled static-fe view for logged-out users
 
 ## Upgrade Notes
 - If you have an old instance, you will probably want to run `mix pleroma.database prune_task` in the foreground to catch it up with the history of your instance.
