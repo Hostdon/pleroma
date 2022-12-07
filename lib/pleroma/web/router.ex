@@ -150,6 +150,8 @@ defmodule Pleroma.Web.Router do
   end
 
   pipeline :static_fe do
+    plug(:fetch_session)
+    plug(:authenticate)
     plug(Pleroma.Web.Plugs.StaticFEPlug)
   end
 

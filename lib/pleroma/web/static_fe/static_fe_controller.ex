@@ -180,15 +180,7 @@ defmodule Pleroma.Web.StaticFE.StaticFEController do
         nil
       end
 
-    reply_to_user =
-      if data["inReplyTo"] do
-        activity
-        |> Activity.get_in_reply_to_activity()
-        |> Map.get(:actor)
-        |> User.get_cached_by_ap_id()
-      else
-        nil
-      end
+    reply_to_user = in_reply_to_user(activity)
 
     total_votes =
       if data["oneOf"] do
@@ -216,6 +208,20 @@ defmodule Pleroma.Web.StaticFE.StaticFEController do
       total_votes: total_votes
     }
   end
+
+  defp in_reply_to_user(%Activity{object: %Object{data: %{"inReplyTo" => inReplyTo}}} = activity) when is_binary(inReplyTo) do
+    in_reply_to_activity = Activity.get_in_reply_to_activity(activity)
+
+    if in_reply_to_activity do
+      in_reply_to_activity
+      |> Map.get(:actor)
+      |> User.get_cached_by_ap_id()
+    else
+      nil
+    end
+  end
+
+  defp in_reply_to_user(_), do: nil
 
   defp assign_id(%{path_info: ["notice", notice_id]} = conn, _opts),
     do: assign(conn, :notice_id, notice_id)
