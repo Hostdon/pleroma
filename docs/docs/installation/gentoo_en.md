@@ -18,6 +18,12 @@ dev-db/postgresql uuid
 
 You could opt to add `USE="uuid"` to `/etc/portage/make.conf` if you'd rather set this as a global USE flags, but this flags does unrelated things in other packages, so keep that in mind if you elect to do so.
 
+If you are planning to use `nginx`, as this guide suggests, you should also add the following flag to the same file.
+
+```text
+www-servers/nginx NGINX_MODULES_HTTP: slice
+```
+
 Double check your compiler flags in `/etc/portage/make.conf`. If you require any special compilation flags or would like to set up remote builds, now is the time to do so. Be sure that your CFLAGS and MAKEOPTS make sense for the platform you are using. It is not recommended to use above `-O2` or risky optimization flags for a production server.
 
 ### Installing a cron daemon
@@ -262,7 +268,7 @@ Even if you are using S3, Akkoma needs someplace to store media posted on your i
 
 ```shell
  akkoma$ mkdir -p ~/akkoma/uploads
- ```
+```
 
 #### init.d service
 
@@ -272,7 +278,9 @@ Even if you are using S3, Akkoma needs someplace to store media posted on your i
  # cp /home/akkoma/akkoma/installation/init.d/akkoma /etc/init.d/
 ```
 
-* Be sure to take a look at this service file and make sure that all paths fit your installation
+* Change the `/opt/akkoma` path in this file to `/home/akkoma/akkoma`
+
+* Be sure to take a look at this service file and make sure that all other paths fit your installation
 
 * Enable and start `akkoma`:
 
