@@ -739,9 +739,9 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     |> fetch_activities(params, :offset)
   end
 
-  defp user_activities_recipients(%{godmode: true}), do: []
+  def user_activities_recipients(%{godmode: true}), do: []
 
-  defp user_activities_recipients(%{reading_user: reading_user}) do
+  def user_activities_recipients(%{reading_user: reading_user}) do
     if not is_nil(reading_user) and reading_user.local do
       [
         Constants.as_public(),
