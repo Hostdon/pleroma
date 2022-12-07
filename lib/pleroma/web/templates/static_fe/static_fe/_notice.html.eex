@@ -46,9 +46,11 @@
           <%= gettext("Reply to") %>
         </a>
         <span class="h-card">
-          <a href="<%= (@reply_to_user.uri || @reply_to_user.ap_id) %>" class="u-url mention">
-            @<%= @reply_to_user.nickname %>
-          </a>
+          <%= if @reply_to_user do %>
+            <a href="<%= (@reply_to_user.uri || @reply_to_user.ap_id) %>" class="u-url mention">
+              @<%= @reply_to_user.nickname %>
+            </a>
+          <% end %>
         </span>
       </div>
       <% end %>
