@@ -27,22 +27,22 @@ defmodule Pleroma.Web.ActivityPub.MRF.TagPolicy do
   defp process_tag(
          "mrf_tag:media-force-nsfw",
          %{
-           "type" => "Create",
+           "type" => type,
            "object" => %{"attachment" => child_attachment}
          } = message
        )
-       when length(child_attachment) > 0 do
+       when length(child_attachment) > 0 and type in ["Create", "Update"] do
     {:ok, Kernel.put_in(message, ["object", "sensitive"], true)}
   end
 
   defp process_tag(
          "mrf_tag:media-strip",
          %{
-           "type" => "Create",
+           "type" => type,
            "object" => %{"attachment" => child_attachment} = object
          } = message
        )
-       when length(child_attachment) > 0 do
+       when length(child_attachment) > 0 and type in ["Create", "Update"] do
     object = Map.delete(object, "attachment")
     message = Map.put(message, "object", object)
 
@@ -52,13 +52,13 @@ defmodule Pleroma.Web.ActivityPub.MRF.TagPolicy do
   defp process_tag(
          "mrf_tag:force-unlisted",
          %{
-           "type" => "Create",
+           "type" => type,
            "to" => to,
            "cc" => cc,
            "actor" => actor,
            "object" => object
          } = message
-       ) do
+       ) when type in ["Create", "Update"] do
     user = User.get_cached_by_ap_id(actor)
 
     if Enum.member?(to, Pleroma.Constants.as_public()) do
@@ -85,13 +85,13 @@ defmodule Pleroma.Web.ActivityPub.MRF.TagPolicy do
   defp process_tag(
          "mrf_tag:sandbox",
          %{
-           "type" => "Create",
+           "type" => type,
            "to" => to,
            "cc" => cc,
            "actor" => actor,
            "object" => object
          } = message
-       ) do
+       ) when type in ["Create", "Update"] do
     user = User.get_cached_by_ap_id(actor)
 
     if Enum.member?(to, Pleroma.Constants.as_public()) or
@@ -152,7 +152,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.TagPolicy do
     do: filter_message(target_actor, message)
 
   @impl true
-  def filter(%{"actor" => actor, "type" => "Create"} = message),
+  def filter(%{"actor" => actor, "type" => type} = message) when type in ["Create", "Update"],
     do: filter_message(actor, message)
 
   @impl true
