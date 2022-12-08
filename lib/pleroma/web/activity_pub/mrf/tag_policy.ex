@@ -58,7 +58,8 @@ defmodule Pleroma.Web.ActivityPub.MRF.TagPolicy do
            "actor" => actor,
            "object" => object
          } = message
-       ) when type in ["Create", "Update"] do
+       )
+       when type in ["Create", "Update"] do
     user = User.get_cached_by_ap_id(actor)
 
     if Enum.member?(to, Pleroma.Constants.as_public()) do
@@ -91,7 +92,8 @@ defmodule Pleroma.Web.ActivityPub.MRF.TagPolicy do
            "actor" => actor,
            "object" => object
          } = message
-       ) when type in ["Create", "Update"] do
+       )
+       when type in ["Create", "Update"] do
     user = User.get_cached_by_ap_id(actor)
 
     if Enum.member?(to, Pleroma.Constants.as_public()) or

@@ -8,7 +8,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.MentionPolicy do
   @behaviour Pleroma.Web.ActivityPub.MRF.Policy
 
   @impl true
-  def filter(%{"type" => "Create"} = message) do
+  def filter(%{"type" => type} = message) when type in ["Create", "Update"] do
     reject_actors = Pleroma.Config.get([:mrf_mention, :actors], [])
     recipients = (message["to"] || []) ++ (message["cc"] || [])
 

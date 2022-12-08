@@ -29,7 +29,8 @@ defmodule Pleroma.Web.ActivityPub.MRF.AntiLinkSpamPolicy do
   defp contains_links?(_), do: false
 
   @impl true
-  def filter(%{"type" => "Create", "actor" => actor, "object" => object} = message) do
+  def filter(%{"type" => type, "actor" => actor, "object" => object} = message)
+      when type in ["Create", "Update"] do
     with {:ok, %User{local: false} = u} <- User.get_or_fetch_by_ap_id(actor),
          {:contains_links, true} <- {:contains_links, contains_links?(object)},
          {:old_user, true} <- {:old_user, old_user?(u)} do
