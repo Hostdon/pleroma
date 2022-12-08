@@ -1,0 +1,85 @@
+name: "Bug report"
+about: "Something isn't working as expected"
+title: "[bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file this bug report! Please try to be as specific and detailed as you can, so we can track down the issue and fix it as soon as possible.
+
+        # General information
+  - type: dropdown
+    id: installation
+    attributes:
+      label: "Your setup"
+      description: "What sort of installation are you using?"
+      options:
+        - "OTP"
+        - "From source"
+        - "Docker"
+      validations:
+        required: true
+  - type: input
+    id: setup-details
+    attributes:
+      label: "Extra details"
+      description: "If installing from source or docker, please specify your distro or docker setup."
+      placeholder: "e.g. Alpine Linux edge"
+  - type: input
+    id: version
+    attributes:
+      label: "Version"
+      description: "Which version of Akkoma are you running? If running develop, specify the commit hash."
+      placeholder: "e.g. 2022.11, 4e4bd248"
+  - type: input
+    id: postgres
+    attributes:
+      label: "PostgreSQL version"
+      placeholder: "14"
+      validations:
+        required: true
+  - type: markdown
+    attributes:
+      value: "# The issue"
+  - type: textarea
+    id: attempt
+    attributes:
+      label: "What were you trying to do?"
+      validations:
+        required: true
+  - type: textarea
+    id: expectation
+    attributes:
+      label: "What did you expect to happen?"
+      validations:
+        required: true
+  - type: textarea
+    id: reality
+    attributes:
+      label: "What actually happened?"
+      validations:
+        required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: "Logs"
+      description: "Please copy and paste any relevant log output, if applicable."
+      render: shell
+  - type: dropdown
+    id: severity
+    attributes:
+      label: "Severity"
+      description: "Does this issue prevent you from using the software as normal?"
+      options:
+        - "I cannot use the software"
+        - "I cannot use it as easily as I'd like"
+        - "I can manage"
+      validations:
+        required: true
+  - type: checkboxes
+    id: searched
+    attributes:
+      label: "Have you searched for this issue?"
+      description: "Please double-check that your issue is not already being tracked on [the forums](https://meta.akkoma.dev) or [the issue tracker](https://akkoma.dev/AkkomaGang/akkoma/issues)."
+      options:
+        - label: "I have double-checked and have not found this issue mentioned anywhere."
