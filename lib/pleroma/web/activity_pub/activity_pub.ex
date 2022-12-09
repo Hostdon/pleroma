@@ -1711,7 +1711,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       {:ok, maybe_update_follow_information(data)}
     else
       # If this has been deleted, only log a debug and not an error
-      {:error, {"Object has been deleted" = e, _, _}} ->
+      {:error, {"Object has been deleted", _, _} = e} ->
         Logger.debug("Could not decode user at fetch #{ap_id}, #{inspect(e)}")
         {:error, e}
 

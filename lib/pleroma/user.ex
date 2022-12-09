@@ -1922,7 +1922,7 @@ defmodule Pleroma.User do
         {:ok, user}
 
       e ->
-        Logger.error("Could not fetch user, #{inspect(e)}")
+        Logger.error("Could not fetch user #{ap_id}, #{inspect(e)}")
         {:error, :not_found}
     end
   end
