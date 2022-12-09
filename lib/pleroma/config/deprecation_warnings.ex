@@ -66,7 +66,7 @@ defmodule Pleroma.Config.DeprecationWarnings do
 
       new_config =
         Config.get([:mrf_simple])
-        |> Enum.filter(fn {k, v} -> not is_atom(v) end)
+        |> Enum.filter(fn {_k, v} -> not is_atom(v) end)
         |> Enum.map(fn {k, v} ->
           {k,
            Enum.map(v, fn
