@@ -209,7 +209,8 @@ defmodule Pleroma.Web.StaticFE.StaticFEController do
     }
   end
 
-  defp in_reply_to_user(%Activity{object: %Object{data: %{"inReplyTo" => inReplyTo}}} = activity) when is_binary(inReplyTo) do
+  defp in_reply_to_user(%Activity{object: %Object{data: %{"inReplyTo" => inReplyTo}}} = activity)
+       when is_binary(inReplyTo) do
     in_reply_to_activity = Activity.get_in_reply_to_activity(activity)
 
     if in_reply_to_activity do
