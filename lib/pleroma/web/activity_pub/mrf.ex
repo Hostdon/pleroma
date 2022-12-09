@@ -63,6 +63,12 @@ defmodule Pleroma.Web.ActivityPub.MRF do
 
   @required_description_keys [:key, :related_policy]
 
+  def filter_one(policy, %{"type" => type} = message)
+      when type in ["Undo", "Block", "Delete"] and
+             policy != Pleroma.Web.ActivityPub.MRF.SimplePolicy do
+    {:ok, message}
+  end
+
   def filter_one(policy, message) do
     should_plug_history? =
       if function_exported?(policy, :history_awareness, 0) do

@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Regular task to prune local transient activities
 - Task to manually run the transient prune job (pleroma.database prune\_task)
 - Ability to follow hashtags
+- Option to extend `reject` in MRF-Simple to apply to entire threads, where the originating instance is rejected
+- Extra information to failed HTTP requests
 
 ## Changed
 - MastoAPI: Accept BooleanLike input on `/api/v1/accounts/:id/follow` (fixes follows with mastodon.py)
@@ -21,6 +23,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Follow/Block/Mute imports now spin off into *n* tasks to avoid the oban timeout
 - Transient activities recieved from remote servers are no longer persisted in the database
 - Overhauled static-fe view for logged-out users
+
+## Removed
+- FollowBotPolicy
+- Passing of undo/block into MRF
 
 ## Upgrade Notes
 - If you have an old instance, you will probably want to run `mix pleroma.database prune_task` in the foreground to catch it up with the history of your instance.
