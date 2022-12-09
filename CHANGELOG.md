@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Follow/Block/Mute imports now spin off into *n* tasks to avoid the oban timeout
 - Transient activities recieved from remote servers are no longer persisted in the database
 - Overhauled static-fe view for logged-out users
+- `published` is now a mandatory field in Note objects
 
 ## Removed
 - FollowBotPolicy

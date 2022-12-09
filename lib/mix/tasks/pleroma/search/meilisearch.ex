@@ -60,7 +60,8 @@ defmodule Mix.Tasks.Pleroma.Search.Meilisearch do
             where:
               fragment("data->>'type' = 'Note'") and
                 (fragment("data->'to' \\? ?", ^Pleroma.Constants.as_public()) or
-                   fragment("data->'cc' \\? ?", ^Pleroma.Constants.as_public())),
+                   fragment("data->'cc' \\? ?", ^Pleroma.Constants.as_public())) and
+                fragment("data->>'published' IS NOT NULL"),
             order_by: [desc: fragment("data->'published'")]
           )
 

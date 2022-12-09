@@ -28,6 +28,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidatorTest 
         "to" => [user.follower_address],
         "cc" => [],
         "content" => "Hellow this is content.",
+        "published" => "2021-01-01T00:00:00Z",
         "context" => "xxx",
         "summary" => "a post"
       }
@@ -63,6 +64,12 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidatorTest 
 
       %{valid?: true, changes: %{replies: ["https://bookwyrm.com/user/TestUser/status/18"]}} =
         ArticleNotePageValidator.cast_and_validate(note)
+    end
+
+    test "a note without a published field should not validate", _ do
+      insert(:user, %{ap_id: "http://mastodon.example.org/users/admin"})
+      note = Jason.decode!(File.read!("test/fixtures/mastodon/note-without-published.json"))
+      %{valid?: false} = ArticleNotePageValidator.cast_and_validate(note)
     end
 
     test "a note with an attachment should work", _ do
