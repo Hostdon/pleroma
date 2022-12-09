@@ -30,7 +30,7 @@ defimpl Elasticsearch.Document, for: Pleroma.Activity do
           trimmed
         end
 
-      if String.length(content) > 1 do
+      if String.length(content) > 1 and not is_nil(data["published"]) do
         {:ok, published, _} = DateTime.from_iso8601(data["published"])
 
         %{
