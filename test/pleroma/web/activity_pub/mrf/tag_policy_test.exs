@@ -53,7 +53,24 @@ defmodule Pleroma.Web.ActivityPub.MRF.TagPolicyTest do
         "cc" => ["d"]
       }
 
+      edit_message = %{
+        "actor" => actor.ap_id,
+        "type" => "Update",
+        "object" => %{},
+        "to" => [@public, "f"],
+        "cc" => [@public, "d"]
+      }
+
+      edit_expect_message = %{
+        "actor" => actor.ap_id,
+        "type" => "Update",
+        "object" => %{"to" => ["f", actor.follower_address], "cc" => ["d"]},
+        "to" => ["f", actor.follower_address],
+        "cc" => ["d"]
+      }
+
       assert TagPolicy.filter(message) == {:ok, except_message}
+      assert TagPolicy.filter(edit_message) == {:ok, edit_expect_message}
     end
   end
 
@@ -77,7 +94,24 @@ defmodule Pleroma.Web.ActivityPub.MRF.TagPolicyTest do
         "cc" => ["d", @public]
       }
 
+      edit_message = %{
+        "actor" => actor.ap_id,
+        "type" => "Update",
+        "object" => %{},
+        "to" => [@public, "f"],
+        "cc" => [actor.follower_address, "d"]
+      }
+
+      edit_expect_message = %{
+        "actor" => actor.ap_id,
+        "type" => "Update",
+        "object" => %{"to" => ["f", actor.follower_address], "cc" => ["d", @public]},
+        "to" => ["f", actor.follower_address],
+        "cc" => ["d", @public]
+      }
+
       assert TagPolicy.filter(message) == {:ok, except_message}
+      assert TagPolicy.filter(edit_message) == {:ok, edit_expect_message}
     end
   end
 
@@ -97,7 +131,20 @@ defmodule Pleroma.Web.ActivityPub.MRF.TagPolicyTest do
         "object" => %{}
       }
 
+      edit_message = %{
+        "actor" => actor.ap_id,
+        "type" => "Update",
+        "object" => %{"attachment" => ["file1"]}
+      }
+
+      edit_expect_message = %{
+        "actor" => actor.ap_id,
+        "type" => "Update",
+        "object" => %{}
+      }
+
       assert TagPolicy.filter(message) == {:ok, except_message}
+      assert TagPolicy.filter(edit_message) == {:ok, edit_expect_message}
     end
   end
 
@@ -117,7 +164,20 @@ defmodule Pleroma.Web.ActivityPub.MRF.TagPolicyTest do
         "object" => %{"tag" => ["test"], "attachment" => ["file1"], "sensitive" => true}
       }
 
+      edit_message = %{
+        "actor" => actor.ap_id,
+        "type" => "Update",
+        "object" => %{"tag" => ["test"], "attachment" => ["file1"]}
+      }
+
+      edit_expect_message = %{
+        "actor" => actor.ap_id,
+        "type" => "Update",
+        "object" => %{"tag" => ["test"], "attachment" => ["file1"], "sensitive" => true}
+      }
+
       assert TagPolicy.filter(message) == {:ok, except_message}
+      assert TagPolicy.filter(edit_message) == {:ok, edit_expect_message}
     end
   end
 end

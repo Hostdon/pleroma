@@ -26,21 +26,29 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     test "is empty" do
       clear_config([:mrf_simple, :media_removal], [])
       media_message = build_media_message()
+      media_update_message = build_media_update_message()
       local_message = build_local_message()
 
       assert SimplePolicy.filter(media_message) == {:ok, media_message}
+      assert SimplePolicy.filter(media_update_message) == {:ok, media_update_message}
       assert SimplePolicy.filter(local_message) == {:ok, local_message}
     end
 
     test "has a matching host" do
       clear_config([:mrf_simple, :media_removal], [{"remote.instance", "Some reason"}])
       media_message = build_media_message()
+      media_update_message = build_media_update_message()
       local_message = build_local_message()
 
       assert SimplePolicy.filter(media_message) ==
                {:ok,
                 media_message
                 |> Map.put("object", Map.delete(media_message["object"], "attachment"))}
+
+      assert SimplePolicy.filter(media_update_message) ==
+               {:ok,
+                media_update_message
+                |> Map.put("object", Map.delete(media_update_message["object"], "attachment"))}
 
       assert SimplePolicy.filter(local_message) == {:ok, local_message}
     end
@@ -48,12 +56,18 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     test "match with wildcard domain" do
       clear_config([:mrf_simple, :media_removal], [{"*.remote.instance", "Whatever reason"}])
       media_message = build_media_message()
+      media_update_message = build_media_update_message()
       local_message = build_local_message()
 
       assert SimplePolicy.filter(media_message) ==
                {:ok,
                 media_message
                 |> Map.put("object", Map.delete(media_message["object"], "attachment"))}
+
+      assert SimplePolicy.filter(media_update_message) ==
+               {:ok,
+                media_update_message
+                |> Map.put("object", Map.delete(media_update_message["object"], "attachment"))}
 
       assert SimplePolicy.filter(local_message) == {:ok, local_message}
     end
@@ -63,19 +77,25 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     test "is empty" do
       clear_config([:mrf_simple, :media_nsfw], [])
       media_message = build_media_message()
+      media_update_message = build_media_update_message()
       local_message = build_local_message()
 
       assert SimplePolicy.filter(media_message) == {:ok, media_message}
+      assert SimplePolicy.filter(media_update_message) == {:ok, media_update_message}
       assert SimplePolicy.filter(local_message) == {:ok, local_message}
     end
 
     test "has a matching host" do
       clear_config([:mrf_simple, :media_nsfw], [{"remote.instance", "Whetever"}])
       media_message = build_media_message()
+      media_update_message = build_media_update_message()
       local_message = build_local_message()
 
       assert SimplePolicy.filter(media_message) ==
                {:ok, put_in(media_message, ["object", "sensitive"], true)}
+
+      assert SimplePolicy.filter(media_update_message) ==
+               {:ok, put_in(media_update_message, ["object", "sensitive"], true)}
 
       assert SimplePolicy.filter(local_message) == {:ok, local_message}
     end
@@ -83,10 +103,14 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     test "match with wildcard domain" do
       clear_config([:mrf_simple, :media_nsfw], [{"*.remote.instance", "yeah yeah"}])
       media_message = build_media_message()
+      media_update_message = build_media_update_message()
       local_message = build_local_message()
 
       assert SimplePolicy.filter(media_message) ==
                {:ok, put_in(media_message, ["object", "sensitive"], true)}
+
+      assert SimplePolicy.filter(media_update_message) ==
+               {:ok, put_in(media_update_message, ["object", "sensitive"], true)}
 
       assert SimplePolicy.filter(local_message) == {:ok, local_message}
     end
@@ -96,6 +120,18 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     %{
       "actor" => "https://remote.instance/users/bob",
       "type" => "Create",
+      "object" => %{
+        "attachment" => [%{}],
+        "tag" => ["foo"],
+        "sensitive" => false
+      }
+    }
+  end
+
+  defp build_media_update_message do
+    %{
+      "actor" => "https://remote.instance/users/bob",
+      "type" => "Update",
       "object" => %{
         "attachment" => [%{}],
         "tag" => ["foo"],

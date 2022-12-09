@@ -26,35 +26,60 @@ defmodule Pleroma.Web.ActivityPub.MRF.ForceBotUnlistedPolicyTest do
      }}
   end
 
+  defp generate_update_messages(actor) do
+    {%{
+       "actor" => actor.ap_id,
+       "type" => "Update",
+       "object" => %{},
+       "to" => [@public, "f"],
+       "cc" => [actor.follower_address, "d"]
+     },
+     %{
+       "actor" => actor.ap_id,
+       "type" => "Update",
+       "object" => %{"to" => ["f", actor.follower_address], "cc" => ["d", @public]},
+       "to" => ["f", actor.follower_address],
+       "cc" => ["d", @public]
+     }}
+  end
+
   test "removes from the federated timeline by nickname heuristics 1" do
     actor = insert(:user, %{nickname: "annoying_ebooks@example.com"})
 
     {message, except_message} = generate_messages(actor)
+    {update_message, except_update_message} = generate_update_messages(actor)
 
     assert ForceBotUnlistedPolicy.filter(message) == {:ok, except_message}
+    assert ForceBotUnlistedPolicy.filter(update_message) == {:ok, except_update_message}
   end
 
   test "removes from the federated timeline by nickname heuristics 2" do
     actor = insert(:user, %{nickname: "cirnonewsnetworkbot@meow.cat"})
 
     {message, except_message} = generate_messages(actor)
+    {update_message, except_update_message} = generate_update_messages(actor)
 
     assert ForceBotUnlistedPolicy.filter(message) == {:ok, except_message}
+    assert ForceBotUnlistedPolicy.filter(update_message) == {:ok, except_update_message}
   end
 
   test "removes from the federated timeline by actor type Application" do
     actor = insert(:user, %{actor_type: "Application"})
 
     {message, except_message} = generate_messages(actor)
+    {update_message, except_update_message} = generate_update_messages(actor)
 
     assert ForceBotUnlistedPolicy.filter(message) == {:ok, except_message}
+    assert ForceBotUnlistedPolicy.filter(update_message) == {:ok, except_update_message}
   end
 
   test "removes from the federated timeline by actor type Service" do
     actor = insert(:user, %{actor_type: "Service"})
 
     {message, except_message} = generate_messages(actor)
+    {update_message, except_update_message} = generate_update_messages(actor)
 
     assert ForceBotUnlistedPolicy.filter(message) == {:ok, except_message}
+    assert ForceBotUnlistedPolicy.filter(update_message) == {:ok, except_update_message}
   end
 end
