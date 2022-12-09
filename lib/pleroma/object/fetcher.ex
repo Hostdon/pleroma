@@ -180,7 +180,7 @@ defmodule Pleroma.Object.Fetcher do
       {:error, %Tesla.Mock.Error{}} ->
         nil
 
-      {:error, "Object has been deleted"} ->
+      {:error, {"Object has been deleted", _id, _code}} ->
         nil
 
       {:reject, reason} ->
@@ -284,7 +284,7 @@ defmodule Pleroma.Object.Fetcher do
         end
 
       {:ok, %{status: code}} when code in [404, 410] ->
-        {:error, "Object has been deleted"}
+        {:error, {"Object has been deleted", id, code}}
 
       {:error, e} ->
         {:error, e}
