@@ -221,11 +221,6 @@ Notes:
 - The hashtags in the configuration do not have a leading `#`.
 - This MRF Policy is always enabled, if you want to disable it you have to set empty lists
 
-#### :mrf_follow_bot
-
-* `follower_nickname`: The name of the bot account to use for following newly discovered users. Using `followbot` or similar is strongly suggested.
-
-
 ### :activitypub
 * `unfollow_blocked`: Whether blocks result in people getting unfollowed
 * `outgoing_blocks`: Whether to federate blocks to other instances
