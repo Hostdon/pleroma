@@ -25,7 +25,7 @@ defmodule Pleroma.Config.DeprecationWarnings do
   def check_simple_policy_tuples do
     has_strings =
       Config.get([:mrf_simple])
-      |> Enum.any?(fn {_, v} -> Enum.any?(v, &is_binary/1) end)
+      |> Enum.any?(fn {_, v} -> is_list(v) and Enum.any?(v, &is_binary/1) end)
 
     if has_strings do
       Logger.warn("""
@@ -66,6 +66,7 @@ defmodule Pleroma.Config.DeprecationWarnings do
 
       new_config =
         Config.get([:mrf_simple])
+        |> Enum.filter(fn {k, v} -> not is_atom(v) end)
         |> Enum.map(fn {k, v} ->
           {k,
            Enum.map(v, fn

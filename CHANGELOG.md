@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Regular task to prune local transient activities
 - Task to manually run the transient prune job (pleroma.database prune\_task)
 - Ability to follow hashtags
+- Option to extend `reject` in MRF-Simple to apply to entire threads, where the originating instance is rejected
 
 ## Changed
 - MastoAPI: Accept BooleanLike input on `/api/v1/accounts/:id/follow` (fixes follows with mastodon.py)

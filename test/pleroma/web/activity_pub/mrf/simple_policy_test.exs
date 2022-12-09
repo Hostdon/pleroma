@@ -356,6 +356,86 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
 
       assert {:reject, _} = SimplePolicy.filter(announce)
     end
+
+    test "accept by matching context URI if :handle_threads is disabled" do
+      clear_config([:mrf_simple, :reject], [{"blocked.tld", ""}])
+      clear_config([:mrf_simple, :handle_threads], false)
+
+      remote_message =
+        build_remote_message()
+        |> Map.put("context", "https://blocked.tld/contexts/abc")
+
+      assert {:ok, _} = SimplePolicy.filter(remote_message)
+    end
+
+    test "accept by matching conversation field if :handle_threads is disabled" do
+      clear_config([:mrf_simple, :reject], [{"blocked.tld", ""}])
+      clear_config([:mrf_simple, :handle_threads], false)
+
+      remote_message =
+        build_remote_message()
+        |> Map.put(
+          "conversation",
+          "tag:blocked.tld,1997-06-25:objectId=12345:objectType=Conversation"
+        )
+
+      assert {:ok, _} = SimplePolicy.filter(remote_message)
+    end
+
+    test "accept by matching reply ID if :handle_threads is disabled" do
+      clear_config([:mrf_simple, :reject], [{"blocked.tld", ""}])
+      clear_config([:mrf_simple, :handle_threads], false)
+
+      remote_message =
+        build_remote_message()
+        |> Map.put("type", "Create")
+        |> Map.put("object", %{
+          "type" => "Note",
+          "inReplyTo" => "https://blocked.tld/objects/1"
+        })
+
+      assert {:ok, _} = SimplePolicy.filter(remote_message)
+    end
+
+    test "reject by matching context URI if :handle_threads is enabled" do
+      clear_config([:mrf_simple, :reject], [{"blocked.tld", ""}])
+      clear_config([:mrf_simple, :handle_threads], true)
+
+      remote_message =
+        build_remote_message()
+        |> Map.put("context", "https://blocked.tld/contexts/abc")
+
+      assert {:reject, _} = SimplePolicy.filter(remote_message)
+    end
+
+    test "reject by matching conversation field if :handle_threads is enabled" do
+      clear_config([:mrf_simple, :reject], [{"blocked.tld", ""}])
+      clear_config([:mrf_simple, :handle_threads], true)
+
+      remote_message =
+        build_remote_message()
+        |> Map.put(
+          "conversation",
+          "tag:blocked.tld,1997-06-25:objectId=12345:objectType=Conversation"
+        )
+
+      assert {:reject, _} = SimplePolicy.filter(remote_message)
+    end
+
+    test "reject by matching reply ID if :handle_threads is enabled" do
+      clear_config([:mrf_simple, :reject], [{"blocked.tld", ""}])
+      clear_config([:mrf_simple, :handle_threads], true)
+
+      remote_message =
+        build_remote_message()
+        |> Map.put("type", "Create")
+        |> Map.put("object", %{
+          "type" => "Note",
+          "inReplyTo" => "https://blocked.tld/objects/1"
+        })
+
+      assert {:reject, _} = SimplePolicy.filter(remote_message)
+    end
   end
 
   describe "when :followers_only" do
