@@ -5,8 +5,8 @@ msgstr ""
 "POT-Creation-Date: 2022-07-28 09:35+0000\n"
 "PO-Revision-Date: 2022-08-08 15:48+0000\n"
 "Last-Translator: sola <spla@mastodont.cat>\n"
-"Language-Team: Catalan <http://translate.akkoma.dev/projects/akkoma/"
-"akkoma-backend-config-descriptions/ca/>\n"
+"Language-Team: Catalan <http://translate.akkoma.dev/projects/akkoma/akkoma-"
+"backend-config-descriptions/ca/>\n"
 "Language: ca\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1935,12 +1935,6 @@ msgid ""
 msgstr ""
 "What user agent to use. Must be a string or an atom `:default`. Default "
 "value is `:default`."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:http_security > :ct_max_age"
-msgid "The maximum age for the Expect-CT header if sent"
-msgstr "The maximum age for the Expect-CT header if sent"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
@@ -4992,12 +4986,6 @@ msgstr "Send user agent"
 msgctxt "config label at :pleroma-:http > :user_agent"
 msgid "User agent"
 msgstr "User agent"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:http_security > :ct_max_age"
-msgid "CT max age"
-msgstr "CT max age"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy

@@ -37,7 +37,8 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
         inserted_at: ~N[2017-08-15 15:47:06.597036],
         emoji: %{"karjalanpiirakka" => "/file.png"},
         raw_bio: "valid html. a\nb\nc\nd\nf '&<>\"",
-        also_known_as: ["https://shitposter.zone/users/shp"]
+        also_known_as: ["https://shitposter.zone/users/shp"],
+        status_ttl_days: 5
       })
 
     insert(:instance, %{host: "example.com", nodeinfo: %{version: "2.1"}})
@@ -61,7 +62,8 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
             "version" => "2.1"
           },
           favicon: nil
-        }
+        },
+        status_ttl_days: 5
       },
       avatar: "http://localhost:4001/images/avi.png",
       avatar_static: "http://localhost:4001/images/avi.png",
@@ -243,7 +245,8 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
           name: "localhost",
           favicon: "http://localhost:4001/favicon.png",
           nodeinfo: %{version: "2.0"}
-        }
+        },
+        status_ttl_days: nil
       },
       pleroma: %{
         ap_id: user.ap_id,

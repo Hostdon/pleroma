@@ -223,12 +223,12 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
             type: :object,
             properties: %{
               reblogs: %Schema{
-                type: :boolean,
+                allOf: [BooleanLike],
                 description: "Receive this account's reblogs in home timeline? Defaults to true.",
                 default: true
               },
               notify: %Schema{
-                type: :boolean,
+                allOf: [BooleanLike],
                 description:
                   "Receive notifications for all statuses posted by the account? Defaults to false.",
                 default: false
@@ -700,7 +700,13 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
           description:
             "Discovery (listing, indexing) of this account by external services (search bots etc.) is allowed."
         },
-        actor_type: ActorType
+        actor_type: ActorType,
+        status_ttl_days: %Schema{
+          type: :integer,
+          nullable: true,
+          description:
+            "Number of days after which statuses will be deleted. Set to -1 to disable."
+        }
       },
       example: %{
         bot: false,
@@ -720,7 +726,8 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
         allow_following_move: false,
         also_known_as: ["https://foo.bar/users/foo"],
         discoverable: false,
-        actor_type: "Person"
+        actor_type: "Person",
+        status_ttl_days: 30
       }
     }
   end

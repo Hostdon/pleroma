@@ -4,4 +4,11 @@
 
 defmodule Pleroma.Web.LayoutView do
   use Pleroma.Web, :view
+  import Phoenix.HTML
+
+  def render_html(file) do
+    case :httpc.request(Pleroma.Web.Endpoint.url() <> file) do
+      {:ok, {{_, 200, _}, _headers, body}} -> body
+    end
+  end
 end

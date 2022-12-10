@@ -691,8 +691,8 @@ config :pleroma, :config_description, [
         key: :public,
         type: :boolean,
         description:
-          "Makes the client API in authenticated mode-only except for user-profiles." <>
-            " Useful for disabling the Local Timeline and The Whole Known Network. " <>
+          "Switching this on will allow unauthenticated users access to all public resources on your instance" <>
+            " Switching it off is useful for disabling the Local Timeline and The Whole Known Network. " <>
             " Note: when setting to `false`, please also check `:restrict_unauthenticated` setting."
       },
       %{
@@ -723,7 +723,8 @@ config :pleroma, :config_description, [
           "text/plain",
           "text/html",
           "text/markdown",
-          "text/bbcode"
+          "text/bbcode",
+          "text/x.misskeymarkdown"
         ]
       },
       %{
@@ -1227,6 +1228,13 @@ config :pleroma, :config_description, [
             description: "Enables green text on lines prefixed with the > character"
           },
           %{
+            key: :conversationDisplay,
+            label: "Conversation display style",
+            type: :string,
+            description: "How to display conversations (linear or tree)",
+            suggestions: ["linear", "tree"]
+          },
+          %{
             key: :hideFilteredStatuses,
             label: "Hide Filtered Statuses",
             type: :boolean,
@@ -1275,14 +1283,6 @@ config :pleroma, :config_description, [
                 "If you want a colorful logo you must disable logoMask."
           },
           %{
-            key: :minimalScopesMode,
-            label: "Minimal scopes mode",
-            type: :boolean,
-            description:
-              "Limit scope selection to Direct, User default, and Scope of post replying to. " <>
-                "Also prevents replying to a DM with a public post from PleromaFE."
-          },
-          %{
             key: :nsfwCensorImage,
             label: "NSFW Censor Image",
             type: {:string, :image},
@@ -1295,7 +1295,13 @@ config :pleroma, :config_description, [
             label: "Post Content Type",
             type: {:dropdown, :atom},
             description: "Default post formatting option",
-            suggestions: ["text/plain", "text/html", "text/markdown", "text/bbcode"]
+            suggestions: [
+              "text/plain",
+              "text/html",
+              "text/markdown",
+              "text/bbcode",
+              "text/x.misskeymarkdown"
+            ]
           },
           %{
             key: :redirectRootNoLogin,
@@ -1750,14 +1756,7 @@ config :pleroma, :config_description, [
         label: "STS max age",
         type: :integer,
         description: "The maximum age for the Strict-Transport-Security header if sent",
-        suggestions: [31_536_000]
-      },
-      %{
-        key: :ct_max_age,
-        label: "CT max age",
-        type: :integer,
-        description: "The maximum age for the Expect-CT header if sent",
-        suggestions: [2_592_000]
+        suggestions: [63_072_000]
       },
       %{
         key: :referrer_policy,
@@ -1978,6 +1977,32 @@ config :pleroma, :config_description, [
         suggestions: [
           federator_incoming: 5,
           federator_outgoing: 5
+        ]
+      },
+      %{
+        key: :timeout,
+        type: {:keyword, :integer},
+        description: "Timeout for jobs, per `Oban` queue, in ms",
+        suggestions: [
+          activity_expiration: :timer.seconds(5),
+          token_expiration: :timer.seconds(5),
+          filter_expiration: :timer.seconds(5),
+          backup: :timer.seconds(900),
+          federator_incoming: :timer.seconds(10),
+          federator_outgoing: :timer.seconds(10),
+          ingestion_queue: :timer.seconds(5),
+          web_push: :timer.seconds(5),
+          mailer: :timer.seconds(5),
+          transmogrifier: :timer.seconds(5),
+          scheduled_activities: :timer.seconds(5),
+          poll_notifications: :timer.seconds(5),
+          background: :timer.seconds(5),
+          remote_fetcher: :timer.seconds(10),
+          attachments_cleanup: :timer.seconds(900),
+          new_users_digest: :timer.seconds(10),
+          mute_expire: :timer.seconds(5),
+          search_indexing: :timer.seconds(5),
+          nodeinfo_fetcher: :timer.seconds(10)
         ]
       }
     ]
@@ -2641,6 +2666,21 @@ config :pleroma, :config_description, [
     description: "HTTP settings",
     children: [
       %{
+        key: :pool_timeout,
+        label: "HTTP Pool Request Timeout",
+        type: :integer,
+        description: "Timeout for initiating HTTP requests (in ms, default 5000)",
+        suggestions: [5000]
+      },
+      %{
+        key: :receive_timeout,
+        label: "HTTP Receive Timeout",
+        type: :integer,
+        description:
+          "Timeout for waiting on remote servers to respond to HTTP requests (in ms, default 15000)",
+        suggestions: [15000]
+      },
+      %{
         key: :proxy_url,
         label: "Proxy URL",
         type: :string,
@@ -2965,8 +3005,7 @@ config :pleroma, :config_description, [
     key: :restrict_unauthenticated,
     label: "Restrict Unauthenticated",
     type: :group,
-    description:
-      "Disallow viewing timelines, user profiles and statuses for unauthenticated users.",
+    description: "Disallow unauthenticated viewing of timelines, user profiles and statuses.",
     children: [
       %{
         key: :timelines,
@@ -2976,12 +3015,12 @@ config :pleroma, :config_description, [
           %{
             key: :local,
             type: :boolean,
-            description: "Disallow view public timeline."
+            description: "Disallow viewing the public timeline."
           },
           %{
             key: :federated,
             type: :boolean,
-            description: "Disallow view federated timeline."
+            description: "Disallow viewing the whole known network timeline."
           }
         ]
       },
@@ -2993,29 +3032,29 @@ config :pleroma, :config_description, [
           %{
             key: :local,
             type: :boolean,
-            description: "Disallow view local user profiles."
+            description: "Disallow viewing local user profiles."
           },
           %{
             key: :remote,
             type: :boolean,
-            description: "Disallow view remote user profiles."
+            description: "Disallow viewing remote user profiles."
           }
         ]
       },
       %{
         key: :activities,
         type: :map,
-        description: "Settings for statuses.",
+        description: "Settings for posts.",
         children: [
           %{
             key: :local,
             type: :boolean,
-            description: "Disallow view local statuses."
+            description: "Disallow viewing local posts."
           },
           %{
             key: :remote,
             type: :boolean,
-            description: "Disallow view remote statuses."
+            description: "Disallow viewing remote posts."
           }
         ]
       }

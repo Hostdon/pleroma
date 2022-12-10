@@ -89,7 +89,23 @@ config :pleroma, :frontend_configurations,
 
 Terms of Service will be shown to all users on the registration page. It's the best place where to write down the rules for your instance. You can modify the rules by adding and changing `$static_dir/static/terms-of-service.html`.
 
+## Favicon
+
+The favicon will display on the frontend, and in the browser tab. 
+
+Place a PNG file at `$static_dir/favicon.png` to change the favicon. Not that this
+is _one level above_ where the logo is placed, it should be on the same level as
+the `frontends` directory.
  	
 ## Styling rendered pages
 
 To overwrite the CSS stylesheet of the OAuth form and other static pages, you can upload your own CSS file to `instance/static/static.css`. This will completely replace the CSS used by those pages, so it might be a good idea to copy the one from `priv/static/instance/static.css` and make your changes.
+
+## Overriding pleroma-fe styles
+
+To overwrite the CSS stylesheet of pleroma-fe, you can put a file at
+`$static_dir/static/custom.css` containing your styles. These will be loaded
+with the rest of the CSS.
+
+You will probably have to put `!important` on most/all your styles to override the
+default ones, due to the specificity precedence of CSS.

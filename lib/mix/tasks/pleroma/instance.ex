@@ -59,7 +59,7 @@ defmodule Mix.Tasks.Pleroma.Instance do
           get_option(
             options,
             :domain,
-            "What domain will your instance use? (e.g pleroma.soykaf.com)"
+            "What domain will your instance use? (e.g akkoma.example.com)"
           ),
           ":"
         ) ++ [443]

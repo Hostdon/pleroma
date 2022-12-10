@@ -180,6 +180,8 @@ config :tesla, :adapter, {Tesla.Adapter.Finch, name: MyFinch}
 
 # Configures http settings, upstream proxy etc.
 config :pleroma, :http,
+  pool_timeout: :timer.seconds(5),
+  receive_timeout: :timer.seconds(15),
   proxy_url: nil,
   user_agent: :default,
   adapter: []
@@ -215,7 +217,7 @@ config :pleroma, :instance,
   federation_publisher_modules: [
     Pleroma.Web.ActivityPub.Publisher
   ],
-  allow_relay: true,
+  allow_relay: false,
   public: true,
   static_dir: "instance/static/",
   allowed_post_formats: [
@@ -312,19 +314,19 @@ config :pleroma, :frontend_configurations,
     logo: "/static/logo.svg",
     logoMargin: ".1em",
     logoMask: true,
-    minimalScopesMode: false,
     noAttachmentLinks: false,
     nsfwCensorImage: "",
     postContentType: "text/plain",
     redirectRootLogin: "/main/friends",
-    redirectRootNoLogin: "/main/all",
+    redirectRootNoLogin: "/main/public",
     scopeCopy: true,
     sidebarRight: false,
     showFeaturesPanel: true,
     showInstanceSpecificPanel: false,
     subjectLineBehavior: "email",
     theme: "pleroma-dark",
-    webPushNotifications: false
+    webPushNotifications: false,
+    conversationDisplay: "linear"
   },
   masto_fe: %{
     showInstanceSpecificPanel: true
@@ -389,7 +391,8 @@ config :pleroma, :mrf_simple,
   accept: [],
   avatar_removal: [],
   banner_removal: [],
-  reject_deletes: []
+  reject_deletes: [],
+  handle_threads: true
 
 config :pleroma, :mrf_keyword,
   reject: [],
@@ -487,8 +490,7 @@ config :pleroma, Pleroma.Web.Preload,
 config :pleroma, :http_security,
   enabled: true,
   sts: false,
-  sts_max_age: 31_536_000,
-  ct_max_age: 2_592_000,
+  sts_max_age: 63_072_000,
   referrer_policy: "same-origin"
 
 config :cors_plug,
@@ -568,7 +570,8 @@ config :pleroma, Oban,
     new_users_digest: 1,
     mute_expire: 5,
     search_indexing: 10,
-    nodeinfo_fetcher: 1
+    nodeinfo_fetcher: 1,
+    database_prune: 1
   ],
   plugins: [
     Oban.Plugins.Pruner,
@@ -576,7 +579,8 @@ config :pleroma, Oban,
   ],
   crontab: [
     {"0 0 * * 0", Pleroma.Workers.Cron.DigestEmailsWorker},
-    {"0 0 * * *", Pleroma.Workers.Cron.NewUsersDigestWorker}
+    {"0 0 * * *", Pleroma.Workers.Cron.NewUsersDigestWorker},
+    {"0 3 * * *", Pleroma.Workers.Cron.PruneDatabaseWorker}
   ]
 
 config :pleroma, :workers,
@@ -584,6 +588,28 @@ config :pleroma, :workers,
     federator_incoming: 5,
     federator_outgoing: 5,
     search_indexing: 2
+  ],
+  timeout: [
+    activity_expiration: :timer.seconds(5),
+    token_expiration: :timer.seconds(5),
+    filter_expiration: :timer.seconds(5),
+    backup: :timer.seconds(900),
+    federator_incoming: :timer.seconds(10),
+    federator_outgoing: :timer.seconds(10),
+    ingestion_queue: :timer.seconds(5),
+    web_push: :timer.seconds(5),
+    mailer: :timer.seconds(5),
+    transmogrifier: :timer.seconds(5),
+    scheduled_activities: :timer.seconds(5),
+    poll_notifications: :timer.seconds(5),
+    background: :timer.seconds(5),
+    remote_fetcher: :timer.seconds(10),
+    attachments_cleanup: :timer.seconds(900),
+    new_users_digest: :timer.seconds(10),
+    mute_expire: :timer.seconds(5),
+    search_indexing: :timer.seconds(5),
+    nodeinfo_fetcher: :timer.seconds(10),
+    database_prune: :timer.minutes(10)
   ]
 
 config :pleroma, Pleroma.Formatter,

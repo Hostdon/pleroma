@@ -99,6 +99,7 @@ defmodule Pleroma.HTTP.AdapterHelper do
           | {:error, atom()}
           | nil
   def parse_proxy(nil), do: nil
+  def parse_proxy(""), do: nil
 
   def parse_proxy(proxy) when is_binary(proxy) do
     with %URI{} = uri <- URI.parse(proxy),

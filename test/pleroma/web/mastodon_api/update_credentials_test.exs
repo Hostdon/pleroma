@@ -209,6 +209,26 @@ defmodule Pleroma.Web.MastodonAPI.UpdateCredentialsTest do
       assert update_activity.data["object"]["name"] == "markorepairs"
     end
 
+    test "updates the user's default post expiry", %{conn: conn} do
+      conn = patch(conn, "/api/v1/accounts/update_credentials", %{"status_ttl_days" => "1"})
+
+      assert user_data = json_response_and_validate_schema(conn, 200)
+      assert user_data["akkoma"]["status_ttl_days"] == 1
+    end
+
+    test "resets the user's default post expiry", %{conn: conn} do
+      conn = patch(conn, "/api/v1/accounts/update_credentials", %{"status_ttl_days" => "-1"})
+
+      assert user_data = json_response_and_validate_schema(conn, 200)
+      assert is_nil(user_data["akkoma"]["status_ttl_days"])
+    end
+
+    test "does not allow negative integers other than -1 for TTL", %{conn: conn} do
+      conn = patch(conn, "/api/v1/accounts/update_credentials", %{"status_ttl_days" => "-2"})
+
+      assert json_response_and_validate_schema(conn, 403)
+    end
+
     test "updates the user's AKAs", %{conn: conn} do
       conn =
         patch(conn, "/api/v1/accounts/update_credentials", %{

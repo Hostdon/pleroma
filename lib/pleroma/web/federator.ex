@@ -48,7 +48,9 @@ defmodule Pleroma.Web.Federator do
 
   @impl true
   def publish(%{data: %{"object" => object}} = activity) when is_binary(object) do
-    PublisherWorker.enqueue("publish", %{"activity_id" => activity.id, "object_data" => nil})
+    PublisherWorker.enqueue("publish", %{"activity_id" => activity.id, "object_data" => nil},
+      priority: publish_priority(activity)
+    )
   end
 
   @impl true
@@ -63,7 +65,7 @@ defmodule Pleroma.Web.Federator do
     )
   end
 
-  defp publish_priority(%{type: "Delete"}), do: 3
+  defp publish_priority(%{data: %{"type" => "Delete"}}), do: 3
   defp publish_priority(_), do: 0
 
   # Job Worker Callbacks

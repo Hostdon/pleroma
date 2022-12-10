@@ -45,7 +45,7 @@ defmodule Pleroma.Web.StaticFE.StaticFEController do
     end
   end
 
-  def show(%{assigns: %{username_or_id: username_or_id}} = conn, params) do
+  def show(%{assigns: %{username_or_id: username_or_id, tab: tab}} = conn, params) do
     with {_, %User{local: true} = user} <-
            {:fetch_user, User.get_cached_by_nickname_or_id(username_or_id)},
          {_, :visible} <- {:visibility, User.visible_for(user, _reading_user = nil)} do
@@ -55,11 +55,36 @@ defmodule Pleroma.Web.StaticFE.StaticFEController do
         params
         |> Map.take(@page_keys)
         |> Map.new(fn {k, v} -> {String.to_existing_atom(k), v} end)
+        |> Map.put(:limit, 20)
+
+      params =
+        case tab do
+          "posts" ->
+            Map.put(params, :exclude_replies, true)
+
+          "media" ->
+            Map.put(params, :only_media, true)
+
+          _ ->
+            params
+        end
 
       timeline =
-        user
-        |> ActivityPub.fetch_user_activities(_reading_user = nil, params)
-        |> Enum.map(&represent/1)
+        case tab do
+          tab when tab in ["posts", "with_replies", "media"] ->
+            user
+            |> ActivityPub.fetch_user_activities(_reading_user = nil, params)
+            |> Enum.map(&represent/1)
+
+          "following" when not user.hide_follows ->
+            User.get_friends(user)
+
+          "followers" when not user.hide_followers ->
+            User.get_followers(user)
+
+          _ ->
+            []
+        end
 
       prev_page_id =
         (params["min_id"] || params["max_id"]) &&
@@ -75,6 +100,11 @@ defmodule Pleroma.Web.StaticFE.StaticFEController do
         meta: meta
       })
     else
+      {_, %User{} = user} ->
+        conn
+        |> put_status(:found)
+        |> redirect(external: user.uri || user.ap_id)
+
       _ ->
         not_found(conn, "User not found.")
     end
@@ -150,6 +180,15 @@ defmodule Pleroma.Web.StaticFE.StaticFEController do
         nil
       end
 
+    reply_to_user = in_reply_to_user(activity)
+
+    total_votes =
+      if data["oneOf"] do
+        Enum.sum(for option <- data["oneOf"], do: option["replies"]["totalItems"])
+      else
+        0
+      end
+
     %{
       user: User.sanitize_html(user),
       title: get_title(activity.object),
@@ -160,9 +199,30 @@ defmodule Pleroma.Web.StaticFE.StaticFEController do
       sensitive: data["sensitive"],
       selected: selected,
       counts: get_counts(activity),
-      id: activity.id
+      id: activity.id,
+      visibility: Visibility.get_visibility(activity.object),
+      reply_to: data["inReplyTo"],
+      reply_to_user: reply_to_user,
+      edited_at: data["updated"],
+      poll: data["oneOf"],
+      total_votes: total_votes
     }
   end
+
+  defp in_reply_to_user(%Activity{object: %Object{data: %{"inReplyTo" => inReplyTo}}} = activity)
+       when is_binary(inReplyTo) do
+    in_reply_to_activity = Activity.get_in_reply_to_activity(activity)
+
+    if in_reply_to_activity do
+      in_reply_to_activity
+      |> Map.get(:actor)
+      |> User.get_cached_by_ap_id()
+    else
+      nil
+    end
+  end
+
+  defp in_reply_to_user(_), do: nil
 
   defp assign_id(%{path_info: ["notice", notice_id]} = conn, _opts),
     do: assign(conn, :notice_id, notice_id)
@@ -177,7 +237,16 @@ defmodule Pleroma.Web.StaticFE.StaticFEController do
     do: assign(conn, :notice_id, notice_id)
 
   defp assign_id(%{path_info: ["users", user_id]} = conn, _opts),
-    do: assign(conn, :username_or_id, user_id)
+    do:
+      conn
+      |> assign(:username_or_id, user_id)
+      |> assign(:tab, "posts")
+
+  defp assign_id(%{path_info: ["users", user_id, tab]} = conn, _opts),
+    do:
+      conn
+      |> assign(:username_or_id, user_id)
+      |> assign(:tab, tab)
 
   defp assign_id(%{path_info: ["objects", object_id]} = conn, _opts),
     do: assign(conn, :object_id, object_id)

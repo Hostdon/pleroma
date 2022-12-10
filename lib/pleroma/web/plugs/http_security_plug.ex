@@ -42,12 +42,11 @@ defmodule Pleroma.Web.Plugs.HTTPSecurityPlug do
     custom_http_frontend_headers = custom_http_frontend_headers()
 
     headers = [
-      {"x-xss-protection", "1; mode=block"},
+      {"x-xss-protection", "0"},
       {"x-permitted-cross-domain-policies", "none"},
       {"x-frame-options", "DENY"},
       {"x-content-type-options", "nosniff"},
       {"referrer-policy", referrer_policy},
-      {"x-download-options", "noopen"},
       {"content-security-policy", csp_string()},
       {"permissions-policy", "interest-cohort=()"}
     ]
@@ -76,7 +75,7 @@ defmodule Pleroma.Web.Plugs.HTTPSecurityPlug do
 
   static_csp_rules = [
     "default-src 'none'",
-    "base-uri 'self'",
+    "base-uri 'none'",
     "frame-ancestors 'none'",
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self'",
@@ -237,11 +236,9 @@ your instance and your users via malicious posts:
 
   defp maybe_send_sts_header(conn, true) do
     max_age_sts = Config.get([:http_security, :sts_max_age])
-    max_age_ct = Config.get([:http_security, :ct_max_age])
 
     merge_resp_headers(conn, [
-      {"strict-transport-security", "max-age=#{max_age_sts}; includeSubDomains"},
-      {"expect-ct", "enforce, max-age=#{max_age_ct}"}
+      {"strict-transport-security", "max-age=#{max_age_sts}; includeSubDomains; preload"}
     ])
   end
 

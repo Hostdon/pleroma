@@ -19,6 +19,16 @@ defmodule Pleroma.Web.ActivityPub.MRF.ActivityExpirationPolicyTest do
              })
 
     assert Timex.diff(expires_at, DateTime.utc_now(), :days) == 364
+
+    assert {:ok, %{"type" => "Update", "expires_at" => expires_at}} =
+             ActivityExpirationPolicy.filter(%{
+               "id" => @id,
+               "actor" => @local_actor,
+               "type" => "Update",
+               "object" => %{"type" => "Note"}
+             })
+
+    assert Timex.diff(expires_at, DateTime.utc_now(), :days) == 364
   end
 
   test "keeps existing `expires_at` if it less than the config setting" do
@@ -29,6 +39,15 @@ defmodule Pleroma.Web.ActivityPub.MRF.ActivityExpirationPolicyTest do
                "id" => @id,
                "actor" => @local_actor,
                "type" => "Create",
+               "expires_at" => expires_at,
+               "object" => %{"type" => "Note"}
+             })
+
+    assert {:ok, %{"type" => "Update", "expires_at" => ^expires_at}} =
+             ActivityExpirationPolicy.filter(%{
+               "id" => @id,
+               "actor" => @local_actor,
+               "type" => "Update",
                "expires_at" => expires_at,
                "object" => %{"type" => "Note"}
              })
@@ -47,6 +66,17 @@ defmodule Pleroma.Web.ActivityPub.MRF.ActivityExpirationPolicyTest do
              })
 
     assert Timex.diff(expires_at, DateTime.utc_now(), :days) == 364
+
+    assert {:ok, %{"type" => "Update", "expires_at" => expires_at}} =
+             ActivityExpirationPolicy.filter(%{
+               "id" => @id,
+               "actor" => @local_actor,
+               "type" => "Update",
+               "expires_at" => too_distant_future,
+               "object" => %{"type" => "Note"}
+             })
+
+    assert Timex.diff(expires_at, DateTime.utc_now(), :days) == 364
   end
 
   test "ignores remote activities" do
@@ -59,9 +89,19 @@ defmodule Pleroma.Web.ActivityPub.MRF.ActivityExpirationPolicyTest do
              })
 
     refute Map.has_key?(activity, "expires_at")
+
+    assert {:ok, activity} =
+             ActivityExpirationPolicy.filter(%{
+               "id" => "https://example.com/123",
+               "actor" => "https://example.com/users/cofe",
+               "type" => "Update",
+               "object" => %{"type" => "Note"}
+             })
+
+    refute Map.has_key?(activity, "expires_at")
   end
 
-  test "ignores non-Create/Note activities" do
+  test "ignores non-Create/Update/Note activities" do
     assert {:ok, activity} =
              ActivityExpirationPolicy.filter(%{
                "id" => "https://example.com/123",

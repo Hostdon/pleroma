@@ -1,0 +1,29 @@
+name: "Feature request"
+about: "I'd like something to be added to Akkoma"
+title: "[feat] "
+body:
+  - type: markdown
+    attributes:
+      value: "Thanks for taking the time to request a new feature! Please be as concise and clear as you can in your proposal, so we could understand what you're going for."
+  - type: textarea
+    id: idea
+    attributes:
+      label: "The idea"
+      description: "What do you think you should be able to do in Akkoma?"
+      validations:
+        required: true
+  - type: textarea
+    id: reason
+    attributes:
+      label: "The reasoning"
+      description: "Why would this be a worthwhile feature? Does it solve any problems? Have people talked about wanting it?"
+      validations:
+        required: true
+  - type: checkboxes
+    id: searched
+    attributes:
+      label: "Have you searched for this feature request?"
+      description: "Please double-check that your issue is not already being tracked on [the forums](https://meta.akkoma.dev), [the issue tracker](https://akkoma.dev/AkkomaGang/akkoma/issues), or the one for [pleroma-fe](https://akkoma.dev/AkkomaGang/pleroma-fe/issues)."
+      options:
+        - label: "I have double-checked and have not found this feature request mentioned anywhere."
+        - label: "This feature is related to the Akkoma backend specifically, and not pleroma-fe."

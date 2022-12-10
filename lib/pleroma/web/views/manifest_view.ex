@@ -11,7 +11,23 @@ defmodule Pleroma.Web.ManifestView do
     %{
       name: Config.get([:instance, :name]),
       description: Config.get([:instance, :description]),
-      icons: Config.get([:manifest, :icons]),
+      icons: [
+        %{
+          src: "/static/logo.svg",
+          type: "image/svg+xml"
+        },
+        %{
+          src: "/static/logo-512.png",
+          sizes: "512x512",
+          type: "image/png",
+          purpose: "maskable"
+        },
+        %{
+          src: "/static/logo-512.png",
+          sizes: "512x512",
+          type: "image/png"
+        }
+      ],
       theme_color: Config.get([:manifest, :theme_color]),
       background_color: Config.get([:manifest, :background_color]),
       display: "standalone",
@@ -21,7 +37,7 @@ defmodule Pleroma.Web.ManifestView do
         "social"
       ],
       serviceworker: %{
-        src: "/sw.js"
+        src: "/sw-pleroma.js"
       }
     }
   end

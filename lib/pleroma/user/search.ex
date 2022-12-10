@@ -62,6 +62,11 @@ defmodule Pleroma.User.Search do
     end
   end
 
+  def sanitise_domain(domain) do
+    domain
+    |> String.replace(~r/[!-\,|@|?|<|>|[-`|{-~|\/|:|\s]+/, "")
+  end
+
   defp format_query(query_string) do
     # Strip the beginning @ off if there is a query
     query_string = String.trim_leading(query_string, "@")
@@ -69,7 +74,7 @@ defmodule Pleroma.User.Search do
     with [name, domain] <- String.split(query_string, "@") do
       encoded_domain =
         domain
-        |> String.replace(~r/[!-\-|@|[-`|{-~|\/|:|\s]+/, "")
+        |> sanitise_domain()
         |> String.to_charlist()
         |> :idna.encode()
         |> to_string()

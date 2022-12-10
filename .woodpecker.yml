@@ -53,14 +53,14 @@ services:
 pipeline:
   lint:
     <<: *on-pr-open
-    image: akkoma/ci-base:latest
+    image: akkoma/ci-base:1.14
     commands:
     - mix local.hex --force
     - mix local.rebar --force
     - mix format --check-formatted
 
   build:
-    image: akkoma/ci-base:latest
+    image: akkoma/ci-base:1.14
     <<: *on-pr-open
     environment:
       MIX_ENV: test
@@ -75,7 +75,7 @@ pipeline:
       - mix compile
 
   test:
-    image: akkoma/ci-base:latest
+    image: akkoma/ci-base:1.14
     <<: *on-pr-open
     environment:
       MIX_ENV: test
@@ -95,7 +95,7 @@ pipeline:
 
   # Canonical amd64
   ubuntu22:
-    image: hexpm/elixir:1.13.4-erlang-24.3.4.5-ubuntu-jammy-20220428
+    image: hexpm/elixir:1.14.2-erlang-25.1.2-ubuntu-jammy-20220428
     <<: *on-release
     environment:
       MIX_ENV: prod
@@ -122,7 +122,7 @@ pipeline:
       - /bin/sh /entrypoint.sh
 
   debian-bullseye:
-    image: hexpm/elixir:1.13.4-erlang-24.3.4.5-debian-bullseye-20220801
+    image: hexpm/elixir:1.14.2-erlang-25.1.2-debian-bullseye-20221004
     <<: *on-release
     environment:
       MIX_ENV: prod
@@ -151,7 +151,7 @@ pipeline:
 
   # Canonical amd64-musl
   musl:
-    image: hexpm/elixir:1.13.4-erlang-24.3.4.5-alpine-3.15.6
+    image: hexpm/elixir:1.14.2-erlang-25.1.2-alpine-3.16.2
     <<: *on-stable
     environment:
       MIX_ENV: prod

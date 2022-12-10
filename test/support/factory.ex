@@ -233,7 +233,7 @@ defmodule Pleroma.Factory do
     %Pleroma.Object{data: Map.merge(data, %{"type" => "Article"})}
   end
 
-  def tombstone_factory do
+  def tombstone_factory(attrs) do
     data = %{
       "type" => "Tombstone",
       "id" => Pleroma.Web.ActivityPub.Utils.generate_object_id(),
@@ -244,6 +244,7 @@ defmodule Pleroma.Factory do
     %Pleroma.Object{
       data: data
     }
+    |> merge_attributes(attrs)
   end
 
   def question_factory(attrs \\ %{}) do
@@ -451,15 +452,16 @@ defmodule Pleroma.Factory do
     }
   end
 
-  def follow_activity_factory do
-    follower = insert(:user)
-    followed = insert(:user)
+  def follow_activity_factory(attrs \\ %{}) do
+    follower = attrs[:follower] || insert(:user)
+    followed = attrs[:followed] || insert(:user)
 
     data = %{
       "id" => Pleroma.Web.ActivityPub.Utils.generate_activity_id(),
       "actor" => follower.ap_id,
       "type" => "Follow",
       "object" => followed.ap_id,
+      "state" => attrs[:state] || "pending",
       "published_at" => DateTime.utc_now() |> DateTime.to_iso8601()
     }
 
@@ -467,6 +469,7 @@ defmodule Pleroma.Factory do
       data: data,
       actor: follower.ap_id
     }
+    |> Map.merge(attrs)
   end
 
   def report_activity_factory(attrs \\ %{}) do
@@ -509,6 +512,33 @@ defmodule Pleroma.Factory do
         "object" => question.data["id"],
         "published" => DateTime.utc_now() |> DateTime.to_iso8601(),
         "context" => question.data["context"]
+      }
+      |> Map.merge(data_attrs)
+
+    %Pleroma.Activity{
+      data: data,
+      actor: data["actor"],
+      recipients: data["to"]
+    }
+    |> Map.merge(attrs)
+  end
+
+  def delete_activity_factory(attrs \\ %{}) do
+    user = attrs[:user] || insert(:user)
+    note_activity = attrs[:note_activity] || insert(:note_activity, user: user)
+
+    data_attrs = attrs[:data_attrs] || %{}
+    attrs = Map.drop(attrs, [:user, :data_attrs])
+
+    data =
+      %{
+        "id" => Pleroma.Web.ActivityPub.Utils.generate_activity_id(),
+        "type" => "Delete",
+        "actor" => note_activity.data["actor"],
+        "to" => note_activity.data["to"],
+        "object" => note_activity.data["id"],
+        "published" => DateTime.utc_now() |> DateTime.to_iso8601(),
+        "context" => note_activity.data["context"]
       }
       |> Map.merge(data_attrs)
 
@@ -673,6 +703,23 @@ defmodule Pleroma.Factory do
       profile_name: "default",
       settings: %{"test" => "test"},
       version: 1
+    }
+    |> Map.merge(params)
+  end
+
+  def delivery_factory(params \\ %{}) do
+    object = Map.get(params, :object, build(:note))
+    user = Map.get(params, :user, build(:user))
+
+    %Pleroma.Delivery{
+      object: object,
+      user: user
+    }
+  end
+
+  def hashtag_factory(params \\ %{}) do
+    %Pleroma.Hashtag{
+      name: "test #{sequence(:hashtag_name, & &1)}"
     }
     |> Map.merge(params)
   end

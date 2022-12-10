@@ -1,16 +1,32 @@
 site_name: Akkoma Documentation
 theme:
-  favicon: 'images/akko_badday.png'
+  favicon: 'images/favicon.ico'
   name: 'material'
   custom_dir: 'theme'
   # Disable google fonts
   font: false
-  logo: 'images/akko_badday.png'
+  logo: 'images/logo.png'
   features:
-    - tabs
+    - navigation.tabs
+    - toc.follow
+    - navigation.instant
+    - navigation.sections
   palette:
-    primary: 'deep purple'
-    accent: 'blue grey'
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+      primary: 'deep purple'
+      accent: 'blue grey'
+
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+      primary: 'deep purple'
+      accent: 'blue grey'
 
 extra_css:
   - css/extra.css
@@ -31,7 +47,8 @@ markdown_extensions:
   - pymdownx.tasklist:
       custom_checkbox: true
   - pymdownx.superfences
-  - pymdownx.tabbed
+  - pymdownx.tabbed:
+      alternate_style: true
   - pymdownx.details
   - markdown_include.include:
       base_path: docs

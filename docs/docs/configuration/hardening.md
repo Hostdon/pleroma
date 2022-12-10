@@ -23,18 +23,17 @@ This sets the `secure` flag on Akkoma’s session cookie. This makes sure, that 
 
 This will send additional HTTP security headers to the clients, including:
 
-* `X-XSS-Protection: "1; mode=block"`
+* `X-XSS-Protection: "0"`
 * `X-Permitted-Cross-Domain-Policies: "none"`
 * `X-Frame-Options: "DENY"`
 * `X-Content-Type-Options: "nosniff"`
-* `X-Download-Options: "noopen"`
 
 A content security policy (CSP) will also be set:
 
 ```csp
 content-security-policy:
   default-src 'none';
-  base-uri 'self';
+  base-uri 'none';
   frame-ancestors 'none';
   img-src 'self' data: blob: https:;
   media-src 'self' https:;
@@ -52,19 +51,15 @@ content-security-policy:
 
 An additional “Strict transport security” header will be sent with the configured `sts_max_age` parameter. This tells the browser, that the domain should only be accessed over a secure HTTPs connection.
 
-#### `ct_max_age`
-
-An additional “Expect-CT” header will be sent with the configured `ct_max_age` parameter. This enforces the use of TLS certificates that are published in the certificate transparency log. (see [Expect-CT](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Expect-CT))
-
 #### `referrer_policy`
 
 > Recommended value: `same-origin`
 
-If you click on a link, your browser’s request to the other site will include from where it is coming from. The “Referrer policy” header tells the browser how and if it should send this information. (see [Referrer policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy))
+If you click on a link, your browser’s request to the other site will include from where it is coming from. The “Referrer policy” header tells the browser how and if it should send this information. (see [Referrer policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy)). `no-referrer` can be used if a referrer is not needed for improved privacy.
 
 ## systemd
 
-A systemd unit example is provided at `installation/pleroma.service`.
+A systemd unit example is provided at `installation/akkoma.service`.
 
 ### PrivateTmp
 

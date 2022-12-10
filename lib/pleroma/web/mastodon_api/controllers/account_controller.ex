@@ -175,6 +175,11 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
       value -> {:ok, value}
     end
 
+    status_ttl_days_value = fn
+      -1 -> {:ok, nil}
+      value -> {:ok, value}
+    end
+
     user_params =
       [
         :no_rich_text,
@@ -215,6 +220,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
       # Note: param name is indeed :discoverable (not an error)
       |> Maps.put_if_present(:is_discoverable, params[:discoverable])
       |> Maps.put_if_present(:language, Pleroma.Web.Gettext.normalize_locale(params[:language]))
+      |> Maps.put_if_present(:status_ttl_days, params[:status_ttl_days], status_ttl_days_value)
 
     # What happens here:
     #

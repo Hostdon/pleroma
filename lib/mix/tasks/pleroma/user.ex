@@ -113,9 +113,11 @@ defmodule Mix.Tasks.Pleroma.User do
          {:ok, token} <- Pleroma.PasswordResetToken.create_token(user) do
       shell_info("Generated password reset token for #{user.nickname}")
 
-      IO.puts("URL: #{Pleroma.Web.Router.Helpers.reset_password_url(Pleroma.Web.Endpoint,
-      :reset,
-      token.token)}")
+      IO.puts(
+        "URL: #{Pleroma.Web.Router.Helpers.reset_password_url(Pleroma.Web.Endpoint,
+        :reset,
+        token.token)}"
+      )
     else
       _ ->
         shell_error("No local user #{nickname}")
@@ -469,9 +471,15 @@ defmodule Mix.Tasks.Pleroma.User do
 
   def run(["timeline_query", nickname]) do
     start_pleroma()
+
     params = %{local: true}
 
     with %User{local: true} = user <- User.get_cached_by_nickname(nickname) do
+      followed_hashtags =
+        user
+        |> User.followed_hashtags()
+        |> Enum.map(& &1.id)
+
       params =
         params
         |> Map.put(:type, ["Create", "Announce"])
@@ -482,6 +490,7 @@ defmodule Mix.Tasks.Pleroma.User do
         |> Map.put(:announce_filtering_user, user)
         |> Map.put(:user, user)
         |> Map.put(:local_only, params[:local])
+        |> Map.put(:hashtags, followed_hashtags)
         |> Map.delete(:local)
 
       _activities =

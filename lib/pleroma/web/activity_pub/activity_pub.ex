@@ -105,6 +105,23 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     end
   end
 
+  @unpersisted_activity_types ~w[Undo Delete Remove Accept Reject]
+  @impl true
+  def persist(%{"type" => type} = object, [local: false] = meta)
+      when type in @unpersisted_activity_types do
+    {:ok, object, meta}
+    {recipients, _, _} = get_recipients(object)
+
+    unpersisted = %Activity{
+      data: object,
+      local: false,
+      recipients: recipients,
+      actor: object["actor"]
+    }
+
+    {:ok, unpersisted, meta}
+  end
+
   @impl true
   def persist(object, meta) do
     with local <- Keyword.fetch!(meta, :local),
@@ -722,9 +739,9 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     |> fetch_activities(params, :offset)
   end
 
-  defp user_activities_recipients(%{godmode: true}), do: []
+  def user_activities_recipients(%{godmode: true}), do: []
 
-  defp user_activities_recipients(%{reading_user: reading_user}) do
+  def user_activities_recipients(%{reading_user: reading_user}) do
     if not is_nil(reading_user) and reading_user.local do
       [
         Constants.as_public(),
@@ -913,6 +930,31 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       activity in query,
       where: fragment("? && ?", ^recipients, activity.recipients),
       or_where: activity.actor == ^user.ap_id
+    )
+  end
+
+  # Essentially, either look for activities addressed to `recipients`, _OR_ ones
+  # that reference a hashtag that the user follows
+  # Firstly, two fallbacks in case there's no hashtag constraint, or the user doesn't
+  # follow any
+  defp restrict_recipients_or_hashtags(query, recipients, user, nil) do
+    restrict_recipients(query, recipients, user)
+  end
+
+  defp restrict_recipients_or_hashtags(query, recipients, user, []) do
+    restrict_recipients(query, recipients, user)
+  end
+
+  defp restrict_recipients_or_hashtags(query, recipients, _user, hashtag_ids) do
+    from([activity, object] in query)
+    |> join(:left, [activity, object], hto in "hashtags_objects",
+      on: hto.object_id == object.id,
+      as: :hto
+    )
+    |> where(
+      [activity, object, hto: hto],
+      (hto.hashtag_id in ^hashtag_ids and ^Constants.as_public() in activity.recipients) or
+        fragment("? && ?", ^recipients, activity.recipients)
     )
   end
 
@@ -1247,15 +1289,15 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     end
   end
 
+  defp exclude_invisible_actors(query, %{type: "Flag"}), do: query
   defp exclude_invisible_actors(query, %{invisible_actors: true}), do: query
 
   defp exclude_invisible_actors(query, _opts) do
-    invisible_ap_ids =
-      User.Query.build(%{invisible: true, select: [:ap_id]})
-      |> Repo.all()
-      |> Enum.map(fn %{ap_id: ap_id} -> ap_id end)
-
-    from([activity] in query, where: activity.actor not in ^invisible_ap_ids)
+    query
+    |> join(:inner, [activity], u in User,
+      as: :u,
+      on: activity.actor == u.ap_id and u.invisible == false
+    )
   end
 
   defp exclude_id(query, %{exclude_id: id}) when is_binary(id) do
@@ -1363,7 +1405,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       |> maybe_preload_report_notes(opts)
       |> maybe_set_thread_muted_field(opts)
       |> maybe_order(opts)
-      |> restrict_recipients(recipients, opts[:user])
+      |> restrict_recipients_or_hashtags(recipients, opts[:user], opts[:followed_hashtags])
       |> restrict_replies(opts)
       |> restrict_since(opts)
       |> restrict_local(opts)
@@ -1385,7 +1427,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       |> restrict_instance(opts)
       |> restrict_announce_object_actor(opts)
       |> restrict_filtered(opts)
-      |> Activity.restrict_deactivated_users()
+      |> maybe_restrict_deactivated_users(opts)
       |> exclude_poll_votes(opts)
       |> exclude_invisible_actors(opts)
       |> exclude_visibility(opts)
@@ -1530,6 +1572,18 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     # we request WebFinger here
     nickname = additional[:nickname_from_acct] || generate_nickname(data)
 
+    # also_known_as must be a URL
+    also_known_as =
+      data
+      |> Map.get("alsoKnownAs", [])
+      |> Enum.filter(fn url ->
+        case URI.parse(url) do
+          %URI{scheme: "http"} -> true
+          %URI{scheme: "https"} -> true
+          _ -> false
+        end
+      end)
+
     %{
       ap_id: data["id"],
       uri: get_actor_url(data["url"]),
@@ -1547,7 +1601,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       featured_address: featured_address,
       bio: data["summary"] || "",
       actor_type: actor_type,
-      also_known_as: Map.get(data, "alsoKnownAs", []),
+      also_known_as: also_known_as,
       public_key: public_key,
       inbox: data["inbox"],
       shared_inbox: shared_inbox,
@@ -1657,12 +1711,12 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       {:ok, maybe_update_follow_information(data)}
     else
       # If this has been deleted, only log a debug and not an error
-      {:error, "Object has been deleted" = e} ->
+      {:error, {"Object has been deleted", _, _} = e} ->
         Logger.debug("Could not decode user at fetch #{ap_id}, #{inspect(e)}")
         {:error, e}
 
       {:error, {:reject, reason} = e} ->
-        Logger.info("Rejected user #{ap_id}: #{inspect(reason)}")
+        Logger.debug("Rejected user #{ap_id}: #{inspect(reason)}")
         {:error, e}
 
       {:error, e} ->
@@ -1801,4 +1855,9 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     |> restrict_visibility(%{visibility: "direct"})
     |> order_by([activity], asc: activity.id)
   end
+
+  defp maybe_restrict_deactivated_users(activity, %{type: "Flag"}), do: activity
+
+  defp maybe_restrict_deactivated_users(activity, _opts),
+    do: Activity.restrict_deactivated_users(activity)
 end

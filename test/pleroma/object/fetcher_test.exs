@@ -6,6 +6,7 @@ defmodule Pleroma.Object.FetcherTest do
   use Pleroma.DataCase
 
   alias Pleroma.Activity
+  alias Pleroma.Instances
   alias Pleroma.Object
   alias Pleroma.Object.Fetcher
 
@@ -159,6 +160,39 @@ defmodule Pleroma.Object.FetcherTest do
                  "https://patch.cx/media/03ca3c8b4ac3ddd08bf0f84be7885f2f88de0f709112131a22d83650819e36c2.json"
                )
     end
+
+    test "does not fetch anything from a rejected instance" do
+      clear_config([:mrf_simple, :reject], [{"evil.example.org", "i said so"}])
+
+      assert {:reject, _} =
+               Fetcher.fetch_object_from_id("http://evil.example.org/@admin/99541947525187367")
+    end
+
+    test "does not fetch anything if mrf_simple accept is on" do
+      clear_config([:mrf_simple, :accept], [{"mastodon.example.org", "i said so"}])
+      clear_config([:mrf_simple, :reject], [])
+
+      assert {:reject, _} =
+               Fetcher.fetch_object_from_id(
+                 "http://notlisted.example.org/@admin/99541947525187367"
+               )
+
+      assert {:ok, _object} =
+               Fetcher.fetch_object_from_id(
+                 "http://mastodon.example.org/@admin/99541947525187367"
+               )
+    end
+
+    test "it resets instance reachability on successful fetch" do
+      id = "http://mastodon.example.org/@admin/99541947525187367"
+      Instances.set_consistently_unreachable(id)
+      refute Instances.reachable?(id)
+
+      {:ok, _object} =
+        Fetcher.fetch_object_from_id("http://mastodon.example.org/@admin/99541947525187367")
+
+      assert Instances.reachable?(id)
+    end
   end
 
   describe "implementation quirks" do
@@ -204,14 +238,16 @@ defmodule Pleroma.Object.FetcherTest do
     end
 
     test "handle HTTP 410 Gone response" do
-      assert {:error, "Object has been deleted"} ==
+      assert {:error,
+              {"Object has been deleted", "https://mastodon.example.org/users/userisgone", 410}} ==
                Fetcher.fetch_and_contain_remote_object_from_id(
                  "https://mastodon.example.org/users/userisgone"
                )
     end
 
     test "handle HTTP 404 response" do
-      assert {:error, "Object has been deleted"} ==
+      assert {:error,
+              {"Object has been deleted", "https://mastodon.example.org/users/userisgone404", 404}} ==
                Fetcher.fetch_and_contain_remote_object_from_id(
                  "https://mastodon.example.org/users/userisgone404"
                )

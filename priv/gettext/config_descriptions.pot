@@ -1614,12 +1614,6 @@ msgstr ""
 
 #, elixir-autogen, elixir-format
 #: lib/pleroma/docs/translator.ex:5
-msgctxt "config description at :pleroma-:http_security > :ct_max_age"
-msgid "The maximum age for the Expect-CT header if sent"
-msgstr ""
-
-#, elixir-autogen, elixir-format
-#: lib/pleroma/docs/translator.ex:5
 msgctxt "config description at :pleroma-:http_security > :enabled"
 msgid "Whether the managed content security policy is enabled"
 msgstr ""
@@ -4046,12 +4040,6 @@ msgstr ""
 #: lib/pleroma/docs/translator.ex:5
 msgctxt "config label at :pleroma-:http > :user_agent"
 msgid "User agent"
-msgstr ""
-
-#, elixir-autogen, elixir-format
-#: lib/pleroma/docs/translator.ex:5
-msgctxt "config label at :pleroma-:http_security > :ct_max_age"
-msgid "CT max age"
 msgstr ""
 
 #, elixir-autogen, elixir-format

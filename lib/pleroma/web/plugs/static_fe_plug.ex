@@ -9,7 +9,7 @@ defmodule Pleroma.Web.Plugs.StaticFEPlug do
   def init(options), do: options
 
   def call(conn, _) do
-    if enabled?() and requires_html?(conn) do
+    if enabled?() and requires_html?(conn) and not_logged_in?(conn) do
       conn
       |> StaticFEController.call(:show)
       |> halt()
@@ -23,4 +23,7 @@ defmodule Pleroma.Web.Plugs.StaticFEPlug do
   defp requires_html?(conn) do
     Phoenix.Controller.get_format(conn) == "html"
   end
+
+  defp not_logged_in?(%{assigns: %{user: %Pleroma.User{}}}), do: false
+  defp not_logged_in?(_), do: true
 end

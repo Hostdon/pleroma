@@ -6,6 +6,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.AcceptRejectValidator do
   use Ecto.Schema
 
   alias Pleroma.Activity
+  alias Pleroma.User
 
   import Ecto.Changeset
   import Pleroma.Web.ActivityPub.ObjectValidators.CommonValidations
@@ -29,7 +30,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.AcceptRejectValidator do
 
   defp validate_data(cng) do
     cng
-    |> validate_required([:id, :type, :actor, :to, :cc, :object])
+    |> validate_required([:type, :actor, :to, :cc, :object])
     |> validate_inclusion(:type, ["Accept", "Reject"])
     |> validate_actor_presence()
     |> validate_object_presence(allowed_types: ["Follow"])
@@ -38,6 +39,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.AcceptRejectValidator do
 
   def cast_and_validate(data) do
     data
+    |> maybe_fetch_object()
     |> cast_data
     |> validate_data
   end
@@ -53,4 +55,31 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.AcceptRejectValidator do
         |> add_error(:actor, "can't accept or reject the given activity")
     end
   end
+
+  defp maybe_fetch_object(%{"object" => %{} = object} = activity) do
+    # If we don't have an ID, we may have to fetch the object
+    if Map.has_key?(object, "id") do
+      # Do nothing
+      activity
+    else
+      Map.put(activity, "object", fetch_transient_object(object))
+    end
+  end
+
+  defp maybe_fetch_object(activity), do: activity
+
+  defp fetch_transient_object(
+         %{"actor" => actor, "object" => target, "type" => "Follow"} = object
+       ) do
+    with %User{} = actor <- User.get_cached_by_ap_id(actor),
+         %User{local: true} = target <- User.get_cached_by_ap_id(target),
+         %Activity{} = activity <- Activity.follow_activity(actor, target) do
+      activity.data
+    else
+      _e ->
+        object
+    end
+  end
+
+  defp fetch_transient_object(_), do: {:error, "not a supported transient object"}
 end

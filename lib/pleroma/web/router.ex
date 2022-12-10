@@ -150,6 +150,8 @@ defmodule Pleroma.Web.Router do
   end
 
   pipeline :static_fe do
+    plug(:fetch_session)
+    plug(:authenticate)
     plug(Pleroma.Web.Plugs.StaticFEPlug)
   end
 
@@ -598,6 +600,10 @@ defmodule Pleroma.Web.Router do
 
     get("/announcements", AnnouncementController, :index)
     post("/announcements/:id/dismiss", AnnouncementController, :mark_read)
+
+    get("/tags/:id", TagController, :show)
+    post("/tags/:id/follow", TagController, :follow)
+    post("/tags/:id/unfollow", TagController, :unfollow)
   end
 
   scope "/api/web", Pleroma.Web do
@@ -724,6 +730,12 @@ defmodule Pleroma.Web.Router do
     get("/users/:nickname/feed", Feed.UserController, :feed, as: :user_feed)
   end
 
+  scope "/", Pleroma.Web.StaticFE do
+    # Profile pages for static-fe
+    get("/users/:nickname/with_replies", StaticFEController, :show)
+    get("/users/:nickname/media", StaticFEController, :show)
+  end
+
   scope "/", Pleroma.Web do
     pipe_through(:accepts_html)
     get("/notice/:id/embed_player", OStatus.OStatusController, :notice_player)
@@ -767,10 +779,16 @@ defmodule Pleroma.Web.Router do
     post("/users/:nickname/outbox", ActivityPubController, :update_outbox)
     post("/api/ap/upload_media", ActivityPubController, :upload_media)
 
+    get("/users/:nickname/collections/featured", ActivityPubController, :pinned)
+  end
+
+  scope "/", Pleroma.Web.ActivityPub do
+    # Note: html format is supported only if static FE is enabled
+    pipe_through([:accepts_html_json, :static_fe, :activitypub_client])
+
     # The following two are S2S as well, see `ActivityPub.fetch_follow_information_for_user/1`:
     get("/users/:nickname/followers", ActivityPubController, :followers)
     get("/users/:nickname/following", ActivityPubController, :following)
-    get("/users/:nickname/collections/featured", ActivityPubController, :pinned)
   end
 
   scope "/", Pleroma.Web.ActivityPub do

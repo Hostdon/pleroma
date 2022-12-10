@@ -12,8 +12,10 @@ For any additional information regarding commands and configuration files mentio
 To install them, run the following command (with doas or as root):
 
 ```
-pkg_add elixir gmake git postgresql-server postgresql-contrib cmake ffmpeg ImageMagick
+pkg_add elixir gmake git postgresql-server postgresql-contrib cmake ffmpeg ImageMagick erlang-wx-25
 ```
+
+(Note that the erlang version may change, it was 25 at the time of writing)
 
 Akkoma requires a reverse proxy, OpenBSD has relayd in base (and is used in this guide) and packages/ports are available for nginx (www/nginx) and apache (www/apache-httpd). Independently of the reverse proxy, [acme-client(1)](https://man.openbsd.org/acme-client) can be used to get a certificate from Let's Encrypt.
 
@@ -160,15 +162,14 @@ http protocol plerup { # Protocol for upstream akkoma server
 	match request header append "X-Forwarded-For" value "$REMOTE_ADDR" # This two header and the next one are not strictly required by akkoma but adding them won't hurt
 	match request header append "X-Forwarded-By" value "$SERVER_ADDR:$SERVER_PORT"
 
-	match response header append "X-XSS-Protection" value "1; mode=block"
+	match response header append "X-XSS-Protection" value "0"
 	match response header append "X-Permitted-Cross-Domain-Policies" value "none"
 	match response header append "X-Frame-Options" value "DENY"
 	match response header append "X-Content-Type-Options" value "nosniff"
 	match response header append "Referrer-Policy" value "same-origin"
-	match response header append "X-Download-Options" value "noopen"
-	match response header append "Content-Security-Policy" value "default-src 'none'; base-uri 'self'; form-action 'self'; img-src 'self' data: https:; media-src 'self' https:; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'; connect-src 'self' wss://CHANGEME.tld; upgrade-insecure-requests;" # Modify "CHANGEME.tld" and set your instance's domain here
+	match response header append "Content-Security-Policy" value "default-src 'none'; base-uri 'none'; form-action 'self'; img-src 'self' data: https:; media-src 'self' https:; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'; connect-src 'self' wss://CHANGEME.tld; upgrade-insecure-requests;" # Modify "CHANGEME.tld" and set your instance's domain here
 	match request header append "Connection" value "upgrade"
-	#match response header append "Strict-Transport-Security" value "max-age=31536000; includeSubDomains" # Uncomment this only after you get HTTPS working.
+	#match response header append "Strict-Transport-Security" value "max-age=63072000; includeSubDomains; preload" # Uncomment this only after you get HTTPS working.
 
 	# If you do not want remote frontends to be able to access your Akkoma backend server, comment these lines
 	match response header append "Access-Control-Allow-Origin" value "*"

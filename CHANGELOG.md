@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2022.12
+
+## Added
+- Config: HTTP timeout options, :pool\_timeout and :receive\_timeout
+- Added statistic gathering about instances which do/don't have signed fetches when they request from us
+- Ability to set a default post expiry time, after which the post will be deleted. If used in concert with ActivityExpiration MRF, the expiry which comes _sooner_ will be applied.
+- Regular task to prune local transient activities
+- Task to manually run the transient prune job (pleroma.database prune\_task)
+- Ability to follow hashtags
+- Option to extend `reject` in MRF-Simple to apply to entire threads, where the originating instance is rejected
+- Extra information to failed HTTP requests
+
+## Changed
+- MastoAPI: Accept BooleanLike input on `/api/v1/accounts/:id/follow` (fixes follows with mastodon.py)
+- Relays from akkoma are now off by default
+- NormalizeMarkup MRF is now on by default
+- Follow/Block/Mute imports now spin off into *n* tasks to avoid the oban timeout
+- Transient activities recieved from remote servers are no longer persisted in the database
+- Overhauled static-fe view for logged-out users
+- Blocked instances will now not be sent _any_ requests, even fetch ones that would get rejected by MRF anyhow
+
+## Removed
+- FollowBotPolicy
+- Passing of undo/block into MRF
+
+## Upgrade Notes
+- If you have an old instance, you will probably want to run `mix pleroma.database prune_task` in the foreground to catch it up with the history of your instance.
+
 ## 2022.11
 
 ## Added
@@ -12,7 +40,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Scraping of nodeinfo from remote instances to display instance info
 - `requested_by` in relationships when the user has requested to follow you
 
-## Changes
+## Changed
 - Follows no longer override domain blocks, a domain block is final
 - Deletes are now the lowest priority to publish and will be handled after creates
 - Domain blocks are now subdomain-matches by default

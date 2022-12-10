@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.ActivityPub.MRF.ActivityExpirationPolicy do
-  @moduledoc "Adds expiration to all local Create activities"
+  @moduledoc "Adds expiration to all local Create/Update activities"
   @behaviour Pleroma.Web.ActivityPub.MRF.Policy
 
   @impl true
@@ -25,8 +25,13 @@ defmodule Pleroma.Web.ActivityPub.MRF.ActivityExpirationPolicy do
     String.starts_with?(actor, Pleroma.Web.Endpoint.url())
   end
 
-  defp note?(activity) do
-    match?(%{"type" => "Create", "object" => %{"type" => "Note"}}, activity)
+  defp note?(%{"type" => type, "object" => %{"type" => "Note"}})
+       when type in ["Create", "Update"] do
+    true
+  end
+
+  defp note?(_) do
+    false
   end
 
   defp maybe_add_expiration(activity) do

@@ -71,4 +71,3 @@ config :pleroma, :frontend_configurations,
 ```
 
 If you added it in the back-end configuration file, you'll need to restart your instance for the changes to take effect. If you don't see the changes, it's probably because the browser has cached the previous theme. In that case you'll want to clear browser caches. Alternatively you can use a private/incognito window just to see the changes.
-

@@ -68,7 +68,7 @@ defmodule Akkoma.Collections.Fetcher do
           items
         end
       else
-        {:error, "Object has been deleted"} ->
+        {:error, {"Object has been deleted", _, _}} ->
           items
 
         {:error, error} ->

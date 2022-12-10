@@ -14,14 +14,14 @@ defmodule Pleroma.Repo.Migrations.GenerateUnsetUserKeys do
       from(u in User,
         where: u.local == true,
         where: is_nil(u.keys),
-        select: u
+        select: u.id
       )
 
     Repo.stream(query)
     |> Enum.each(fn user ->
       with {:ok, pem} <- Keys.generate_rsa_pem() do
-        Ecto.Changeset.cast(user, %{keys: pem}, [:keys])
-        |> Repo.update()
+        Ecto.Changeset.cast(%User{id: user}, %{keys: pem}, [:keys])
+        |> Repo.update(returning: false)
       end
     end)
   end

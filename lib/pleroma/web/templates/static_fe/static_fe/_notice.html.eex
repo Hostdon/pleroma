@@ -1,41 +1,111 @@
-<div class="activity h-entry" <%= if @selected do %> id="selected" <% end %>>
-  <p class="pull-right">
-    <a class="activity-link u-url u-uid" href="<%= @link %>">
-      <time class="dt-published" datetime="<%= @published %>">
-        <%= format_date(@published) %>
-      </time>
+<div class="status-container" <%= if @selected do %> id="selected" <% end %>>
+  <div class="left-side">
+    <a href="<%= (@user.uri || @user.ap_id) %>" rel="author noopener">
+      <div class="avatar">
+        <img
+          class="u-photo" width="48" height="48"
+          src="<%= User.avatar_url(@user) |> MediaProxy.url %>"
+          title="<%= @user.nickname %>" alt="<%= @user.nickname %>"
+        />
+      </div>
     </a>
-  </p>
-  <%= render("_user_card.html", %{user: @user}) %>
-  <div class="activity-content">
-    <%= if @title != "" do %>
-      <details <%= if open_content?() do %>open<% end %>>
-        <summary class="p-name"><%= raw @title %></summary>
-        <div class="e-content"><%= raw @content %></div>
-      </details>
-    <% else %>
-      <div class="e-content"><%= raw @content %></div>
-    <% end %>
-    <%= for %{"name" => name, "url" => [url | _]} <- @attachment do %>
-      <%= if @sensitive do %>
-        <details class="nsfw">
-          <summary><%= Gettext.gettext("sensitive media") %></summary>
-          <div>
-            <%= render("_attachment.html", %{name: name, url: url["href"],
-                                             mediaType: fetch_media_type(url)}) %>
-          </div>
-        </details>
-      <% else %>
-        <%= render("_attachment.html", %{name: name, url: url["href"],
-                                         mediaType: fetch_media_type(url)}) %>
-      <% end %>
-    <% end %>
   </div>
-  <%= if @selected do %>
-    <dl class="counts">
-      <dt><%= Gettext.gettext("replies") %></dt><dd><%= @counts.replies %></dd>
-      <dt><%= Gettext.gettext("announces") %></dt><dd><%= @counts.announces %></dd>
-      <dt><%= Gettext.gettext("likes") %></dt><dd><%= @counts.likes %></dd>
-    </dl>
-  <% end %>
+  <div class="right-side">
+    <div class="status-heading">
+      <div class="heading-name-row">
+        <div class="heading-left">
+          <h4 class="username">
+            <%= raw Formatter.emojify(@user.name, @user.emoji) %>
+          </h4>
+          <a href="<%= (@user.uri || @user.ap_id) %>" class="account-name">
+            <%= @user.nickname %>
+          </a>
+        </div>
+        <div class="heading-right">
+          <a class="timeago" href="<%= @link %>">
+            <time
+              class="dt-published" datetime="<%= @published %>"
+              title="<%= format_date(@published) %>"
+            >
+              <%= time_ago(@published) %>
+            </time>
+          </a>
+          <%= if @visibility == "public" do %>
+          <img class="fa-icon" src="/static-fe/svg/globe-solid.svg">
+          <% else %>
+          <%= if @visibility == "unlisted" do %>
+          <img class="fa-icon" src="/static-fe/svg/lock-open-solid.svg">
+          <% end %>
+          <% end %>
+        </div>
+      </div>
+      <%= if @reply_to do %>
+      <div class="heading-reply-row">
+        <a class="reply-to-link" href="<%= @reply_to %>">
+          <img class="fa-icon" src="/static-fe/svg/reply-solid.svg">
+          <%= gettext("Reply to") %>
+        </a>
+        <span class="h-card">
+          <%= if @reply_to_user do %>
+            <a href="<%= (@reply_to_user.uri || @reply_to_user.ap_id) %>" class="u-url mention">
+              @<%= @reply_to_user.nickname %>
+            </a>
+          <% end %>
+        </span>
+      </div>
+      <% end %>
+      <%= if @edited_at do %>
+      <div class="heading-edited-row">
+        <%= gettext("Edited %{timeago}", timeago: time_ago(@edited_at)) %>
+      </div>
+      <% end %>
+    </div>
+    <div class="status-content">
+      <%= if @title && @title != "" do %>
+      <span class="status-summary"><%= raw @title %></span>
+      <details <%= if open_content?() do %>open<% end %>>
+        <summary><%= gettext("Show content") %></summary>
+      <% end %>
+        <div class="status-body">
+          <%= raw @content %>
+          <%= if @poll && length(@poll) > 0 do %> 
+          <div class="poll">
+            <%= for %{"name" => option, "replies" => %{"totalItems" => count}} <- @poll do %>
+            <div class="poll-option" title="<%= count %>/<%= @total_votes %>">
+              <span class="percentage"><%= poll_percentage(count, @total_votes) %></span>
+              <span><%= raw option %></span>
+              <div class="fill" style="width: <%= poll_percentage(count, @total_votes) %>"></div>
+            </div>
+            <% end %>
+          </div>
+          <% end %>
+          <%= if length(@attachment) > 0 do %>
+          <div class="attachments">
+            <%= for attachment = %{"url" => [url | _]} <- @attachment do %>
+              <%= render("_attachment.html", %{name: get_attachment_name(attachment),
+                  url: url["href"], mediaType: fetch_media_type(url), nsfw: @sensitive}) %>
+            <% end %>
+          </div>
+          <% end %>
+        </div>
+      <%= if @title && @title != "" do %>
+      </details>
+      <% end %>
+    </div>
+    <!-- <div class="emoji-reactions"></div> -->
+    <div class="status-actions">
+      <div>
+        <img class="fa-icon" src="/static-fe/svg/reply-solid.svg">
+        <span class="action-count"><%= @counts.replies %></span>
+      </div>
+      <div>
+        <img class="fa-icon" src="/static-fe/svg/retweet-solid.svg">
+        <span class="action-count"><%= @counts.announces %></span>
+      </div>
+      <div>
+        <img class="fa-icon" src="/static-fe/svg/star-regular.svg">
+        <span class="action-count"><%= @counts.likes %></span>
+      </div>
+    </div>
+  </div>
 </div>

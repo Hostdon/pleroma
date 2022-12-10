@@ -367,6 +367,14 @@ defmodule Pleroma.Activity do
     |> Repo.all()
   end
 
+  def follow_activity(%User{ap_id: ap_id}, %User{ap_id: followed_ap_id}) do
+    Queries.by_type("Follow")
+    |> where([a], a.actor == ^ap_id)
+    |> where([a], fragment("?->>'object' = ?", a.data, ^followed_ap_id))
+    |> where([a], fragment("?->>'state'", a.data) in ["pending", "accept"])
+    |> Repo.one()
+  end
+
   def restrict_deactivated_users(query) do
     query
     |> join(

@@ -4,13 +4,18 @@ After=network.target postgresql.service
 
 [Service]
 ExecReload=/bin/kill $MAINPID
-KillMode=process
 Restart=on-failure
+
+; Uncomment this if you're on Arch Linux
+; Evironment="PATH=/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl"
 
 ; Name of the user that runs the Akkoma service.
 User=akkoma
 ; Declares that Akkoma runs in production mode.
 Environment="MIX_ENV=prod"
+
+; Don't listen epmd on 0.0.0.0
+Environment="ERL_EPMD_ADDRESS=127.0.0.1"
 
 ; Make sure that all paths fit your installation.
 ; Path to the home directory of the user running the Akkoma service.

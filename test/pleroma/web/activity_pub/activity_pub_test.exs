@@ -8,6 +8,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
 
   alias Pleroma.Activity
   alias Pleroma.Builders.ActivityBuilder
+  alias Pleroma.Web.ActivityPub.Builder
   alias Pleroma.Config
   alias Pleroma.Notification
   alias Pleroma.Object
@@ -715,6 +716,33 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       activities = ActivityPub.fetch_activities(["someone", "someone_else"])
       assert length(activities) == 2
       assert activities == [activity_one, activity_two]
+    end
+  end
+
+  describe "fetch activities for followed hashtags" do
+    test "it should return public activities that reference a given hashtag" do
+      hashtag = insert(:hashtag, name: "tenshi")
+      user = insert(:user)
+      other_user = insert(:user)
+
+      {:ok, normally_visible} =
+        CommonAPI.post(other_user, %{status: "hello :)", visibility: "public"})
+
+      {:ok, public} = CommonAPI.post(user, %{status: "maji #tenshi", visibility: "public"})
+      {:ok, _unrelated} = CommonAPI.post(user, %{status: "dai #tensh", visibility: "public"})
+      {:ok, unlisted} = CommonAPI.post(user, %{status: "maji #tenshi", visibility: "unlisted"})
+      {:ok, _private} = CommonAPI.post(user, %{status: "maji #tenshi", visibility: "private"})
+
+      activities =
+        ActivityPub.fetch_activities([other_user.follower_address], %{
+          followed_hashtags: [hashtag.id]
+        })
+
+      assert length(activities) == 3
+      normal_id = normally_visible.id
+      public_id = public.id
+      unlisted_id = unlisted.id
+      assert [%{id: ^normal_id}, %{id: ^public_id}, %{id: ^unlisted_id}] = activities
     end
   end
 
@@ -2612,5 +2640,29 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
 
     {:ok, user} = ActivityPub.make_user_from_ap_id("https://princess.cat/users/mewmew")
     assert user.name == " "
+  end
+
+  describe "persist/1" do
+    test "should not persist remote delete activities" do
+      poster = insert(:user, local: false)
+      {:ok, post} = CommonAPI.post(poster, %{status: "hhhhhh"})
+
+      {:ok, delete_data, meta} = Builder.delete(poster, post)
+      local_opts = Keyword.put(meta, :local, false)
+      {:ok, act, _meta} = ActivityPub.persist(delete_data, local_opts)
+      refute act.inserted_at
+    end
+
+    test "should not persist remote undo activities" do
+      poster = insert(:user, local: false)
+      liker = insert(:user, local: false)
+      {:ok, post} = CommonAPI.post(poster, %{status: "hhhhhh"})
+      {:ok, like} = CommonAPI.favorite(liker, post.id)
+
+      {:ok, undo_data, meta} = Builder.undo(liker, like)
+      local_opts = Keyword.put(meta, :local, false)
+      {:ok, act, _meta} = ActivityPub.persist(undo_data, local_opts)
+      refute act.inserted_at
+    end
   end
 end
