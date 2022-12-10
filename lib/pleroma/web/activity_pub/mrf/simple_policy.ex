@@ -13,7 +13,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
 
   require Pleroma.Constants
 
-  defp check_accept(%{host: actor_host} = _actor_info) do
+  def check_accept(%{host: actor_host} = _actor_info) do
     accepts =
       instance_list(:accept)
       |> MRF.subdomains_regex()
@@ -26,7 +26,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
     end
   end
 
-  defp check_reject(%{host: actor_host} = _actor_info) do
+  def check_reject(%{host: actor_host} = _actor_info) do
     rejects =
       instance_list(:reject)
       |> MRF.subdomains_regex()

@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Follow/Block/Mute imports now spin off into *n* tasks to avoid the oban timeout
 - Transient activities recieved from remote servers are no longer persisted in the database
 - Overhauled static-fe view for logged-out users
+- Blocked instances will now not be sent _any_ requests, even fetch ones that would get rejected by MRF anyhow
 
 ## Removed
 - FollowBotPolicy

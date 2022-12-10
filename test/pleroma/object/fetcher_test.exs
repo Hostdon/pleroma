@@ -161,6 +161,28 @@ defmodule Pleroma.Object.FetcherTest do
                )
     end
 
+    test "does not fetch anything from a rejected instance" do
+      clear_config([:mrf_simple, :reject], [{"evil.example.org", "i said so"}])
+
+      assert {:reject, _} =
+               Fetcher.fetch_object_from_id("http://evil.example.org/@admin/99541947525187367")
+    end
+
+    test "does not fetch anything if mrf_simple accept is on" do
+      clear_config([:mrf_simple, :accept], [{"mastodon.example.org", "i said so"}])
+      clear_config([:mrf_simple, :reject], [])
+
+      assert {:reject, _} =
+               Fetcher.fetch_object_from_id(
+                 "http://notlisted.example.org/@admin/99541947525187367"
+               )
+
+      assert {:ok, _object} =
+               Fetcher.fetch_object_from_id(
+                 "http://mastodon.example.org/@admin/99541947525187367"
+               )
+    end
+
     test "it resets instance reachability on successful fetch" do
       id = "http://mastodon.example.org/@admin/99541947525187367"
       Instances.set_consistently_unreachable(id)

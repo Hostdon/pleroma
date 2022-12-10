@@ -116,7 +116,11 @@ defmodule Pleroma.Object.Fetcher do
 
   # Note: will create a Create activity, which we need internally at the moment.
   def fetch_object_from_id(id, options \\ []) do
-    with {_, nil} <- {:fetch_object, Object.get_cached_by_ap_id(id)},
+    with %URI{} = uri <- URI.parse(id),
+         # If we have instance restrictions, apply them here to prevent fetching from unwanted instances
+         {:ok, nil} <- Pleroma.Web.ActivityPub.MRF.SimplePolicy.check_reject(uri),
+         {:ok, _} <- Pleroma.Web.ActivityPub.MRF.SimplePolicy.check_accept(uri),
+         {_, nil} <- {:fetch_object, Object.get_cached_by_ap_id(id)},
          {_, true} <- {:allowed_depth, Federator.allowed_thread_distance?(options[:depth])},
          {_, {:ok, data}} <- {:fetch, fetch_and_contain_remote_object_from_id(id)},
          {_, nil} <- {:normalize, Object.normalize(data, fetch: false)},
@@ -154,6 +158,9 @@ defmodule Pleroma.Object.Fetcher do
 
       {:fetch, {:error, error}} ->
         {:error, error}
+
+      {:reject, reason} ->
+        {:reject, reason}
 
       e ->
         e
