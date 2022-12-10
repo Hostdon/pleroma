@@ -18,7 +18,8 @@ load_rc_config ${name}
 : ${akkoma_user:=akkoma}
 : ${akkoma_home:=$(getent passwd ${akkoma_user} | awk -F: '{print $6}')}
 : ${akkoma_chdir:="${akkoma_home}/akkoma"}
-: ${akkoma_env:="HOME=${akkoma_home} MIX_ENV=prod"}
+: ${akkoma_env:="HOME=${akkoma_home} MIX_ENV=prod ERL_EPMD_ADDRESS=127.0.0.1"}
+
 
 command=/usr/local/bin/elixir
 command_args="--erl \"-detached\" -S /usr/local/bin/mix phx.server"

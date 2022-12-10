@@ -14,7 +14,7 @@ start_precmd="ulimit -n unlimited"
 pidfile="/dev/null"
 
 akkoma_chdir="${akkoma_home}/akkoma"
-akkoma_env="HOME=${akkoma_home} MIX_ENV=prod"
+akkoma_env="HOME=${akkoma_home} MIX_ENV=prod ERL_EPMD_ADDRESS=127.0.0.1"
 
 check_pidfile()
 {

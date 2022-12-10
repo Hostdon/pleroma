@@ -14,6 +14,9 @@ User=akkoma
 ; Declares that Akkoma runs in production mode.
 Environment="MIX_ENV=prod"
 
+; Don't listen epmd on 0.0.0.0
+Environment="ERL_EPMD_ADDRESS=127.0.0.1"
+
 ; Make sure that all paths fit your installation.
 ; Path to the home directory of the user running the Akkoma service.
 Environment="HOME=/var/lib/akkoma"
