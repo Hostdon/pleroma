@@ -4,7 +4,6 @@ After=network.target postgresql.service
 
 [Service]
 ExecReload=/bin/kill $MAINPID
-KillMode=process
 Restart=on-failure
 
 ; Uncomment this if you're on Arch Linux
