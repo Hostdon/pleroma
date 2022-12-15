@@ -4,7 +4,7 @@ defmodule Pleroma.Mixfile do
   def project do
     [
       app: :pleroma,
-      version: version("2.4.1"),
+      version: version("2.4.5"),
       elixir: "~> 1.9",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
@@ -141,7 +141,7 @@ defmodule Pleroma.Mixfile do
       {:mogrify, "~> 0.7.4"},
       {:ex_aws, "~> 2.1.6"},
       {:ex_aws_s3, "~> 2.0"},
-      {:sweet_xml, "~> 0.6.6"},
+      {:sweet_xml, "~> 0.7.2"},
       {:earmark, "1.4.15"},
       {:bbcode_pleroma, "~> 0.2.0"},
       {:crypt,
@@ -163,8 +163,8 @@ defmodule Pleroma.Mixfile do
       {:poolboy, "~> 1.5"},
       {:prometheus, "~> 4.6"},
       {:prometheus_ex,
-       git: "https://git.pleroma.social/pleroma/elixir-libraries/prometheus.ex.git",
-       ref: "a4e9beb3c1c479d14b352fd9d6dd7b1f6d7deee5",
+       git: "https://github.com/lanodan/prometheus.ex.git",
+       branch: "fix/elixir-1.14",
        override: true},
       {:prometheus_plugs, "~> 1.1"},
       {:prometheus_phoenix, "~> 1.3"},
@@ -208,9 +208,9 @@ defmodule Pleroma.Mixfile do
       {:mock, "~> 0.3.5", only: :test},
       # temporary downgrade for excoveralls, hackney until hackney max_connections bug will be fixed
       {:excoveralls, "0.12.3", only: :test},
-      {:hackney, "~> 1.17.0", override: true},
+      {:hackney, "~> 1.18.0", override: true},
       {:mox, "~> 1.0", only: :test},
-      {:websocket_client, git: "https://github.com/jeremyong/websocket_client.git", only: :test}
+      {:websockex, "~> 0.4.3", only: :test}
     ] ++ oauth_deps()
   end
 
