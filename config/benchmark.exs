@@ -4,8 +4,7 @@ import Config
 # you can enable the server option below.
 config :pleroma, Pleroma.Web.Endpoint,
   http: [port: 4001],
-  url: [port: 4001],
-  server: true
+  url: [port: 4001]
 
 # Disable captha for tests
 config :pleroma, Pleroma.Captcha,
@@ -44,7 +43,7 @@ config :pleroma, Pleroma.Repo,
   pool_size: 10
 
 # Reduce hash rounds for testing
-config :pbkdf2_elixir, rounds: 1
+config :pleroma, :password, iterations: 1
 
 config :tesla, adapter: Tesla.Mock
 
@@ -70,8 +69,6 @@ config :pleroma, :rate_limit,
   password_reset: {1000, 30}
 
 config :pleroma, :http_security, report_uri: "https://endpoint.com"
-
-config :pleroma, :http, send_user_agent: false
 
 rum_enabled = System.get_env("RUM_ENABLED") == "true"
 config :pleroma, :database, rum_enabled: rum_enabled

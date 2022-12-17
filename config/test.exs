@@ -45,10 +45,11 @@ config :pleroma, Pleroma.Repo,
   adapter: Ecto.Adapters.Postgres,
   username: "postgres",
   password: "postgres",
-  database: "pleroma_test",
+  database: "akkoma_test",
   hostname: System.get_env("DB_HOST") || "localhost",
   pool: Ecto.Adapters.SQL.Sandbox,
-  pool_size: 50
+  pool_size: 50,
+  queue_target: 5000
 
 config :pleroma, :dangerzone, override_repo_pool_size: true
 
@@ -103,11 +104,7 @@ IO.puts("RUM enabled: #{rum_enabled}")
 
 config :joken, default_signer: "yU8uHKq+yyAkZ11Hx//jcdacWc8yQ1bxAAGrplzB0Zwwjkp35v0RK9SO8WTPr6QZ"
 
-config :pleroma, Pleroma.ReverseProxy.Client, Pleroma.ReverseProxy.ClientMock
-
 config :pleroma, :modules, runtime_dir: "test/fixtures/modules"
-
-config :pleroma, Pleroma.Gun, Pleroma.GunMock
 
 config :pleroma, Pleroma.Emails.NewUsersDigestEmail, enabled: true
 
@@ -129,13 +126,21 @@ config :pleroma, :pipeline,
 
 config :pleroma, :cachex, provider: Pleroma.CachexMock
 
+config :pleroma, Pleroma.Web.WebFinger, update_nickname_on_user_fetch: false
+
 config :pleroma, :side_effects,
   ap_streamer: Pleroma.Web.ActivityPub.ActivityPubMock,
   logger: Pleroma.LoggerMock
 
+config :pleroma, Pleroma.Search, module: Pleroma.Search.DatabaseSearch
+
+config :pleroma, Pleroma.Search.Meilisearch, url: "http://127.0.0.1:7700/", private_key: nil
+
 # Reduce recompilation time
 # https://dashbit.co/blog/speeding-up-re-compilation-of-elixir-projects
 config :phoenix, :plug_init_mode, :runtime
+config :pleroma, :instances_favicons, enabled: false
+config :pleroma, :instances_nodeinfo, enabled: false
 
 if File.exists?("./config/test.secret.exs") do
   import_config "test.secret.exs"

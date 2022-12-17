@@ -15,6 +15,8 @@ defmodule Pleroma.Web.ActivityPub.Builder do
   alias Pleroma.Web.ActivityPub.Relay
   alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.ActivityPub.Visibility
+  alias Pleroma.Web.CommonAPI.ActivityDraft
+  alias Pleroma.Web.Endpoint
 
   require Pleroma.Constants
 
@@ -53,13 +55,85 @@ defmodule Pleroma.Web.ActivityPub.Builder do
     {:ok, data, []}
   end
 
+  defp unicode_emoji_react(_object, data, emoji) do
+    data
+    |> Map.put("content", emoji)
+    |> Map.put("type", "EmojiReact")
+  end
+
+  defp add_emoji_content(data, emoji, url) do
+    data
+    |> Map.put("content", Emoji.maybe_quote(emoji))
+    |> Map.put("type", "EmojiReact")
+    |> Map.put("tag", [
+      %{}
+      |> Map.put("id", url)
+      |> Map.put("type", "Emoji")
+      |> Map.put("name", Emoji.maybe_quote(emoji))
+      |> Map.put(
+        "icon",
+        %{}
+        |> Map.put("type", "Image")
+        |> Map.put("url", url)
+      )
+    ])
+  end
+
+  defp remote_custom_emoji_react(
+         %{data: %{"reactions" => existing_reactions}},
+         data,
+         emoji
+       ) do
+    [emoji_code, instance] = String.split(Emoji.stripped_name(emoji), "@")
+
+    matching_reaction =
+      Enum.find(
+        existing_reactions,
+        fn [name, _, url] ->
+          url = URI.parse(url)
+          url.host == instance && name == emoji_code
+        end
+      )
+
+    if matching_reaction do
+      [name, _, url] = matching_reaction
+      add_emoji_content(data, name, url)
+    else
+      {:error, "Could not react"}
+    end
+  end
+
+  defp remote_custom_emoji_react(_object, _data, _emoji) do
+    {:error, "Could not react"}
+  end
+
+  defp local_custom_emoji_react(data, emoji) do
+    with %{} = emojo <- Emoji.get(emoji) do
+      path = emojo |> Map.get(:file)
+      url = "#{Endpoint.url()}#{path}"
+      add_emoji_content(data, emojo.code, url)
+    else
+      _ -> {:error, "Emoji does not exist"}
+    end
+  end
+
+  defp custom_emoji_react(object, data, emoji) do
+    if String.contains?(emoji, "@") do
+      remote_custom_emoji_react(object, data, emoji)
+    else
+      local_custom_emoji_react(data, emoji)
+    end
+  end
+
   @spec emoji_react(User.t(), Object.t(), String.t()) :: {:ok, map(), keyword()}
   def emoji_react(actor, object, emoji) do
     with {:ok, data, meta} <- object_action(actor, object) do
       data =
-        data
-        |> Map.put("content", emoji)
-        |> Map.put("type", "EmojiReact")
+        if Emoji.is_unicode_emoji?(emoji) do
+          unicode_emoji_react(object, data, emoji)
+        else
+          custom_emoji_react(object, data, emoji)
+        end
 
       {:ok, data, meta}
     end
@@ -125,27 +199,45 @@ defmodule Pleroma.Web.ActivityPub.Builder do
      |> Pleroma.Maps.put_if_present("context", context), []}
   end
 
-  def chat_message(actor, recipient, content, opts \\ []) do
-    basic = %{
-      "id" => Utils.generate_object_id(),
-      "actor" => actor.ap_id,
-      "type" => "ChatMessage",
-      "to" => [recipient],
-      "content" => content,
-      "published" => DateTime.utc_now() |> DateTime.to_iso8601(),
-      "emoji" => Emoji.Formatter.get_emoji_map(content)
-    }
+  @spec note(ActivityDraft.t()) :: {:ok, map(), keyword()}
+  def note(%ActivityDraft{} = draft) do
+    data =
+      %{
+        "type" => "Note",
+        "to" => draft.to,
+        "cc" => draft.cc,
+        "content" => draft.content_html,
+        "summary" => draft.summary,
+        "sensitive" => draft.sensitive,
+        "context" => draft.context,
+        "attachment" => draft.attachments,
+        "actor" => draft.user.ap_id,
+        "tag" => Keyword.values(draft.tags) |> Enum.uniq()
+      }
+      |> add_in_reply_to(draft.in_reply_to)
+      |> add_quote(draft.quote)
+      |> Map.merge(draft.extra)
 
-    case opts[:attachment] do
-      %Object{data: attachment_data} ->
-        {
-          :ok,
-          Map.put(basic, "attachment", attachment_data),
-          []
-        }
+    {:ok, data, []}
+  end
 
-      _ ->
-        {:ok, basic, []}
+  defp add_in_reply_to(object, nil), do: object
+
+  defp add_in_reply_to(object, in_reply_to) do
+    with %Object{} = in_reply_to_object <- Object.normalize(in_reply_to, fetch: false) do
+      Map.put(object, "inReplyTo", in_reply_to_object.data["id"])
+    else
+      _ -> object
+    end
+  end
+
+  defp add_quote(object, nil), do: object
+
+  defp add_quote(object, quote) do
+    with %Object{} = quote_object <- Object.normalize(quote, fetch: false) do
+      Map.put(object, "quoteUri", quote_object.data["id"])
+    else
+      _ -> object
     end
   end
 
@@ -186,10 +278,16 @@ defmodule Pleroma.Web.ActivityPub.Builder do
     end
   end
 
-  # Retricted to user updates for now, always public
   @spec update(User.t(), Object.t()) :: {:ok, map(), keyword()}
   def update(actor, object) do
-    to = [Pleroma.Constants.as_public(), actor.follower_address]
+    {to, cc} =
+      if object["type"] in Pleroma.Constants.actor_types() do
+        # User updates, always public
+        {[Pleroma.Constants.as_public(), actor.follower_address], []}
+      else
+        # Status updates, follow the recipients in the object
+        {object["to"] || [], object["cc"] || []}
+      end
 
     {:ok,
      %{
@@ -197,7 +295,8 @@ defmodule Pleroma.Web.ActivityPub.Builder do
        "type" => "Update",
        "actor" => actor.ap_id,
        "object" => object,
-       "to" => to
+       "to" => to,
+       "cc" => cc
      }, []}
   end
 

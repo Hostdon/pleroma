@@ -4,17 +4,229 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## Unreleased
+## 2022.12
 
-### Changed
+## Added
+- Config: HTTP timeout options, :pool\_timeout and :receive\_timeout
+- Added statistic gathering about instances which do/don't have signed fetches when they request from us
+- Ability to set a default post expiry time, after which the post will be deleted. If used in concert with ActivityExpiration MRF, the expiry which comes _sooner_ will be applied.
+- Regular task to prune local transient activities
+- Task to manually run the transient prune job (pleroma.database prune\_task)
+- Ability to follow hashtags
+- Option to extend `reject` in MRF-Simple to apply to entire threads, where the originating instance is rejected
+- Extra information to failed HTTP requests
+
+## Changed
+- MastoAPI: Accept BooleanLike input on `/api/v1/accounts/:id/follow` (fixes follows with mastodon.py)
+- Relays from akkoma are now off by default
+- NormalizeMarkup MRF is now on by default
+- Follow/Block/Mute imports now spin off into *n* tasks to avoid the oban timeout
+- Transient activities recieved from remote servers are no longer persisted in the database
+- Overhauled static-fe view for logged-out users
+- Blocked instances will now not be sent _any_ requests, even fetch ones that would get rejected by MRF anyhow
+
+## Removed
+- FollowBotPolicy
+- Passing of undo/block into MRF
+
+## Upgrade Notes
+- If you have an old instance, you will probably want to run `mix pleroma.database prune_task` in the foreground to catch it up with the history of your instance.
+
+## 2022.11
+
+## Added
+- Officially supported docker release
+- Ability to remove followers unilaterally without a block
+- Scraping of nodeinfo from remote instances to display instance info
+- `requested_by` in relationships when the user has requested to follow you
+
+## Changed
+- Follows no longer override domain blocks, a domain block is final
+- Deletes are now the lowest priority to publish and will be handled after creates
+- Domain blocks are now subdomain-matches by default
+
+## Fixed
+- Registrations via ldap are now compatible with the latest OTP24
+
+## Update notes
+- If you use LDAP and run from source, please update your elixir/erlang
+  to the latest. The changes in OTP24.3 are breaking.
+- You can now remove the leading `*.` from domain blocks, but you do not have to.
+
+## 2022.10
 
 ### Added
+- Ability to sync frontend profiles between clients, with a name attached
+- Status card generation will now use the media summary if it is available
+
+### Changed
+- Emoji updated to latest 15.0 draft
+- **Breaking**: `/api/v1/pleroma/backups` endpoints now requires `read:backups` scope instead of `read:accounts`
+- Verify that the signature on posts is not domain blocked, and belongs to the correct user
 
 ### Fixed
+- OAuthPlug no longer joins with the database every call and uses the user cache
+- Undo activities no longer try to look up by ID, and render correctly
+- prevent false-errors from meilisearch
+
+## 2022.09
+
+### Added
+- support for fedibird-fe, and non-breaking API parity for it to function
+- support for setting instance languages in metadata
+- support for reusing oauth tokens, and not requiring new authorizations
+- the ability to obfuscate domains in your MRF descriptions
+- automatic translation of statuses via DeepL or LibreTranslate
+- ability to edit posts
+- ability to react with remote emoji
+
+### Changed
+- MFM parsing is now done on the backend by a modified version of ilja's parser -> https://akkoma.dev/AkkomaGang/mfm-parser
+- InlineQuotePolicy is now on by default
+- Enable remote users to interact with posts
+
+### Fixed
+- Compatibility with latest meilisearch
+- Resolution of nested mix tasks (i.e search.meilisearch) in OTP releases
+- Elasticsearch returning likes and repeats, displaying as posts
+- Ensure key generation happens at registration-time to prevent potential race-conditions
+- Ensured websockets get closed on logout
+- Allowed GoToSocial-style `?query_string` signatures
+
+### Removed
+- Non-finch HTTP adapters. `:tesla, :adapter` is now highly recommended to be set to the default.
+
+## 2022.08
+
+### Removed
+- Non-finch HTTP adapters. `:tesla, :adapter` is now highly recommended to be set to the default.
+
+## 2022.08
+
+### Added
+- extended runtime module support, see config cheatsheet
+- quote posting; quotes are limited to public posts
+
+### Changed
+- quarantining is now considered absolutely; public activities are no longer
+  an exception.
+- also merged quarantine and mrf reject - quarantine is now deprecated
+- flavours:
+  - amd64 is built for debian stable. Compatible with ubuntu 20.
+  - ubuntu-jammy is built for... well, ubuntu 22 (LTS)
+  - amd64-musl is built for alpine 3.16
+
+### Fixed
+- Updated mastoFE path, for the newer version
+
+### Removed
+- Scrobbling support
+  - `/api/v1/pleroma/scrobble`
+  - `/api/v1/pleroma/accounts/{id}/scrobbles`
+- Deprecated endpoints
+  - `/api/v1/pleroma/chats`
+  - `/api/v1/notifications/dismiss`
+  - `/api/v1/search`
+  - `/api/v1/statuses/{id}/card` 
+- Chats, they were half-baked. Just use PMs.
+- Prometheus, it causes massive slowdown
+
+## 2022.07
+
+### Added
+- Added move account API
+- Added ability to set instance accent-color via theme-color
+- A fallback page for when a user does not have a frontend installed
+- Support for OTP musl11
+
+### Removed
+- SSH frontend, to be potentially re-enabled via a bridge rather than wired into the main system
+- Gopher frontend, as above
+- All pre-compiled javascript
+
+### Fixed
+- ES8 support for bulk indexing activities
+
+### Upgrade Notes
+- The bundled frontend has been removed, you will need to run the `pleroma.frontend install` mix task to install your frontend of choice. Configuration by default is set to `pleroma-fe`.
+- Admin-FE users will have to ensure that :admin is set _BEFORE_ restart, or
+you might end up in a situation where you don't have an ability to get it.
+
+## 2.5.2
+
+### Added
+- Allow posting and recieving of misskey markdown (requires text/x.misskeymarkdown in `allowed_post_formats`)
+
+### Changed
+- Set frontend URLs to akkoma-maintained ones
+
+### Fixed
+- Updated `no_empty` MRF to not error when recieving misskey markdown
+
+### Security
+- Ensure local-only statuses do not get leaked
+
+## 2.5.1
+
+### Added
+- Elasticsearch Search provider support
+- Enabled custom emoji reactions to posts via `/api/v1/pleroma/statuses/:id/reactions/:shortcode:`
+- Added continuous integration builds for x86 glibc and musl
+
+### Fixed
+- Enabled support for non-standard AP entities, such as those used by bookwyrm
+
+## 2.5.0 - 10/06/2022
+
+### Changed
+- Allow users to remove their emails if instance does not need email to register
+
+### Added
+- `activeMonth` and `activeHalfyear` fields in NodeInfo usage.users object
+- Experimental support for Finch. Put `config :tesla, :adapter, {Tesla.Adapter.Finch, name: MyFinch}` in your secrets file to use it. Reverse Proxy will still use Hackney.
+- AdminAPI: allow moderators to manage reports, users, invites, and custom emojis
+- AdminAPI: restrict moderators to access sensitive data: change user credentials, get password reset token, read private statuses and chats, etc
+- PleromaAPI: Add remote follow API endpoint at `POST /api/v1/pleroma/remote_interaction`
+- MastoAPI: Add `GET /api/v1/accounts/lookup`
+- MastoAPI: Profile Directory support
+- MastoAPI: Support v2 Suggestions (handpicked accounts only)
+- Ability to log slow Ecto queries by configuring `:pleroma, :telemetry, :slow_queries_logging`
+- Added Phoenix LiveDashboard at `/phoenix/live_dashboard`
+- Added `/manifest.json` for progressive web apps.
+- Readded mastoFE
+- Added support for custom emoji reactions
+- Added `emoji_url` in notifications to allow for custom emoji rendering
+- Make backend-rendered pages translatable. This includes emails. Pages returned as a HTTP response are translated using the language specified in the `userLanguage` cookie, or the `Accept-Language` header. Emails are translated using the `language` field when registering. This language can be changed by `PATCH /api/v1/accounts/update_credentials` with the `language` field.
+
+### Fixed
+- Subscription(Bell) Notifications: Don't create from Pipeline Ingested replies
+- Handle Reject for already-accepted Follows properly
+- Display OpenGraph data on alternative notice routes.
+- Fix replies count for remote replies
+- ChatAPI: Add link headers
+- Limited number of search results to 40 to prevent DoS attacks
+- ActivityPub: fixed federation of attachment dimensions
+- Fixed benchmarks
+- Elixir 1.13 support
+- Fixed crash when pinned_objects is nil
+- Fixed slow timelines when there are a lot of deactivated users
+- Fixed account deletion API
 
 ### Removed
 
-## 2.4.1 - 2021-08-29
+### Security
+- Private `/objects/` and `/activities/` leaking if cached by authenticated user
+- SweetXML library DTD bomb
+
+## 2.4.2 - 2022-01-10
+
+### Fixed
+- Federation issues caused by HTTP pool checkout timeouts
+- Compatibility with Elixir 1.13
+
+### Upgrade notes
+
+1. Restart Pleroma
 
 ### Changed
 - Make `mix pleroma.database set_text_search_config` run concurrently and indefinitely
@@ -39,6 +251,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - **Breaking:** Configuration: `:chat, enabled` moved to `:shout, enabled` and `:instance, chat_limit` moved to `:shout, limit`
+- **Breaking** Entries for simple_policy, transparency_exclusions and quarantined_instances now list both the instance and a reason.
 - Support for Erlang/OTP 24
 - The `application` metadata returned with statuses is no longer hardcoded. Apps that want to display these details will now have valid data for new posts after this change.
 - HTTPSecurityPlug now sends a response header to opt out of Google's FLoC (Federated Learning of Cohorts) targeted advertising.
@@ -46,21 +259,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Improved Twittercard and OpenGraph meta tag generation including thumbnails and image dimension metadata when available.
 - AdminAPI: sort users so the newest are at the top.
 - ActivityPub Client-to-Server(C2S): Limitation on the type of Activity/Object are lifted as they are now passed through ObjectValidators
+- MRF (`AntiFollowbotPolicy`): Bot accounts are now also considered followbots. Users can still allow bots to follow them by first following the bot.
 
 ### Added
 
 - MRF (`FollowBotPolicy`): New MRF Policy which makes a designated local Bot account attempt to follow all users in public Notes received by your instance. Users who require approving follower requests or have #nobot in their profile are excluded.
 - Return OAuth token `id` (primary key) in POST `/oauth/token`.
 - AdminAPI: return `created_at` date with users.
+- AdminAPI: add DELETE `/api/v1/pleroma/admin/instances/:instance` to delete all content from a remote instance.
 - `AnalyzeMetadata` upload filter for extracting image/video attachment dimensions and generating blurhashes for images. Blurhashes for videos are not generated at this time.
 - Attachment dimensions and blurhashes are federated when available.
+- Mastodon API: support `poll` notification.
 - Pinned posts federation
+- Possibility to discover users like `user@example.org`, while Akkoma is working on `akkoma.example.org`. Additional configuration required.
 
 ### Fixed
 - Don't crash so hard when email settings are invalid.
 - Checking activated Upload Filters for required commands.
 - Remote users can no longer reappear after being deleted.
 - Deactivated users may now be deleted.
+- Deleting an activity with a lot of likes/boosts no longer causes a database timeout.
 - Mix task `pleroma.database prune_objects`
 - Fixed rendering of JSON errors on ActivityPub endpoints.
 - Linkify: Parsing crash with URLs ending in unbalanced closed paren, no path separator, and no query parameters
@@ -125,6 +343,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Support pagination of blocks and mutes.
 - Account backup.
 - Configuration: Add `:instance, autofollowing_nicknames` setting to provide a way to make accounts automatically follow new users that register on the local Pleroma instance.
+- `[:activitypub, :blockers_visible]` config to control visibility of blockers.
 - Ability to view remote timelines, with ex. `/api/v1/timelines/public?instance=lain.com` and streams `public:remote` and `public:remote:media`.
 - The site title is now injected as a `title` tag like preloads or metadata.
 - Password reset tokens now are not accepted after a certain age.

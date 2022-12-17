@@ -35,7 +35,7 @@ defmodule Pleroma.Web.Plugs.UploadedMedia do
     conn =
       case fetch_query_params(conn) do
         %{query_params: %{"name" => name}} = conn ->
-          name = String.replace(name, "\"", "\\\"")
+          name = escape_header_value(name)
 
           put_resp_header(conn, "content-disposition", "filename=\"#{name}\"")
 
@@ -47,10 +47,9 @@ defmodule Pleroma.Web.Plugs.UploadedMedia do
     config = Pleroma.Config.get(Pleroma.Upload)
 
     with uploader <- Keyword.fetch!(config, :uploader),
-         proxy_remote = Keyword.get(config, :proxy_remote, false),
          {:ok, get_method} <- uploader.get_file(file),
          false <- media_is_banned(conn, get_method) do
-      get_media(conn, get_method, proxy_remote, opts)
+      get_media(conn, get_method, opts)
     else
       _ ->
         conn
@@ -69,7 +68,7 @@ defmodule Pleroma.Web.Plugs.UploadedMedia do
 
   defp media_is_banned(_, _), do: false
 
-  defp get_media(conn, {:static_dir, directory}, _, opts) do
+  defp get_media(conn, {:static_dir, directory}, opts) do
     static_opts =
       Map.get(opts, :static_plug_opts)
       |> Map.put(:at, [@path])
@@ -86,29 +85,24 @@ defmodule Pleroma.Web.Plugs.UploadedMedia do
     end
   end
 
-  defp get_media(conn, {:url, url}, true, _) do
-    proxy_opts = [
-      http: [
-        follow_redirect: true,
-        pool: :upload
-      ]
-    ]
-
-    conn
-    |> Pleroma.ReverseProxy.call(url, proxy_opts)
-  end
-
-  defp get_media(conn, {:url, url}, _, _) do
+  defp get_media(conn, {:url, url}, _) do
     conn
     |> Phoenix.Controller.redirect(external: url)
     |> halt()
   end
 
-  defp get_media(conn, unknown, _, _) do
+  defp get_media(conn, unknown, _) do
     Logger.error("#{__MODULE__}: Unknown get startegy: #{inspect(unknown)}")
 
     conn
     |> send_resp(:internal_server_error, dgettext("errors", "Internal Error"))
     |> halt()
+  end
+
+  defp escape_header_value(value) do
+    value
+    |> String.replace("\"", "\\\"")
+    |> String.replace("\\r", "")
+    |> String.replace("\\n", "")
   end
 end

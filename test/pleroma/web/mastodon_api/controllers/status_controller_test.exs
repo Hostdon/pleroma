@@ -16,6 +16,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.CommonAPI
+  alias Pleroma.Workers.ScheduledActivityWorker
 
   import Pleroma.Factory
 
@@ -24,6 +25,8 @@ defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
   setup do: clear_config([:rich_media, :enabled])
   setup do: clear_config([:mrf, :policies])
   setup do: clear_config([:mrf_keyword, :reject])
+  setup do: clear_config([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
+  setup do: clear_config([Pleroma.Uploaders.Local, :uploads], "uploads")
 
   describe "posting statuses" do
     setup do: oauth_access(["write:statuses"])
@@ -120,6 +123,35 @@ defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
         worker: Pleroma.Workers.PurgeExpiredActivity,
         args: %{activity_id: fourth_id},
         scheduled_at: expires_at
+      )
+    end
+
+    test "automatically setting a post expiry if status_ttl_days is set" do
+      user = insert(:user, status_ttl_days: 1)
+      %{user: _user, token: _token, conn: conn} = oauth_access(["write:statuses"], user: user)
+
+      conn =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> post("api/v1/statuses", %{
+          "status" => "aa chikichiki banban"
+        })
+
+      assert %{"id" => id} = json_response_and_validate_schema(conn, 200)
+
+      activity = Activity.get_by_id_with_object(id)
+      {:ok, expires_at, _} = DateTime.from_iso8601(activity.data["expires_at"])
+
+      assert Timex.diff(
+               expires_at,
+               DateTime.utc_now(),
+               :hours
+             ) == 23
+
+      assert_enqueued(
+        worker: Pleroma.Workers.PurgeExpiredActivity,
+        args: %{activity_id: id},
+        scheduled_at: DateTime.add(DateTime.utc_now(), 1 * 60 * 60 * 24)
       )
     end
 
@@ -261,6 +293,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
         |> Map.put("url", nil)
         |> Map.put("uri", nil)
         |> Map.put("created_at", nil)
+        |> Kernel.put_in(["pleroma", "context"], nil)
         |> Kernel.put_in(["pleroma", "conversation_id"], nil)
 
       fake_conn =
@@ -284,6 +317,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
         |> Map.put("url", nil)
         |> Map.put("uri", nil)
         |> Map.put("created_at", nil)
+        |> Kernel.put_in(["pleroma", "context"], nil)
         |> Kernel.put_in(["pleroma", "conversation_id"], nil)
 
       assert real_status == fake_status
@@ -705,11 +739,11 @@ defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
         |> json_response_and_validate_schema(200)
 
       assert {:ok, %{id: activity_id}} =
-               perform_job(Pleroma.Workers.ScheduledActivityWorker, %{
+               perform_job(ScheduledActivityWorker, %{
                  activity_id: scheduled_id
                })
 
-      assert Repo.all(Oban.Job) == []
+      refute_enqueued(worker: ScheduledActivityWorker)
 
       object =
         Activity
@@ -1346,87 +1380,6 @@ defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
     end
   end
 
-  describe "cards" do
-    setup do
-      clear_config([:rich_media, :enabled], true)
-
-      oauth_access(["read:statuses"])
-    end
-
-    test "returns rich-media card", %{conn: conn, user: user} do
-      Tesla.Mock.mock_global(fn env -> apply(HttpRequestMock, :request, [env]) end)
-
-      {:ok, activity} = CommonAPI.post(user, %{status: "https://example.com/ogp"})
-
-      card_data = %{
-        "image" => "http://ia.media-imdb.com/images/rock.jpg",
-        "provider_name" => "example.com",
-        "provider_url" => "https://example.com",
-        "title" => "The Rock",
-        "type" => "link",
-        "url" => "https://example.com/ogp",
-        "description" =>
-          "Directed by Michael Bay. With Sean Connery, Nicolas Cage, Ed Harris, John Spencer.",
-        "pleroma" => %{
-          "opengraph" => %{
-            "image" => "http://ia.media-imdb.com/images/rock.jpg",
-            "title" => "The Rock",
-            "type" => "video.movie",
-            "url" => "https://example.com/ogp",
-            "description" =>
-              "Directed by Michael Bay. With Sean Connery, Nicolas Cage, Ed Harris, John Spencer."
-          }
-        }
-      }
-
-      response =
-        conn
-        |> get("/api/v1/statuses/#{activity.id}/card")
-        |> json_response_and_validate_schema(200)
-
-      assert response == card_data
-
-      # works with private posts
-      {:ok, activity} =
-        CommonAPI.post(user, %{status: "https://example.com/ogp", visibility: "direct"})
-
-      response_two =
-        conn
-        |> get("/api/v1/statuses/#{activity.id}/card")
-        |> json_response_and_validate_schema(200)
-
-      assert response_two == card_data
-    end
-
-    test "replaces missing description with an empty string", %{conn: conn, user: user} do
-      Tesla.Mock.mock_global(fn env -> apply(HttpRequestMock, :request, [env]) end)
-
-      {:ok, activity} = CommonAPI.post(user, %{status: "https://example.com/ogp-missing-data"})
-
-      response =
-        conn
-        |> get("/api/v1/statuses/#{activity.id}/card")
-        |> json_response_and_validate_schema(:ok)
-
-      assert response == %{
-               "type" => "link",
-               "title" => "Pleroma",
-               "description" => "",
-               "image" => nil,
-               "provider_name" => "example.com",
-               "provider_url" => "https://example.com",
-               "url" => "https://example.com/ogp-missing-data",
-               "pleroma" => %{
-                 "opengraph" => %{
-                   "title" => "Pleroma",
-                   "type" => "website",
-                   "url" => "https://example.com/ogp-missing-data"
-                 }
-               }
-             }
-    end
-  end
-
   test "bookmarks" do
     bookmarks_uri = "/api/v1/bookmarks"
 
@@ -1809,6 +1762,39 @@ defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
            } = response
   end
 
+  test "context when restrict_unauthenticated is on" do
+    user = insert(:user)
+    remote_user = insert(:user, local: false)
+
+    {:ok, %{id: id1}} = CommonAPI.post(user, %{status: "1"})
+    {:ok, %{id: id2}} = CommonAPI.post(user, %{status: "2", in_reply_to_status_id: id1})
+
+    {:ok, %{id: id3}} =
+      CommonAPI.post(remote_user, %{status: "3", in_reply_to_status_id: id2, local: false})
+
+    response =
+      build_conn()
+      |> get("/api/v1/statuses/#{id2}/context")
+      |> json_response_and_validate_schema(:ok)
+
+    assert %{
+             "ancestors" => [%{"id" => ^id1}],
+             "descendants" => [%{"id" => ^id3}]
+           } = response
+
+    clear_config([:restrict_unauthenticated, :activities, :local], true)
+
+    response =
+      build_conn()
+      |> get("/api/v1/statuses/#{id2}/context")
+      |> json_response_and_validate_schema(:ok)
+
+    assert %{
+             "ancestors" => [],
+             "descendants" => []
+           } = response
+  end
+
   test "favorites paginate correctly" do
     %{user: user, conn: conn} = oauth_access(["read:favourites"])
     other_user = insert(:user)
@@ -1900,23 +1886,50 @@ defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
              |> json_response_and_validate_schema(:ok)
   end
 
-  test "posting a local only status" do
-    %{user: _user, conn: conn} = oauth_access(["write:statuses"])
+  describe "local-only statuses" do
+    test "posting a local only status" do
+      %{user: _user, conn: conn} = oauth_access(["write:statuses"])
 
-    conn_one =
-      conn
-      |> put_req_header("content-type", "application/json")
-      |> post("/api/v1/statuses", %{
-        "status" => "cofe",
-        "visibility" => "local"
-      })
+      conn_one =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> post("/api/v1/statuses", %{
+          "status" => "cofe",
+          "visibility" => "local"
+        })
 
-    local = Utils.as_local_public()
+      local = Utils.as_local_public()
 
-    assert %{"content" => "cofe", "id" => id, "visibility" => "local"} =
-             json_response_and_validate_schema(conn_one, 200)
+      assert %{"content" => "cofe", "id" => id, "visibility" => "local"} =
+               json_response_and_validate_schema(conn_one, 200)
 
-    assert %Activity{id: ^id, data: %{"to" => [^local]}} = Activity.get_by_id(id)
+      assert %Activity{id: ^id, data: %{"to" => [^local]}} = Activity.get_by_id(id)
+    end
+
+    test "other users can read local-only posts" do
+      user = insert(:user)
+      %{user: _reader, conn: conn} = oauth_access(["read:statuses"])
+
+      {:ok, activity} = CommonAPI.post(user, %{status: "#2hu #2HU", visibility: "local"})
+
+      received =
+        conn
+        |> get("/api/v1/statuses/#{activity.id}")
+        |> json_response_and_validate_schema(:ok)
+
+      assert received["id"] == activity.id
+    end
+
+    test "anonymous users cannot see local-only posts" do
+      user = insert(:user)
+
+      {:ok, activity} = CommonAPI.post(user, %{status: "#2hu #2HU", visibility: "local"})
+
+      _received =
+        build_conn()
+        |> get("/api/v1/statuses/#{activity.id}")
+        |> json_response_and_validate_schema(:not_found)
+    end
   end
 
   describe "muted reactions" do
@@ -1987,6 +2000,384 @@ defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
                  "emoji_reactions" => [%{"count" => 1, "me" => false, "name" => "🎅"}]
                }
              } = result
+    end
+  end
+
+  describe "posting quotes" do
+    setup do: oauth_access(["write:statuses"])
+
+    test "posting a quote", %{conn: conn} do
+      user = insert(:user)
+      {:ok, quoted_status} = CommonAPI.post(user, %{status: "tell me, for whom do you fight?"})
+
+      conn =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> post("/api/v1/statuses", %{
+          "status" => "Hmph, how very glib",
+          "quote_id" => quoted_status.id
+        })
+
+      response = json_response_and_validate_schema(conn, 200)
+
+      assert response["quote_id"] == quoted_status.id
+      assert response["quote"]["id"] == quoted_status.id
+      assert response["quote"]["content"] == quoted_status.object.data["content"]
+    end
+
+    test "posting a quote, quoting a status that isn't public", %{conn: conn} do
+      user = insert(:user)
+
+      Enum.each(["private", "local", "direct"], fn visibility ->
+        {:ok, quoted_status} =
+          CommonAPI.post(user, %{
+            status: "tell me, for whom do you fight?",
+            visibility: visibility
+          })
+
+        assert %{"error" => "You can only quote public or unlisted statuses"} =
+                 conn
+                 |> put_req_header("content-type", "application/json")
+                 |> post("/api/v1/statuses", %{
+                   "status" => "Hmph, how very glib",
+                   "quote_id" => quoted_status.id
+                 })
+                 |> json_response_and_validate_schema(422)
+      end)
+    end
+
+    test "posting a quote, after quote, the status gets deleted", %{conn: conn} do
+      user = insert(:user)
+
+      {:ok, quoted_status} =
+        CommonAPI.post(user, %{status: "tell me, for whom do you fight?", visibility: "public"})
+
+      resp =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> post("/api/v1/statuses", %{
+          "status" => "I fight for eorzea!",
+          "quote_id" => quoted_status.id
+        })
+        |> json_response_and_validate_schema(200)
+
+      {:ok, _} = CommonAPI.delete(quoted_status.id, user)
+
+      resp =
+        conn
+        |> get("/api/v1/statuses/#{resp["id"]}")
+        |> json_response_and_validate_schema(200)
+
+      assert is_nil(resp["quote"])
+    end
+
+    test "posting a quote of a deleted status", %{conn: conn} do
+      user = insert(:user)
+
+      {:ok, quoted_status} =
+        CommonAPI.post(user, %{status: "tell me, for whom do you fight?", visibility: "public"})
+
+      {:ok, _} = CommonAPI.delete(quoted_status.id, user)
+
+      assert %{"error" => _} =
+               conn
+               |> put_req_header("content-type", "application/json")
+               |> post("/api/v1/statuses", %{
+                 "status" => "I fight for eorzea!",
+                 "quote_id" => quoted_status.id
+               })
+               |> json_response_and_validate_schema(422)
+    end
+
+    test "posting a quote of a status that doesn't exist", %{conn: conn} do
+      assert %{"error" => "You can't quote a status that doesn't exist"} =
+               conn
+               |> put_req_header("content-type", "application/json")
+               |> post("/api/v1/statuses", %{
+                 "status" => "I fight for eorzea!",
+                 "quote_id" => "oops"
+               })
+               |> json_response_and_validate_schema(422)
+    end
+  end
+
+  describe "get status history" do
+    setup do
+      %{conn: build_conn()}
+    end
+
+    test "unedited post", %{conn: conn} do
+      activity = insert(:note_activity)
+
+      conn = get(conn, "/api/v1/statuses/#{activity.id}/history")
+
+      assert [_] = json_response_and_validate_schema(conn, 200)
+    end
+
+    test "edited post", %{conn: conn} do
+      note =
+        insert(
+          :note,
+          data: %{
+            "formerRepresentations" => %{
+              "type" => "OrderedCollection",
+              "orderedItems" => [
+                %{
+                  "type" => "Note",
+                  "content" => "mew mew 2",
+                  "summary" => "title 2"
+                },
+                %{
+                  "type" => "Note",
+                  "content" => "mew mew 1",
+                  "summary" => "title 1"
+                }
+              ],
+              "totalItems" => 2
+            }
+          }
+        )
+
+      activity = insert(:note_activity, note: note)
+
+      conn = get(conn, "/api/v1/statuses/#{activity.id}/history")
+
+      assert [%{"spoiler_text" => "title 1"}, %{"spoiler_text" => "title 2"}, _] =
+               json_response_and_validate_schema(conn, 200)
+    end
+  end
+
+  describe "translating statuses" do
+    setup do
+      clear_config([:translator, :enabled], true)
+      clear_config([:translator, :module], Pleroma.Akkoma.Translators.DeepL)
+      clear_config([:deepl, :api_key], "deepl_api_key")
+      oauth_access(["read:statuses"])
+    end
+
+    test "listing languages", %{conn: conn} do
+      Tesla.Mock.mock_global(fn
+        %{method: :get, url: "https://api-free.deepl.com/v2/languages?type=source"} ->
+          %Tesla.Env{
+            status: 200,
+            body:
+              Jason.encode!([
+                %{language: "en", name: "English"}
+              ])
+          }
+
+        %{method: :get, url: "https://api-free.deepl.com/v2/languages?type=target"} ->
+          %Tesla.Env{
+            status: 200,
+            body:
+              Jason.encode!([
+                %{language: "ja", name: "Japanese"}
+              ])
+          }
+      end)
+
+      conn =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> get("/api/v1/akkoma/translation/languages")
+
+      response = json_response_and_validate_schema(conn, 200)
+
+      assert %{
+               "source" => [%{"code" => "en", "name" => "English"}],
+               "target" => [%{"code" => "ja", "name" => "Japanese"}]
+             } = response
+    end
+
+    test "should return text and detected language", %{conn: conn} do
+      clear_config([:deepl, :tier], :free)
+
+      Tesla.Mock.mock_global(fn
+        %{method: :post, url: "https://api-free.deepl.com/v2/translate"} ->
+          %Tesla.Env{
+            status: 200,
+            body:
+              Jason.encode!(%{
+                translations: [
+                  %{
+                    "text" => "Tell me, for whom do you fight?",
+                    "detected_source_language" => "ja"
+                  }
+                ]
+              })
+          }
+      end)
+
+      user = insert(:user)
+      {:ok, to_translate} = CommonAPI.post(user, %{status: "何のために闘う?"})
+
+      conn =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> get("/api/v1/statuses/#{to_translate.id}/translations/en")
+
+      response = json_response_and_validate_schema(conn, 200)
+
+      assert response["text"] == "Tell me, for whom do you fight?"
+      assert response["detected_language"] == "ja"
+    end
+
+    test "should not allow translating of statuses you cannot see", %{conn: conn} do
+      clear_config([:deepl, :tier], :free)
+
+      Tesla.Mock.mock_global(fn
+        %{method: :post, url: "https://api-free.deepl.com/v2/translate"} ->
+          %Tesla.Env{
+            status: 200,
+            body:
+              Jason.encode!(%{
+                translations: [
+                  %{
+                    "text" => "Tell me, for whom do you fight?",
+                    "detected_source_language" => "ja"
+                  }
+                ]
+              })
+          }
+      end)
+
+      user = insert(:user)
+      {:ok, to_translate} = CommonAPI.post(user, %{status: "何のために闘う?", visibility: "private"})
+
+      conn =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> get("/api/v1/statuses/#{to_translate.id}/translations/en")
+
+      json_response_and_validate_schema(conn, 404)
+    end
+  end
+
+  describe "get status source" do
+    setup do
+      %{conn: build_conn()}
+    end
+
+    test "it returns the source", %{conn: conn} do
+      user = insert(:user)
+
+      {:ok, activity} = CommonAPI.post(user, %{status: "mew mew #abc", spoiler_text: "#def"})
+
+      conn = get(conn, "/api/v1/statuses/#{activity.id}/source")
+
+      id = activity.id
+
+      assert %{"id" => ^id, "text" => "mew mew #abc", "spoiler_text" => "#def"} =
+               json_response_and_validate_schema(conn, 200)
+    end
+  end
+
+  describe "update status" do
+    setup do
+      oauth_access(["write:statuses"])
+    end
+
+    test "it updates the status" do
+      %{conn: conn, user: user} = oauth_access(["write:statuses", "read:statuses"])
+
+      {:ok, activity} = CommonAPI.post(user, %{status: "mew mew #abc", spoiler_text: "#def"})
+
+      conn
+      |> get("/api/v1/statuses/#{activity.id}")
+      |> json_response_and_validate_schema(200)
+
+      response =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> put("/api/v1/statuses/#{activity.id}", %{
+          "status" => "edited",
+          "spoiler_text" => "lol"
+        })
+        |> json_response_and_validate_schema(200)
+
+      assert response["content"] == "edited"
+      assert response["spoiler_text"] == "lol"
+
+      response =
+        conn
+        |> get("/api/v1/statuses/#{activity.id}")
+        |> json_response_and_validate_schema(200)
+
+      assert response["content"] == "edited"
+      assert response["spoiler_text"] == "lol"
+    end
+
+    test "it updates the attachments", %{conn: conn, user: user} do
+      attachment = insert(:attachment, user: user)
+      attachment_id = to_string(attachment.id)
+
+      {:ok, activity} = CommonAPI.post(user, %{status: "mew mew #abc", spoiler_text: "#def"})
+
+      response =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> put("/api/v1/statuses/#{activity.id}", %{
+          "status" => "mew mew #abc",
+          "spoiler_text" => "#def",
+          "media_ids" => [attachment_id]
+        })
+        |> json_response_and_validate_schema(200)
+
+      assert [%{"id" => ^attachment_id}] = response["media_attachments"]
+    end
+
+    test "it does not update visibility", %{conn: conn, user: user} do
+      {:ok, activity} =
+        CommonAPI.post(user, %{
+          status: "mew mew #abc",
+          spoiler_text: "#def",
+          visibility: "private"
+        })
+
+      response =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> put("/api/v1/statuses/#{activity.id}", %{
+          "status" => "edited",
+          "spoiler_text" => "lol"
+        })
+        |> json_response_and_validate_schema(200)
+
+      assert response["visibility"] == "private"
+    end
+
+    test "it refuses to update when original post is not by the user", %{conn: conn} do
+      another_user = insert(:user)
+
+      {:ok, activity} =
+        CommonAPI.post(another_user, %{status: "mew mew #abc", spoiler_text: "#def"})
+
+      conn
+      |> put_req_header("content-type", "application/json")
+      |> put("/api/v1/statuses/#{activity.id}", %{
+        "status" => "edited",
+        "spoiler_text" => "lol"
+      })
+      |> json_response_and_validate_schema(:forbidden)
+    end
+
+    test "it returns 404 if the user cannot see the post", %{conn: conn} do
+      another_user = insert(:user)
+
+      {:ok, activity} =
+        CommonAPI.post(another_user, %{
+          status: "mew mew #abc",
+          spoiler_text: "#def",
+          visibility: "private"
+        })
+
+      conn
+      |> put_req_header("content-type", "application/json")
+      |> put("/api/v1/statuses/#{activity.id}", %{
+        "status" => "edited",
+        "spoiler_text" => "lol"
+      })
+      |> json_response_and_validate_schema(:not_found)
     end
   end
 end

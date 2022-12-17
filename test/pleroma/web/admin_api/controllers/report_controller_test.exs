@@ -204,9 +204,7 @@ defmodule Pleroma.Web.AdminAPI.ReportControllerTest do
                "@#{admin.nickname} updated report ##{id} (on user @#{activity.user_actor.nickname}) with 'resolved' state"
 
       assert ModerationLog.get_log_entry_message(second_log_entry) ==
-               "@#{admin.nickname} updated report ##{second_report_id} (on user @#{
-                 second_activity.user_actor.nickname
-               }) with 'closed' state"
+               "@#{admin.nickname} updated report ##{second_report_id} (on user @#{second_activity.user_actor.nickname}) with 'closed' state"
     end
   end
 
@@ -305,7 +303,7 @@ defmodule Pleroma.Web.AdminAPI.ReportControllerTest do
         |> get("/api/pleroma/admin/reports")
 
       assert json_response(conn, :forbidden) ==
-               %{"error" => "User is not an admin."}
+               %{"error" => "User is not a staff member."}
     end
 
     test "returns 403 when requested by anonymous" do
@@ -362,10 +360,17 @@ defmodule Pleroma.Web.AdminAPI.ReportControllerTest do
 
       response = json_response_and_validate_schema(conn, 200)
       notes = hd(response["reports"])["notes"]
-      [note, _] = notes
+      assert 2 == Enum.count(notes)
+
+      note =
+        notes
+        |> Enum.find(fn note -> note["content"] == "this is disgusting!" end)
+
+      refute is_nil(note)
 
       assert note["user"]["nickname"] == admin.nickname
-      assert note["content"] == "this is disgusting!"
+      # We use '=~' because the order of the notes isn't guaranteed
+      assert note["content"] =~ "this is disgusting"
       assert note["created_at"]
       assert response["total"] == 1
     end

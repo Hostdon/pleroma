@@ -1,0 +1,18 @@
+{
+  "properties": {
+    "timestamp": {
+      "type": "date",
+      "index": true
+    },
+    "instance": {
+      "type": "keyword"
+    },
+    "nickname": {
+      "type": "text"
+    },
+    "bio": {
+      "type": "text"
+    }
+  }
+}
+

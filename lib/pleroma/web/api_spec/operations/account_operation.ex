@@ -223,9 +223,15 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
             type: :object,
             properties: %{
               reblogs: %Schema{
-                type: :boolean,
+                allOf: [BooleanLike],
                 description: "Receive this account's reblogs in home timeline? Defaults to true.",
                 default: true
+              },
+              notify: %Schema{
+                allOf: [BooleanLike],
+                description:
+                  "Receive notifications for all statuses posted by the account? Defaults to false.",
+                default: false
               }
             }
           },
@@ -328,6 +334,45 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
     }
   end
 
+  def remove_from_followers_operation do
+    %Operation{
+      tags: ["Account actions"],
+      summary: "Remove from followers",
+      operationId: "AccountController.remove_from_followers",
+      security: [%{"oAuth" => ["follow", "write:follows"]}],
+      description: "Remove the given account from followers",
+      parameters: [%Reference{"$ref": "#/components/parameters/accountIdOrNickname"}],
+      responses: %{
+        200 => Operation.response("Relationship", "application/json", AccountRelationship),
+        400 => Operation.response("Error", "application/json", ApiError),
+        404 => Operation.response("Error", "application/json", ApiError)
+      }
+    }
+  end
+
+  def note_operation do
+    %Operation{
+      tags: ["Account actions"],
+      summary: "Set a private note about a user.",
+      operationId: "AccountController.note",
+      security: [%{"oAuth" => ["follow", "write:accounts"]}],
+      requestBody: request_body("Parameters", note_request()),
+      description: "Create a note for the given account.",
+      parameters: [
+        %Reference{"$ref": "#/components/parameters/accountIdOrNickname"},
+        Operation.parameter(
+          :comment,
+          :query,
+          %Schema{type: :string},
+          "Account note body"
+        )
+      ],
+      responses: %{
+        200 => Operation.response("Relationship", "application/json", AccountRelationship)
+      }
+    }
+  end
+
   def follow_by_uri_operation do
     %Operation{
       tags: ["Account actions"],
@@ -367,6 +412,26 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
       parameters: pagination_params(),
       responses: %{
         200 => Operation.response("Accounts", "application/json", array_of_accounts())
+      }
+    }
+  end
+
+  def lookup_operation do
+    %Operation{
+      tags: ["Account lookup"],
+      summary: "Find a user by nickname",
+      operationId: "AccountController.lookup",
+      parameters: [
+        Operation.parameter(
+          :acct,
+          :query,
+          :string,
+          "User nickname"
+        )
+      ],
+      responses: %{
+        200 => Operation.response("Account", "application/json", Account),
+        404 => Operation.response("Error", "application/json", ApiError)
       }
     }
   end
@@ -458,6 +523,11 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
           type: :string,
           nullable: true,
           description: "Invite token required when the registrations aren't public"
+        },
+        language: %Schema{
+          type: :string,
+          nullable: true,
+          description: "User's preferred language for emails"
         }
       },
       example: %{
@@ -540,11 +610,6 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
           allOf: [BooleanLike],
           nullable: true,
           description: "Whether manual approval of follow requests is required."
-        },
-        accepts_chat_messages: %Schema{
-          allOf: [BooleanLike],
-          nullable: true,
-          description: "Whether the user accepts receiving chat messages."
         },
         fields_attributes: %Schema{
           nullable: true,
@@ -635,7 +700,13 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
           description:
             "Discovery (listing, indexing) of this account by external services (search bots etc.) is allowed."
         },
-        actor_type: ActorType
+        actor_type: ActorType,
+        status_ttl_days: %Schema{
+          type: :integer,
+          nullable: true,
+          description:
+            "Number of days after which statuses will be deleted. Set to -1 to disable."
+        }
       },
       example: %{
         bot: false,
@@ -655,7 +726,8 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
         allow_following_move: false,
         also_known_as: ["https://foo.bar/users/foo"],
         discoverable: false,
-        actor_type: "Person"
+        actor_type: "Person",
+        status_ttl_days: 30
       }
     }
   end
@@ -685,9 +757,11 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
           "blocked_by" => true,
           "muting" => false,
           "muting_notifications" => false,
+          "note" => "",
           "requested" => false,
           "domain_blocking" => false,
           "subscribing" => false,
+          "notifying" => false,
           "endorsed" => true
         },
         %{
@@ -699,9 +773,11 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
           "blocked_by" => true,
           "muting" => true,
           "muting_notifications" => false,
+          "note" => "",
           "requested" => true,
           "domain_blocking" => false,
           "subscribing" => false,
+          "notifying" => false,
           "endorsed" => false
         },
         %{
@@ -713,9 +789,11 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
           "blocked_by" => false,
           "muting" => true,
           "muting_notifications" => false,
+          "note" => "",
           "requested" => false,
           "domain_blocking" => true,
           "subscribing" => true,
+          "notifying" => true,
           "endorsed" => false
         }
       ]
@@ -756,6 +834,23 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
       example: %{
         "notifications" => true,
         "expires_in" => 86_400
+      }
+    }
+  end
+
+  defp note_request do
+    %Schema{
+      title: "AccountNoteRequest",
+      description: "POST body for adding a note for an account",
+      type: :object,
+      properties: %{
+        comment: %Schema{
+          type: :string,
+          description: "Account note body"
+        }
+      },
+      example: %{
+        "comment" => "Example note"
       }
     }
   end

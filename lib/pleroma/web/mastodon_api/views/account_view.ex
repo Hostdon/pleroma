@@ -7,6 +7,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
 
   alias Pleroma.FollowingRelationship
   alias Pleroma.User
+  alias Pleroma.UserNote
   alias Pleroma.UserRelationship
   alias Pleroma.Web.CommonAPI.Utils
   alias Pleroma.Web.MastodonAPI.AccountView
@@ -93,19 +94,28 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
 
     followed_by =
       if following_relationships do
-        case FollowingRelationship.find(following_relationships, target, reading_user) do
-          %{state: :follow_accept} -> true
-          _ -> false
-        end
+        target_to_user_following_relation =
+          FollowingRelationship.find(following_relationships, target, reading_user)
+
+        User.get_follow_state(target, reading_user, target_to_user_following_relation)
       else
-        User.following?(target, reading_user)
+        User.get_follow_state(target, reading_user)
       end
+
+    subscribing =
+      UserRelationship.exists?(
+        user_relationships,
+        :inverse_subscription,
+        target,
+        reading_user,
+        &User.subscribed_to?(&2, &1)
+      )
 
     # NOTE: adjust UserRelationship.view_relationships_option/2 on new relation-related flags
     %{
       id: to_string(target.id),
       following: follow_state == :follow_accept,
-      followed_by: followed_by,
+      followed_by: followed_by == :follow_accept,
       blocking:
         UserRelationship.exists?(
           user_relationships,
@@ -138,15 +148,10 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
           target,
           &User.muted_notifications?(&1, &2)
         ),
-      subscribing:
-        UserRelationship.exists?(
-          user_relationships,
-          :inverse_subscription,
-          target,
-          reading_user,
-          &User.subscribed_to?(&2, &1)
-        ),
+      subscribing: subscribing,
+      notifying: subscribing,
       requested: follow_state == :follow_pending,
+      requested_by: followed_by == :follow_pending,
       domain_blocking: User.blocks_domain?(reading_user, target),
       showing_reblogs:
         not UserRelationship.exists?(
@@ -156,7 +161,12 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
           target,
           &User.muting_reblogs?(&1, &2)
         ),
-      endorsed: false
+      endorsed: false,
+      note:
+        UserNote.show(
+          reading_user,
+          target
+        )
     }
   end
 
@@ -176,6 +186,16 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
     render_opts = %{as: :target, user: user, relationships: relationships_opt}
     render_many(targets, AccountView, "relationship.json", render_opts)
   end
+
+  def render("instance.json", %{instance: %Pleroma.Instances.Instance{} = instance}) do
+    %{
+      name: instance.host,
+      favicon: instance.favicon |> MediaProxy.url(),
+      nodeinfo: instance.nodeinfo
+    }
+  end
+
+  def render("instance.json", _), do: nil
 
   defp do_render("show.json", %{user: user} = opts) do
     user = User.sanitize_html(user, User.html_filter_policy(opts[:for]))
@@ -221,16 +241,20 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
         %{}
       end
 
-    favicon =
-      if Pleroma.Config.get([:instances_favicons, :enabled]) do
-        user
-        |> Map.get(:ap_id, "")
-        |> URI.parse()
-        |> URI.merge("/")
-        |> Pleroma.Instances.Instance.get_or_update_favicon()
-        |> MediaProxy.url()
+    instance =
+      with {:ok, instance} <- Pleroma.Instances.Instance.get_cached_by_url(user.ap_id) do
+        instance
       else
+        _ ->
+          nil
+      end
+
+    favicon =
+      if is_nil(instance) do
         nil
+      else
+        instance.favicon
+        |> MediaProxy.url()
       end
 
     %{
@@ -261,7 +285,11 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
           actor_type: user.actor_type
         }
       },
-
+      last_status_at: user.last_status_at,
+      akkoma: %{
+        instance: render("instance.json", %{instance: instance}),
+        status_ttl_days: user.status_ttl_days
+      },
       # Pleroma extensions
       # Note: it's insecure to output :email but fully-qualified nickname may serve as safe stub
       fqn: User.full_nickname(user),
@@ -269,6 +297,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
         ap_id: user.ap_id,
         also_known_as: user.also_known_as,
         is_confirmed: user.is_confirmed,
+        is_suggested: user.is_suggested,
         tags: user.tags,
         hide_followers_count: user.hide_followers_count,
         hide_follows_count: user.hide_follows_count,
@@ -278,7 +307,6 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
         relationship: relationship,
         skip_thread_containment: user.skip_thread_containment,
         background_image: image_url(user.background) |> MediaProxy.url(),
-        accepts_chat_messages: user.accepts_chat_messages,
         favicon: favicon
       }
     }
@@ -286,7 +314,6 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
     |> maybe_put_settings(user, opts[:for], opts)
     |> maybe_put_notification_settings(user, opts[:for])
     |> maybe_put_settings_store(user, opts[:for], opts)
-    |> maybe_put_chat_token(user, opts[:for], opts)
     |> maybe_put_activation_status(user, opts[:for])
     |> maybe_put_follow_requests_count(user, opts[:for])
     |> maybe_put_allow_following_move(user, opts[:for])
@@ -338,15 +365,6 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
   end
 
   defp maybe_put_settings_store(data, _, _, _), do: data
-
-  defp maybe_put_chat_token(data, %User{id: id}, %User{id: id}, %{
-         with_chat_token: token
-       }) do
-    data
-    |> Kernel.put_in([:pleroma, :chat_token], token)
-  end
-
-  defp maybe_put_chat_token(data, _, _, _), do: data
 
   defp maybe_put_role(data, %User{show_role: true} = user, _) do
     data

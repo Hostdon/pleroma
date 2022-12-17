@@ -12,7 +12,6 @@ defmodule Pleroma.Web.ActivityPub.UserViewTest do
 
   test "Renders a user, including the public key" do
     user = insert(:user)
-    {:ok, user} = User.ensure_keys_present(user)
 
     result = UserView.render("user.json", %{user: user})
 
@@ -55,7 +54,6 @@ defmodule Pleroma.Web.ActivityPub.UserViewTest do
 
   test "Does not add an avatar image if the user hasn't set one" do
     user = insert(:user)
-    {:ok, user} = User.ensure_keys_present(user)
 
     result = UserView.render("user.json", %{user: user})
     refute result["icon"]
@@ -66,8 +64,6 @@ defmodule Pleroma.Web.ActivityPub.UserViewTest do
         avatar: %{"url" => [%{"href" => "https://someurl"}]},
         banner: %{"url" => [%{"href" => "https://somebanner"}]}
       )
-
-    {:ok, user} = User.ensure_keys_present(user)
 
     result = UserView.render("user.json", %{user: user})
     assert result["icon"]["url"] == "https://someurl"
@@ -89,7 +85,6 @@ defmodule Pleroma.Web.ActivityPub.UserViewTest do
   describe "endpoints" do
     test "local users have a usable endpoints structure" do
       user = insert(:user)
-      {:ok, user} = User.ensure_keys_present(user)
 
       result = UserView.render("user.json", %{user: user})
 
@@ -105,7 +100,6 @@ defmodule Pleroma.Web.ActivityPub.UserViewTest do
 
     test "remote users have an empty endpoints structure" do
       user = insert(:user, local: false)
-      {:ok, user} = User.ensure_keys_present(user)
 
       result = UserView.render("user.json", %{user: user})
 
@@ -115,7 +109,6 @@ defmodule Pleroma.Web.ActivityPub.UserViewTest do
 
     test "instance users do not expose oAuth endpoints" do
       user = insert(:user, nickname: nil, local: true)
-      {:ok, user} = User.ensure_keys_present(user)
 
       result = UserView.render("user.json", %{user: user})
 
@@ -162,25 +155,6 @@ defmodule Pleroma.Web.ActivityPub.UserViewTest do
       assert %{"totalItems" => 1} = UserView.render("following.json", %{user: user})
       user = Map.merge(user, %{hide_follows_count: false, hide_follows: true})
       assert %{"totalItems" => 1} = UserView.render("following.json", %{user: user})
-    end
-  end
-
-  describe "acceptsChatMessages" do
-    test "it returns this value if it is set" do
-      true_user = insert(:user, accepts_chat_messages: true)
-      false_user = insert(:user, accepts_chat_messages: false)
-      nil_user = insert(:user, accepts_chat_messages: nil)
-
-      assert %{"capabilities" => %{"acceptsChatMessages" => true}} =
-               UserView.render("user.json", user: true_user)
-
-      assert %{"capabilities" => %{"acceptsChatMessages" => false}} =
-               UserView.render("user.json", user: false_user)
-
-      refute Map.has_key?(
-               UserView.render("user.json", user: nil_user)["capabilities"],
-               "acceptsChatMessages"
-             )
     end
   end
 end

@@ -1,8 +1,15 @@
-<%= case @mediaType do %>
-<% "audio" -> %>
-<audio class="u-audio" src="<%= @url %>" controls="controls"></audio>
-<% "video" -> %>
-<video class="u-video" src="<%= @url %>" controls="controls"></video>
-<% _ -> %>
-<img class="u-photo" src="<%= @url %>" alt="<%= @name %>" title="<%= @name %>">
-<% end %>
+<a class="attachment" href="<%= @url %>" alt=<%= @name %>" title="<%= @name %>">
+  <%= if @nsfw do %>
+  <div class="nsfw-banner">
+    <div><%= gettext("Hover to show content") %></div>
+  </div>
+  <% end %>
+  <%= case @mediaType do %>
+  <% "audio" -> %>
+  <audio class="u-audio" src="<%= @url %>" controls="controls"></audio>
+  <% "video" -> %>
+  <video class="u-video" src="<%= @url %>" controls="controls"></video>
+  <% _ -> %>
+  <img class="u-photo" src="<%= @url %>">
+  <% end %>
+</a>

@@ -11,6 +11,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
   alias Pleroma.Web.ActivityPub.InternalFetchActor
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.OAuth.Token
+  alias Pleroma.Web.Plugs.SetLocalePlug
 
   import Pleroma.Factory
 
@@ -413,6 +414,20 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
       assert json_response_and_validate_schema(conn, 200) == []
     end
 
+    test "gets local-only statuses for authenticated users", %{user: _user, conn: conn} do
+      user_one = insert(:user)
+
+      {:ok, activity} = CommonAPI.post(user_one, %{status: "HI!!!", visibility: "local"})
+
+      resp =
+        conn
+        |> get("/api/v1/accounts/#{user_one.id}/statuses")
+        |> json_response_and_validate_schema(200)
+
+      assert [%{"id" => id}] = resp
+      assert id == to_string(activity.id)
+    end
+
     test "gets an users media, excludes reblogs", %{conn: conn} do
       note = insert(:note_activity)
       user = User.get_cached_by_ap_id(note.data["actor"])
@@ -709,9 +724,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
       assert [%{"id" => ^follower2_id}, %{"id" => ^follower1_id}] =
                conn
                |> get(
-                 "/api/v1/accounts/#{user.id}/followers?id=#{user.id}&limit=20&max_id=#{
-                   follower3_id
-                 }"
+                 "/api/v1/accounts/#{user.id}/followers?id=#{user.id}&limit=20&max_id=#{follower3_id}"
                )
                |> json_response_and_validate_schema(200)
 
@@ -889,6 +902,12 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
                |> post("/api/v1/accounts/#{followed.id}/follow", %{reblogs: true})
                |> json_response_and_validate_schema(200)
 
+      assert %{"showing_reblogs" => true} =
+               conn
+               |> put_req_header("content-type", "application/json")
+               |> post("/api/v1/accounts/#{followed.id}/follow", %{reblogs: "1"})
+               |> json_response_and_validate_schema(200)
+
       assert [%{"id" => ^reblog_id}] =
                conn
                |> get("/api/v1/timelines/home")
@@ -918,9 +937,38 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
                |> post("/api/v1/accounts/#{followed.id}/follow", %{reblogs: false})
                |> json_response_and_validate_schema(200)
 
+      assert %{"showing_reblogs" => false} =
+               conn
+               |> put_req_header("content-type", "application/json")
+               |> post("/api/v1/accounts/#{followed.id}/follow", %{reblogs: "0"})
+               |> json_response_and_validate_schema(200)
+
       assert [] ==
                conn
                |> get("/api/v1/timelines/home")
+               |> json_response_and_validate_schema(200)
+    end
+
+    test "following with subscription and unsubscribing" do
+      %{conn: conn} = oauth_access(["follow"])
+      followed = insert(:user)
+
+      assert %{"subscribing" => true} =
+               conn
+               |> put_req_header("content-type", "application/json")
+               |> post("/api/v1/accounts/#{followed.id}/follow", %{notify: true})
+               |> json_response_and_validate_schema(200)
+
+      assert %{"subscribing" => true} =
+               conn
+               |> put_req_header("content-type", "application/json")
+               |> post("/api/v1/accounts/#{followed.id}/follow", %{notify: "1"})
+               |> json_response_and_validate_schema(200)
+
+      assert %{"subscribing" => false} =
+               conn
+               |> put_req_header("content-type", "application/json")
+               |> post("/api/v1/accounts/#{followed.id}/follow", %{notify: false})
                |> json_response_and_validate_schema(200)
     end
 
@@ -1567,6 +1615,75 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
     end
   end
 
+  describe "create account with language" do
+    setup %{conn: conn} do
+      app_token = insert(:oauth_token, user: nil)
+
+      conn =
+        conn
+        |> put_req_header("authorization", "Bearer " <> app_token.token)
+        |> put_req_header("content-type", "multipart/form-data")
+        |> put_req_cookie(SetLocalePlug.frontend_language_cookie_name(), "zh-Hans")
+        |> SetLocalePlug.call([])
+
+      [conn: conn]
+    end
+
+    test "creates an account with language parameter", %{conn: conn} do
+      params = %{
+        username: "foo",
+        email: "foo@example.org",
+        password: "dupa.8",
+        agreement: true,
+        language: "ru"
+      }
+
+      res =
+        conn
+        |> post("/api/v1/accounts", params)
+
+      assert json_response_and_validate_schema(res, 200)
+
+      assert %{language: "ru"} = Pleroma.User.get_by_nickname("foo")
+    end
+
+    test "language parameter should be normalized", %{conn: conn} do
+      params = %{
+        username: "foo",
+        email: "foo@example.org",
+        password: "dupa.8",
+        agreement: true,
+        language: "ru-RU"
+      }
+
+      res =
+        conn
+        |> post("/api/v1/accounts", params)
+
+      assert json_response_and_validate_schema(res, 200)
+
+      assert %{language: "ru_RU"} = Pleroma.User.get_by_nickname("foo")
+    end
+
+    test "createing an account without language parameter should fallback to cookie/header language",
+         %{conn: conn} do
+      params = %{
+        username: "foo2",
+        email: "foo2@example.org",
+        password: "dupa.8",
+        agreement: true
+      }
+
+      res =
+        conn
+        |> post("/api/v1/accounts", params)
+
+      assert json_response_and_validate_schema(res, 200)
+
+      assert %{language: "zh_Hans"} = Pleroma.User.get_by_nickname("foo2")
+    end
+  end
+
   describe "GET /api/v1/accounts/:id/lists - account_lists" do
     test "returns lists to which the account belongs" do
       %{user: user, conn: conn} = oauth_access(["read:lists"])
@@ -1594,7 +1711,6 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
       response = json_response_and_validate_schema(conn, 200)
 
       assert %{"id" => id, "source" => %{"privacy" => "public"}} = response
-      assert response["pleroma"]["chat_token"]
       assert response["pleroma"]["unread_notifications_count"] == 6
       assert id == to_string(user.id)
     end
@@ -1777,5 +1893,90 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
       |> json_response_and_validate_schema(200)
 
     assert [%{"id" => ^id2}] = result
+  end
+
+  test "account lookup", %{conn: conn} do
+    %{nickname: acct} = insert(:user, %{nickname: "nickname"})
+    %{nickname: acct_two} = insert(:user, %{nickname: "nickname@notlocaldoma.in"})
+
+    result =
+      conn
+      |> get("/api/v1/accounts/lookup?acct=#{acct}")
+      |> json_response_and_validate_schema(200)
+
+    assert %{"acct" => ^acct} = result
+
+    result =
+      conn
+      |> get("/api/v1/accounts/lookup?acct=#{acct_two}")
+      |> json_response_and_validate_schema(200)
+
+    assert %{"acct" => ^acct_two} = result
+
+    _result =
+      conn
+      |> get("/api/v1/accounts/lookup?acct=unexisting_nickname")
+      |> json_response_and_validate_schema(404)
+  end
+
+  test "create a note on a user" do
+    %{conn: conn} = oauth_access(["write:accounts", "read:follows"])
+    other_user = insert(:user)
+
+    conn
+    |> put_req_header("content-type", "application/json")
+    |> post("/api/v1/accounts/#{other_user.id}/note", %{
+      "comment" => "Example note"
+    })
+
+    assert [%{"note" => "Example note"}] =
+             conn
+             |> put_req_header("content-type", "application/json")
+             |> get("/api/v1/accounts/relationships?id=#{other_user.id}")
+             |> json_response_and_validate_schema(200)
+  end
+
+  describe "remove from followers" do
+    setup do: oauth_access(["follow"])
+
+    test "removing user from followers", %{conn: conn, user: user} do
+      %{id: other_user_id} = other_user = insert(:user)
+
+      CommonAPI.follow(other_user, user)
+
+      assert %{"id" => ^other_user_id, "followed_by" => false} =
+               conn
+               |> post("/api/v1/accounts/#{other_user_id}/remove_from_followers")
+               |> json_response_and_validate_schema(200)
+
+      refute User.following?(other_user, user)
+    end
+
+    test "removing remote user from followers", %{conn: conn, user: user} do
+      %{id: other_user_id} = other_user = insert(:user, local: false)
+
+      CommonAPI.follow(other_user, user)
+
+      assert User.following?(other_user, user)
+
+      assert %{"id" => ^other_user_id, "followed_by" => false} =
+               conn
+               |> post("/api/v1/accounts/#{other_user_id}/remove_from_followers")
+               |> json_response_and_validate_schema(200)
+
+      refute User.following?(other_user, user)
+    end
+
+    test "removing user from followers errors", %{user: user, conn: conn} do
+      # self remove
+      conn_res = post(conn, "/api/v1/accounts/#{user.id}/remove_from_followers")
+
+      assert %{"error" => "Can not unfollow yourself"} =
+               json_response_and_validate_schema(conn_res, 400)
+
+      # remove non existing user
+      conn_res = post(conn, "/api/v1/accounts/doesntexist/remove_from_followers")
+      assert %{"error" => "Record not found"} = json_response_and_validate_schema(conn_res, 404)
+    end
   end
 end

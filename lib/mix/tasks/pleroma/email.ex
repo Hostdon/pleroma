@@ -7,7 +7,7 @@ defmodule Mix.Tasks.Pleroma.Email do
   import Mix.Pleroma
 
   @shortdoc "Email administrative tasks"
-  @moduledoc File.read!("docs/administration/CLI_tasks/email.md")
+  @moduledoc File.read!("docs/docs/administration/CLI_tasks/email.md")
 
   def run(["test" | args]) do
     start_pleroma()

@@ -4,6 +4,7 @@
 
 defmodule Pleroma.Object.Fetcher do
   alias Pleroma.HTTP
+  alias Pleroma.Instances
   alias Pleroma.Maps
   alias Pleroma.Object
   alias Pleroma.Object.Containment
@@ -26,7 +27,41 @@ defmodule Pleroma.Object.Fetcher do
   end
 
   defp maybe_reinject_internal_fields(%{data: %{} = old_data}, new_data) do
+    has_history? = fn
+      %{"formerRepresentations" => %{"orderedItems" => list}} when is_list(list) -> true
+      _ -> false
+    end
+
     internal_fields = Map.take(old_data, Pleroma.Constants.object_internal_fields())
+
+    remote_history_exists? = has_history?.(new_data)
+
+    # If the remote history exists, we treat that as the only source of truth.
+    new_data =
+      if has_history?.(old_data) and not remote_history_exists? do
+        Map.put(new_data, "formerRepresentations", old_data["formerRepresentations"])
+      else
+        new_data
+      end
+
+    # If the remote does not have history information, we need to manage it ourselves
+    new_data =
+      if not remote_history_exists? do
+        changed? =
+          Pleroma.Constants.status_updatable_fields()
+          |> Enum.any?(fn field -> Map.get(old_data, field) != Map.get(new_data, field) end)
+
+        %{updated_object: updated_object} =
+          new_data
+          |> Object.Updater.maybe_update_history(old_data,
+            updated: changed?,
+            use_history_in_new_object?: false
+          )
+
+        updated_object
+      else
+        new_data
+      end
 
     Map.merge(new_data, internal_fields)
   end
@@ -81,7 +116,11 @@ defmodule Pleroma.Object.Fetcher do
 
   # Note: will create a Create activity, which we need internally at the moment.
   def fetch_object_from_id(id, options \\ []) do
-    with {_, nil} <- {:fetch_object, Object.get_cached_by_ap_id(id)},
+    with %URI{} = uri <- URI.parse(id),
+         # If we have instance restrictions, apply them here to prevent fetching from unwanted instances
+         {:ok, nil} <- Pleroma.Web.ActivityPub.MRF.SimplePolicy.check_reject(uri),
+         {:ok, _} <- Pleroma.Web.ActivityPub.MRF.SimplePolicy.check_accept(uri),
+         {_, nil} <- {:fetch_object, Object.get_cached_by_ap_id(id)},
          {_, true} <- {:allowed_depth, Federator.allowed_thread_distance?(options[:depth])},
          {_, {:ok, data}} <- {:fetch, fetch_and_contain_remote_object_from_id(id)},
          {_, nil} <- {:normalize, Object.normalize(data, fetch: false)},
@@ -120,6 +159,9 @@ defmodule Pleroma.Object.Fetcher do
       {:fetch, {:error, error}} ->
         {:error, error}
 
+      {:reject, reason} ->
+        {:reject, reason}
+
       e ->
         e
     end
@@ -145,11 +187,11 @@ defmodule Pleroma.Object.Fetcher do
       {:error, %Tesla.Mock.Error{}} ->
         nil
 
-      {:error, "Object has been deleted"} ->
+      {:error, {"Object has been deleted", _id, _code}} ->
         nil
 
       {:reject, reason} ->
-        Logger.info("Rejected #{id} while fetching: #{inspect(reason)}")
+        Logger.debug("Rejected #{id} while fetching: #{inspect(reason)}")
         nil
 
       e ->
@@ -200,6 +242,10 @@ defmodule Pleroma.Object.Fetcher do
          {:ok, body} <- get_object(id),
          {:ok, data} <- safe_json_decode(body),
          :ok <- Containment.contain_origin_from_id(id, data) do
+      unless Instances.reachable?(id) do
+        Instances.set_reachable(id)
+      end
+
       {:ok, data}
     else
       {:scheme, _} ->
@@ -245,7 +291,7 @@ defmodule Pleroma.Object.Fetcher do
         end
 
       {:ok, %{status: code}} when code in [404, 410] ->
-        {:error, "Object has been deleted"}
+        {:error, {"Object has been deleted", id, code}}
 
       {:error, e} ->
         {:error, e}

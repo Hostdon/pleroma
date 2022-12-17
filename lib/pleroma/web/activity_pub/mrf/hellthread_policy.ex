@@ -73,8 +73,8 @@ defmodule Pleroma.Web.ActivityPub.MRF.HellthreadPolicy do
   end
 
   @impl true
-  def filter(%{"type" => "Create", "object" => %{"type" => object_type}} = message)
-      when object_type in ~w{Note Article} do
+  def filter(%{"type" => type, "object" => %{"type" => object_type}} = message)
+      when type in ~w{Create Update} and object_type in ~w{Note Article} do
     reject_threshold =
       Pleroma.Config.get(
         [:mrf_hellthread, :reject_threshold],

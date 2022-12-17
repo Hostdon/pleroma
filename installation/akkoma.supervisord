@@ -1,0 +1,22 @@
+; Assumes akkoma is installed in /home/akkoma/akkoma and running as the akkoma user
+; Also assumes mix is in /usr/bin, this might differ on BSDs or niche Linux distros
+; Logs into /home/akkoma/logs
+[program:akkoma]
+command=/usr/bin/mix phx.server
+directory=/home/akkoma/akkoma
+autostart=true
+autorestart=true
+user=akkoma
+environment =
+  MIX_ENV=prod,
+  HOME=/home/akkoma,
+  USER=akkoma,
+  PATH="/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin:/home/akkoma/bin:%(ENV_PATH)s",
+  PWD=/home/akkoma/akkoma,
+  ERL_EPMD_ADDRESS=127.0.0.1
+stdout_logfile=/home/akkoma/logs/stdout.log
+stdout_logfile_maxbytes=50MB
+stdout_logfile_backups=10
+stderr_logfile=/home/akkoma/logs/stderr.log
+stderr_logfile_maxbytes=50MB
+stderr_logfile_backups=10

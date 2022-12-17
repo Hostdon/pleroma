@@ -12,7 +12,7 @@ defmodule Mix.Tasks.Pleroma.Config do
   alias Pleroma.Repo
 
   @shortdoc "Manages the location of the config"
-  @moduledoc File.read!("docs/administration/CLI_tasks/config.md")
+  @moduledoc File.read!("docs/docs/administration/CLI_tasks/config.md")
 
   def run(["migrate_to_db"]) do
     check_configdb(fn ->
@@ -286,9 +286,7 @@ defmodule Mix.Tasks.Pleroma.Config do
         file = File.open!(tmp_config_path)
 
         shell_info(
-          "Saving database configuration settings to #{tmp_config_path}. Copy it to the #{
-            Path.dirname(config_path)
-          } manually."
+          "Saving database configuration settings to #{tmp_config_path}. Copy it to the #{Path.dirname(config_path)} manually."
         )
 
         write_config(file, tmp_config_path, opts)

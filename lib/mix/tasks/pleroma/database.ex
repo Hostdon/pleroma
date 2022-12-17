@@ -18,7 +18,7 @@ defmodule Mix.Tasks.Pleroma.Database do
   use Mix.Task
 
   @shortdoc "A collection of database related tasks"
-  @moduledoc File.read!("docs/administration/CLI_tasks/database.md")
+  @moduledoc File.read!("docs/docs/administration/CLI_tasks/database.md")
 
   def run(["remove_embedded_objects" | args]) do
     {options, [], []} =
@@ -108,6 +108,14 @@ defmodule Mix.Tasks.Pleroma.Database do
     if Keyword.get(options, :vacuum) do
       Maintenance.vacuum("full")
     end
+  end
+
+  def run(["prune_task"]) do
+    start_pleroma()
+
+    nil
+    |> Pleroma.Workers.Cron.PruneDatabaseWorker.perform()
+    |> IO.inspect()
   end
 
   def run(["fix_likes_collections"]) do

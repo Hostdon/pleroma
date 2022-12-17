@@ -47,7 +47,6 @@ defmodule Pleroma.Web.ApiSpec.Schemas.Account do
             description: "whether the user allows automatically follow moved following accounts"
           },
           background_image: %Schema{type: :string, nullable: true, format: :uri},
-          chat_token: %Schema{type: :string},
           is_confirmed: %Schema{
             type: :boolean,
             description:
@@ -102,13 +101,18 @@ defmodule Pleroma.Web.ApiSpec.Schemas.Account do
             description:
               "A generic map of settings for frontends. Opaque to the backend. Only returned in `verify_credentials` and `update_credentials`"
           },
-          accepts_chat_messages: %Schema{type: :boolean, nullable: true},
           favicon: %Schema{
             type: :string,
             format: :uri,
             nullable: true,
             description: "Favicon image of the user's instance"
           }
+        }
+      },
+      akkoma: %Schema{
+        type: :object,
+        properties: %{
+          note_ttl_days: %Schema{type: :integer}
         }
       },
       source: %Schema{
@@ -175,9 +179,6 @@ defmodule Pleroma.Web.ApiSpec.Schemas.Account do
         "is_admin" => false,
         "is_moderator" => false,
         "skip_thread_containment" => false,
-        "accepts_chat_messages" => true,
-        "chat_token" =>
-          "SFMyNTY.g3QAAAACZAAEZGF0YW0AAAASOXRLaTNlc2JHN09RZ1oyOTIwZAAGc2lnbmVkbgYARNplS3EB.Mb_Iaqew2bN1I1o79B_iP7encmVCpTKC4OtHZRxdjKc",
         "unread_conversation_count" => 0,
         "tags" => [],
         "notification_settings" => %{
@@ -194,9 +195,11 @@ defmodule Pleroma.Web.ApiSpec.Schemas.Account do
           "id" => "9tKi3esbG7OQgZ2920",
           "muting" => false,
           "muting_notifications" => false,
+          "note" => "",
           "requested" => false,
           "showing_reblogs" => true,
-          "subscribing" => false
+          "subscribing" => false,
+          "notifying" => false
         },
         "settings_store" => %{
           "pleroma-fe" => %{}

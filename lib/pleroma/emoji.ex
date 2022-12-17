@@ -9,6 +9,7 @@ defmodule Pleroma.Emoji do
   """
   use GenServer
 
+  alias Pleroma.Emoji.Combinations
   alias Pleroma.Emoji.Loader
 
   require Logger
@@ -50,6 +51,15 @@ defmodule Pleroma.Emoji do
   @doc "Returns the path of the emoji `name`."
   @spec get(String.t()) :: String.t() | nil
   def get(name) do
+    name =
+      if String.starts_with?(name, ":") do
+        name
+        |> String.replace_leading(":", "")
+        |> String.replace_trailing(":", "")
+      else
+        name
+      end
+
     case :ets.lookup(@ets, name) do
       [{_, path}] -> path
       _ -> nil
@@ -137,4 +147,62 @@ defmodule Pleroma.Emoji do
   end
 
   def is_unicode_emoji?(_), do: false
+
+  def stripped_name(name) when is_binary(name) do
+    name
+    |> String.replace_leading(":", "")
+    |> String.replace_trailing(":", "")
+  end
+
+  def stripped_name(name), do: name
+
+  def maybe_quote(name) when is_binary(name) do
+    if is_unicode_emoji?(name) do
+      name
+    else
+      if String.starts_with?(name, ":") do
+        name
+      else
+        ":#{name}:"
+      end
+    end
+  end
+
+  def maybe_quote(name), do: name
+
+  def emoji_url(%{"type" => "EmojiReact", "content" => _, "tag" => []}), do: nil
+
+  def emoji_url(%{"type" => "EmojiReact", "content" => emoji, "tag" => tags}) do
+    tag =
+      tags
+      |> Enum.find(fn tag -> tag["type"] == "Emoji" && tag["name"] == stripped_name(emoji) end)
+
+    if is_nil(tag) do
+      nil
+    else
+      tag
+      |> Map.get("icon")
+      |> Map.get("url")
+    end
+  end
+
+  def emoji_url(_), do: nil
+
+  def emoji_name_with_instance(name, url) do
+    url = url |> URI.parse() |> Map.get(:host)
+    "#{name}@#{url}"
+  end
+
+  emoji_qualification_map =
+    emojis
+    |> Enum.filter(&String.contains?(&1, "\uFE0F"))
+    |> Combinations.variate_emoji_qualification()
+
+  for {qualified, unqualified_list} <- emoji_qualification_map do
+    for unqualified <- unqualified_list do
+      def fully_qualify_emoji(unquote(unqualified)), do: unquote(qualified)
+    end
+  end
+
+  def fully_qualify_emoji(emoji), do: emoji
 end

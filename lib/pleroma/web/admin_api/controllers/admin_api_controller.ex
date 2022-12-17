@@ -49,13 +49,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   plug(
     OAuthScopesPlug,
     %{scopes: ["admin:read:statuses"]}
-    when action in [:list_user_statuses, :list_instance_statuses]
-  )
-
-  plug(
-    OAuthScopesPlug,
-    %{scopes: ["admin:read:chats"]}
-    when action in [:list_user_chats]
+    when action in [:list_user_statuses]
   )
 
   plug(
@@ -81,24 +75,6 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
   action_fallback(AdminAPI.FallbackController)
 
-  def list_instance_statuses(conn, %{"instance" => instance} = params) do
-    with_reblogs = params["with_reblogs"] == "true" || params["with_reblogs"] == true
-    {page, page_size} = page_params(params)
-
-    result =
-      ActivityPub.fetch_statuses(nil, %{
-        instance: instance,
-        limit: page_size,
-        offset: (page - 1) * page_size,
-        exclude_reblogs: not with_reblogs,
-        total: true
-      })
-
-    conn
-    |> put_view(AdminAPI.StatusView)
-    |> render("index.json", %{total: result[:total], activities: result[:items], as: :activity})
-  end
-
   def list_user_statuses(%{assigns: %{user: admin}} = conn, %{"nickname" => nickname} = params) do
     with_reblogs = params["with_reblogs"] == "true" || params["with_reblogs"] == true
     godmode = params["godmode"] == "true" || params["godmode"] == true
@@ -119,20 +95,6 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
       conn
       |> put_view(AdminAPI.StatusView)
       |> render("index.json", %{total: result[:total], activities: result[:items], as: :activity})
-    else
-      _ -> {:error, :not_found}
-    end
-  end
-
-  def list_user_chats(%{assigns: %{user: admin}} = conn, %{"nickname" => nickname} = _params) do
-    with %User{id: user_id} <- User.get_cached_by_nickname_or_id(nickname, for: admin) do
-      chats =
-        Pleroma.Chat.for_user_query(user_id)
-        |> Pleroma.Repo.all()
-
-      conn
-      |> put_view(AdminAPI.ChatView)
-      |> render("index.json", chats: chats)
     else
       _ -> {:error, :not_found}
     end

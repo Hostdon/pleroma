@@ -10,6 +10,8 @@ defmodule Pleroma.HTTP.RequestBuilder do
   alias Pleroma.HTTP.Request
   alias Tesla.Multipart
 
+  @mix_env Mix.env()
+
   @doc """
   Creates new request
   """
@@ -33,14 +35,7 @@ defmodule Pleroma.HTTP.RequestBuilder do
   """
   @spec headers(Request.t(), Request.headers()) :: Request.t()
   def headers(request, headers) do
-    headers_list =
-      with true <- Pleroma.Config.get([:http, :send_user_agent]),
-           nil <- Enum.find(headers, fn {key, _val} -> String.downcase(key) == "user-agent" end) do
-        [{"user-agent", Pleroma.Application.user_agent()} | headers]
-      else
-        _ ->
-          headers
-      end
+    headers_list = maybe_add_user_agent(headers, @mix_env)
 
     %{request | headers: headers_list}
   end
@@ -92,4 +87,16 @@ defmodule Pleroma.HTTP.RequestBuilder do
     |> Map.from_struct()
     |> Enum.into([])
   end
+
+  defp maybe_add_user_agent(headers, :test) do
+    with true <- Pleroma.Config.get([:http, :send_user_agent]) do
+      [{"user-agent", Pleroma.Application.user_agent()} | headers]
+    else
+      _ ->
+        headers
+    end
+  end
+
+  defp maybe_add_user_agent(headers, _),
+    do: [{"user-agent", Pleroma.Application.user_agent()} | headers]
 end

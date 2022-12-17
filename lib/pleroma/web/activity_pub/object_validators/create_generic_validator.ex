@@ -13,21 +13,20 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.CreateGenericValidator do
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ObjectValidators.CommonFixes
   alias Pleroma.Web.ActivityPub.ObjectValidators.CommonValidations
-  alias Pleroma.Web.ActivityPub.Transmogrifier
 
   import Ecto.Changeset
 
   @primary_key false
 
   embedded_schema do
-    field(:id, ObjectValidators.ObjectID, primary_key: true)
-    field(:actor, ObjectValidators.ObjectID)
-    field(:type, :string)
-    field(:to, ObjectValidators.Recipients, default: [])
-    field(:cc, ObjectValidators.Recipients, default: [])
-    field(:bto, ObjectValidators.Recipients, default: [])
-    field(:bcc, ObjectValidators.Recipients, default: [])
-    field(:object, ObjectValidators.ObjectID)
+    quote do
+      unquote do
+        import Elixir.Pleroma.Web.ActivityPub.ObjectValidators.CommonFields
+        message_fields()
+        activity_fields()
+      end
+    end
+
     field(:expires_at, ObjectValidators.DateTime)
 
     # Should be moved to object, done for CommonAPI.Utils.make_context
@@ -67,7 +66,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.CreateGenericValidator do
     |> CommonFixes.cast_and_filter_recipients("cc", follower_collection, object["cc"])
     |> CommonFixes.cast_and_filter_recipients("bto", follower_collection, object["bto"])
     |> CommonFixes.cast_and_filter_recipients("bcc", follower_collection, object["bcc"])
-    |> Transmogrifier.fix_implicit_addressing(follower_collection)
+    |> CommonFixes.fix_implicit_addressing(follower_collection)
   end
 
   def fix(data, meta) do

@@ -1,0 +1,5 @@
+Every command should be ran as the `akkoma` user from it's home directory. For example if you are superuser, you would have to wrap the command in `su akkoma -s $SHELL -lc "$COMMAND"`.
+
+??? note "From source note about `MIX_ENV`"
+
+     The `mix` command should be prefixed with the name of environment your Akkoma server is running in, usually it's `MIX_ENV=prod`

@@ -27,6 +27,11 @@ defmodule Pleroma.Workers.PurgeExpiredActivity do
     end
   end
 
+  @impl Oban.Worker
+  def timeout(_job) do
+    Pleroma.Config.get([:workers, :timeout, :activity_expiration], :timer.minutes(1))
+  end
+
   @impl true
   def perform(%Oban.Job{args: %{"activity_id" => id}}) do
     with %Activity{} = activity <- find_activity(id),

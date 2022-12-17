@@ -27,7 +27,7 @@ defmodule Pleroma.Emails.UserEmailTest do
     token = %Pleroma.UserInviteToken{token: "test-token"}
     email = UserEmail.user_invitation_email(user, token, "test@test.com", "Jonh")
     assert email.from == {config[:name], config[:notify_email]}
-    assert email.subject == "Invitation to Pleroma"
+    assert email.subject == "Invitation to Akkoma"
     assert email.to == [{"Jonh", "test@test.com"}]
 
     assert email.html_body =~
@@ -55,5 +55,17 @@ defmodule Pleroma.Emails.UserEmailTest do
     assert email.to == [{user.name, user.email}]
     assert email.subject == "Your account is awaiting approval"
     assert email.html_body =~ "Awaiting Approval"
+  end
+
+  test "email i18n" do
+    user = insert(:user, language: "en_test")
+    email = UserEmail.approval_pending_email(user)
+    assert email.subject == "xxYour account is awaiting approvalxx"
+  end
+
+  test "email i18n should fallback to default locale if user language is unsupported" do
+    user = insert(:user, language: "unsupported")
+    email = UserEmail.approval_pending_email(user)
+    assert email.subject == "Your account is awaiting approval"
   end
 end

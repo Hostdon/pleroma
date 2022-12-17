@@ -7,10 +7,8 @@ defmodule Pleroma.Web.Push.ImplTest do
 
   import Pleroma.Factory
 
-  alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.Push.Impl
   alias Pleroma.Web.Push.Subscription
@@ -202,6 +200,21 @@ defmodule Pleroma.Web.Push.ImplTest do
              "New Reaction"
   end
 
+  test "renders title and body for update activity" do
+    user = insert(:user)
+
+    {:ok, activity} = CommonAPI.post(user, %{status: "lorem ipsum"})
+
+    {:ok, activity} = CommonAPI.update(user, activity, %{status: "edited status"})
+    object = Object.normalize(activity, fetch: false)
+
+    assert Impl.format_body(%{activity: activity, type: "update"}, user, object) ==
+             "@#{user.nickname} edited a status"
+
+    assert Impl.format_title(%{activity: activity, type: "update"}) ==
+             "New Update"
+  end
+
   test "renders title for create activity with direct visibility" do
     user = insert(:user, nickname: "Bob")
 
@@ -216,46 +229,6 @@ defmodule Pleroma.Web.Push.ImplTest do
   end
 
   describe "build_content/3" do
-    test "builds content for chat messages" do
-      user = insert(:user)
-      recipient = insert(:user)
-
-      {:ok, chat} = CommonAPI.post_chat_message(user, recipient, "hey")
-      object = Object.normalize(chat, fetch: false)
-      [notification] = Notification.for_user(recipient)
-
-      res = Impl.build_content(notification, user, object)
-
-      assert res == %{
-               body: "@#{user.nickname}: hey",
-               title: "New Chat Message"
-             }
-    end
-
-    test "builds content for chat messages with no content" do
-      user = insert(:user)
-      recipient = insert(:user)
-
-      file = %Plug.Upload{
-        content_type: "image/jpeg",
-        path: Path.absname("test/fixtures/image.jpg"),
-        filename: "an_image.jpg"
-      }
-
-      {:ok, upload} = ActivityPub.upload(file, actor: user.ap_id)
-
-      {:ok, chat} = CommonAPI.post_chat_message(user, recipient, nil, media_id: upload.id)
-      object = Object.normalize(chat, fetch: false)
-      [notification] = Notification.for_user(recipient)
-
-      res = Impl.build_content(notification, user, object)
-
-      assert res == %{
-               body: "@#{user.nickname}: (Attachment)",
-               title: "New Chat Message"
-             }
-    end
-
     test "hides contents of notifications when option enabled" do
       user = insert(:user, nickname: "Bob")
 

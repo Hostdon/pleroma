@@ -14,6 +14,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusController do
   alias Pleroma.Bookmark
   alias Pleroma.Object
   alias Pleroma.Repo
+  alias Pleroma.Config
   alias Pleroma.ScheduledActivity
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
@@ -30,6 +31,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusController do
   plug(:skip_public_check when action in [:index, :show])
 
   @unauthenticated_access %{fallback: :proceed_unauthenticated, scopes: []}
+  @cachex Pleroma.Config.get([:cachex, :provider], Cachex)
 
   plug(
     OAuthScopesPlug,
@@ -37,8 +39,10 @@ defmodule Pleroma.Web.MastodonAPI.StatusController do
     when action in [
            :index,
            :show,
-           :card,
-           :context
+           :context,
+           :translate,
+           :show_history,
+           :show_source
          ]
   )
 
@@ -49,7 +53,8 @@ defmodule Pleroma.Web.MastodonAPI.StatusController do
            :create,
            :delete,
            :reblog,
-           :unreblog
+           :unreblog,
+           :update
          ]
   )
 
@@ -166,6 +171,16 @@ defmodule Pleroma.Web.MastodonAPI.StatusController do
       Map.put(params, :in_reply_to_status_id, params[:in_reply_to_id])
       |> put_application(conn)
 
+    expires_in_seconds =
+      if is_nil(user.status_ttl_days),
+        do: nil,
+        else: 60 * 60 * 24 * user.status_ttl_days
+
+    params =
+      if is_nil(expires_in_seconds),
+        do: params,
+        else: Map.put(params, :expires_in, expires_in_seconds)
+
     with {:ok, activity} <- CommonAPI.post(user, params) do
       try_render(conn, "show.json",
         activity: activity,
@@ -189,6 +204,59 @@ defmodule Pleroma.Web.MastodonAPI.StatusController do
   def create(%{assigns: %{user: _user}, body_params: %{media_ids: _} = params} = conn, _) do
     params = Map.put(params, :status, "")
     create(%Plug.Conn{conn | body_params: params}, %{})
+  end
+
+  @doc "GET /api/v1/statuses/:id/history"
+  def show_history(%{assigns: assigns} = conn, %{id: id} = params) do
+    with user = assigns[:user],
+         %Activity{} = activity <- Activity.get_by_id_with_object(id),
+         true <- Visibility.visible_for_user?(activity, user) do
+      try_render(conn, "history.json",
+        activity: activity,
+        for: user,
+        with_direct_conversation_id: true,
+        with_muted: Map.get(params, :with_muted, false)
+      )
+    else
+      _ -> {:error, :not_found}
+    end
+  end
+
+  @doc "GET /api/v1/statuses/:id/source"
+  def show_source(%{assigns: assigns} = conn, %{id: id} = _params) do
+    with user = assigns[:user],
+         %Activity{} = activity <- Activity.get_by_id_with_object(id),
+         true <- Visibility.visible_for_user?(activity, user) do
+      try_render(conn, "source.json",
+        activity: activity,
+        for: user
+      )
+    else
+      _ -> {:error, :not_found}
+    end
+  end
+
+  @doc "PUT /api/v1/statuses/:id"
+  def update(%{assigns: %{user: user}, body_params: body_params} = conn, %{id: id} = params) do
+    with {_, %Activity{}} = {_, activity} <- {:activity, Activity.get_by_id_with_object(id)},
+         {_, true} <- {:visible, Visibility.visible_for_user?(activity, user)},
+         {_, true} <- {:is_create, activity.data["type"] == "Create"},
+         actor <- Activity.user_actor(activity),
+         {_, true} <- {:own_status, actor.id == user.id},
+         changes <- body_params |> put_application(conn),
+         {_, {:ok, _update_activity}} <- {:pipeline, CommonAPI.update(user, activity, changes)},
+         {_, %Activity{}} = {_, activity} <- {:refetched, Activity.get_by_id_with_object(id)} do
+      try_render(conn, "show.json",
+        activity: activity,
+        for: user,
+        with_direct_conversation_id: true,
+        with_muted: Map.get(params, :with_muted, false)
+      )
+    else
+      {:own_status, _} -> {:error, :forbidden}
+      {:pipeline, _} -> {:error, :internal_server_error}
+      _ -> {:error, :not_found}
+    end
   end
 
   @doc "GET /api/v1/statuses/:id"
@@ -315,18 +383,6 @@ defmodule Pleroma.Web.MastodonAPI.StatusController do
     end
   end
 
-  @doc "GET /api/v1/statuses/:id/card"
-  @deprecated "https://github.com/tootsuite/mastodon/pull/11213"
-  def card(%{assigns: %{user: user}} = conn, %{id: status_id}) do
-    with %Activity{} = activity <- Activity.get_by_id(status_id),
-         true <- Visibility.visible_for_user?(activity, user) do
-      data = Pleroma.Web.RichMedia.Helpers.fetch_data_for_activity(activity)
-      render(conn, "card.json", data)
-    else
-      _ -> render_error(conn, :not_found, "Record not found")
-    end
-  end
-
   @doc "GET /api/v1/statuses/:id/favourited_by"
   def favourited_by(%{assigns: %{user: user}} = conn, %{id: id}) do
     with true <- Pleroma.Config.get([:instance, :show_reactions]),
@@ -384,11 +440,13 @@ defmodule Pleroma.Web.MastodonAPI.StatusController do
   def context(%{assigns: %{user: user}} = conn, %{id: id}) do
     with %Activity{} = activity <- Activity.get_by_id(id) do
       activities =
-        ActivityPub.fetch_activities_for_context(activity.data["context"], %{
+        activity.data["context"]
+        |> ActivityPub.fetch_activities_for_context(%{
           blocking_user: user,
           user: user,
           exclude_id: activity.id
         })
+        |> Enum.filter(fn activity -> Visibility.visible_for_user?(activity, user) end)
 
       render(conn, "context.json", activity: activity, activities: activities, user: user)
     end
@@ -426,6 +484,51 @@ defmodule Pleroma.Web.MastodonAPI.StatusController do
       activities: activities,
       for: user,
       as: :activity
+    )
+  end
+
+  @doc "GET /api/v1/statuses/:id/translations/:language"
+  def translate(%{assigns: %{user: user}} = conn, %{id: id, language: language} = params) do
+    with {:enabled, true} <- {:enabled, Config.get([:translator, :enabled])},
+         %Activity{} = activity <- Activity.get_by_id_with_object(id),
+         {:visible, true} <- {:visible, Visibility.visible_for_user?(activity, user)},
+         translation_module <- Config.get([:translator, :module]),
+         {:ok, detected, translation} <-
+           fetch_or_translate(
+             activity.id,
+             activity.object.data["content"],
+             Map.get(params, :from, nil),
+             language,
+             translation_module
+           ) do
+      json(conn, %{detected_language: detected, text: translation})
+    else
+      {:enabled, false} ->
+        conn
+        |> put_status(:bad_request)
+        |> json(%{"error" => "Translation is not enabled"})
+
+      {:visible, false} ->
+        {:error, :not_found}
+
+      e ->
+        e
+    end
+  end
+
+  defp fetch_or_translate(status_id, text, source_language, target_language, translation_module) do
+    @cachex.fetch!(
+      :translations_cache,
+      "translations:#{status_id}:#{source_language}:#{target_language}",
+      fn _ ->
+        value = translation_module.translate(text, source_language, target_language)
+
+        with {:ok, _, _} <- value do
+          value
+        else
+          _ -> {:ignore, value}
+        end
+      end
     )
   end
 

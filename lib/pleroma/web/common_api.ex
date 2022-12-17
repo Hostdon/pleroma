@@ -5,7 +5,6 @@
 defmodule Pleroma.Web.CommonAPI do
   alias Pleroma.Activity
   alias Pleroma.Conversation.Participation
-  alias Pleroma.Formatter
   alias Pleroma.Object
   alias Pleroma.ThreadMute
   alias Pleroma.User
@@ -27,57 +26,6 @@ defmodule Pleroma.Web.CommonAPI do
     with {:ok, block_data, _} <- Builder.block(blocker, blocked),
          {:ok, block, _} <- Pipeline.common_pipeline(block_data, local: true) do
       {:ok, block}
-    end
-  end
-
-  def post_chat_message(%User{} = user, %User{} = recipient, content, opts \\ []) do
-    with maybe_attachment <- opts[:media_id] && Object.get_by_id(opts[:media_id]),
-         :ok <- validate_chat_content_length(content, !!maybe_attachment),
-         {_, {:ok, chat_message_data, _meta}} <-
-           {:build_object,
-            Builder.chat_message(
-              user,
-              recipient.ap_id,
-              content |> format_chat_content,
-              attachment: maybe_attachment
-            )},
-         {_, {:ok, create_activity_data, _meta}} <-
-           {:build_create_activity, Builder.create(user, chat_message_data, [recipient.ap_id])},
-         {_, {:ok, %Activity{} = activity, _meta}} <-
-           {:common_pipeline,
-            Pipeline.common_pipeline(create_activity_data,
-              local: true,
-              idempotency_key: opts[:idempotency_key]
-            )} do
-      {:ok, activity}
-    else
-      {:common_pipeline, {:reject, _} = e} -> e
-      e -> e
-    end
-  end
-
-  defp format_chat_content(nil), do: nil
-
-  defp format_chat_content(content) do
-    {text, _, _} =
-      content
-      |> Formatter.html_escape("text/plain")
-      |> Formatter.linkify()
-      |> (fn {text, mentions, tags} ->
-            {String.replace(text, ~r/\r?\n/, "<br>"), mentions, tags}
-          end).()
-
-    text
-  end
-
-  defp validate_chat_content_length(_, true), do: :ok
-  defp validate_chat_content_length(nil, false), do: {:error, :no_content}
-
-  defp validate_chat_content_length(content, _) do
-    if String.length(content) <= Pleroma.Config.get([:instance, :chat_limit]) do
-      :ok
-    else
-      {:error, :content_too_long}
     end
   end
 
@@ -372,6 +320,10 @@ defmodule Pleroma.Web.CommonAPI do
     end
   end
 
+  def get_quoted_visibility(nil), do: nil
+
+  def get_quoted_visibility(activity), do: get_replied_to_visibility(activity)
+
   def check_expiry_date({:ok, nil} = res), do: res
 
   def check_expiry_date({:ok, in_seconds}) do
@@ -389,15 +341,44 @@ defmodule Pleroma.Web.CommonAPI do
     |> check_expiry_date()
   end
 
-  def listen(user, data) do
-    with {:ok, draft} <- ActivityDraft.listen(user, data) do
-      ActivityPub.listen(draft.changes)
-    end
-  end
-
   def post(user, %{status: _} = data) do
     with {:ok, draft} <- ActivityDraft.create(user, data) do
       ActivityPub.create(draft.changes, draft.preview?)
+    end
+  end
+
+  def update(user, orig_activity, changes) do
+    with orig_object <- Object.normalize(orig_activity),
+         {:ok, new_object} <- make_update_data(user, orig_object, changes),
+         {:ok, update_data, _} <- Builder.update(user, new_object),
+         {:ok, update, _} <- Pipeline.common_pipeline(update_data, local: true) do
+      {:ok, update}
+    else
+      _ -> {:error, nil}
+    end
+  end
+
+  defp make_update_data(user, orig_object, changes) do
+    kept_params = %{
+      visibility: Visibility.get_visibility(orig_object),
+      in_reply_to_id:
+        with replied_id when is_binary(replied_id) <- orig_object.data["inReplyTo"],
+             %Activity{id: activity_id} <- Activity.get_create_by_object_ap_id(replied_id) do
+          activity_id
+        else
+          _ -> nil
+        end
+    }
+
+    params = Map.merge(changes, kept_params)
+
+    with {:ok, draft} <- ActivityDraft.create(user, params) do
+      change =
+        Object.Updater.make_update_object_data(orig_object.data, draft.object, Utils.make_date())
+
+      {:ok, change}
+    else
+      _ -> {:error, nil}
     end
   end
 
@@ -487,9 +468,7 @@ defmodule Pleroma.Web.CommonAPI do
     else
       {what, result} = error ->
         Logger.warn(
-          "CommonAPI.remove_mute/2 failed. #{what}: #{result}, user_id: #{user_id}, activity_id: #{
-            activity_id
-          }"
+          "CommonAPI.remove_mute/2 failed. #{what}: #{result}, user_id: #{user_id}, activity_id: #{activity_id}"
         )
 
         {:error, error}

@@ -1,4 +1,8 @@
 # App artifacts
+docs/site
+*.zip
+*.sw*
+secret
 /_build
 /db
 /deps
@@ -13,6 +17,14 @@
 /doc
 /instance
 /priv/ssh_keys
+vm.args
+.cache/
+.hex/
+.mix/
+.psql_history
+docker-resources/Dockerfile
+docker-resources/Caddyfile
+pgdata
 
 # Prevent committing custom emojis
 /priv/static/emoji/custom/*
@@ -58,3 +70,9 @@ pleroma.iml
 # Editor temp files
 /*~
 /*#
+
+# Generated documentation
+docs/site
+
+# docker stuff
+docker-db

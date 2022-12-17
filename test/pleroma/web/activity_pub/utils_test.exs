@@ -213,27 +213,18 @@ defmodule Pleroma.Web.ActivityPub.UtilsTest do
       assert refresh_record(follow_activity).data["state"] == "accept"
       assert refresh_record(follow_activity_two).data["state"] == "accept"
     end
-  end
 
-  describe "update_follow_state/2" do
-    test "updates the state of the given follow activity" do
-      user = insert(:user, is_locked: true)
+    test "also updates the state of accepted follows" do
+      user = insert(:user)
       follower = insert(:user)
 
       {:ok, _, _, follow_activity} = CommonAPI.follow(follower, user)
       {:ok, _, _, follow_activity_two} = CommonAPI.follow(follower, user)
 
-      data =
-        follow_activity_two.data
-        |> Map.put("state", "accept")
+      {:ok, follow_activity_two} =
+        Utils.update_follow_state_for_all(follow_activity_two, "reject")
 
-      cng = Ecto.Changeset.change(follow_activity_two, data: data)
-
-      {:ok, follow_activity_two} = Repo.update(cng)
-
-      {:ok, follow_activity_two} = Utils.update_follow_state(follow_activity_two, "reject")
-
-      assert refresh_record(follow_activity).data["state"] == "pending"
+      assert refresh_record(follow_activity).data["state"] == "reject"
       assert refresh_record(follow_activity_two).data["state"] == "reject"
     end
   end
@@ -415,7 +406,6 @@ defmodule Pleroma.Web.ActivityPub.UtilsTest do
       object = Object.normalize(note_activity, fetch: false)
       res = Utils.lazy_put_activity_defaults(%{"context" => object.data["id"]})
       assert res["context"] == object.data["id"]
-      assert res["context_id"] == object.id
       assert res["id"]
       assert res["published"]
     end
@@ -423,7 +413,6 @@ defmodule Pleroma.Web.ActivityPub.UtilsTest do
     test "returns map with fake id and published data" do
       assert %{
                "context" => "pleroma:fakecontext",
-               "context_id" => -1,
                "id" => "pleroma:fakeid",
                "published" => _
              } = Utils.lazy_put_activity_defaults(%{}, true)
@@ -440,13 +429,11 @@ defmodule Pleroma.Web.ActivityPub.UtilsTest do
         })
 
       assert res["context"] == object.data["id"]
-      assert res["context_id"] == object.id
       assert res["id"]
       assert res["published"]
       assert res["object"]["id"]
       assert res["object"]["published"]
       assert res["object"]["context"] == object.data["id"]
-      assert res["object"]["context_id"] == object.id
     end
   end
 

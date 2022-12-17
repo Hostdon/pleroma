@@ -47,9 +47,26 @@ defmodule Pleroma.Web.Federator do
   end
 
   @impl true
-  def publish(activity) do
-    PublisherWorker.enqueue("publish", %{"activity_id" => activity.id})
+  def publish(%{data: %{"object" => object}} = activity) when is_binary(object) do
+    PublisherWorker.enqueue("publish", %{"activity_id" => activity.id, "object_data" => nil},
+      priority: publish_priority(activity)
+    )
   end
+
+  @impl true
+  def publish(%{data: %{"object" => object}} = activity) when is_map(object) or is_list(object) do
+    PublisherWorker.enqueue(
+      "publish",
+      %{
+        "activity_id" => activity.id,
+        "object_data" => Jason.encode!(object)
+      },
+      priority: publish_priority(activity)
+    )
+  end
+
+  defp publish_priority(%{data: %{"type" => "Delete"}}), do: 3
+  defp publish_priority(_), do: 0
 
   # Job Worker Callbacks
 
@@ -61,10 +78,8 @@ defmodule Pleroma.Web.Federator do
   def perform(:publish, activity) do
     Logger.debug(fn -> "Running publish for #{activity.data["id"]}" end)
 
-    with %User{} = actor <- User.get_cached_by_ap_id(activity.data["actor"]),
-         {:ok, actor} <- User.ensure_keys_present(actor) do
-      Publisher.publish(actor, activity)
-    end
+    %User{} = actor = User.get_cached_by_ap_id(activity.data["actor"])
+    Publisher.publish(actor, activity)
   end
 
   def perform(:incoming_ap_doc, params) do

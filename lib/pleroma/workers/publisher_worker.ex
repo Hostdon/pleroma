@@ -13,8 +13,17 @@ defmodule Pleroma.Workers.PublisherWorker do
   end
 
   @impl Oban.Worker
-  def perform(%Job{args: %{"op" => "publish", "activity_id" => activity_id}}) do
+  def perform(%Job{args: %{"op" => "publish", "activity_id" => activity_id, "object_data" => nil}}) do
     activity = Activity.get_by_id(activity_id)
+    Federator.perform(:publish, activity)
+  end
+
+  @impl Oban.Worker
+  def perform(%Job{
+        args: %{"op" => "publish", "activity_id" => activity_id, "object_data" => object_data}
+      }) do
+    activity = Activity.get_by_id(activity_id)
+    activity = %{activity | data: Map.put(activity.data, "object", Jason.decode!(object_data))}
     Federator.perform(:publish, activity)
   end
 

@@ -19,6 +19,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   alias Pleroma.Web.ActivityPub.Pipeline
   alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.ActivityPub.Visibility
+  alias Pleroma.Web.ActivityPub.ObjectValidators.CommonFixes
   alias Pleroma.Web.Federator
   alias Pleroma.Workers.TransmogrifierWorker
 
@@ -38,6 +39,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     |> fix_attachments()
     |> fix_context()
     |> fix_in_reply_to(options)
+    |> fix_quote_url(options)
     |> fix_emoji()
     |> fix_tag()
     |> fix_content_map()
@@ -94,29 +96,6 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     |> Map.put("cc", final_cc)
   end
 
-  # if as:Public is addressed, then make sure the followers collection is also addressed
-  # so that the activities will be delivered to local users.
-  def fix_implicit_addressing(%{"to" => to, "cc" => cc} = object, followers_collection) do
-    recipients = to ++ cc
-
-    if followers_collection not in recipients do
-      cond do
-        Pleroma.Constants.as_public() in cc ->
-          to = to ++ [followers_collection]
-          Map.put(object, "to", to)
-
-        Pleroma.Constants.as_public() in to ->
-          cc = cc ++ [followers_collection]
-          Map.put(object, "cc", cc)
-
-        true ->
-          object
-      end
-    else
-      object
-    end
-  end
-
   def fix_addressing(object) do
     {:ok, %User{follower_address: follower_collection}} =
       object
@@ -129,7 +108,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     |> fix_addressing_list("bto")
     |> fix_addressing_list("bcc")
     |> fix_explicit_addressing(follower_collection)
-    |> fix_implicit_addressing(follower_collection)
+    |> CommonFixes.fix_implicit_addressing(follower_collection)
   end
 
   def fix_actor(%{"attributedTo" => actor} = object) do
@@ -157,7 +136,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
         |> Map.drop(["conversation", "inReplyToAtomUri"])
       else
         e ->
-          Logger.warn("Couldn't fetch #{inspect(in_reply_to_id)}, error: #{inspect(e)}")
+          Logger.warn("Couldn't fetch reply@#{inspect(in_reply_to_id)}, error: #{inspect(e)}")
           object
       end
     else
@@ -166,6 +145,53 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   end
 
   def fix_in_reply_to(object, _options), do: object
+
+  def fix_quote_url(object, options \\ [])
+
+  def fix_quote_url(%{"quoteUri" => quote_url} = object, options)
+      when not is_nil(quote_url) do
+    depth = (options[:depth] || 0) + 1
+
+    if Federator.allowed_thread_distance?(depth) do
+      with {:ok, quoted_object} <- get_obj_helper(quote_url, options),
+           %Activity{} <- Activity.get_create_by_object_ap_id(quoted_object.data["id"]) do
+        object
+        |> Map.put("quoteUri", quoted_object.data["id"])
+      else
+        e ->
+          Logger.warn("Couldn't fetch quote@#{inspect(quote_url)}, error: #{inspect(e)}")
+          object
+      end
+    else
+      object
+    end
+  end
+
+  # Soapbox
+  def fix_quote_url(%{"quoteUrl" => quote_url} = object, options) do
+    object
+    |> Map.put("quoteUri", quote_url)
+    |> Map.delete("quoteUrl")
+    |> fix_quote_url(options)
+  end
+
+  # Old Fedibird (bug)
+  # https://github.com/fedibird/mastodon/issues/9
+  def fix_quote_url(%{"quoteURL" => quote_url} = object, options) do
+    object
+    |> Map.put("quoteUri", quote_url)
+    |> Map.delete("quoteURL")
+    |> fix_quote_url(options)
+  end
+
+  def fix_quote_url(%{"_misskey_quote" => quote_url} = object, options) do
+    object
+    |> Map.put("quoteUri", quote_url)
+    |> Map.delete("_misskey_quote")
+    |> fix_quote_url(options)
+  end
+
+  def fix_quote_url(object, _), do: object
 
   defp prepare_in_reply_to(in_reply_to) do
     cond do
@@ -384,52 +410,21 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   def handle_incoming(%{"id" => id}, _options) when is_binary(id) and byte_size(id) < 8,
     do: :error
 
+  @doc "Rewrite misskey likes into EmojiReacts"
   def handle_incoming(
-        %{"type" => "Listen", "object" => %{"type" => "Audio"} = object} = data,
+        %{
+          "type" => "Like",
+          "_misskey_reaction" => reaction,
+          "tag" => _
+        } = data,
         options
       ) do
-    actor = Containment.get_actor(data)
-
-    data =
-      Map.put(data, "actor", actor)
-      |> fix_addressing
-
-    with {:ok, %User{} = user} <- User.get_or_fetch_by_ap_id(data["actor"]) do
-      reply_depth = (options[:depth] || 0) + 1
-      options = Keyword.put(options, :depth, reply_depth)
-      object = fix_object(object, options)
-
-      params = %{
-        to: data["to"],
-        object: object,
-        actor: user,
-        context: nil,
-        local: false,
-        published: data["published"],
-        additional: Map.take(data, ["cc", "id"])
-      }
-
-      ActivityPub.listen(params)
-    else
-      _e -> :error
-    end
+    data
+    |> Map.put("type", "EmojiReact")
+    |> Map.put("content", reaction)
+    |> handle_incoming(options)
   end
 
-  @misskey_reactions %{
-    "like" => "👍",
-    "love" => "❤️",
-    "laugh" => "😆",
-    "hmm" => "🤔",
-    "surprise" => "😮",
-    "congrats" => "🎉",
-    "angry" => "💢",
-    "confused" => "😥",
-    "rip" => "😇",
-    "pudding" => "🍮",
-    "star" => "⭐"
-  }
-
-  @doc "Rewrite misskey likes into EmojiReacts"
   def handle_incoming(
         %{
           "type" => "Like",
@@ -439,7 +434,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
       ) do
     data
     |> Map.put("type", "EmojiReact")
-    |> Map.put("content", @misskey_reactions[reaction] || reaction)
+    |> Map.put("content", reaction)
     |> handle_incoming(options)
   end
 
@@ -447,7 +442,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
         %{"type" => "Create", "object" => %{"type" => objtype, "id" => obj_id}} = data,
         options
       )
-      when objtype in ~w{Question Answer ChatMessage Audio Video Event Article Note Page} do
+      when objtype in ~w{Question Answer Audio Video Event Article Note Page} do
     fetch_options = Keyword.put(options, :depth, (options[:depth] || 0) + 1)
 
     object =
@@ -455,8 +450,18 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
       |> strip_internal_fields()
       |> fix_type(fetch_options)
       |> fix_in_reply_to(fetch_options)
+      |> fix_quote_url(fetch_options)
 
-    data = Map.put(data, "object", object)
+    # Only change the Create's context if the object's context has been modified.
+    data =
+      if data["object"]["context"] != object["context"] do
+        data
+        |> Map.put("object", object)
+        |> Map.put("context", object["context"])
+      else
+        Map.put(data, "object", object)
+      end
+
     options = Keyword.put(options, :local, false)
 
     with {:ok, %User{}} <- ObjectValidator.fetch_actor(data),
@@ -472,11 +477,11 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   def handle_incoming(%{"type" => type} = data, _options)
       when type in ~w{Like EmojiReact Announce Add Remove} do
     with :ok <- ObjectValidator.fetch_actor_and_object(data),
-         {:ok, activity, _meta} <-
-           Pipeline.common_pipeline(data, local: false) do
+         {:ok, activity, _meta} <- Pipeline.common_pipeline(data, local: false) do
       {:ok, activity}
     else
-      e -> {:error, e}
+      e ->
+        {:error, e}
     end
   end
 
@@ -629,6 +634,12 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
 
   def set_reply_to_uri(obj), do: obj
 
+  def set_quote_url(%{"quoteUri" => quote} = object) when is_binary(quote) do
+    Map.put(object, "quoteUrl", quote)
+  end
+
+  def set_quote_url(obj), do: obj
+
   @doc """
   Serialized Mastodon-compatible `replies` collection containing _self-replies_.
   Based on Mastodon's ActivityPub::NoteSerializer#replies.
@@ -683,10 +694,29 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     |> prepare_attachments
     |> set_conversation
     |> set_reply_to_uri
+    |> set_quote_url()
     |> set_replies
     |> strip_internal_fields
     |> strip_internal_tags
     |> set_type
+    |> maybe_process_history
+  end
+
+  defp maybe_process_history(%{"formerRepresentations" => %{"orderedItems" => history}} = object) do
+    processed_history =
+      Enum.map(
+        history,
+        fn
+          item when is_map(item) -> prepare_object(item)
+          item -> item
+        end
+      )
+
+    put_in(object, ["formerRepresentations", "orderedItems"], processed_history)
+  end
+
+  defp maybe_process_history(object) do
+    object
   end
 
   #  @doc
@@ -695,11 +725,26 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   #  """
 
   def prepare_outgoing(%{"type" => activity_type, "object" => object_id} = data)
-      when activity_type in ["Create", "Listen"] do
+      when activity_type in ["Create"] do
     object =
       object_id
       |> Object.normalize(fetch: false)
       |> Map.get(:data)
+      |> prepare_object
+
+    data =
+      data
+      |> Map.put("object", object)
+      |> Map.merge(Utils.make_json_ld_header())
+      |> Map.delete("bcc")
+
+    {:ok, data}
+  end
+
+  def prepare_outgoing(%{"type" => "Update", "object" => %{"type" => objtype} = object} = data)
+      when objtype in Pleroma.Constants.updatable_object_types() do
+    object =
+      object
       |> prepare_object
 
     data =
@@ -788,7 +833,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
       Map.put(data, "object", external_url)
     else
       {:fetch, e} ->
-        Logger.error("Couldn't fetch #{object} #{inspect(e)}")
+        Logger.error("Couldn't fetch fixed_object@#{object} #{inspect(e)}")
         data
 
       _ ->
@@ -876,9 +921,6 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     attributed_to = object["attributedTo"] || object["actor"]
     Map.put(object, "attributedTo", attributed_to)
   end
-
-  # TODO: Revisit this
-  def prepare_attachments(%{"type" => "ChatMessage"} = object), do: object
 
   def prepare_attachments(object) do
     attachments =

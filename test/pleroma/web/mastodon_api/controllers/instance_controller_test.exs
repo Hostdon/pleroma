@@ -10,10 +10,11 @@ defmodule Pleroma.Web.MastodonAPI.InstanceControllerTest do
   import Pleroma.Factory
 
   test "get instance information", %{conn: conn} do
+    clear_config([:instance, :languages], ["en", "ja"])
     conn = get(conn, "/api/v1/instance")
     assert result = json_response_and_validate_schema(conn, 200)
-
     email = Pleroma.Config.get([:instance, :email])
+
     thumbnail = Pleroma.Web.Endpoint.url() <> Pleroma.Config.get([:instance, :instance_thumbnail])
     background = Pleroma.Web.Endpoint.url() <> Pleroma.Config.get([:instance, :background_image])
 
@@ -29,7 +30,7 @@ defmodule Pleroma.Web.MastodonAPI.InstanceControllerTest do
              },
              "stats" => _,
              "thumbnail" => from_config_thumbnail,
-             "languages" => _,
+             "languages" => ["en", "ja"],
              "registrations" => _,
              "approval_required" => _,
              "poll_limits" => _,
@@ -38,7 +39,6 @@ defmodule Pleroma.Web.MastodonAPI.InstanceControllerTest do
              "background_upload_limit" => _,
              "banner_upload_limit" => _,
              "background_image" => from_config_background,
-             "shout_limit" => _,
              "description_limit" => _
            } = result
 

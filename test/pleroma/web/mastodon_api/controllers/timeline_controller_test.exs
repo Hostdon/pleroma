@@ -273,6 +273,24 @@ defmodule Pleroma.Web.MastodonAPI.TimelineControllerTest do
       [%{"id" => ^reply_from_me}, %{"id" => ^activity_id}] = response
     end
 
+    test "doesn't return posts from users who blocked you when :blockers_visible is disabled" do
+      clear_config([:activitypub, :blockers_visible], false)
+
+      %{conn: conn, user: blockee} = oauth_access(["read:statuses"])
+      blocker = insert(:user)
+      {:ok, _} = User.block(blocker, blockee)
+
+      conn = assign(conn, :user, blockee)
+
+      {:ok, _} = CommonAPI.post(blocker, %{status: "hey!"})
+
+      response =
+        get(conn, "/api/v1/timelines/public")
+        |> json_response_and_validate_schema(200)
+
+      assert length(response) == 0
+    end
+
     test "doesn't return replies if follow is posting with users from blocked domain" do
       %{conn: conn, user: blocker} = oauth_access(["read:statuses"])
       friend = insert(:user)
@@ -348,6 +366,47 @@ defmodule Pleroma.Web.MastodonAPI.TimelineControllerTest do
                  }
                }
              ] = result
+    end
+
+    test "should return local-only posts for authenticated users" do
+      user = insert(:user)
+      %{user: _reader, conn: conn} = oauth_access(["read:statuses"])
+
+      {:ok, %{id: id}} = CommonAPI.post(user, %{status: "#2hu #2HU", visibility: "local"})
+
+      result =
+        conn
+        |> get("/api/v1/timelines/public")
+        |> json_response_and_validate_schema(200)
+
+      assert [%{"id" => ^id}] = result
+    end
+
+    test "should not return local-only posts for users without read:statuses" do
+      user = insert(:user)
+      %{user: _reader, conn: conn} = oauth_access([])
+
+      {:ok, _activity} = CommonAPI.post(user, %{status: "#2hu #2HU", visibility: "local"})
+
+      result =
+        conn
+        |> get("/api/v1/timelines/public")
+        |> json_response_and_validate_schema(200)
+
+      assert [] = result
+    end
+
+    test "should not return local-only posts for anonymous users" do
+      user = insert(:user)
+
+      {:ok, _activity} = CommonAPI.post(user, %{status: "#2hu #2HU", visibility: "local"})
+
+      result =
+        build_conn()
+        |> get("/api/v1/timelines/public")
+        |> json_response_and_validate_schema(200)
+
+      assert [] = result
     end
   end
 
@@ -959,9 +1018,9 @@ defmodule Pleroma.Web.MastodonAPI.TimelineControllerTest do
       ensure_authenticated_access(base_uri)
     end
 
-    test "with `%{local: true, federated: false}`, forbids unauthenticated access to public timeline" <>
-           "(but not to local public activities which are delivered as part of federated timeline)",
+    test "with `%{local: true, federated: false}`, forbids unauthenticated access to public timeline",
          %{conn: conn, base_uri: base_uri, error_response: error_response} do
+      # (but not to local public activities which are delivered as part of federated timeline)
       clear_config([:restrict_unauthenticated, :timelines, :local], true)
       clear_config([:restrict_unauthenticated, :timelines, :federated], false)
 
@@ -973,6 +1032,45 @@ defmodule Pleroma.Web.MastodonAPI.TimelineControllerTest do
       assert length(json_response_and_validate_schema(res_conn, 200)) == 2
 
       ensure_authenticated_access(base_uri)
+    end
+  end
+
+  describe "bubble" do
+    setup do: oauth_access(["read:statuses"])
+
+    test "filtering", %{conn: conn, user: user} do
+      clear_config([:instance, :local_bubble], [])
+      # our endpoint host has a port in it so let's set the AP ID
+      local_user = insert(:user, %{ap_id: "https://localhost/users/user"})
+      remote_user = insert(:user, %{ap_id: "https://example.com/users/remote_user"})
+      {:ok, user, local_user} = User.follow(user, local_user)
+      {:ok, _user, remote_user} = User.follow(user, remote_user)
+
+      {:ok, local_activity} = CommonAPI.post(local_user, %{status: "Status"})
+      remote_activity = create_remote_activity(remote_user)
+
+      # If nothing, only include ours
+      clear_config([:instance, :local_bubble], [])
+
+      one_instance =
+        conn
+        |> get("/api/v1/timelines/bubble")
+        |> json_response_and_validate_schema(200)
+        |> Enum.map(& &1["id"])
+
+      assert local_activity.id in one_instance
+
+      # If we have others, also include theirs 
+      clear_config([:instance, :local_bubble], ["example.com"])
+
+      two_instances =
+        conn
+        |> get("/api/v1/timelines/bubble")
+        |> json_response_and_validate_schema(200)
+        |> Enum.map(& &1["id"])
+
+      assert local_activity.id in two_instances
+      assert remote_activity.id in two_instances
     end
   end
 

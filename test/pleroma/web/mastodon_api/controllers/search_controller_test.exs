@@ -5,7 +5,6 @@
 defmodule Pleroma.Web.MastodonAPI.SearchControllerTest do
   use Pleroma.Web.ConnCase
 
-  alias Pleroma.Object
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.Endpoint
   import Pleroma.Factory
@@ -125,13 +124,7 @@ defmodule Pleroma.Web.MastodonAPI.SearchControllerTest do
       results =
         conn
         |> get(
-          "/api/v2/search?#{
-            URI.encode_query(%{
-              q:
-                "https://www.washingtonpost.com/sports/2020/06/10/" <>
-                  "nascar-ban-display-confederate-flag-all-events-properties/"
-            })
-          }"
+          "/api/v2/search?#{URI.encode_query(%{q: "https://www.washingtonpost.com/sports/2020/06/10/" <> "nascar-ban-display-confederate-flag-all-events-properties/"})}"
         )
         |> json_response_and_validate_schema(200)
 
@@ -156,9 +149,7 @@ defmodule Pleroma.Web.MastodonAPI.SearchControllerTest do
       results =
         conn
         |> get(
-          "/api/v2/search?#{
-            URI.encode_query(%{q: "#some #text #with #hashtags", limit: 2, offset: 1})
-          }"
+          "/api/v2/search?#{URI.encode_query(%{q: "#some #text #with #hashtags", limit: 2, offset: 1})}"
         )
         |> json_response_and_validate_schema(200)
 
@@ -227,191 +218,6 @@ defmodule Pleroma.Web.MastodonAPI.SearchControllerTest do
         |> json_response_and_validate_schema(200)
 
       assert length(results) == 1
-    end
-  end
-
-  describe ".search" do
-    test "it returns empty result if user or status search return undefined error", %{conn: conn} do
-      with_mocks [
-        {Pleroma.User, [], [search: fn _q, _o -> raise "Oops" end]},
-        {Pleroma.Activity, [], [search: fn _u, _q, _o -> raise "Oops" end]}
-      ] do
-        capture_log(fn ->
-          results =
-            conn
-            |> get("/api/v1/search?q=2hu")
-            |> json_response_and_validate_schema(200)
-
-          assert results["accounts"] == []
-          assert results["statuses"] == []
-        end) =~
-          "[error] Elixir.Pleroma.Web.MastodonAPI.SearchController search error: %RuntimeError{message: \"Oops\"}"
-      end
-    end
-
-    test "search", %{conn: conn} do
-      user = insert(:user)
-      user_two = insert(:user, %{nickname: "shp@shitposter.club"})
-      user_three = insert(:user, %{nickname: "shp@heldscal.la", name: "I love 2hu"})
-
-      {:ok, activity} = CommonAPI.post(user, %{status: "This is about 2hu"})
-
-      {:ok, _activity} =
-        CommonAPI.post(user, %{
-          status: "This is about 2hu, but private",
-          visibility: "private"
-        })
-
-      {:ok, _} = CommonAPI.post(user_two, %{status: "This isn't"})
-
-      results =
-        conn
-        |> get("/api/v1/search?q=2hu")
-        |> json_response_and_validate_schema(200)
-
-      [account | _] = results["accounts"]
-      assert account["id"] == to_string(user_three.id)
-
-      assert results["hashtags"] == ["2hu"]
-
-      [status] = results["statuses"]
-      assert status["id"] == to_string(activity.id)
-    end
-
-    test "search fetches remote statuses and prefers them over other results", %{conn: conn} do
-      old_version = :persistent_term.get({Pleroma.Repo, :postgres_version})
-      :persistent_term.put({Pleroma.Repo, :postgres_version}, 10.0)
-      on_exit(fn -> :persistent_term.put({Pleroma.Repo, :postgres_version}, old_version) end)
-
-      capture_log(fn ->
-        {:ok, %{id: activity_id}} =
-          CommonAPI.post(insert(:user), %{
-            status: "check out http://mastodon.example.org/@admin/99541947525187367"
-          })
-
-        results =
-          conn
-          |> get("/api/v1/search?q=http://mastodon.example.org/@admin/99541947525187367")
-          |> json_response_and_validate_schema(200)
-
-        assert [
-                 %{"url" => "http://mastodon.example.org/@admin/99541947525187367"},
-                 %{"id" => ^activity_id}
-               ] = results["statuses"]
-      end)
-    end
-
-    test "search doesn't show statuses that it shouldn't", %{conn: conn} do
-      {:ok, activity} =
-        CommonAPI.post(insert(:user), %{
-          status: "This is about 2hu, but private",
-          visibility: "private"
-        })
-
-      capture_log(fn ->
-        q = Object.normalize(activity, fetch: false).data["id"]
-
-        results =
-          conn
-          |> get("/api/v1/search?q=#{q}")
-          |> json_response_and_validate_schema(200)
-
-        [] = results["statuses"]
-      end)
-    end
-
-    test "search fetches remote accounts", %{conn: conn} do
-      user = insert(:user)
-
-      query = URI.encode_query(%{q: "       mike@osada.macgirvin.com          ", resolve: true})
-
-      results =
-        conn
-        |> assign(:user, user)
-        |> assign(:token, insert(:oauth_token, user: user, scopes: ["read"]))
-        |> get("/api/v1/search?#{query}")
-        |> json_response_and_validate_schema(200)
-
-      [account] = results["accounts"]
-      assert account["acct"] == "mike@osada.macgirvin.com"
-    end
-
-    test "search doesn't fetch remote accounts if resolve is false", %{conn: conn} do
-      results =
-        conn
-        |> get("/api/v1/search?q=mike@osada.macgirvin.com&resolve=false")
-        |> json_response_and_validate_schema(200)
-
-      assert [] == results["accounts"]
-    end
-
-    test "search with limit and offset", %{conn: conn} do
-      user = insert(:user)
-      _user_two = insert(:user, %{nickname: "shp@shitposter.club"})
-      _user_three = insert(:user, %{nickname: "shp@heldscal.la", name: "I love 2hu"})
-
-      {:ok, _activity1} = CommonAPI.post(user, %{status: "This is about 2hu"})
-      {:ok, _activity2} = CommonAPI.post(user, %{status: "This is also about 2hu"})
-
-      result =
-        conn
-        |> get("/api/v1/search?q=2hu&limit=1")
-
-      assert results = json_response_and_validate_schema(result, 200)
-      assert [%{"id" => activity_id1}] = results["statuses"]
-      assert [_] = results["accounts"]
-
-      results =
-        conn
-        |> get("/api/v1/search?q=2hu&limit=1&offset=1")
-        |> json_response_and_validate_schema(200)
-
-      assert [%{"id" => activity_id2}] = results["statuses"]
-      assert [] = results["accounts"]
-
-      assert activity_id1 != activity_id2
-    end
-
-    test "search returns results only for the given type", %{conn: conn} do
-      user = insert(:user)
-      _user_two = insert(:user, %{nickname: "shp@heldscal.la", name: "I love 2hu"})
-
-      {:ok, _activity} = CommonAPI.post(user, %{status: "This is about 2hu"})
-
-      assert %{"statuses" => [_activity], "accounts" => [], "hashtags" => []} =
-               conn
-               |> get("/api/v1/search?q=2hu&type=statuses")
-               |> json_response_and_validate_schema(200)
-
-      assert %{"statuses" => [], "accounts" => [_user_two], "hashtags" => []} =
-               conn
-               |> get("/api/v1/search?q=2hu&type=accounts")
-               |> json_response_and_validate_schema(200)
-    end
-
-    test "search uses account_id to filter statuses by the author", %{conn: conn} do
-      user = insert(:user, %{nickname: "shp@shitposter.club"})
-      user_two = insert(:user, %{nickname: "shp@heldscal.la", name: "I love 2hu"})
-
-      {:ok, activity1} = CommonAPI.post(user, %{status: "This is about 2hu"})
-      {:ok, activity2} = CommonAPI.post(user_two, %{status: "This is also about 2hu"})
-
-      results =
-        conn
-        |> get("/api/v1/search?q=2hu&account_id=#{user.id}")
-        |> json_response_and_validate_schema(200)
-
-      assert [%{"id" => activity_id1}] = results["statuses"]
-      assert activity_id1 == activity1.id
-      assert [_] = results["accounts"]
-
-      results =
-        conn
-        |> get("/api/v1/search?q=2hu&account_id=#{user_two.id}")
-        |> json_response_and_validate_schema(200)
-
-      assert [%{"id" => activity_id2}] = results["statuses"]
-      assert activity_id2 == activity2.id
     end
   end
 end

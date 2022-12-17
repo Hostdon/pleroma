@@ -494,6 +494,129 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       assert html_response(conn, 200) =~ ~s(type="submit")
     end
 
+    test "allows access if the user has a prior authorization but is authenticated with another client",
+         %{
+           app: app,
+           conn: conn
+         } do
+      user = insert(:user)
+      token = insert(:oauth_token, app: app, user: user)
+
+      other_app = insert(:oauth_app, redirect_uris: "https://other_redirect.url")
+      authorization = insert(:oauth_authorization, user: user, app: other_app)
+      _reusable_token = insert(:oauth_token, app: other_app, user: user)
+
+      conn =
+        conn
+        |> AuthHelper.put_session_token(token.token)
+        |> AuthHelper.put_session_user(user.id)
+        |> get(
+          "/oauth/authorize",
+          %{
+            "response_type" => "code",
+            "client_id" => other_app.client_id,
+            "redirect_uri" => OAuthController.default_redirect_uri(other_app),
+            "scope" => "read"
+          }
+        )
+
+      assert URI.decode(redirected_to(conn)) ==
+               "https://other_redirect.url?code=#{authorization.token}"
+    end
+
+    test "renders login page if the user has an authorization but no token",
+         %{
+           app: app,
+           conn: conn
+         } do
+      user = insert(:user)
+      token = insert(:oauth_token, app: app, user: user)
+
+      other_app = insert(:oauth_app, redirect_uris: "https://other_redirect.url")
+      _authorization = insert(:oauth_authorization, user: user, app: other_app)
+
+      conn =
+        conn
+        |> AuthHelper.put_session_token(token.token)
+        |> AuthHelper.put_session_user(user.id)
+        |> get(
+          "/oauth/authorize",
+          %{
+            "response_type" => "code",
+            "client_id" => other_app.client_id,
+            "redirect_uri" => OAuthController.default_redirect_uri(other_app),
+            "scope" => "read"
+          }
+        )
+
+      assert html_response(conn, 200) =~ ~s(type="submit")
+    end
+
+    test "does not reuse other people's tokens",
+         %{
+           app: app,
+           conn: conn
+         } do
+      user = insert(:user)
+      other_user = insert(:user)
+      token = insert(:oauth_token, app: app, user: user)
+
+      other_app = insert(:oauth_app, redirect_uris: "https://other_redirect.url")
+      _authorization = insert(:oauth_authorization, user: other_user, app: other_app)
+      _reusable_token = insert(:oauth_token, app: other_app, user: other_user)
+
+      conn =
+        conn
+        |> AuthHelper.put_session_token(token.token)
+        |> AuthHelper.put_session_user(user.id)
+        |> get(
+          "/oauth/authorize",
+          %{
+            "response_type" => "code",
+            "client_id" => other_app.client_id,
+            "redirect_uri" => OAuthController.default_redirect_uri(other_app),
+            "scope" => "read"
+          }
+        )
+
+      assert html_response(conn, 200) =~ ~s(type="submit")
+    end
+
+    test "does not reuse expired tokens",
+         %{
+           app: app,
+           conn: conn
+         } do
+      user = insert(:user)
+      token = insert(:oauth_token, app: app, user: user)
+
+      other_app = insert(:oauth_app, redirect_uris: "https://other_redirect.url")
+      _authorization = insert(:oauth_authorization, user: user, app: other_app)
+
+      _reusable_token =
+        insert(:oauth_token,
+          app: other_app,
+          user: user,
+          valid_until: NaiveDateTime.add(NaiveDateTime.utc_now(), -100)
+        )
+
+      conn =
+        conn
+        |> AuthHelper.put_session_token(token.token)
+        |> AuthHelper.put_session_user(user.id)
+        |> get(
+          "/oauth/authorize",
+          %{
+            "response_type" => "code",
+            "client_id" => other_app.client_id,
+            "redirect_uri" => OAuthController.default_redirect_uri(other_app),
+            "scope" => "read"
+          }
+        )
+
+      assert html_response(conn, 200) =~ ~s(type="submit")
+    end
+
     test "with existing authentication and non-OOB `redirect_uri`, redirects to app with `token` and `state` params",
          %{
            app: app,

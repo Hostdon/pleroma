@@ -43,10 +43,14 @@ defmodule Pleroma.Web.ApiSpec.EmojiReactionOperation do
   def create_operation do
     %Operation{
       tags: ["Emoji reactions"],
-      summary: "React to a post with a unicode emoji",
+      summary: "React to a post with either a unicode or custom emoji",
       parameters: [
         Operation.parameter(:id, :path, FlakeID, "Status ID", required: true),
-        Operation.parameter(:emoji, :path, :string, "A single character unicode emoji",
+        Operation.parameter(
+          :emoji,
+          :path,
+          :string,
+          "A single character unicode emoji, or a \:shortcode\: format emoji name",
           required: true
         )
       ],
@@ -62,10 +66,14 @@ defmodule Pleroma.Web.ApiSpec.EmojiReactionOperation do
   def delete_operation do
     %Operation{
       tags: ["Emoji reactions"],
-      summary: "Remove a reaction to a post with a unicode emoji",
+      summary: "Remove a reaction to a post with either a unicode or custom emoji",
       parameters: [
         Operation.parameter(:id, :path, FlakeID, "Status ID", required: true),
-        Operation.parameter(:emoji, :path, :string, "A single character unicode emoji",
+        Operation.parameter(
+          :emoji,
+          :path,
+          :string,
+          "A single character unicode emoji, or a \:shortcode\: format emoji name",
           required: true
         )
       ],
@@ -81,7 +89,7 @@ defmodule Pleroma.Web.ApiSpec.EmojiReactionOperation do
     Operation.response("Array of Emoji reactions", "application/json", %Schema{
       type: :array,
       items: emoji_reaction(),
-      example: [emoji_reaction().example]
+      example: emoji_reaction().example
     })
   end
 
@@ -93,18 +101,34 @@ defmodule Pleroma.Web.ApiSpec.EmojiReactionOperation do
         name: %Schema{type: :string, description: "Emoji"},
         count: %Schema{type: :integer, description: "Count of reactions with this emoji"},
         me: %Schema{type: :boolean, description: "Did I react with this emoji?"},
+        url: %Schema{
+          type: :string,
+          description: "URL of the emoji if it's custom - otherwise null",
+          nullable: true,
+          format: "url"
+        },
         accounts: %Schema{
           type: :array,
           items: Account,
           description: "Array of accounts reacted with this emoji"
         }
       },
-      example: %{
-        "name" => "😱",
-        "count" => 1,
-        "me" => false,
-        "accounts" => [Account.schema().example]
-      }
+      example: [
+        %{
+          "name" => "😱",
+          "count" => 1,
+          "me" => false,
+          "url" => nil,
+          "accounts" => [Account.schema().example]
+        },
+        %{
+          "name" => "dinosaur",
+          "count" => 1,
+          "me" => false,
+          "url" => "https://akkoma.dev/emoji/dinosaur.png",
+          "accounts" => [Account.schema().example]
+        }
+      ]
     }
   end
 end

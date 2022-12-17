@@ -154,22 +154,7 @@ defmodule Pleroma.Web.ActivityPub.Utils do
     Notification.get_notified_from_activity(%Activity{data: object}, false)
   end
 
-  def create_context(context) do
-    context = context || generate_id("contexts")
-
-    # Ecto has problems accessing the constraint inside the jsonb,
-    # so we explicitly check for the existed object before insert
-    object = Object.get_cached_by_ap_id(context)
-
-    with true <- is_nil(object),
-         changeset <- Object.context_mapping(context),
-         {:ok, inserted_object} <- Repo.insert(changeset) do
-      inserted_object
-    else
-      _ ->
-        object
-    end
-  end
+  def maybe_create_context(context), do: context || generate_id("contexts")
 
   @doc """
   Enqueues an activity for federation if it's local
@@ -201,18 +186,16 @@ defmodule Pleroma.Web.ActivityPub.Utils do
     |> Map.put_new("id", "pleroma:fakeid")
     |> Map.put_new_lazy("published", &make_date/0)
     |> Map.put_new("context", "pleroma:fakecontext")
-    |> Map.put_new("context_id", -1)
     |> lazy_put_object_defaults(true)
   end
 
   def lazy_put_activity_defaults(map, _fake?) do
-    %{data: %{"id" => context}, id: context_id} = create_context(map["context"])
+    context = maybe_create_context(map["context"])
 
     map
     |> Map.put_new_lazy("id", &generate_activity_id/0)
     |> Map.put_new_lazy("published", &make_date/0)
     |> Map.put_new("context", context)
-    |> Map.put_new("context_id", context_id)
     |> lazy_put_object_defaults(false)
   end
 
@@ -226,7 +209,6 @@ defmodule Pleroma.Web.ActivityPub.Utils do
       |> Map.put_new("id", "pleroma:fake_object_id")
       |> Map.put_new_lazy("published", &make_date/0)
       |> Map.put_new("context", activity["context"])
-      |> Map.put_new("context_id", activity["context_id"])
       |> Map.put_new("fake", true)
 
     %{activity | "object" => object}
@@ -239,7 +221,6 @@ defmodule Pleroma.Web.ActivityPub.Utils do
       |> Map.put_new_lazy("id", &generate_object_id/0)
       |> Map.put_new_lazy("published", &make_date/0)
       |> Map.put_new("context", activity["context"])
-      |> Map.put_new("context_id", activity["context_id"])
 
     %{activity | "object" => object}
   end
@@ -344,21 +325,29 @@ defmodule Pleroma.Web.ActivityPub.Utils do
           {:ok, Object.t()} | {:error, Ecto.Changeset.t()}
 
   def add_emoji_reaction_to_object(
-        %Activity{data: %{"content" => emoji, "actor" => actor}},
+        %Activity{data: %{"content" => emoji, "actor" => actor}} = activity,
         object
       ) do
     reactions = get_cached_emoji_reactions(object)
+    emoji = Pleroma.Emoji.stripped_name(emoji)
+    url = emoji_url(emoji, activity)
 
     new_reactions =
-      case Enum.find_index(reactions, fn [candidate, _] -> emoji == candidate end) do
+      case Enum.find_index(reactions, fn [candidate, _, candidate_url] ->
+             if is_nil(candidate_url) do
+               emoji == candidate
+             else
+               url == candidate_url
+             end
+           end) do
         nil ->
-          reactions ++ [[emoji, [actor]]]
+          reactions ++ [[emoji, [actor], url]]
 
         index ->
           List.update_at(
             reactions,
             index,
-            fn [emoji, users] -> [emoji, Enum.uniq([actor | users])] end
+            fn [emoji, users, url] -> [emoji, Enum.uniq([actor | users]), url] end
           )
       end
 
@@ -367,18 +356,40 @@ defmodule Pleroma.Web.ActivityPub.Utils do
     update_element_in_object("reaction", new_reactions, object, count)
   end
 
+  defp emoji_url(
+         name,
+         %Activity{
+           data: %{
+             "tag" => [
+               %{"type" => "Emoji", "name" => name, "icon" => %{"url" => url}}
+             ]
+           }
+         }
+       ),
+       do: url
+
+  defp emoji_url(_, _), do: nil
+
   def emoji_count(reactions_list) do
-    Enum.reduce(reactions_list, 0, fn [_, users], acc -> acc + length(users) end)
+    Enum.reduce(reactions_list, 0, fn [_, users, _], acc -> acc + length(users) end)
   end
 
   def remove_emoji_reaction_from_object(
-        %Activity{data: %{"content" => emoji, "actor" => actor}},
+        %Activity{data: %{"content" => emoji, "actor" => actor}} = activity,
         object
       ) do
+    emoji = Pleroma.Emoji.stripped_name(emoji)
     reactions = get_cached_emoji_reactions(object)
+    url = emoji_url(emoji, activity)
 
     new_reactions =
-      case Enum.find_index(reactions, fn [candidate, _] -> emoji == candidate end) do
+      case Enum.find_index(reactions, fn [candidate, _, candidate_url] ->
+             if is_nil(candidate_url) do
+               emoji == candidate
+             else
+               url == candidate_url
+             end
+           end) do
         nil ->
           reactions
 
@@ -386,9 +397,9 @@ defmodule Pleroma.Web.ActivityPub.Utils do
           List.update_at(
             reactions,
             index,
-            fn [emoji, users] -> [emoji, List.delete(users, actor)] end
+            fn [emoji, users, url] -> [emoji, List.delete(users, actor), url] end
           )
-          |> Enum.reject(fn [_, users] -> Enum.empty?(users) end)
+          |> Enum.reject(fn [_, users, _] -> Enum.empty?(users) end)
       end
 
     count = emoji_count(new_reactions)
@@ -446,25 +457,13 @@ defmodule Pleroma.Web.ActivityPub.Utils do
     |> Activity.Queries.by_type()
     |> Activity.Queries.by_actor(actor)
     |> Activity.Queries.by_object_id(object)
-    |> where(fragment("data->>'state' = 'pending'"))
+    |> where(fragment("data->>'state' = 'pending'") or fragment("data->>'state' = 'accept'"))
     |> update(set: [data: fragment("jsonb_set(data, '{state}', ?)", ^state)])
     |> Repo.update_all([])
 
     activity = Activity.get_by_id(activity.id)
 
     {:ok, activity}
-  end
-
-  def update_follow_state(
-        %Activity{} = activity,
-        state
-      ) do
-    new_data = Map.put(activity.data, "state", state)
-    changeset = Changeset.change(activity, data: new_data)
-
-    with {:ok, activity} <- Repo.update(changeset) do
-      {:ok, activity}
-    end
   end
 
   @doc """
@@ -508,15 +507,35 @@ defmodule Pleroma.Web.ActivityPub.Utils do
 
   def get_latest_reaction(internal_activity_id, %{ap_id: ap_id}, emoji) do
     %{data: %{"object" => object_ap_id}} = Activity.get_by_id(internal_activity_id)
+    emoji = Pleroma.Emoji.maybe_quote(emoji)
 
     "EmojiReact"
     |> Activity.Queries.by_type()
     |> where(actor: ^ap_id)
-    |> where([activity], fragment("?->>'content' = ?", activity.data, ^emoji))
+    |> custom_emoji_discriminator(emoji)
     |> Activity.Queries.by_object_id(object_ap_id)
     |> order_by([activity], fragment("? desc nulls last", activity.id))
     |> limit(1)
     |> Repo.one()
+  end
+
+  defp custom_emoji_discriminator(query, emoji) do
+    if String.contains?(emoji, "@") do
+      stripped = Pleroma.Emoji.stripped_name(emoji)
+      [name, domain] = String.split(stripped, "@")
+      domain_pattern = "%" <> domain <> "%"
+      emoji_pattern = Pleroma.Emoji.maybe_quote(name)
+
+      query
+      |> where([activity], fragment("?->>'content' = ?
+        AND EXISTS (
+          SELECT FROM jsonb_array_elements(?->'tag') elem
+          WHERE elem->>'id' ILIKE ?
+        )", activity.data, ^emoji_pattern, activity.data, ^domain_pattern))
+    else
+      query
+      |> where([activity], fragment("?->>'content' = ?", activity.data, ^emoji))
+    end
   end
 
   #### Announce-related helpers
@@ -666,21 +685,6 @@ defmodule Pleroma.Web.ActivityPub.Utils do
 
     %{
       "type" => "Create",
-      "to" => params.to |> Enum.uniq(),
-      "actor" => params.actor.ap_id,
-      "object" => params.object,
-      "published" => published,
-      "context" => params.context
-    }
-    |> Map.merge(additional)
-  end
-
-  #### Listen-related helpers
-  def make_listen_data(params, additional) do
-    published = params.published || make_date()
-
-    %{
-      "type" => "Listen",
       "to" => params.to |> Enum.uniq(),
       "actor" => params.actor.ap_id,
       "object" => params.object,

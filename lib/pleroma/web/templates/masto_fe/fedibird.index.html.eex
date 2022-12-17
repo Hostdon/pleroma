@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8'>
+<meta content='width=device-width, initial-scale=1' name='viewport'>
+<title>
+<%= Config.get([:instance, :name]) %>
+</title>
+<link rel="icon" type="image/png" href="/favicon.png"/>
+<link rel="manifest" type="applicaton/manifest+json" href="<%= Routes.masto_fe_path(Pleroma.Web.Endpoint, :manifest) %>" />
+
+<meta name="theme-color" content="<%= Config.get([:manifest, :theme_color]) %>" />
+
+<script id='initial-state' type='application/json'><%= initial_state(@token, @user, @custom_emojis) %></script>
+
+<script crossorigin='anonymous' src="/packs/js/common.js"></script>
+<script crossorigin='anonymous' src="/packs/js/locale_en.js"></script>
+
+<link rel='preload' as='script' crossorigin='anonymous' href='/packs/js/features/getting_started.js'>
+<link rel='preload' as='script' crossorigin='anonymous' href='/packs/js/features/compose.js'>
+<link rel='preload' as='script' crossorigin='anonymous' href='/packs/js/features/home_timeline.js'>
+<link rel='preload' as='script' crossorigin='anonymous' href='/packs/js/features/notifications.js'>
+<script crossorigin='anonymous' src="/packs/js/application.js"></script>
+
+
+<link rel="stylesheet" media="all" href="/packs/css/common.css" />
+<link rel="stylesheet" media="all" href="/packs/css/default.css" />
+
+</head>
+<body class='app-body no-reduce-motion system-font'>
+  <div class='app-holder' data-props='{&quot;locale&quot;:&quot;en&quot;}' id='mastodon'>
+  </div>
+</body>
+</html>

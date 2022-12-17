@@ -65,18 +65,9 @@ defmodule Pleroma.HTTP do
     options = put_in(options[:adapter], adapter_opts)
     params = options[:params] || []
     request = build_request(method, headers, options, url, body, params)
+    client = Tesla.client([Tesla.Middleware.FollowRedirects])
 
-    adapter = Application.get_env(:tesla, :adapter)
-
-    client = Tesla.client(adapter_middlewares(adapter), adapter)
-
-    maybe_limit(
-      fn ->
-        request(client, request)
-      end,
-      adapter,
-      adapter_opts
-    )
+    request(client, request)
   end
 
   @spec request(Client.t(), keyword()) :: {:ok, Env.t()} | {:error, any()}
@@ -92,19 +83,4 @@ defmodule Pleroma.HTTP do
     |> Builder.add_param(:query, :query, params)
     |> Builder.convert_to_keyword()
   end
-
-  @prefix Pleroma.Gun.ConnectionPool
-  defp maybe_limit(fun, Tesla.Adapter.Gun, opts) do
-    ConcurrentLimiter.limit(:"#{@prefix}.#{opts[:pool] || :default}", fun)
-  end
-
-  defp maybe_limit(fun, _, _) do
-    fun.()
-  end
-
-  defp adapter_middlewares(Tesla.Adapter.Gun) do
-    [Tesla.Middleware.FollowRedirects, Pleroma.Tesla.Middleware.ConnectionPool]
-  end
-
-  defp adapter_middlewares(_), do: []
 end

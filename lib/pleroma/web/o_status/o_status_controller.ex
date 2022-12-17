@@ -37,10 +37,11 @@ defmodule Pleroma.Web.OStatus.OStatusController do
     with id <- Endpoint.url() <> conn.request_path,
          {_, %Activity{} = activity} <-
            {:activity, Activity.get_create_by_object_ap_id_with_object(id)},
-         {_, true} <- {:public?, Visibility.is_public?(activity)} do
+         {_, true} <- {:public?, Visibility.is_public?(activity)},
+         {_, false} <- {:local_public?, Visibility.is_local_public?(activity)} do
       redirect(conn, to: "/notice/#{activity.id}")
     else
-      reason when reason in [{:public?, false}, {:activity, nil}] ->
+      reason when reason in [{:public?, false}, {:activity, nil}, {:local_public?, true}] ->
         {:error, :not_found}
 
       e ->
@@ -56,7 +57,8 @@ defmodule Pleroma.Web.OStatus.OStatusController do
   def activity(conn, _params) do
     with id <- Endpoint.url() <> conn.request_path,
          {_, %Activity{} = activity} <- {:activity, Activity.normalize(id)},
-         {_, true} <- {:public?, Visibility.is_public?(activity)} do
+         {_, true} <- {:public?, Visibility.is_public?(activity)},
+         {_, false} <- {:local_public?, Visibility.is_local_public?(activity)} do
       redirect(conn, to: "/notice/#{activity.id}")
     else
       reason when reason in [{:public?, false}, {:activity, nil}] ->
@@ -70,6 +72,7 @@ defmodule Pleroma.Web.OStatus.OStatusController do
   def notice(%{assigns: %{format: format}} = conn, %{"id" => id}) do
     with {_, %Activity{} = activity} <- {:activity, Activity.get_by_id_with_object(id)},
          {_, true} <- {:public?, Visibility.is_public?(activity)},
+         {_, false} <- {:local_public?, Visibility.is_local_public?(activity)},
          %User{} = user <- User.get_cached_by_ap_id(activity.data["actor"]) do
       cond do
         format in ["json", "activity+json"] ->
@@ -93,7 +96,7 @@ defmodule Pleroma.Web.OStatus.OStatusController do
           RedirectController.redirector(conn, nil)
       end
     else
-      reason when reason in [{:public?, false}, {:activity, nil}] ->
+      reason when reason in [{:public?, false}, {:local_public?, true}, {:activity, nil}] ->
         conn
         |> put_status(404)
         |> RedirectController.redirector(nil, 404)

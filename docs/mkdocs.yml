@@ -1,0 +1,54 @@
+site_name: Akkoma Documentation
+theme:
+  favicon: 'images/favicon.ico'
+  name: 'material'
+  custom_dir: 'theme'
+  # Disable google fonts
+  font: false
+  logo: 'images/logo.png'
+  features:
+    - navigation.tabs
+    - toc.follow
+    - navigation.instant
+    - navigation.sections
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+      primary: 'deep purple'
+      accent: 'blue grey'
+
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+      primary: 'deep purple'
+      accent: 'blue grey'
+
+extra_css:
+  - css/extra.css
+repo_name: 'AkkomaGang/akkoma'
+repo_url: 'https://akkoma.dev/AkkomaGang/akkoma'
+
+extra:
+  repo_icon: gitea
+
+markdown_extensions:
+  # Note/warning blocks https://squidfunk.github.io/mkdocs-material/extensions/admonition/
+  - admonition
+  - codehilite:
+      guess_lang: false
+  # Make it possible to link to every header https://squidfunk.github.io/mkdocs-material/extensions/permalinks/
+  - toc:
+      permalink: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.details
+  - markdown_include.include:
+      base_path: docs

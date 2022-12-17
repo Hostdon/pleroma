@@ -18,6 +18,8 @@ defmodule Pleroma.Web.Feed.UserController do
   def feed_redirect(%{assigns: %{format: "html"}} = conn, %{"nickname" => nickname}) do
     with {_, %User{} = user} <- {:fetch_user, User.get_cached_by_nickname_or_id(nickname)} do
       Pleroma.Web.Fallback.RedirectController.redirector_with_meta(conn, %{user: user})
+    else
+      _ -> Pleroma.Web.Fallback.RedirectController.redirector(conn, nil)
     end
   end
 
@@ -58,7 +60,8 @@ defmodule Pleroma.Web.Feed.UserController do
       |> render("user.#{format}",
         user: user,
         activities: activities,
-        feed_config: Config.get([:feed])
+        feed_config: Config.get([:feed]),
+        view_module: FeedView
       )
     end
   end

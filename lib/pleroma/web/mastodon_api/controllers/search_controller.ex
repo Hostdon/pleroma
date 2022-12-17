@@ -1,11 +1,10 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2021 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2022 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.MastodonAPI.SearchController do
   use Pleroma.Web, :controller
 
-  alias Pleroma.Activity
   alias Pleroma.Repo
   alias Pleroma.User
   alias Pleroma.Web.ControllerHelper
@@ -17,6 +16,8 @@ defmodule Pleroma.Web.MastodonAPI.SearchController do
 
   require Logger
 
+  @search_limit 40
+
   plug(Pleroma.Web.ApiSpec.CastAndValidate)
 
   # Note: Mastodon doesn't allow unauthenticated access (requires read:accounts / read:search)
@@ -24,7 +25,7 @@ defmodule Pleroma.Web.MastodonAPI.SearchController do
 
   # Note: on private instances auth is required (EnsurePublicOrAuthenticatedPlug is not skipped)
 
-  plug(RateLimiter, [name: :search] when action in [:search, :search2, :account_search])
+  plug(RateLimiter, [name: :search] when action in [:search2, :account_search])
 
   defdelegate open_api_operation(action), to: Pleroma.Web.ApiSpec.SearchOperation
 
@@ -41,7 +42,6 @@ defmodule Pleroma.Web.MastodonAPI.SearchController do
   end
 
   def search2(conn, params), do: do_search(:v2, conn, params)
-  def search(conn, params), do: do_search(:v1, conn, params)
 
   defp do_search(version, %{assigns: %{user: user}} = conn, %{q: query} = params) do
     query = String.trim(query)
@@ -77,7 +77,7 @@ defmodule Pleroma.Web.MastodonAPI.SearchController do
     [
       resolve: params[:resolve],
       following: params[:following],
-      limit: params[:limit],
+      limit: min(params[:limit], @search_limit),
       offset: params[:offset],
       type: params[:type],
       author: get_author(params),
@@ -98,7 +98,7 @@ defmodule Pleroma.Web.MastodonAPI.SearchController do
   end
 
   defp resource_search(_, "statuses", query, options) do
-    statuses = with_fallback(fn -> Activity.search(options[:for_user], query, options) end)
+    statuses = with_fallback(fn -> Pleroma.Search.search(query, options) end)
 
     StatusView.render("index.json",
       activities: statuses,
@@ -115,10 +115,6 @@ defmodule Pleroma.Web.MastodonAPI.SearchController do
     |> Enum.map(fn tag ->
       %{name: tag, url: tags_path <> tag}
     end)
-  end
-
-  defp resource_search(:v1, "hashtags", query, options) do
-    prepare_tags(query, options)
   end
 
   defp prepare_tags(query, options) do

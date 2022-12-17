@@ -88,9 +88,7 @@ defmodule Pleroma.Web.MastodonAPI.UpdateCredentialsTest do
       assert user_data = json_response_and_validate_schema(conn, 200)
 
       assert user_data["note"] ==
-               ~s(I drink <a class="hashtag" data-tag="cofe" href="http://localhost:4001/tag/cofe">#cofe</a> with <span class="h-card"><a class="u-url mention" data-user="#{
-                 user2.id
-               }" href="#{user2.ap_id}" rel="ugc">@<span>#{user2.nickname}</span></a></span><br/><br/>suya..)
+               ~s(I drink <a class="hashtag" data-tag="cofe" href="http://localhost:4001/tag/cofe">#cofe</a> with <span class="h-card"><a class="u-url mention" data-user="#{user2.id}" href="#{user2.ap_id}" rel="ugc">@<span>#{user2.nickname}</span></a></span><br/><br/>suya..)
 
       assert user_data["source"]["note"] == raw_bio
 
@@ -104,13 +102,6 @@ defmodule Pleroma.Web.MastodonAPI.UpdateCredentialsTest do
 
       assert user_data = json_response_and_validate_schema(conn, 200)
       assert user_data["locked"] == true
-    end
-
-    test "updates the user's chat acceptance status", %{conn: conn} do
-      conn = patch(conn, "/api/v1/accounts/update_credentials", %{accepts_chat_messages: "false"})
-
-      assert user_data = json_response_and_validate_schema(conn, 200)
-      assert user_data["pleroma"]["accepts_chat_messages"] == false
     end
 
     test "updates the user's allow_following_move", %{user: user, conn: conn} do
@@ -216,6 +207,26 @@ defmodule Pleroma.Web.MastodonAPI.UpdateCredentialsTest do
       update_activity = Repo.one(Pleroma.Activity)
       assert update_activity.data["type"] == "Update"
       assert update_activity.data["object"]["name"] == "markorepairs"
+    end
+
+    test "updates the user's default post expiry", %{conn: conn} do
+      conn = patch(conn, "/api/v1/accounts/update_credentials", %{"status_ttl_days" => "1"})
+
+      assert user_data = json_response_and_validate_schema(conn, 200)
+      assert user_data["akkoma"]["status_ttl_days"] == 1
+    end
+
+    test "resets the user's default post expiry", %{conn: conn} do
+      conn = patch(conn, "/api/v1/accounts/update_credentials", %{"status_ttl_days" => "-1"})
+
+      assert user_data = json_response_and_validate_schema(conn, 200)
+      assert is_nil(user_data["akkoma"]["status_ttl_days"])
+    end
+
+    test "does not allow negative integers other than -1 for TTL", %{conn: conn} do
+      conn = patch(conn, "/api/v1/accounts/update_credentials", %{"status_ttl_days" => "-2"})
+
+      assert json_response_and_validate_schema(conn, 403)
     end
 
     test "updates the user's AKAs", %{conn: conn} do

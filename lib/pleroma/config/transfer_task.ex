@@ -15,22 +15,17 @@ defmodule Pleroma.Config.TransferTask do
 
   defp reboot_time_keys,
     do: [
-      {:pleroma, :hackney_pools},
-      {:pleroma, :shout},
       {:pleroma, Oban},
       {:pleroma, :rate_limit},
       {:pleroma, :markup},
-      {:pleroma, :streamer},
-      {:pleroma, :pools},
-      {:pleroma, :connections_pool}
+      {:pleroma, :streamer}
     ]
 
   defp reboot_time_subkeys,
     do: [
       {:pleroma, Pleroma.Captcha, [:seconds_valid]},
       {:pleroma, Pleroma.Upload, [:proxy_remote]},
-      {:pleroma, :instance, [:upload_limit]},
-      {:pleroma, :gopher, [:enabled]}
+      {:pleroma, :instance, [:upload_limit]}
     ]
 
   def start_link(restart_pleroma? \\ true) do
@@ -43,7 +38,6 @@ defmodule Pleroma.Config.TransferTask do
   def load_and_update_env(deleted_settings \\ [], restart_pleroma? \\ true) do
     with {_, true} <- {:configurable, Config.get(:configurable_from_database)} do
       # We need to restart applications for loaded settings take effect
-
       {logger, other} =
         (Repo.all(ConfigDB) ++ deleted_settings)
         |> Enum.map(&merge_with_default/1)
@@ -55,8 +49,7 @@ defmodule Pleroma.Config.TransferTask do
 
       started_applications = Application.started_applications()
 
-      # TODO: some problem with prometheus after restart!
-      reject = [nil, :prometheus, :postgrex]
+      reject = [nil, :postgrex]
 
       reject =
         if restart_pleroma? do
@@ -91,7 +84,12 @@ defmodule Pleroma.Config.TransferTask do
   end
 
   defp merge_with_default(%{group: group, key: key, value: value} = setting) do
-    default = Config.Holder.default_config(group, key)
+    default =
+      if group == :pleroma do
+        Config.get([key], Config.Holder.default_config(group, key))
+      else
+        Config.Holder.default_config(group, key)
+      end
 
     merged =
       cond do
@@ -148,9 +146,7 @@ defmodule Pleroma.Config.TransferTask do
     rescue
       error ->
         error_msg =
-          "updating env causes error, group: #{inspect(group)}, key: #{inspect(key)}, value: #{
-            inspect(value)
-          } error: #{inspect(error)}"
+          "updating env causes error, group: #{inspect(group)}, key: #{inspect(key)}, value: #{inspect(value)} error: #{inspect(error)}"
 
         Logger.warn(error_msg)
 

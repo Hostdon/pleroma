@@ -47,41 +47,15 @@ defmodule Pleroma.Application do
     # Disable warnings_as_errors at runtime, it breaks Phoenix live reload
     # due to protocol consolidation warnings
     Code.compiler_options(warnings_as_errors: false)
-    Pleroma.Telemetry.Logger.attach()
     Config.Holder.save_default()
     Pleroma.HTML.compile_scrubbers()
     Pleroma.Config.Oban.warn()
     Config.DeprecationWarnings.warn()
     Pleroma.Web.Plugs.HTTPSecurityPlug.warn_if_disabled()
     Pleroma.ApplicationRequirements.verify!()
-    setup_instrumenters()
     load_custom_modules()
     Pleroma.Docs.JSON.compile()
     limiters_setup()
-
-    adapter = Application.get_env(:tesla, :adapter)
-
-    if adapter == Tesla.Adapter.Gun do
-      if version = Pleroma.OTPVersion.version() do
-        [major, minor] =
-          version
-          |> String.split(".")
-          |> Enum.map(&String.to_integer/1)
-          |> Enum.take(2)
-
-        if (major == 22 and minor < 2) or major < 22 do
-          raise "
-            !!!OTP VERSION WARNING!!!
-            You are using gun adapter with OTP version #{version}, which doesn't support correct handling of unordered certificates chains. Please update your Erlang/OTP to at least 22.2.
-            "
-        end
-      else
-        raise "
-          !!!OTP VERSION WARNING!!!
-          To support correct handling of unordered certificates chains - OTP version must be > 22.2.
-          "
-      end
-    end
 
     # Define workers and child supervisors to be supervised
     children =
@@ -89,10 +63,11 @@ defmodule Pleroma.Application do
         Pleroma.Repo,
         Config.TransferTask,
         Pleroma.Emoji,
-        Pleroma.Web.Plugs.RateLimiter.Supervisor
+        Pleroma.Web.Plugs.RateLimiter.Supervisor,
+        {Task.Supervisor, name: Pleroma.TaskSupervisor}
       ] ++
         cachex_children() ++
-        http_children(adapter, @mix_env) ++
+        http_children() ++
         [
           Pleroma.Stats,
           Pleroma.JobQueueMonitor,
@@ -100,19 +75,33 @@ defmodule Pleroma.Application do
           {Oban, Config.get(Oban)},
           Pleroma.Web.Endpoint
         ] ++
+        elasticsearch_children() ++
         task_children(@mix_env) ++
-        dont_run_in_test(@mix_env) ++
-        shout_child(shout_enabled?()) ++
-        [Pleroma.Gopher.Server]
+        dont_run_in_test(@mix_env)
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
     # for other strategies and supported options
-    opts = [strategy: :one_for_one, name: Pleroma.Supervisor]
-    result = Supervisor.start_link(children, opts)
+    # If we have a lot of caches, default max_restarts can cause test
+    # resets to fail.
+    # Go for the default 3 unless we're in test
+    max_restarts =
+      if @mix_env == :test do
+        100
+      else
+        3
+      end
 
-    set_postgres_server_version()
+    opts = [strategy: :one_for_one, name: Pleroma.Supervisor, max_restarts: max_restarts]
 
-    result
+    with {:ok, data} <- Supervisor.start_link(children, opts) do
+      set_postgres_server_version()
+      {:ok, data}
+    else
+      e ->
+        Logger.error("Failed to start!")
+        Logger.error("#{inspect(e)}")
+        e
+    end
   end
 
   defp set_postgres_server_version do
@@ -154,29 +143,6 @@ defmodule Pleroma.Application do
     end
   end
 
-  defp setup_instrumenters do
-    require Prometheus.Registry
-
-    if Application.get_env(:prometheus, Pleroma.Repo.Instrumenter) do
-      :ok =
-        :telemetry.attach(
-          "prometheus-ecto",
-          [:pleroma, :repo, :query],
-          &Pleroma.Repo.Instrumenter.handle_event/4,
-          %{}
-        )
-
-      Pleroma.Repo.Instrumenter.setup()
-    end
-
-    Pleroma.Web.Endpoint.MetricsExporter.setup()
-    Pleroma.Web.Endpoint.PipelineInstrumenter.setup()
-
-    # Note: disabled until prometheus-phx is integrated into prometheus-phoenix:
-    # Pleroma.Web.Endpoint.Instrumenter.setup()
-    PrometheusPhx.setup()
-  end
-
   defp cachex_children do
     [
       build_cachex("used_captcha", ttl_interval: seconds_valid_interval()),
@@ -184,15 +150,15 @@ defmodule Pleroma.Application do
       build_cachex("object", default_ttl: 25_000, ttl_interval: 1000, limit: 2500),
       build_cachex("rich_media", default_ttl: :timer.minutes(120), limit: 5000),
       build_cachex("scrubber", limit: 2500),
+      build_cachex("scrubber_management", limit: 2500),
       build_cachex("idempotency", expiration: idempotency_expiration(), limit: 2500),
       build_cachex("web_resp", limit: 2500),
       build_cachex("emoji_packs", expiration: emoji_packs_expiration(), limit: 10),
       build_cachex("failed_proxy_url", limit: 2500),
       build_cachex("banned_urls", default_ttl: :timer.hours(24 * 30), limit: 5_000),
-      build_cachex("chat_message_id_idempotency_key",
-        expiration: chat_message_id_idempotency_key_expiration(),
-        limit: 500_000
-      )
+      build_cachex("translations", default_ttl: :timer.hours(24 * 30), limit: 2500),
+      build_cachex("instances", default_ttl: :timer.hours(24), ttl_interval: 1000, limit: 2500),
+      build_cachex("request_signatures", default_ttl: :timer.hours(24 * 30), limit: 3000)
     ]
   end
 
@@ -201,9 +167,6 @@ defmodule Pleroma.Application do
 
   defp idempotency_expiration,
     do: expiration(default: :timer.seconds(6 * 60 * 60), interval: :timer.seconds(60))
-
-  defp chat_message_id_idempotency_key_expiration,
-    do: expiration(default: :timer.minutes(2), interval: :timer.seconds(60))
 
   defp seconds_valid_interval,
     do: :timer.seconds(Config.get!([Pleroma.Captcha, :seconds_valid]))
@@ -215,8 +178,6 @@ defmodule Pleroma.Application do
       start: {Cachex, :start_link, [String.to_atom(type <> "_cache"), opts]},
       type: :worker
     }
-
-  defp shout_enabled?, do: Config.get([:shout, :enabled])
 
   defp dont_run_in_test(env) when env in [:test, :benchmark], do: []
 
@@ -236,15 +197,6 @@ defmodule Pleroma.Application do
       Pleroma.Migrators.HashtagsTableMigrator
     ]
   end
-
-  defp shout_child(true) do
-    [
-      Pleroma.Web.ShoutChannel.ShoutChannelState,
-      {Phoenix.PubSub, [name: Pleroma.PubSub, adapter: Phoenix.PubSub.PG2]}
-    ]
-  end
-
-  defp shout_child(_), do: []
 
   defp task_children(:test) do
     [
@@ -271,39 +223,25 @@ defmodule Pleroma.Application do
     ]
   end
 
-  # start hackney and gun pools in tests
-  defp http_children(_, :test) do
-    http_children(Tesla.Adapter.Hackney, nil) ++ http_children(Tesla.Adapter.Gun, nil)
-  end
+  def elasticsearch_children do
+    config = Config.get([Pleroma.Search, :module])
 
-  defp http_children(Tesla.Adapter.Hackney, _) do
-    pools = [:federation, :media]
-
-    pools =
-      if Config.get([Pleroma.Upload, :proxy_remote]) do
-        [:upload | pools]
-      else
-        pools
-      end
-
-    for pool <- pools do
-      options = Config.get([:hackney_pools, pool])
-      :hackney_pool.child_spec(pool, options)
+    if config == Pleroma.Search.Elasticsearch do
+      [Pleroma.Search.Elasticsearch.Cluster]
+    else
+      []
     end
   end
-
-  defp http_children(Tesla.Adapter.Gun, _) do
-    Pleroma.Gun.ConnectionPool.children() ++
-      [{Task, &Pleroma.HTTP.AdapterHelper.Gun.limiter_setup/0}]
-  end
-
-  defp http_children(_, _), do: []
 
   @spec limiters_setup() :: :ok
   def limiters_setup do
     config = Config.get(ConcurrentLimiter, [])
 
-    [Pleroma.Web.RichMedia.Helpers, Pleroma.Web.ActivityPub.MRF.MediaProxyWarmingPolicy]
+    [
+      Pleroma.Web.RichMedia.Helpers,
+      Pleroma.Web.ActivityPub.MRF.MediaProxyWarmingPolicy,
+      Pleroma.Search
+    ]
     |> Enum.each(fn module ->
       mod_config = Keyword.get(config, module, [])
 
@@ -312,5 +250,18 @@ defmodule Pleroma.Application do
 
       ConcurrentLimiter.new(module, max_running, max_waiting)
     end)
+  end
+
+  defp http_children do
+    proxy_url = Config.get([:http, :proxy_url])
+    proxy = Pleroma.HTTP.AdapterHelper.format_proxy(proxy_url)
+
+    config =
+      [:http, :adapter]
+      |> Config.get([])
+      |> Pleroma.HTTP.AdapterHelper.maybe_add_proxy_pool(proxy)
+      |> Keyword.put(:name, MyFinch)
+
+    [{Finch, config}]
   end
 end

@@ -56,8 +56,36 @@ defmodule Pleroma.HTML.Scrubber.Default do
   Meta.allow_tag_with_these_attributes(:u, [])
   Meta.allow_tag_with_these_attributes(:ul, [])
 
-  Meta.allow_tag_with_this_attribute_values(:span, "class", ["h-card"])
-  Meta.allow_tag_with_these_attributes(:span, [])
+  Meta.allow_tags_with_style_attributes([:span])
+
+  Meta.allow_tag_with_this_attribute_values(:span, "class", [
+    "h-card",
+    "quote-inline",
+    "mfm",
+    "mfm _mfm_tada_",
+    "mfm _mfm_jelly_",
+    "mfm _mfm_twitch_",
+    "mfm _mfm_shake_",
+    "mfm _mfm_spin_",
+    "mfm _mfm_jump_",
+    "mfm _mfm_bounce_",
+    "mfm _mfm_flip_",
+    "mfm _mfm_x2_",
+    "mfm _mfm_x3_",
+    "mfm _mfm_x4_",
+    "mfm _mfm_blur_",
+    "mfm _mfm_rainbow_",
+    "mfm _mfm_rotate_"
+  ])
+
+  Meta.allow_tag_with_these_attributes(:span, [
+    "data-x",
+    "data-y",
+    "data-h",
+    "data-v",
+    "data-left",
+    "data-right"
+  ])
 
   Meta.allow_tag_with_this_attribute_values(:code, "class", ["inline"])
 
@@ -70,7 +98,6 @@ defmodule Pleroma.HTML.Scrubber.Default do
     Meta.allow_tag_with_these_attributes(:img, [
       "width",
       "height",
-      "class",
       "title",
       "alt"
     ])
@@ -97,5 +124,10 @@ defmodule Pleroma.HTML.Scrubber.Default do
     Meta.allow_tag_with_these_attributes(:font, ["face"])
   end
 
+  Meta.allow_tag_with_these_attributes(:center, [])
+  Meta.allow_tag_with_these_attributes(:small, [])
+
   Meta.strip_everything_not_covered()
+
+  defp scrub_css(value), do: value
 end

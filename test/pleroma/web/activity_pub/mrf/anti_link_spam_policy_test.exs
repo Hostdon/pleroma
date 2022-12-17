@@ -7,6 +7,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.AntiLinkSpamPolicyTest do
   import Pleroma.Factory
   import ExUnit.CaptureLog
 
+  alias Pleroma.Web.ActivityPub.MRF
   alias Pleroma.Web.ActivityPub.MRF.AntiLinkSpamPolicy
 
   @linkless_message %{
@@ -31,6 +32,28 @@ defmodule Pleroma.Web.ActivityPub.MRF.AntiLinkSpamPolicyTest do
     }
   }
 
+  @linkless_update_message %{
+    "type" => "Update",
+    "object" => %{
+      "content" => "hi world!"
+    }
+  }
+
+  @linkful_update_message %{
+    "type" => "Update",
+    "object" => %{
+      "content" => "<a href='https://example.com'>hi world!</a>"
+    }
+  }
+
+  @response_update_message %{
+    "type" => "Update",
+    "object" => %{
+      "name" => "yes",
+      "type" => "Answer"
+    }
+  }
+
   describe "with new user" do
     test "it allows posts without links" do
       user = insert(:user, local: false)
@@ -41,7 +64,12 @@ defmodule Pleroma.Web.ActivityPub.MRF.AntiLinkSpamPolicyTest do
         @linkless_message
         |> Map.put("actor", user.ap_id)
 
+      update_message =
+        @linkless_update_message
+        |> Map.put("actor", user.ap_id)
+
       {:ok, _message} = AntiLinkSpamPolicy.filter(message)
+      {:ok, _update_message} = AntiLinkSpamPolicy.filter(update_message)
     end
 
     test "it disallows posts with links" do
@@ -49,11 +77,40 @@ defmodule Pleroma.Web.ActivityPub.MRF.AntiLinkSpamPolicyTest do
 
       assert user.note_count == 0
 
-      message =
-        @linkful_message
-        |> Map.put("actor", user.ap_id)
+      message = %{
+        "type" => "Create",
+        "actor" => user.ap_id,
+        "object" => %{
+          "formerRepresentations" => %{
+            "type" => "OrderedCollection",
+            "orderedItems" => [
+              %{
+                "content" => "<a href='https://example.com'>hi world!</a>"
+              }
+            ]
+          },
+          "content" => "mew"
+        }
+      }
 
-      {:reject, _} = AntiLinkSpamPolicy.filter(message)
+      update_message = %{
+        "type" => "Update",
+        "actor" => user.ap_id,
+        "object" => %{
+          "formerRepresentations" => %{
+            "type" => "OrderedCollection",
+            "orderedItems" => [
+              %{
+                "content" => "<a href='https://example.com'>hi world!</a>"
+              }
+            ]
+          },
+          "content" => "mew"
+        }
+      }
+
+      {:reject, _} = MRF.filter_one(AntiLinkSpamPolicy, message)
+      {:reject, _} = MRF.filter_one(AntiLinkSpamPolicy, update_message)
     end
 
     test "it allows posts with links for local users" do
@@ -65,7 +122,29 @@ defmodule Pleroma.Web.ActivityPub.MRF.AntiLinkSpamPolicyTest do
         @linkful_message
         |> Map.put("actor", user.ap_id)
 
+      update_message =
+        @linkful_update_message
+        |> Map.put("actor", user.ap_id)
+
       {:ok, _message} = AntiLinkSpamPolicy.filter(message)
+      {:ok, _update_message} = AntiLinkSpamPolicy.filter(update_message)
+    end
+
+    test "it disallows posts with links in history" do
+      user = insert(:user, local: false)
+
+      assert user.note_count == 0
+
+      message =
+        @linkful_message
+        |> Map.put("actor", user.ap_id)
+
+      update_message =
+        @linkful_update_message
+        |> Map.put("actor", user.ap_id)
+
+      {:reject, _} = AntiLinkSpamPolicy.filter(message)
+      {:reject, _} = AntiLinkSpamPolicy.filter(update_message)
     end
   end
 
@@ -79,7 +158,12 @@ defmodule Pleroma.Web.ActivityPub.MRF.AntiLinkSpamPolicyTest do
         @linkless_message
         |> Map.put("actor", user.ap_id)
 
+      update_message =
+        @linkless_update_message
+        |> Map.put("actor", user.ap_id)
+
       {:ok, _message} = AntiLinkSpamPolicy.filter(message)
+      {:ok, _update_message} = AntiLinkSpamPolicy.filter(update_message)
     end
 
     test "it allows posts with links" do
@@ -91,7 +175,12 @@ defmodule Pleroma.Web.ActivityPub.MRF.AntiLinkSpamPolicyTest do
         @linkful_message
         |> Map.put("actor", user.ap_id)
 
+      update_message =
+        @linkful_update_message
+        |> Map.put("actor", user.ap_id)
+
       {:ok, _message} = AntiLinkSpamPolicy.filter(message)
+      {:ok, _update_message} = AntiLinkSpamPolicy.filter(update_message)
     end
   end
 
@@ -105,7 +194,12 @@ defmodule Pleroma.Web.ActivityPub.MRF.AntiLinkSpamPolicyTest do
         @linkless_message
         |> Map.put("actor", user.ap_id)
 
+      update_message =
+        @linkless_update_message
+        |> Map.put("actor", user.ap_id)
+
       {:ok, _message} = AntiLinkSpamPolicy.filter(message)
+      {:ok, _update_message} = AntiLinkSpamPolicy.filter(update_message)
     end
 
     test "it allows posts with links" do
@@ -117,7 +211,12 @@ defmodule Pleroma.Web.ActivityPub.MRF.AntiLinkSpamPolicyTest do
         @linkful_message
         |> Map.put("actor", user.ap_id)
 
+      update_message =
+        @linkful_update_message
+        |> Map.put("actor", user.ap_id)
+
       {:ok, _message} = AntiLinkSpamPolicy.filter(message)
+      {:ok, _update_message} = AntiLinkSpamPolicy.filter(update_message)
     end
   end
 
@@ -136,8 +235,16 @@ defmodule Pleroma.Web.ActivityPub.MRF.AntiLinkSpamPolicyTest do
         @linkless_message
         |> Map.put("actor", "http://invalid.actor")
 
+      update_message =
+        @linkless_update_message
+        |> Map.put("actor", "http://invalid.actor")
+
       assert capture_log(fn ->
                {:reject, _} = AntiLinkSpamPolicy.filter(message)
+             end) =~ "[error] Could not decode user at fetch http://invalid.actor"
+
+      assert capture_log(fn ->
+               {:reject, _} = AntiLinkSpamPolicy.filter(update_message)
              end) =~ "[error] Could not decode user at fetch http://invalid.actor"
     end
 
@@ -146,8 +253,16 @@ defmodule Pleroma.Web.ActivityPub.MRF.AntiLinkSpamPolicyTest do
         @linkful_message
         |> Map.put("actor", "http://invalid.actor")
 
+      update_message =
+        @linkful_update_message
+        |> Map.put("actor", "http://invalid.actor")
+
       assert capture_log(fn ->
                {:reject, _} = AntiLinkSpamPolicy.filter(message)
+             end) =~ "[error] Could not decode user at fetch http://invalid.actor"
+
+      assert capture_log(fn ->
+               {:reject, _} = AntiLinkSpamPolicy.filter(update_message)
              end) =~ "[error] Could not decode user at fetch http://invalid.actor"
     end
   end
@@ -160,7 +275,12 @@ defmodule Pleroma.Web.ActivityPub.MRF.AntiLinkSpamPolicyTest do
         @response_message
         |> Map.put("actor", user.ap_id)
 
+      update_message =
+        @response_update_message
+        |> Map.put("actor", user.ap_id)
+
       {:ok, _message} = AntiLinkSpamPolicy.filter(message)
+      {:ok, _update_message} = AntiLinkSpamPolicy.filter(update_message)
     end
   end
 end

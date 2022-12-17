@@ -50,6 +50,8 @@ defmodule Pleroma.Web.MastodonAPI.NotificationController do
     favourite
     move
     pleroma:emoji_reaction
+    poll
+    update
   }
   def index(%{assigns: %{user: user}} = conn, params) do
     params =
@@ -95,11 +97,6 @@ defmodule Pleroma.Web.MastodonAPI.NotificationController do
         |> put_status(:forbidden)
         |> json(%{"error" => reason})
     end
-  end
-
-  # POST /api/v1/notifications/dismiss (deprecated)
-  def dismiss_via_body(%{body_params: params} = conn, _) do
-    dismiss(conn, params)
   end
 
   # DELETE /api/v1/notifications/destroy_multiple

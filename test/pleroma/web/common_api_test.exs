@@ -7,17 +7,16 @@ defmodule Pleroma.Web.CommonAPITest do
   use Pleroma.DataCase
 
   alias Pleroma.Activity
-  alias Pleroma.Chat
   alias Pleroma.Conversation.Participation
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.Repo
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Transmogrifier
   alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Web.AdminAPI.AccountView
   alias Pleroma.Web.CommonAPI
+  alias Pleroma.Workers.PollWorker
 
   import Pleroma.Factory
   import Mock
@@ -26,6 +25,8 @@ defmodule Pleroma.Web.CommonAPITest do
   require Pleroma.Constants
 
   setup_all do
+    clear_config([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
+    clear_config([Pleroma.Uploaders.Local, :uploads], "uploads")
     Tesla.Mock.mock_global(fn env -> apply(HttpRequestMock, :request, [env]) end)
     :ok
   end
@@ -48,15 +49,23 @@ defmodule Pleroma.Web.CommonAPITest do
 
       assert object.data["type"] == "Question"
       assert object.data["oneOf"] |> length() == 2
+
+      assert_enqueued(
+        worker: PollWorker,
+        args: %{op: "poll_end", activity_id: activity.id},
+        scheduled_at: NaiveDateTime.from_iso8601!(object.data["closed"])
+      )
     end
   end
 
   describe "blocking" do
     setup do
       blocker = insert(:user)
-      blocked = insert(:user)
-      User.follow(blocker, blocked)
-      User.follow(blocked, blocker)
+      blocked = insert(:user, local: false)
+      CommonAPI.follow(blocker, blocked)
+      CommonAPI.follow(blocked, blocker)
+      CommonAPI.accept_follow_request(blocker, blocked)
+      CommonAPI.accept_follow_request(blocked, blocked)
       %{blocker: blocker, blocked: blocked}
     end
 
@@ -65,12 +74,20 @@ defmodule Pleroma.Web.CommonAPITest do
 
       with_mock Pleroma.Web.Federator,
         publish: fn _ -> nil end do
+        assert User.get_follow_state(blocker, blocked) == :follow_accept
+        refute is_nil(Pleroma.Web.ActivityPub.Utils.fetch_latest_follow(blocker, blocked))
+
         assert {:ok, block} = CommonAPI.block(blocker, blocked)
 
         assert block.local
         assert User.blocks?(blocker, blocked)
         refute User.following?(blocker, blocked)
         refute User.following?(blocked, blocker)
+
+        refute User.get_follow_state(blocker, blocked)
+
+        assert %{data: %{"state" => "reject"}} =
+                 Pleroma.Web.ActivityPub.Utils.fetch_latest_follow(blocker, blocked)
 
         assert called(Pleroma.Web.Federator.publish(block))
       end
@@ -94,175 +111,6 @@ defmodule Pleroma.Web.CommonAPITest do
 
         refute called(Pleroma.Web.Federator.publish(block))
       end
-    end
-  end
-
-  describe "posting chat messages" do
-    setup do: clear_config([:instance, :chat_limit])
-
-    test "it posts a self-chat" do
-      author = insert(:user)
-      recipient = author
-
-      {:ok, activity} =
-        CommonAPI.post_chat_message(
-          author,
-          recipient,
-          "remember to buy milk when milk truk arive"
-        )
-
-      assert activity.data["type"] == "Create"
-    end
-
-    test "it posts a chat message without content but with an attachment" do
-      author = insert(:user)
-      recipient = insert(:user)
-
-      file = %Plug.Upload{
-        content_type: "image/jpeg",
-        path: Path.absname("test/fixtures/image.jpg"),
-        filename: "an_image.jpg"
-      }
-
-      {:ok, upload} = ActivityPub.upload(file, actor: author.ap_id)
-
-      with_mocks([
-        {
-          Pleroma.Web.Streamer,
-          [],
-          [
-            stream: fn _, _ ->
-              nil
-            end
-          ]
-        },
-        {
-          Pleroma.Web.Push,
-          [],
-          [
-            send: fn _ -> nil end
-          ]
-        }
-      ]) do
-        {:ok, activity} =
-          CommonAPI.post_chat_message(
-            author,
-            recipient,
-            nil,
-            media_id: upload.id
-          )
-
-        notification =
-          Notification.for_user_and_activity(recipient, activity)
-          |> Repo.preload(:activity)
-
-        assert called(Pleroma.Web.Push.send(notification))
-        assert called(Pleroma.Web.Streamer.stream(["user", "user:notification"], notification))
-        assert called(Pleroma.Web.Streamer.stream(["user", "user:pleroma_chat"], :_))
-
-        assert activity
-      end
-    end
-
-    test "it adds html newlines" do
-      author = insert(:user)
-      recipient = insert(:user)
-
-      other_user = insert(:user)
-
-      {:ok, activity} =
-        CommonAPI.post_chat_message(
-          author,
-          recipient,
-          "uguu\nuguuu"
-        )
-
-      assert other_user.ap_id not in activity.recipients
-
-      object = Object.normalize(activity, fetch: false)
-
-      assert object.data["content"] == "uguu<br/>uguuu"
-    end
-
-    test "it linkifies" do
-      author = insert(:user)
-      recipient = insert(:user)
-
-      other_user = insert(:user)
-
-      {:ok, activity} =
-        CommonAPI.post_chat_message(
-          author,
-          recipient,
-          "https://example.org is the site of @#{other_user.nickname} #2hu"
-        )
-
-      assert other_user.ap_id not in activity.recipients
-
-      object = Object.normalize(activity, fetch: false)
-
-      assert object.data["content"] ==
-               "<a href=\"https://example.org\" rel=\"ugc\">https://example.org</a> is the site of <span class=\"h-card\"><a class=\"u-url mention\" data-user=\"#{
-                 other_user.id
-               }\" href=\"#{other_user.ap_id}\" rel=\"ugc\">@<span>#{other_user.nickname}</span></a></span> <a class=\"hashtag\" data-tag=\"2hu\" href=\"http://localhost:4001/tag/2hu\">#2hu</a>"
-    end
-
-    test "it posts a chat message" do
-      author = insert(:user)
-      recipient = insert(:user)
-
-      {:ok, activity} =
-        CommonAPI.post_chat_message(
-          author,
-          recipient,
-          "a test message <script>alert('uuu')</script> :firefox:"
-        )
-
-      assert activity.data["type"] == "Create"
-      assert activity.local
-      object = Object.normalize(activity, fetch: false)
-
-      assert object.data["type"] == "ChatMessage"
-      assert object.data["to"] == [recipient.ap_id]
-
-      assert object.data["content"] ==
-               "a test message &lt;script&gt;alert(&#39;uuu&#39;)&lt;/script&gt; :firefox:"
-
-      assert object.data["emoji"] == %{
-               "firefox" => "http://localhost:4001/emoji/Firefox.gif"
-             }
-
-      assert Chat.get(author.id, recipient.ap_id)
-      assert Chat.get(recipient.id, author.ap_id)
-
-      assert :ok == Pleroma.Web.Federator.perform(:publish, activity)
-    end
-
-    test "it reject messages over the local limit" do
-      clear_config([:instance, :chat_limit], 2)
-
-      author = insert(:user)
-      recipient = insert(:user)
-
-      {:error, message} =
-        CommonAPI.post_chat_message(
-          author,
-          recipient,
-          "123"
-        )
-
-      assert message == :content_too_long
-    end
-
-    test "it reject messages via MRF" do
-      clear_config([:mrf_keyword, :reject], ["GNO"])
-      clear_config([:mrf, :policies], [Pleroma.Web.ActivityPub.MRF.KeywordPolicy])
-
-      author = insert(:user)
-      recipient = insert(:user)
-
-      assert {:reject, "[KeywordPolicy] Matches with rejected keyword"} ==
-               CommonAPI.post_chat_message(author, recipient, "GNO/Linux")
     end
   end
 
@@ -581,7 +429,11 @@ defmodule Pleroma.Web.CommonAPITest do
       object = Object.normalize(activity, fetch: false)
 
       assert object.data["content"] == "<p><b>2hu</b></p>alert(&#39;xss&#39;)"
-      assert object.data["source"] == post
+
+      assert object.data["source"] == %{
+               "mediaType" => "text/html",
+               "content" => post
+             }
     end
 
     test "it filters out obviously bad tags when accepting a post as Markdown" do
@@ -598,7 +450,11 @@ defmodule Pleroma.Web.CommonAPITest do
       object = Object.normalize(activity, fetch: false)
 
       assert object.data["content"] == "<p><b>2hu</b></p>"
-      assert object.data["source"] == post
+
+      assert object.data["source"] == %{
+               "mediaType" => "text/markdown",
+               "content" => post
+             }
     end
 
     test "it does not allow replies to direct messages that are not direct messages themselves" do
@@ -1202,24 +1058,23 @@ defmodule Pleroma.Web.CommonAPITest do
       refute User.subscribed_to?(follower, followed)
     end
 
-    test "cancels a pending follow for a local user" do
+    test "removes a pending follow for a local user" do
       follower = insert(:user)
       followed = insert(:user, is_locked: true)
 
-      assert {:ok, follower, followed, %{id: activity_id, data: %{"state" => "pending"}}} =
+      assert {:ok, follower, followed, %{id: _activity_id, data: %{"state" => "pending"}}} =
                CommonAPI.follow(follower, followed)
 
       assert User.get_follow_state(follower, followed) == :follow_pending
       assert {:ok, follower} = CommonAPI.unfollow(follower, followed)
       assert User.get_follow_state(follower, followed) == nil
 
-      assert %{id: ^activity_id, data: %{"state" => "cancelled"}} =
-               Pleroma.Web.ActivityPub.Utils.fetch_latest_follow(follower, followed)
+      assert is_nil(Pleroma.Web.ActivityPub.Utils.fetch_latest_follow(follower, followed))
 
       assert %{
                data: %{
                  "type" => "Undo",
-                 "object" => %{"type" => "Follow", "state" => "cancelled"}
+                 "object" => %{"type" => "Follow"}
                }
              } = Pleroma.Web.ActivityPub.Utils.fetch_latest_undo(follower)
     end
@@ -1228,20 +1083,19 @@ defmodule Pleroma.Web.CommonAPITest do
       follower = insert(:user)
       followed = insert(:user, is_locked: true, local: false, ap_enabled: true)
 
-      assert {:ok, follower, followed, %{id: activity_id, data: %{"state" => "pending"}}} =
+      assert {:ok, follower, followed, %{id: _activity_id, data: %{"state" => "pending"}}} =
                CommonAPI.follow(follower, followed)
 
       assert User.get_follow_state(follower, followed) == :follow_pending
       assert {:ok, follower} = CommonAPI.unfollow(follower, followed)
       assert User.get_follow_state(follower, followed) == nil
 
-      assert %{id: ^activity_id, data: %{"state" => "cancelled"}} =
-               Pleroma.Web.ActivityPub.Utils.fetch_latest_follow(follower, followed)
+      assert is_nil(Pleroma.Web.ActivityPub.Utils.fetch_latest_follow(follower, followed))
 
       assert %{
                data: %{
                  "type" => "Undo",
-                 "object" => %{"type" => "Follow", "state" => "cancelled"}
+                 "object" => %{"type" => "Follow"}
                }
              } = Pleroma.Web.ActivityPub.Utils.fetch_latest_undo(follower)
     end
@@ -1313,45 +1167,6 @@ defmodule Pleroma.Web.CommonAPITest do
       {:ok, _, object} = CommonAPI.vote(other_user, object, [0])
 
       assert {:error, "Already voted"} == CommonAPI.vote(other_user, object, [1])
-    end
-  end
-
-  describe "listen/2" do
-    test "returns a valid activity" do
-      user = insert(:user)
-
-      {:ok, activity} =
-        CommonAPI.listen(user, %{
-          title: "lain radio episode 1",
-          album: "lain radio",
-          artist: "lain",
-          length: 180_000
-        })
-
-      object = Object.normalize(activity, fetch: false)
-
-      assert object.data["title"] == "lain radio episode 1"
-
-      assert Visibility.get_visibility(activity) == "public"
-    end
-
-    test "respects visibility=private" do
-      user = insert(:user)
-
-      {:ok, activity} =
-        CommonAPI.listen(user, %{
-          title: "lain radio episode 1",
-          album: "lain radio",
-          artist: "lain",
-          length: 180_000,
-          visibility: "private"
-        })
-
-      object = Object.normalize(activity, fetch: false)
-
-      assert object.data["title"] == "lain radio episode 1"
-
-      assert Visibility.get_visibility(activity) == "private"
     end
   end
 
@@ -1496,6 +1311,130 @@ defmodule Pleroma.Web.CommonAPITest do
         assert Visibility.is_local_public?(activity)
         refute called(Pleroma.Web.Federator.publish(activity))
       end
+    end
+  end
+
+  describe "update/3" do
+    test "updates a post" do
+      user = insert(:user)
+      {:ok, activity} = CommonAPI.post(user, %{status: "foo1", spoiler_text: "title 1"})
+
+      {:ok, updated} = CommonAPI.update(user, activity, %{status: "updated 2"})
+
+      updated_object = Object.normalize(updated)
+      assert updated_object.data["content"] == "updated 2"
+      assert Map.get(updated_object.data, "summary", "") == ""
+      assert Map.has_key?(updated_object.data, "updated")
+    end
+
+    test "does not change visibility" do
+      user = insert(:user)
+
+      {:ok, activity} =
+        CommonAPI.post(user, %{status: "foo1", spoiler_text: "title 1", visibility: "private"})
+
+      {:ok, updated} = CommonAPI.update(user, activity, %{status: "updated 2"})
+
+      updated_object = Object.normalize(updated)
+      assert updated_object.data["content"] == "updated 2"
+      assert Map.get(updated_object.data, "summary", "") == ""
+      assert Visibility.get_visibility(updated_object) == "private"
+      assert Visibility.get_visibility(updated) == "private"
+    end
+
+    test "updates a post with emoji" do
+      [{emoji1, _}, {emoji2, _} | _] = Pleroma.Emoji.get_all()
+
+      user = insert(:user)
+
+      {:ok, activity} =
+        CommonAPI.post(user, %{status: "foo1", spoiler_text: "title 1 :#{emoji1}:"})
+
+      {:ok, updated} = CommonAPI.update(user, activity, %{status: "updated 2 :#{emoji2}:"})
+
+      updated_object = Object.normalize(updated)
+      assert updated_object.data["content"] == "updated 2 :#{emoji2}:"
+      assert %{^emoji2 => _} = updated_object.data["emoji"]
+    end
+
+    test "updates a post with emoji and federate properly" do
+      [{emoji1, _}, {emoji2, _} | _] = Pleroma.Emoji.get_all()
+
+      user = insert(:user)
+
+      {:ok, activity} =
+        CommonAPI.post(user, %{status: "foo1", spoiler_text: "title 1 :#{emoji1}:"})
+
+      clear_config([:instance, :federating], true)
+
+      with_mock Pleroma.Web.Federator,
+        publish: fn _p -> nil end do
+        {:ok, updated} = CommonAPI.update(user, activity, %{status: "updated 2 :#{emoji2}:"})
+
+        assert updated.data["object"]["content"] == "updated 2 :#{emoji2}:"
+        assert %{^emoji2 => _} = updated.data["object"]["emoji"]
+
+        assert called(Pleroma.Web.Federator.publish(updated))
+      end
+    end
+
+    test "editing a post that copied a remote title with remote emoji should keep that emoji" do
+      remote_emoji_uri = "https://remote.org/emoji.png"
+
+      note =
+        insert(
+          :note,
+          data: %{
+            "summary" => ":remoteemoji:",
+            "emoji" => %{
+              "remoteemoji" => remote_emoji_uri
+            },
+            "tag" => [
+              %{
+                "type" => "Emoji",
+                "name" => "remoteemoji",
+                "icon" => %{"url" => remote_emoji_uri}
+              }
+            ]
+          }
+        )
+
+      note_activity = insert(:note_activity, note: note)
+
+      user = insert(:user)
+
+      {:ok, reply} =
+        CommonAPI.post(user, %{
+          status: "reply",
+          spoiler_text: ":remoteemoji:",
+          in_reply_to_id: note_activity.id
+        })
+
+      assert reply.object.data["emoji"]["remoteemoji"] == remote_emoji_uri
+
+      {:ok, edit} =
+        CommonAPI.update(user, reply, %{status: "reply mew mew", spoiler_text: ":remoteemoji:"})
+
+      edited_note = Pleroma.Object.normalize(edit)
+
+      assert edited_note.data["emoji"]["remoteemoji"] == remote_emoji_uri
+    end
+
+    test "respects MRF" do
+      user = insert(:user)
+
+      clear_config([:mrf, :policies], [Pleroma.Web.ActivityPub.MRF.KeywordPolicy])
+      clear_config([:mrf_keyword, :replace], [{"updated", "mewmew"}])
+
+      {:ok, activity} = CommonAPI.post(user, %{status: "foo1", spoiler_text: "updated 1"})
+      assert Object.normalize(activity).data["summary"] == "mewmew 1"
+
+      {:ok, updated} = CommonAPI.update(user, activity, %{status: "updated 2"})
+
+      updated_object = Object.normalize(updated)
+      assert updated_object.data["content"] == "mewmew 2"
+      assert Map.get(updated_object.data, "summary", "") == ""
+      assert Map.has_key?(updated_object.data, "updated")
     end
   end
 end

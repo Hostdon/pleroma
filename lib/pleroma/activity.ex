@@ -292,6 +292,12 @@ defmodule Pleroma.Activity do
     get_in_reply_to_activity_from_object(Object.normalize(activity, fetch: false))
   end
 
+  def get_quoted_activity_from_object(%Object{data: %{"quoteUri" => ap_id}}) do
+    get_create_by_object_ap_id_with_object(ap_id)
+  end
+
+  def get_quoted_activity_from_object(_), do: nil
+
   def normalize(%Activity{data: %{"id" => ap_id}}), do: get_by_ap_id_with_object(ap_id)
   def normalize(%{"id" => ap_id}), do: get_by_ap_id_with_object(ap_id)
   def normalize(ap_id) when is_binary(ap_id), do: get_by_ap_id_with_object(ap_id)
@@ -302,7 +308,7 @@ defmodule Pleroma.Activity do
     |> Queries.by_object_id()
     |> Queries.exclude_type("Delete")
     |> select([u], u)
-    |> Repo.delete_all()
+    |> Repo.delete_all(timeout: :infinity)
     |> elem(1)
     |> Enum.find(fn
       %{data: %{"type" => "Create", "object" => ap_id}} when is_binary(ap_id) -> ap_id == id
@@ -361,15 +367,27 @@ defmodule Pleroma.Activity do
     |> Repo.all()
   end
 
-  def restrict_deactivated_users(query) do
-    deactivated_users =
-      from(u in User.Query.build(%{deactivated: true}), select: u.ap_id)
-      |> Repo.all()
-
-    Activity.Queries.exclude_authors(query, deactivated_users)
+  def follow_activity(%User{ap_id: ap_id}, %User{ap_id: followed_ap_id}) do
+    Queries.by_type("Follow")
+    |> where([a], a.actor == ^ap_id)
+    |> where([a], fragment("?->>'object' = ?", a.data, ^followed_ap_id))
+    |> where([a], fragment("?->>'state'", a.data) in ["pending", "accept"])
+    |> Repo.one()
   end
 
-  defdelegate search(user, query, options \\ []), to: Pleroma.Activity.Search
+  def restrict_deactivated_users(query) do
+    query
+    |> join(
+      :inner_lateral,
+      [activity],
+      active in fragment(
+        "SELECT is_active from users WHERE ap_id = ? AND is_active = TRUE",
+        activity.actor
+      )
+    )
+  end
+
+  defdelegate search(user, query, options \\ []), to: Pleroma.Search.DatabaseSearch
 
   def direct_conversation_id(activity, for_user) do
     alias Pleroma.Conversation.Participation

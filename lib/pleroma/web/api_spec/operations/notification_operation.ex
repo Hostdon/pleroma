@@ -108,24 +108,6 @@ defmodule Pleroma.Web.ApiSpec.NotificationOperation do
     }
   end
 
-  def dismiss_via_body_operation do
-    %Operation{
-      tags: ["Notifications"],
-      summary: "Dismiss a single notification",
-      deprecated: true,
-      description: "Clear a single notification from the server.",
-      operationId: "NotificationController.dismiss_via_body",
-      requestBody:
-        request_body(
-          "Parameters",
-          %Schema{type: :object, properties: %{id: %Schema{type: :string}}},
-          required: true
-        ),
-      security: [%{"oAuth" => ["write:notifications"]}],
-      responses: %{200 => empty_object_response()}
-    }
-  end
-
   def destroy_multiple_operation do
     %Operation{
       tags: ["Notifications"],
@@ -192,10 +174,10 @@ defmodule Pleroma.Web.ApiSpec.NotificationOperation do
         "reblog",
         "mention",
         "pleroma:emoji_reaction",
-        "pleroma:chat_mention",
         "pleroma:report",
         "move",
-        "follow_request"
+        "follow_request",
+        "poll"
       ],
       description: """
       The type of event that resulted in the notification.
@@ -207,7 +189,6 @@ defmodule Pleroma.Web.ApiSpec.NotificationOperation do
       - `poll` - A poll you have voted in or created has ended
       - `move` - Someone moved their account
       - `pleroma:emoji_reaction` - Someone reacted with emoji to your status
-      - `pleroma:chat_mention` - Someone mentioned you in a chat message
       - `pleroma:report` - Someone was reported
       """
     }

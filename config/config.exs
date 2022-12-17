@@ -48,6 +48,7 @@ config :pleroma, ecto_repos: [Pleroma.Repo]
 
 config :pleroma, Pleroma.Repo,
   telemetry_event: [Pleroma.Repo.Instrumenter],
+  queue_target: 20_000,
   migration_lock: nil
 
 config :pleroma, Pleroma.Captcha,
@@ -139,6 +140,7 @@ config :pleroma, Pleroma.Web.Endpoint,
   ],
   protocol: "https",
   secret_key_base: "aK4Abxf29xU9TTDKre9coZPUgevcVCFQJe/5xP/7Lt4BEif6idBIbjupVbOrbKxl",
+  live_view: [signing_salt: "U5ELgdEwTD3n1+D5s0rY0AMg8/y1STxZ3Zvsl3bWh+oBcGrYdil0rXqPMRd3Glcq"],
   signing_salt: "CqaoopA2",
   render_errors: [view: Pleroma.Web.ErrorView, accepts: ~w(json)],
   pubsub_server: Pleroma.PubSub,
@@ -148,13 +150,15 @@ config :pleroma, Pleroma.Web.Endpoint,
   ]
 
 # Configures Elixir's Logger
+config :logger, truncate: 65_536
+
 config :logger, :console,
-  level: :debug,
+  level: :info,
   format: "\n$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
 config :logger, :ex_syslogger,
-  level: :debug,
+  level: :info,
   ident: "pleroma",
   format: "$metadata[$level] $message",
   metadata: [:request_id]
@@ -172,20 +176,21 @@ config :mime, :types, %{
   "application/ld+json" => ["activity+json"]
 }
 
-config :tesla, adapter: Tesla.Adapter.Hackney
+config :tesla, :adapter, {Tesla.Adapter.Finch, name: MyFinch}
 
 # Configures http settings, upstream proxy etc.
 config :pleroma, :http,
+  pool_timeout: :timer.seconds(5),
+  receive_timeout: :timer.seconds(15),
   proxy_url: nil,
-  send_user_agent: true,
   user_agent: :default,
   adapter: []
 
 config :pleroma, :instance,
-  name: "Pleroma",
+  name: "Akkoma",
   email: "example@example.com",
   notify_email: "noreply@example.com",
-  description: "Pleroma: An efficient and flexible fediverse server",
+  description: "Akkoma: The cooler fediverse server",
   background_image: "/images/city.jpg",
   instance_thumbnail: "/instance/thumbnail.jpeg",
   limit: 5_000,
@@ -195,6 +200,7 @@ config :pleroma, :instance,
   avatar_upload_limit: 2_000_000,
   background_upload_limit: 4_000_000,
   banner_upload_limit: 4_000_000,
+  languages: ["en"],
   poll_limits: %{
     max_options: 20,
     max_option_chars: 200,
@@ -211,16 +217,17 @@ config :pleroma, :instance,
   federation_publisher_modules: [
     Pleroma.Web.ActivityPub.Publisher
   ],
-  allow_relay: true,
+  allow_relay: false,
   public: true,
-  quarantined_instances: [],
   static_dir: "instance/static/",
   allowed_post_formats: [
     "text/plain",
     "text/html",
     "text/markdown",
-    "text/bbcode"
+    "text/bbcode",
+    "text/x.misskeymarkdown"
   ],
+  staff_transparency: [],
   autofollowed_nicknames: [],
   autofollowing_nicknames: [],
   max_pinned_statuses: 1,
@@ -253,15 +260,14 @@ config :pleroma, :instance,
     ]
   ],
   show_reactions: true,
-  password_reset_token_validity: 60 * 60 * 24
+  password_reset_token_validity: 60 * 60 * 24,
+  profile_directory: true,
+  privileged_staff: false,
+  local_bubble: [],
+  max_frontend_settings_json_chars: 100_000
 
 config :pleroma, :welcome,
   direct_message: [
-    enabled: false,
-    sender_nickname: nil,
-    message: nil
-  ],
-  chat_message: [
     enabled: false,
     sender_nickname: nil,
     message: nil
@@ -308,19 +314,19 @@ config :pleroma, :frontend_configurations,
     logo: "/static/logo.svg",
     logoMargin: ".1em",
     logoMask: true,
-    minimalScopesMode: false,
     noAttachmentLinks: false,
     nsfwCensorImage: "",
     postContentType: "text/plain",
     redirectRootLogin: "/main/friends",
-    redirectRootNoLogin: "/main/all",
+    redirectRootNoLogin: "/main/public",
     scopeCopy: true,
     sidebarRight: false,
     showFeaturesPanel: true,
     showInstanceSpecificPanel: false,
     subjectLineBehavior: "email",
     theme: "pleroma-dark",
-    webPushNotifications: false
+    webPushNotifications: false,
+    conversationDisplay: "linear"
   },
   masto_fe: %{
     showInstanceSpecificPanel: true
@@ -352,10 +358,12 @@ config :pleroma, :manifest,
 config :pleroma, :activitypub,
   unfollow_blocked: true,
   outgoing_blocks: true,
+  blockers_visible: true,
   follow_handshake_timeout: 500,
   note_replies_output_limit: 5,
   sign_object_fetches: true,
-  authorized_fetch_mode: false
+  authorized_fetch_mode: false,
+  max_collection_objects: 50
 
 config :pleroma, :streamer,
   workers: 3,
@@ -383,7 +391,8 @@ config :pleroma, :mrf_simple,
   accept: [],
   avatar_removal: [],
   banner_removal: [],
-  reject_deletes: []
+  reject_deletes: [],
+  handle_threads: true
 
 config :pleroma, :mrf_keyword,
   reject: [],
@@ -402,6 +411,8 @@ config :pleroma, :mrf_activity_expiration, days: 365
 config :pleroma, :mrf_vocabulary,
   accept: [],
   reject: []
+
+config :pleroma, :mrf_inline_quote, prefix: "RE"
 
 # threshold of 7 days
 config :pleroma, :mrf_object_age,
@@ -431,11 +442,7 @@ config :pleroma, :media_proxy,
     redirect_on_failure: false,
     max_body_length: 25 * 1_048_576,
     # Note: max_read_duration defaults to Pleroma.ReverseProxy.max_read_duration_default/1
-    max_read_duration: 30_000,
-    http: [
-      follow_redirect: true,
-      pool: :media
-    ]
+    max_read_duration: 30_000
   ],
   whitelist: []
 
@@ -466,17 +473,14 @@ config :phoenix, :json_library, Jason
 
 config :phoenix, :filter_parameters, ["password", "confirm"]
 
-config :pleroma, :gopher,
-  enabled: false,
-  ip: {0, 0, 0, 0},
-  port: 9999
-
 config :pleroma, Pleroma.Web.Metadata,
   providers: [
     Pleroma.Web.Metadata.Providers.OpenGraph,
     Pleroma.Web.Metadata.Providers.TwitterCard
   ],
   unfurl_nsfw: false
+
+config :pleroma, Pleroma.Web.Metadata.Providers.Theme, theme_color: "#593196"
 
 config :pleroma, Pleroma.Web.Preload,
   providers: [
@@ -486,8 +490,7 @@ config :pleroma, Pleroma.Web.Preload,
 config :pleroma, :http_security,
   enabled: true,
   sts: false,
-  sts_max_age: 31_536_000,
-  ct_max_age: 2_592_000,
+  sts_max_age: 63_072_000,
   referrer_policy: "same-origin"
 
 config :cors_plug,
@@ -560,22 +563,53 @@ config :pleroma, Oban,
     mailer: 10,
     transmogrifier: 20,
     scheduled_activities: 10,
+    poll_notifications: 10,
     background: 5,
     remote_fetcher: 2,
     attachments_cleanup: 1,
     new_users_digest: 1,
-    mute_expire: 5
+    mute_expire: 5,
+    search_indexing: 10,
+    nodeinfo_fetcher: 1,
+    database_prune: 1
   ],
-  plugins: [Oban.Plugins.Pruner],
+  plugins: [
+    Oban.Plugins.Pruner,
+    {Oban.Plugins.Reindexer, schedule: "@weekly"}
+  ],
   crontab: [
     {"0 0 * * 0", Pleroma.Workers.Cron.DigestEmailsWorker},
-    {"0 0 * * *", Pleroma.Workers.Cron.NewUsersDigestWorker}
+    {"0 0 * * *", Pleroma.Workers.Cron.NewUsersDigestWorker},
+    {"0 3 * * *", Pleroma.Workers.Cron.PruneDatabaseWorker}
   ]
 
 config :pleroma, :workers,
   retries: [
     federator_incoming: 5,
-    federator_outgoing: 5
+    federator_outgoing: 5,
+    search_indexing: 2
+  ],
+  timeout: [
+    activity_expiration: :timer.seconds(5),
+    token_expiration: :timer.seconds(5),
+    filter_expiration: :timer.seconds(5),
+    backup: :timer.seconds(900),
+    federator_incoming: :timer.seconds(10),
+    federator_outgoing: :timer.seconds(10),
+    ingestion_queue: :timer.seconds(5),
+    web_push: :timer.seconds(5),
+    mailer: :timer.seconds(5),
+    transmogrifier: :timer.seconds(5),
+    scheduled_activities: :timer.seconds(5),
+    poll_notifications: :timer.seconds(5),
+    background: :timer.seconds(5),
+    remote_fetcher: :timer.seconds(10),
+    attachments_cleanup: :timer.seconds(900),
+    new_users_digest: :timer.seconds(10),
+    mute_expire: :timer.seconds(5),
+    search_indexing: :timer.seconds(5),
+    nodeinfo_fetcher: :timer.seconds(10),
+    database_prune: :timer.minutes(10)
   ]
 
 config :pleroma, Pleroma.Formatter,
@@ -598,11 +632,9 @@ config :pleroma, :ldap,
   base: System.get_env("LDAP_BASE") || "dc=example,dc=com",
   uid: System.get_env("LDAP_UID") || "cn"
 
-config :esshd,
-  enabled: false
-
 oauth_consumer_strategies =
-  System.get_env("OAUTH_CONSUMER_STRATEGIES")
+  "OAUTH_CONSUMER_STRATEGIES"
+  |> System.get_env()
   |> to_string()
   |> String.split()
   |> Enum.map(&hd(String.split(&1, ":")))
@@ -635,13 +667,6 @@ config :pleroma, Pleroma.Emails.UserEmail,
   }
 
 config :pleroma, Pleroma.Emails.NewUsersDigestEmail, enabled: false
-
-config :prometheus, Pleroma.Web.Endpoint.MetricsExporter,
-  enabled: false,
-  auth: false,
-  ip_whitelist: [],
-  path: "/api/pleroma/app_metrics",
-  format: :text
 
 config :pleroma, Pleroma.ScheduledActivity,
   daily_user_limit: 25,
@@ -712,48 +737,66 @@ config :pleroma, :static_fe, enabled: false
 # config :pleroma, :frontends,
 # primary: %{"name" => "pleroma-fe", "ref" => "develop"},
 # admin: %{"name" => "admin-fe", "ref" => "stable"},
+# mastodon: %{"enabled" => true, "name" => "mastodon-fe", "ref" => "develop"}
 # available: %{...}
 
 config :pleroma, :frontends,
+  primary: %{"name" => "pleroma-fe", "ref" => "stable"},
+  admin: %{"name" => "admin-fe", "ref" => "stable"},
+  mastodon: %{"name" => "mastodon-fe", "ref" => "akkoma"},
+  swagger: %{
+    "name" => "swagger-ui",
+    "ref" => "stable",
+    "enabled" => false
+  },
   available: %{
-    "kenoma" => %{
-      "name" => "kenoma",
-      "git" => "https://git.pleroma.social/lambadalambda/kenoma",
-      "build_url" =>
-        "https://git.pleroma.social/lambadalambda/kenoma/-/jobs/artifacts/${ref}/download?job=build",
-      "ref" => "master"
-    },
     "pleroma-fe" => %{
       "name" => "pleroma-fe",
-      "git" => "https://git.pleroma.social/pleroma/pleroma-fe",
+      "git" => "https://akkoma.dev/AkkomaGang/pleroma-fe",
       "build_url" =>
-        "https://git.pleroma.social/pleroma/pleroma-fe/-/jobs/artifacts/${ref}/download?job=build",
-      "ref" => "develop"
+        "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/${ref}/akkoma-fe.zip",
+      "ref" => "stable",
+      "build_dir" => "dist"
     },
-    "fedi-fe" => %{
-      "name" => "fedi-fe",
-      "git" => "https://git.pleroma.social/pleroma/fedi-fe",
+    # Mastodon-Fe cannot be set as a primary - this is only here so we can update this seperately
+    "mastodon-fe" => %{
+      "name" => "mastodon-fe",
+      "git" => "https://akkoma.dev/AkkomaGang/masto-fe",
       "build_url" =>
-        "https://git.pleroma.social/pleroma/fedi-fe/-/jobs/artifacts/${ref}/download?job=build",
-      "ref" => "master",
-      "custom-http-headers" => [
-        {"service-worker-allowed", "/"}
-      ]
+        "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/${ref}/masto-fe.zip",
+      "build_dir" => "distribution",
+      "ref" => "akkoma"
+    },
+    "fedibird-fe" => %{
+      "name" => "fedibird-fe",
+      "git" => "https://akkoma.dev/AkkomaGang/fedibird-fe",
+      "build_url" =>
+        "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/${ref}/fedibird-fe.zip",
+      "build_dir" => "distribution",
+      "ref" => "akkoma"
     },
     "admin-fe" => %{
       "name" => "admin-fe",
-      "git" => "https://git.pleroma.social/pleroma/admin-fe",
+      "git" => "https://akkoma.dev/AkkomaGang/admin-fe",
       "build_url" =>
-        "https://git.pleroma.social/pleroma/admin-fe/-/jobs/artifacts/${ref}/download?job=build",
-      "ref" => "develop"
+        "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/${ref}/admin-fe.zip",
+      "ref" => "stable"
     },
     "soapbox-fe" => %{
       "name" => "soapbox-fe",
-      "git" => "https://gitlab.com/soapbox-pub/soapbox-fe",
+      "git" => "https://gitlab.com/soapbox-pub/soapbox",
       "build_url" =>
-        "https://gitlab.com/soapbox-pub/soapbox-fe/-/jobs/artifacts/${ref}/download?job=build-production",
-      "ref" => "v1.0.0",
+        "https://gitlab.com/soapbox-pub/soapbox/-/jobs/artifacts/${ref}/download?job=build-production",
+      "ref" => "v2.0.0",
       "build_dir" => "static"
+    },
+    # For developers - enables a swagger frontend to view the openapi spec
+    "swagger-ui" => %{
+      "name" => "swagger-ui",
+      "git" => "https://github.com/swagger-api/swagger-ui",
+      "build_url" => "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/swagger-ui.zip",
+      "build_dir" => "dist",
+      "ref" => "stable"
     }
   }
 
@@ -769,51 +812,6 @@ config :pleroma, Pleroma.Repo,
   parameters: [gin_fuzzy_search_limit: "500"],
   prepare: :unnamed
 
-config :pleroma, :connections_pool,
-  reclaim_multiplier: 0.1,
-  connection_acquisition_wait: 250,
-  connection_acquisition_retries: 5,
-  max_connections: 250,
-  max_idle_time: 30_000,
-  retry: 0,
-  connect_timeout: 5_000
-
-config :pleroma, :pools,
-  federation: [
-    size: 50,
-    max_waiting: 10,
-    recv_timeout: 10_000
-  ],
-  media: [
-    size: 50,
-    max_waiting: 20,
-    recv_timeout: 15_000
-  ],
-  upload: [
-    size: 25,
-    max_waiting: 5,
-    recv_timeout: 15_000
-  ],
-  default: [
-    size: 10,
-    max_waiting: 2,
-    recv_timeout: 5_000
-  ]
-
-config :pleroma, :hackney_pools,
-  federation: [
-    max_connections: 50,
-    timeout: 150_000
-  ],
-  media: [
-    max_connections: 50,
-    timeout: 150_000
-  ],
-  upload: [
-    max_connections: 25,
-    timeout: 300_000
-  ]
-
 config :pleroma, :majic_pool, size: 2
 
 private_instance? = :if_instance_is_private
@@ -828,15 +826,15 @@ config :pleroma, Pleroma.Web.ApiSpec.CastAndValidate, strict: false
 config :pleroma, :mrf,
   policies: [Pleroma.Web.ActivityPub.MRF.ObjectAgePolicy, Pleroma.Web.ActivityPub.MRF.TagPolicy],
   transparency: true,
-  transparency_exclusions: []
-
-config :tzdata, :http_client, Pleroma.HTTP.Tzdata
+  transparency_exclusions: [],
+  transparency_obfuscate_domains: []
 
 config :ex_aws, http_client: Pleroma.HTTP.ExAws
 
 config :web_push_encryption, http_client: Pleroma.HTTP.WebPush
 
-config :pleroma, :instances_favicons, enabled: false
+config :pleroma, :instances_favicons, enabled: true
+config :pleroma, :instances_nodeinfo, enabled: true
 
 config :floki, :html_parser, Floki.HTMLParser.FastHtml
 
@@ -849,8 +847,47 @@ config :pleroma, Pleroma.User.Backup,
 
 config :pleroma, ConcurrentLimiter, [
   {Pleroma.Web.RichMedia.Helpers, [max_running: 5, max_waiting: 5]},
-  {Pleroma.Web.ActivityPub.MRF.MediaProxyWarmingPolicy, [max_running: 5, max_waiting: 5]}
+  {Pleroma.Web.ActivityPub.MRF.MediaProxyWarmingPolicy, [max_running: 5, max_waiting: 5]},
+  {Pleroma.Search, [max_running: 30, max_waiting: 50]}
 ]
+
+config :pleroma, Pleroma.Web.WebFinger, domain: nil, update_nickname_on_user_fetch: true
+
+config :pleroma, Pleroma.Search, module: Pleroma.Search.DatabaseSearch
+
+config :pleroma, Pleroma.Search.Meilisearch,
+  url: "http://127.0.0.1:7700/",
+  private_key: nil,
+  initial_indexing_chunk_size: 100_000
+
+config :pleroma, Pleroma.Search.Elasticsearch.Cluster,
+  url: "http://localhost:9200",
+  username: "elastic",
+  password: "changeme",
+  api: Elasticsearch.API.HTTP,
+  json_library: Jason,
+  indexes: %{
+    activities: %{
+      settings: "priv/es-mappings/activity.json",
+      store: Pleroma.Search.Elasticsearch.Store,
+      sources: [Pleroma.Activity],
+      bulk_page_size: 1000,
+      bulk_wait_interval: 15_000
+    }
+  }
+
+config :pleroma, :translator,
+  enabled: false,
+  module: Pleroma.Akkoma.Translators.DeepL
+
+config :pleroma, :deepl,
+  # either :free or :pro
+  tier: :free,
+  api_key: ""
+
+config :pleroma, :libre_translate,
+  url: "http://127.0.0.1:5000",
+  api_key: nil
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

@@ -18,7 +18,14 @@ defmodule Pleroma.Web.ActivityPub.MRF.MentionPolicyTest do
       "cc" => ["https://example.com/blocked"]
     }
 
+    update_message = %{
+      "type" => "Update",
+      "to" => ["https://example.com/ok"],
+      "cc" => ["https://example.com/blocked"]
+    }
+
     assert MentionPolicy.filter(message) == {:ok, message}
+    assert MentionPolicy.filter(update_message) == {:ok, update_message}
   end
 
   describe "allow" do
@@ -29,7 +36,12 @@ defmodule Pleroma.Web.ActivityPub.MRF.MentionPolicyTest do
         "type" => "Create"
       }
 
+      update_message = %{
+        "type" => "Update"
+      }
+
       assert MentionPolicy.filter(message) == {:ok, message}
+      assert MentionPolicy.filter(update_message) == {:ok, update_message}
     end
 
     test "to" do
@@ -40,7 +52,13 @@ defmodule Pleroma.Web.ActivityPub.MRF.MentionPolicyTest do
         "to" => ["https://example.com/ok"]
       }
 
+      update_message = %{
+        "type" => "Update",
+        "to" => ["https://example.com/ok"]
+      }
+
       assert MentionPolicy.filter(message) == {:ok, message}
+      assert MentionPolicy.filter(update_message) == {:ok, update_message}
     end
 
     test "cc" do
@@ -51,7 +69,13 @@ defmodule Pleroma.Web.ActivityPub.MRF.MentionPolicyTest do
         "cc" => ["https://example.com/ok"]
       }
 
+      update_message = %{
+        "type" => "Update",
+        "cc" => ["https://example.com/ok"]
+      }
+
       assert MentionPolicy.filter(message) == {:ok, message}
+      assert MentionPolicy.filter(update_message) == {:ok, update_message}
     end
 
     test "both" do
@@ -63,7 +87,14 @@ defmodule Pleroma.Web.ActivityPub.MRF.MentionPolicyTest do
         "cc" => ["https://example.com/ok2"]
       }
 
+      update_message = %{
+        "type" => "Update",
+        "to" => ["https://example.com/ok"],
+        "cc" => ["https://example.com/ok2"]
+      }
+
       assert MentionPolicy.filter(message) == {:ok, message}
+      assert MentionPolicy.filter(update_message) == {:ok, update_message}
     end
   end
 
@@ -76,7 +107,15 @@ defmodule Pleroma.Web.ActivityPub.MRF.MentionPolicyTest do
         "to" => ["https://example.com/blocked"]
       }
 
+      update_message = %{
+        "type" => "Update",
+        "to" => ["https://example.com/blocked"]
+      }
+
       assert MentionPolicy.filter(message) ==
+               {:reject, "[MentionPolicy] Rejected for mention of https://example.com/blocked"}
+
+      assert MentionPolicy.filter(update_message) ==
                {:reject, "[MentionPolicy] Rejected for mention of https://example.com/blocked"}
     end
 
@@ -89,7 +128,16 @@ defmodule Pleroma.Web.ActivityPub.MRF.MentionPolicyTest do
         "cc" => ["https://example.com/blocked"]
       }
 
+      update_message = %{
+        "type" => "Update",
+        "to" => ["https://example.com/ok"],
+        "cc" => ["https://example.com/blocked"]
+      }
+
       assert MentionPolicy.filter(message) ==
+               {:reject, "[MentionPolicy] Rejected for mention of https://example.com/blocked"}
+
+      assert MentionPolicy.filter(update_message) ==
                {:reject, "[MentionPolicy] Rejected for mention of https://example.com/blocked"}
     end
   end

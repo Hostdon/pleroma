@@ -4,54 +4,32 @@
 
 defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
   use Ecto.Schema
-
+  alias Pleroma.User
   alias Pleroma.EctoType.ActivityPub.ObjectValidators
-  alias Pleroma.Web.ActivityPub.ObjectValidators.AttachmentValidator
+  alias Pleroma.Web.CommonAPI.Utils
   alias Pleroma.Web.ActivityPub.ObjectValidators.CommonFixes
   alias Pleroma.Web.ActivityPub.ObjectValidators.CommonValidations
-  alias Pleroma.Web.ActivityPub.ObjectValidators.TagValidator
   alias Pleroma.Web.ActivityPub.Transmogrifier
 
   import Ecto.Changeset
+
+  require Logger
 
   @primary_key false
   @derive Jason.Encoder
 
   embedded_schema do
-    field(:id, ObjectValidators.ObjectID, primary_key: true)
-    field(:to, ObjectValidators.Recipients, default: [])
-    field(:cc, ObjectValidators.Recipients, default: [])
-    field(:bto, ObjectValidators.Recipients, default: [])
-    field(:bcc, ObjectValidators.Recipients, default: [])
-    embeds_many(:tag, TagValidator)
-    field(:type, :string)
-
-    field(:name, :string)
-    field(:summary, :string)
-    field(:content, :string)
-
-    field(:context, :string)
-    # short identifier for PleromaFE to group statuses by context
-    field(:context_id, :integer)
-
-    # TODO: Remove actor on objects
-    field(:actor, ObjectValidators.ObjectID)
-
-    field(:attributedTo, ObjectValidators.ObjectID)
-    field(:published, ObjectValidators.DateTime)
-    field(:emoji, ObjectValidators.Emoji, default: %{})
-    field(:sensitive, :boolean, default: false)
-    embeds_many(:attachment, AttachmentValidator)
-    field(:replies_count, :integer, default: 0)
-    field(:like_count, :integer, default: 0)
-    field(:announcement_count, :integer, default: 0)
-    field(:inReplyTo, ObjectValidators.ObjectID)
-    field(:url, ObjectValidators.Uri)
-
-    field(:likes, {:array, ObjectValidators.ObjectID}, default: [])
-    field(:announcements, {:array, ObjectValidators.ObjectID}, default: [])
+    quote do
+      unquote do
+        import Elixir.Pleroma.Web.ActivityPub.ObjectValidators.CommonFields
+        message_fields()
+        object_fields()
+        status_object_fields()
+      end
+    end
 
     field(:replies, {:array, ObjectValidators.ObjectID}, default: [])
+    field(:source, :map)
   end
 
   def cast_and_apply(data) do
@@ -75,21 +53,98 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
   defp fix_url(%{"url" => url} = data) when is_map(url), do: Map.put(data, "url", url["href"])
   defp fix_url(data), do: data
 
-  defp fix_tag(%{"tag" => tag} = data) when is_list(tag), do: data
+  defp fix_tag(%{"tag" => tag} = data) when is_list(tag) do
+    Map.put(data, "tag", Enum.filter(tag, &is_map/1))
+  end
+
   defp fix_tag(%{"tag" => tag} = data) when is_map(tag), do: Map.put(data, "tag", [tag])
   defp fix_tag(data), do: Map.drop(data, ["tag"])
 
-  defp fix_replies(%{"replies" => %{"first" => %{"items" => replies}}} = data)
-       when is_list(replies),
-       do: Map.put(data, "replies", replies)
+  defp fix_replies(%{"replies" => replies} = data) when is_list(replies), do: data
+
+  defp fix_replies(%{"replies" => %{"first" => first}} = data) do
+    with {:ok, replies} <- Akkoma.Collections.Fetcher.fetch_collection(first) do
+      Map.put(data, "replies", replies)
+    else
+      {:error, _} ->
+        Logger.error("Could not fetch replies for #{first}")
+        Map.put(data, "replies", [])
+    end
+  end
 
   defp fix_replies(%{"replies" => %{"items" => replies}} = data) when is_list(replies),
     do: Map.put(data, "replies", replies)
 
-  defp fix_replies(%{"replies" => replies} = data) when is_bitstring(replies),
-    do: Map.drop(data, ["replies"])
+  defp fix_replies(data), do: Map.delete(data, "replies")
 
-  defp fix_replies(data), do: data
+  defp remote_mention_resolver(
+         %{"id" => ap_id, "tag" => tags},
+         "@" <> nickname = mention,
+         buffer,
+         opts,
+         acc
+       ) do
+    initial_host =
+      ap_id
+      |> URI.parse()
+      |> Map.get(:host)
+
+    with mention_tag <-
+           Enum.find(tags, fn t ->
+             t["type"] == "Mention" &&
+               (t["name"] == mention || mention == "#{t["name"]}@#{initial_host}")
+           end),
+         false <- is_nil(mention_tag),
+         {:ok, %User{} = user} <- User.get_or_fetch_by_ap_id(mention_tag["href"]) do
+      link = Pleroma.Formatter.mention_tag(user, nickname, opts)
+      {link, %{acc | mentions: MapSet.put(acc.mentions, {"@" <> nickname, user})}}
+    else
+      _ -> {buffer, acc}
+    end
+  end
+
+  # https://github.com/misskey-dev/misskey/pull/8787
+  # Misskey has an awful tendency to drop all custom formatting when it sends remotely
+  # So this basically reprocesses their MFM source
+  defp fix_misskey_content(
+         %{"source" => %{"mediaType" => "text/x.misskeymarkdown", "content" => content}} = object
+       )
+       when is_binary(content) do
+    mention_handler = fn nick, buffer, opts, acc ->
+      remote_mention_resolver(object, nick, buffer, opts, acc)
+    end
+
+    {linked, _, _} =
+      Utils.format_input(content, "text/x.misskeymarkdown", mention_handler: mention_handler)
+
+    Map.put(object, "content", linked)
+  end
+
+  defp fix_misskey_content(%{"_misskey_content" => content} = object) when is_binary(content) do
+    mention_handler = fn nick, buffer, opts, acc ->
+      remote_mention_resolver(object, nick, buffer, opts, acc)
+    end
+
+    {linked, _, _} =
+      Utils.format_input(content, "text/x.misskeymarkdown", mention_handler: mention_handler)
+
+    object
+    |> Map.put("source", %{
+      "content" => content,
+      "mediaType" => "text/x.misskeymarkdown"
+    })
+    |> Map.put("content", linked)
+    |> Map.delete("_misskey_content")
+  end
+
+  defp fix_misskey_content(data), do: data
+
+  defp fix_source(%{"source" => source} = object) when is_binary(source) do
+    object
+    |> Map.put("source", %{"content" => source})
+  end
+
+  defp fix_source(object), do: object
 
   defp fix(data) do
     data
@@ -98,6 +153,9 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
     |> fix_url()
     |> fix_tag()
     |> fix_replies()
+    |> fix_source()
+    |> fix_misskey_content()
+    |> Transmogrifier.fix_attachments()
     |> Transmogrifier.fix_emoji()
     |> Transmogrifier.fix_content_map()
   end
@@ -114,7 +172,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
   defp validate_data(data_cng) do
     data_cng
     |> validate_inclusion(:type, ["Article", "Note", "Page"])
-    |> validate_required([:id, :actor, :attributedTo, :type, :context, :context_id])
+    |> validate_required([:id, :actor, :attributedTo, :type, :context])
     |> CommonValidations.validate_any_presence([:cc, :to])
     |> CommonValidations.validate_fields_match([:actor, :attributedTo])
     |> CommonValidations.validate_actor_presence()

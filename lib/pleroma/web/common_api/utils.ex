@@ -37,7 +37,7 @@ defmodule Pleroma.Web.CommonAPI.Utils do
 
   def attachments_from_ids_no_descs(ids) do
     Enum.map(ids, fn media_id ->
-      case Repo.get(Object, media_id) do
+      case get_attachment(media_id) do
         %Object{data: data} -> data
         _ -> nil
       end
@@ -51,11 +51,15 @@ defmodule Pleroma.Web.CommonAPI.Utils do
     {_, descs} = Jason.decode(descs_str)
 
     Enum.map(ids, fn media_id ->
-      with %Object{data: data} <- Repo.get(Object, media_id) do
+      with %Object{data: data} <- get_attachment(media_id) do
         Map.put(data, "name", descs[media_id])
       end
     end)
     |> Enum.reject(&is_nil/1)
+  end
+
+  defp get_attachment(media_id) do
+    Repo.get(Object, media_id)
   end
 
   @spec get_to_and_cc(ActivityDraft.t()) :: {list(String.t()), list(String.t())}
@@ -219,7 +223,7 @@ defmodule Pleroma.Web.CommonAPI.Utils do
     |> maybe_add_attachments(draft.attachments, attachment_links)
   end
 
-  defp get_content_type(content_type) do
+  def get_content_type(content_type) do
     if Enum.member?(Config.get([:instance, :allowed_post_formats]), content_type) do
       content_type
     else
@@ -283,39 +287,21 @@ defmodule Pleroma.Web.CommonAPI.Utils do
     |> Formatter.linkify(options)
   end
 
+  def format_input(text, "text/x.misskeymarkdown", options) do
+    text
+    |> Formatter.markdown_to_html()
+    |> MfmParser.Parser.parse()
+    |> MfmParser.Encoder.to_html()
+    |> Formatter.linkify(options)
+    |> Formatter.html_escape("text/html")
+  end
+
   def format_input(text, "text/markdown", options) do
     text
     |> Formatter.mentions_escape(options)
     |> Formatter.markdown_to_html()
     |> Formatter.linkify(options)
     |> Formatter.html_escape("text/html")
-  end
-
-  def make_note_data(%ActivityDraft{} = draft) do
-    %{
-      "type" => "Note",
-      "to" => draft.to,
-      "cc" => draft.cc,
-      "content" => draft.content_html,
-      "summary" => draft.summary,
-      "sensitive" => draft.sensitive,
-      "context" => draft.context,
-      "attachment" => draft.attachments,
-      "actor" => draft.user.ap_id,
-      "tag" => Keyword.values(draft.tags) |> Enum.uniq()
-    }
-    |> add_in_reply_to(draft.in_reply_to)
-    |> Map.merge(draft.extra)
-  end
-
-  defp add_in_reply_to(object, nil), do: object
-
-  defp add_in_reply_to(object, in_reply_to) do
-    with %Object{} = in_reply_to_object <- Object.normalize(in_reply_to, fetch: false) do
-      Map.put(object, "inReplyTo", in_reply_to_object.data["id"])
-    else
-      _ -> object
-    end
   end
 
   def format_naive_asctime(date) do
@@ -475,35 +461,6 @@ defmodule Pleroma.Web.CommonAPI.Utils do
   end
 
   def get_report_statuses(_, _), do: {:ok, nil}
-
-  # DEPRECATED mostly, context objects are now created at insertion time.
-  def context_to_conversation_id(context) do
-    with %Object{id: id} <- Object.get_cached_by_ap_id(context) do
-      id
-    else
-      _e ->
-        changeset = Object.context_mapping(context)
-
-        case Repo.insert(changeset) do
-          {:ok, %{id: id}} ->
-            id
-
-          # This should be solved by an upsert, but it seems ecto
-          # has problems accessing the constraint inside the jsonb.
-          {:error, _} ->
-            Object.get_cached_by_ap_id(context).id
-        end
-    end
-  end
-
-  def conversation_id_to_context(id) do
-    with %Object{data: %{"id" => context}} <- Repo.get(Object, id) do
-      context
-    else
-      _e ->
-        {:error, dgettext("errors", "No such conversation")}
-    end
-  end
 
   def validate_character_limit("" = _full_payload, [] = _attachments) do
     {:error, dgettext("errors", "Cannot post an empty status without attachments")}

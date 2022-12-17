@@ -6,12 +6,12 @@ defmodule Pleroma.Web.MastodonAPI.NotificationViewTest do
   use Pleroma.DataCase
 
   alias Pleroma.Activity
-  alias Pleroma.Chat
-  alias Pleroma.Chat.MessageReference
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.Repo
   alias Pleroma.User
+  alias Pleroma.Web.ActivityPub.Builder
+  alias Pleroma.Web.ActivityPub.Pipeline
   alias Pleroma.Web.AdminAPI.Report
   alias Pleroma.Web.AdminAPI.ReportView
   alias Pleroma.Web.CommonAPI
@@ -19,7 +19,7 @@ defmodule Pleroma.Web.MastodonAPI.NotificationViewTest do
   alias Pleroma.Web.MastodonAPI.AccountView
   alias Pleroma.Web.MastodonAPI.NotificationView
   alias Pleroma.Web.MastodonAPI.StatusView
-  alias Pleroma.Web.PleromaAPI.Chat.MessageReferenceView
+  alias Pleroma.Web.MediaProxy
   import Pleroma.Factory
 
   defp test_notifications_rendering(notifications, user, expected_result) do
@@ -35,30 +35,6 @@ defmodule Pleroma.Web.MastodonAPI.NotificationViewTest do
       })
 
     assert expected_result == result
-  end
-
-  test "ChatMessage notification" do
-    user = insert(:user)
-    recipient = insert(:user)
-    {:ok, activity} = CommonAPI.post_chat_message(user, recipient, "what's up my dude")
-
-    {:ok, [notification]} = Notification.create_notifications(activity)
-
-    object = Object.normalize(activity, fetch: false)
-    chat = Chat.get(recipient.id, user.ap_id)
-
-    cm_ref = MessageReference.for_chat_and_object(chat, object)
-
-    expected = %{
-      id: to_string(notification.id),
-      pleroma: %{is_seen: false, is_muted: false},
-      type: "pleroma:chat_mention",
-      account: AccountView.render("show.json", %{user: user, for: recipient}),
-      chat_message: MessageReferenceView.render("show.json", %{chat_message_reference: cm_ref}),
-      created_at: Utils.to_masto_date(notification.inserted_at)
-    }
-
-    test_notifications_rendering([notification], recipient, [expected])
   end
 
   test "Mention notification" do
@@ -188,7 +164,100 @@ defmodule Pleroma.Web.MastodonAPI.NotificationViewTest do
       pleroma: %{is_seen: false, is_muted: false},
       type: "pleroma:emoji_reaction",
       emoji: "☕",
+      emoji_url: nil,
       account: AccountView.render("show.json", %{user: other_user, for: user}),
+      status: StatusView.render("show.json", %{activity: activity, for: user}),
+      created_at: Utils.to_masto_date(notification.inserted_at)
+    }
+
+    test_notifications_rendering([notification], user, [expected])
+  end
+
+  test "EmojiReact notification with custom emoji" do
+    user = insert(:user)
+    other_user = insert(:user)
+
+    {:ok, activity} = CommonAPI.post(user, %{status: "#morb"})
+    {:ok, _activity} = CommonAPI.react_with_emoji(activity.id, other_user, ":100a:")
+
+    activity = Repo.get(Activity, activity.id)
+
+    [notification] = Notification.for_user(user)
+
+    assert notification
+
+    expected = %{
+      id: to_string(notification.id),
+      pleroma: %{is_seen: false, is_muted: false},
+      type: "pleroma:emoji_reaction",
+      emoji: ":100a:",
+      emoji_url: "http://localhost:4001/emoji/100a.png",
+      account: AccountView.render("show.json", %{user: other_user, for: user}),
+      status: StatusView.render("show.json", %{activity: activity, for: user}),
+      created_at: Utils.to_masto_date(notification.inserted_at)
+    }
+
+    test_notifications_rendering([notification], user, [expected])
+  end
+
+  test "EmojiReact notification with remote custom emoji" do
+    proxyBaseUrl = "https://cache.pleroma.social"
+    clear_config([:media_proxy, :base_url], proxyBaseUrl)
+
+    for testProxy <- [true, false] do
+      clear_config([:media_proxy, :enabled], testProxy)
+
+      user = insert(:user)
+      other_user = insert(:user, local: false)
+
+      {:ok, activity} = CommonAPI.post(user, %{status: "#morb"})
+
+      {:ok, emoji_react, _} =
+        Builder.emoji_react(other_user, Object.normalize(activity, fetch: false), ":100a:")
+
+      remoteUrl = "http://evil.website/emoji/100a.png"
+      [tag] = emoji_react["tag"]
+      tag = put_in(tag["id"], remoteUrl)
+      tag = put_in(tag["icon"]["url"], remoteUrl)
+      emoji_react = put_in(emoji_react["tag"], [tag])
+
+      {:ok, _activity, _} = Pipeline.common_pipeline(emoji_react, local: false)
+
+      activity = Repo.get(Activity, activity.id)
+
+      [notification] = Notification.for_user(user)
+
+      assert notification
+
+      expected = %{
+        id: to_string(notification.id),
+        pleroma: %{is_seen: false, is_muted: false},
+        type: "pleroma:emoji_reaction",
+        emoji: ":100a:",
+        emoji_url: if(testProxy, do: MediaProxy.encode_url(remoteUrl), else: remoteUrl),
+        account: AccountView.render("show.json", %{user: other_user, for: user}),
+        status: StatusView.render("show.json", %{activity: activity, for: user}),
+        created_at: Utils.to_masto_date(notification.inserted_at)
+      }
+
+      test_notifications_rendering([notification], user, [expected])
+    end
+  end
+
+  test "Poll notification" do
+    user = insert(:user)
+    activity = insert(:question_activity, user: user)
+    {:ok, [notification]} = Notification.create_poll_notifications(activity)
+
+    expected = %{
+      id: to_string(notification.id),
+      pleroma: %{is_seen: false, is_muted: false},
+      type: "poll",
+      account:
+        AccountView.render("show.json", %{
+          user: user,
+          for: user
+        }),
       status: StatusView.render("show.json", %{activity: activity, for: user}),
       created_at: Utils.to_masto_date(notification.inserted_at)
     }
@@ -214,6 +283,32 @@ defmodule Pleroma.Web.MastodonAPI.NotificationViewTest do
     }
 
     test_notifications_rendering([notification], moderator_user, [expected])
+  end
+
+  test "Edit notification" do
+    user = insert(:user)
+    repeat_user = insert(:user)
+
+    {:ok, activity} = CommonAPI.post(user, %{status: "mew"})
+    {:ok, _} = CommonAPI.repeat(activity.id, repeat_user)
+    {:ok, update} = CommonAPI.update(user, activity, %{status: "mew mew"})
+
+    user = Pleroma.User.get_by_ap_id(user.ap_id)
+    activity = Pleroma.Activity.normalize(activity)
+    update = Pleroma.Activity.normalize(update)
+
+    {:ok, [notification]} = Notification.create_notifications(update)
+
+    expected = %{
+      id: to_string(notification.id),
+      pleroma: %{is_seen: false, is_muted: false},
+      type: "update",
+      account: AccountView.render("show.json", %{user: user, for: repeat_user}),
+      created_at: Utils.to_masto_date(notification.inserted_at),
+      status: StatusView.render("show.json", %{activity: activity, for: repeat_user})
+    }
+
+    test_notifications_rendering([notification], repeat_user, [expected])
   end
 
   test "muted notification" do

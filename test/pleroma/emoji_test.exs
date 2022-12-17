@@ -11,7 +11,7 @@ defmodule Pleroma.EmojiTest do
       refute Emoji.is_unicode_emoji?("X")
       refute Emoji.is_unicode_emoji?("ね")
 
-      # Only accept fully-qualified (RGI) emoji
+      # Accept fully-qualified and unqualified emoji
       # See http://www.unicode.org/reports/tr51/
       refute Emoji.is_unicode_emoji?("❤")
       refute Emoji.is_unicode_emoji?("☂")
@@ -20,6 +20,7 @@ defmodule Pleroma.EmojiTest do
       assert Emoji.is_unicode_emoji?("🤰")
       assert Emoji.is_unicode_emoji?("❤️")
       assert Emoji.is_unicode_emoji?("🏳️‍⚧️")
+      assert Emoji.is_unicode_emoji?("🫵")
 
       # Additionally, we accept regional indicators.
       assert Emoji.is_unicode_emoji?("🇵")

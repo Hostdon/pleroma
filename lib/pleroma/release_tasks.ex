@@ -25,7 +25,7 @@ defmodule Pleroma.ReleaseTasks do
         module = Module.split(module)
 
         match?(["Mix", "Tasks", "Pleroma" | _], module) and
-          String.downcase(List.last(module)) == task
+          task_match?(module, task)
       end)
 
     if module do
@@ -33,6 +33,13 @@ defmodule Pleroma.ReleaseTasks do
     else
       IO.puts("The task #{task} does not exist")
     end
+  end
+
+  defp task_match?(["Mix", "Tasks", "Pleroma" | module_path], task) do
+    module_path
+    |> Enum.join(".")
+    |> String.downcase()
+    |> String.equivalent?(String.downcase(task))
   end
 
   def migrate(args) do

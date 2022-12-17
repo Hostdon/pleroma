@@ -26,34 +26,48 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     test "is empty" do
       clear_config([:mrf_simple, :media_removal], [])
       media_message = build_media_message()
+      media_update_message = build_media_update_message()
       local_message = build_local_message()
 
       assert SimplePolicy.filter(media_message) == {:ok, media_message}
+      assert SimplePolicy.filter(media_update_message) == {:ok, media_update_message}
       assert SimplePolicy.filter(local_message) == {:ok, local_message}
     end
 
     test "has a matching host" do
-      clear_config([:mrf_simple, :media_removal], ["remote.instance"])
+      clear_config([:mrf_simple, :media_removal], [{"remote.instance", "Some reason"}])
       media_message = build_media_message()
+      media_update_message = build_media_update_message()
       local_message = build_local_message()
 
       assert SimplePolicy.filter(media_message) ==
                {:ok,
                 media_message
                 |> Map.put("object", Map.delete(media_message["object"], "attachment"))}
+
+      assert SimplePolicy.filter(media_update_message) ==
+               {:ok,
+                media_update_message
+                |> Map.put("object", Map.delete(media_update_message["object"], "attachment"))}
 
       assert SimplePolicy.filter(local_message) == {:ok, local_message}
     end
 
     test "match with wildcard domain" do
-      clear_config([:mrf_simple, :media_removal], ["*.remote.instance"])
+      clear_config([:mrf_simple, :media_removal], [{"*.remote.instance", "Whatever reason"}])
       media_message = build_media_message()
+      media_update_message = build_media_update_message()
       local_message = build_local_message()
 
       assert SimplePolicy.filter(media_message) ==
                {:ok,
                 media_message
                 |> Map.put("object", Map.delete(media_message["object"], "attachment"))}
+
+      assert SimplePolicy.filter(media_update_message) ==
+               {:ok,
+                media_update_message
+                |> Map.put("object", Map.delete(media_update_message["object"], "attachment"))}
 
       assert SimplePolicy.filter(local_message) == {:ok, local_message}
     end
@@ -63,30 +77,40 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     test "is empty" do
       clear_config([:mrf_simple, :media_nsfw], [])
       media_message = build_media_message()
+      media_update_message = build_media_update_message()
       local_message = build_local_message()
 
       assert SimplePolicy.filter(media_message) == {:ok, media_message}
+      assert SimplePolicy.filter(media_update_message) == {:ok, media_update_message}
       assert SimplePolicy.filter(local_message) == {:ok, local_message}
     end
 
     test "has a matching host" do
-      clear_config([:mrf_simple, :media_nsfw], ["remote.instance"])
+      clear_config([:mrf_simple, :media_nsfw], [{"remote.instance", "Whetever"}])
       media_message = build_media_message()
+      media_update_message = build_media_update_message()
       local_message = build_local_message()
 
       assert SimplePolicy.filter(media_message) ==
                {:ok, put_in(media_message, ["object", "sensitive"], true)}
+
+      assert SimplePolicy.filter(media_update_message) ==
+               {:ok, put_in(media_update_message, ["object", "sensitive"], true)}
 
       assert SimplePolicy.filter(local_message) == {:ok, local_message}
     end
 
     test "match with wildcard domain" do
-      clear_config([:mrf_simple, :media_nsfw], ["*.remote.instance"])
+      clear_config([:mrf_simple, :media_nsfw], [{"*.remote.instance", "yeah yeah"}])
       media_message = build_media_message()
+      media_update_message = build_media_update_message()
       local_message = build_local_message()
 
       assert SimplePolicy.filter(media_message) ==
                {:ok, put_in(media_message, ["object", "sensitive"], true)}
+
+      assert SimplePolicy.filter(media_update_message) ==
+               {:ok, put_in(media_update_message, ["object", "sensitive"], true)}
 
       assert SimplePolicy.filter(local_message) == {:ok, local_message}
     end
@@ -96,6 +120,18 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     %{
       "actor" => "https://remote.instance/users/bob",
       "type" => "Create",
+      "object" => %{
+        "attachment" => [%{}],
+        "tag" => ["foo"],
+        "sensitive" => false
+      }
+    }
+  end
+
+  defp build_media_update_message do
+    %{
+      "actor" => "https://remote.instance/users/bob",
+      "type" => "Update",
       "object" => %{
         "attachment" => [%{}],
         "tag" => ["foo"],
@@ -115,7 +151,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "has a matching host" do
-      clear_config([:mrf_simple, :report_removal], ["remote.instance"])
+      clear_config([:mrf_simple, :report_removal], [{"remote.instance", "muh"}])
       report_message = build_report_message()
       local_message = build_local_message()
 
@@ -124,7 +160,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "match with wildcard domain" do
-      clear_config([:mrf_simple, :report_removal], ["*.remote.instance"])
+      clear_config([:mrf_simple, :report_removal], [{"*.remote.instance", "suya"}])
       report_message = build_report_message()
       local_message = build_local_message()
 
@@ -159,7 +195,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
         |> URI.parse()
         |> Map.fetch!(:host)
 
-      clear_config([:mrf_simple, :federated_timeline_removal], [ftl_message_actor_host])
+      clear_config([:mrf_simple, :federated_timeline_removal], [{ftl_message_actor_host, "uwu"}])
       local_message = build_local_message()
 
       assert {:ok, ftl_message} = SimplePolicy.filter(ftl_message)
@@ -180,7 +216,10 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
         |> URI.parse()
         |> Map.fetch!(:host)
 
-      clear_config([:mrf_simple, :federated_timeline_removal], ["*." <> ftl_message_actor_host])
+      clear_config([:mrf_simple, :federated_timeline_removal], [
+        {"*." <> ftl_message_actor_host, "owo"}
+      ])
+
       local_message = build_local_message()
 
       assert {:ok, ftl_message} = SimplePolicy.filter(ftl_message)
@@ -203,11 +242,50 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
 
       ftl_message = Map.put(ftl_message, "cc", [])
 
-      clear_config([:mrf_simple, :federated_timeline_removal], [ftl_message_actor_host])
+      clear_config([:mrf_simple, :federated_timeline_removal], [
+        {ftl_message_actor_host, "spiderwaifu goes 88w88"}
+      ])
 
       assert {:ok, ftl_message} = SimplePolicy.filter(ftl_message)
       refute "https://www.w3.org/ns/activitystreams#Public" in ftl_message["to"]
       assert "https://www.w3.org/ns/activitystreams#Public" in ftl_message["cc"]
+    end
+  end
+
+  describe "describe/1" do
+    test "returns a description of the policy" do
+      clear_config([:mrf_simple, :reject], [
+        {"remote.instance", "did not give my catboy a burg"}
+      ])
+
+      assert {:ok, %{mrf_simple: %{reject: ["remote.instance"]}}} = SimplePolicy.describe()
+    end
+
+    test "excludes domains listed in :transparency_exclusions" do
+      clear_config([:mrf, :transparency_exclusions], [{"remote.instance", ":("}])
+
+      clear_config([:mrf_simple, :reject], [
+        {"remote.instance", "did not give my catboy a burg"}
+      ])
+
+      {:ok, description} = SimplePolicy.describe()
+      assert %{mrf_simple: %{reject: []}} = description
+      assert description[:mrf_simple_info][:reject] == nil
+    end
+
+    test "obfuscates domains listed in :transparency_obfuscate_domains" do
+      clear_config([:mrf, :transparency_obfuscate_domains], ["remote.instance", "a.b"])
+
+      clear_config([:mrf_simple, :reject], [
+        {"remote.instance", "did not give my catboy a burg"},
+        {"a.b", "spam-poked me on facebook in 2006"}
+      ])
+
+      assert {:ok,
+              %{
+                mrf_simple: %{reject: ["rem***.*****nce", "a.b"]},
+                mrf_simple_info: %{reject: %{"rem***.*****nce" => %{}}}
+              }} = SimplePolicy.describe()
     end
   end
 
@@ -232,7 +310,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "activity has a matching host" do
-      clear_config([:mrf_simple, :reject], ["remote.instance"])
+      clear_config([:mrf_simple, :reject], [{"remote.instance", ""}])
 
       remote_message = build_remote_message()
 
@@ -240,7 +318,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "activity matches with wildcard domain" do
-      clear_config([:mrf_simple, :reject], ["*.remote.instance"])
+      clear_config([:mrf_simple, :reject], [{"*.remote.instance", ""}])
 
       remote_message = build_remote_message()
 
@@ -248,7 +326,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "actor has a matching host" do
-      clear_config([:mrf_simple, :reject], ["remote.instance"])
+      clear_config([:mrf_simple, :reject], [{"remote.instance", ""}])
 
       remote_user = build_remote_user()
 
@@ -256,7 +334,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "reject Announce when object would be rejected" do
-      clear_config([:mrf_simple, :reject], ["blocked.tld"])
+      clear_config([:mrf_simple, :reject], [{"blocked.tld", ""}])
 
       announce = %{
         "type" => "Announce",
@@ -268,7 +346,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "reject by URI object" do
-      clear_config([:mrf_simple, :reject], ["blocked.tld"])
+      clear_config([:mrf_simple, :reject], [{"blocked.tld", ""}])
 
       announce = %{
         "type" => "Announce",
@@ -277,6 +355,86 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
       }
 
       assert {:reject, _} = SimplePolicy.filter(announce)
+    end
+
+    test "accept by matching context URI if :handle_threads is disabled" do
+      clear_config([:mrf_simple, :reject], [{"blocked.tld", ""}])
+      clear_config([:mrf_simple, :handle_threads], false)
+
+      remote_message =
+        build_remote_message()
+        |> Map.put("context", "https://blocked.tld/contexts/abc")
+
+      assert {:ok, _} = SimplePolicy.filter(remote_message)
+    end
+
+    test "accept by matching conversation field if :handle_threads is disabled" do
+      clear_config([:mrf_simple, :reject], [{"blocked.tld", ""}])
+      clear_config([:mrf_simple, :handle_threads], false)
+
+      remote_message =
+        build_remote_message()
+        |> Map.put(
+          "conversation",
+          "tag:blocked.tld,1997-06-25:objectId=12345:objectType=Conversation"
+        )
+
+      assert {:ok, _} = SimplePolicy.filter(remote_message)
+    end
+
+    test "accept by matching reply ID if :handle_threads is disabled" do
+      clear_config([:mrf_simple, :reject], [{"blocked.tld", ""}])
+      clear_config([:mrf_simple, :handle_threads], false)
+
+      remote_message =
+        build_remote_message()
+        |> Map.put("type", "Create")
+        |> Map.put("object", %{
+          "type" => "Note",
+          "inReplyTo" => "https://blocked.tld/objects/1"
+        })
+
+      assert {:ok, _} = SimplePolicy.filter(remote_message)
+    end
+
+    test "reject by matching context URI if :handle_threads is enabled" do
+      clear_config([:mrf_simple, :reject], [{"blocked.tld", ""}])
+      clear_config([:mrf_simple, :handle_threads], true)
+
+      remote_message =
+        build_remote_message()
+        |> Map.put("context", "https://blocked.tld/contexts/abc")
+
+      assert {:reject, _} = SimplePolicy.filter(remote_message)
+    end
+
+    test "reject by matching conversation field if :handle_threads is enabled" do
+      clear_config([:mrf_simple, :reject], [{"blocked.tld", ""}])
+      clear_config([:mrf_simple, :handle_threads], true)
+
+      remote_message =
+        build_remote_message()
+        |> Map.put(
+          "conversation",
+          "tag:blocked.tld,1997-06-25:objectId=12345:objectType=Conversation"
+        )
+
+      assert {:reject, _} = SimplePolicy.filter(remote_message)
+    end
+
+    test "reject by matching reply ID if :handle_threads is enabled" do
+      clear_config([:mrf_simple, :reject], [{"blocked.tld", ""}])
+      clear_config([:mrf_simple, :handle_threads], true)
+
+      remote_message =
+        build_remote_message()
+        |> Map.put("type", "Create")
+        |> Map.put("object", %{
+          "type" => "Note",
+          "inReplyTo" => "https://blocked.tld/objects/1"
+        })
+
+      assert {:reject, _} = SimplePolicy.filter(remote_message)
     end
   end
 
@@ -322,7 +480,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
         |> URI.parse()
         |> Map.fetch!(:host)
 
-      clear_config([:mrf_simple, :followers_only], [actor_domain])
+      clear_config([:mrf_simple, :followers_only], [{actor_domain, ""}])
 
       assert {:ok, new_activity} = SimplePolicy.filter(activity)
       assert actor.follower_address in new_activity["cc"]
@@ -350,7 +508,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "is not empty but activity doesn't have a matching host" do
-      clear_config([:mrf_simple, :accept], ["non.matching.remote"])
+      clear_config([:mrf_simple, :accept], [{"non.matching.remote", ""}])
 
       local_message = build_local_message()
       remote_message = build_remote_message()
@@ -360,7 +518,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "activity has a matching host" do
-      clear_config([:mrf_simple, :accept], ["remote.instance"])
+      clear_config([:mrf_simple, :accept], [{"remote.instance", ""}])
 
       local_message = build_local_message()
       remote_message = build_remote_message()
@@ -370,7 +528,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "activity matches with wildcard domain" do
-      clear_config([:mrf_simple, :accept], ["*.remote.instance"])
+      clear_config([:mrf_simple, :accept], [{"*.remote.instance", ""}])
 
       local_message = build_local_message()
       remote_message = build_remote_message()
@@ -380,7 +538,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "actor has a matching host" do
-      clear_config([:mrf_simple, :accept], ["remote.instance"])
+      clear_config([:mrf_simple, :accept], [{"remote.instance", ""}])
 
       remote_user = build_remote_user()
 
@@ -398,7 +556,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "is not empty but it doesn't have a matching host" do
-      clear_config([:mrf_simple, :avatar_removal], ["non.matching.remote"])
+      clear_config([:mrf_simple, :avatar_removal], [{"non.matching.remote", ""}])
 
       remote_user = build_remote_user()
 
@@ -406,7 +564,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "has a matching host" do
-      clear_config([:mrf_simple, :avatar_removal], ["remote.instance"])
+      clear_config([:mrf_simple, :avatar_removal], [{"remote.instance", ""}])
 
       remote_user = build_remote_user()
       {:ok, filtered} = SimplePolicy.filter(remote_user)
@@ -415,7 +573,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "match with wildcard domain" do
-      clear_config([:mrf_simple, :avatar_removal], ["*.remote.instance"])
+      clear_config([:mrf_simple, :avatar_removal], [{"*.remote.instance", ""}])
 
       remote_user = build_remote_user()
       {:ok, filtered} = SimplePolicy.filter(remote_user)
@@ -434,7 +592,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "is not empty but it doesn't have a matching host" do
-      clear_config([:mrf_simple, :banner_removal], ["non.matching.remote"])
+      clear_config([:mrf_simple, :banner_removal], [{"non.matching.remote", ""}])
 
       remote_user = build_remote_user()
 
@@ -442,7 +600,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "has a matching host" do
-      clear_config([:mrf_simple, :banner_removal], ["remote.instance"])
+      clear_config([:mrf_simple, :banner_removal], [{"remote.instance", ""}])
 
       remote_user = build_remote_user()
       {:ok, filtered} = SimplePolicy.filter(remote_user)
@@ -451,7 +609,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "match with wildcard domain" do
-      clear_config([:mrf_simple, :banner_removal], ["*.remote.instance"])
+      clear_config([:mrf_simple, :banner_removal], [{"*.remote.instance", ""}])
 
       remote_user = build_remote_user()
       {:ok, filtered} = SimplePolicy.filter(remote_user)
@@ -464,7 +622,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     setup do: clear_config([:mrf_simple, :reject_deletes], [])
 
     test "it accepts deletions even from rejected servers" do
-      clear_config([:mrf_simple, :reject], ["remote.instance"])
+      clear_config([:mrf_simple, :reject], [{"remote.instance", ""}])
 
       deletion_message = build_remote_deletion_message()
 
@@ -472,7 +630,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "it accepts deletions even from non-whitelisted servers" do
-      clear_config([:mrf_simple, :accept], ["non.matching.remote"])
+      clear_config([:mrf_simple, :accept], [{"non.matching.remote", ""}])
 
       deletion_message = build_remote_deletion_message()
 
@@ -481,10 +639,10 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
   end
 
   describe "when :reject_deletes is not empty but it doesn't have a matching host" do
-    setup do: clear_config([:mrf_simple, :reject_deletes], ["non.matching.remote"])
+    setup do: clear_config([:mrf_simple, :reject_deletes], [{"non.matching.remote", ""}])
 
     test "it accepts deletions even from rejected servers" do
-      clear_config([:mrf_simple, :reject], ["remote.instance"])
+      clear_config([:mrf_simple, :reject], [{"remote.instance", ""}])
 
       deletion_message = build_remote_deletion_message()
 
@@ -492,7 +650,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
 
     test "it accepts deletions even from non-whitelisted servers" do
-      clear_config([:mrf_simple, :accept], ["non.matching.remote"])
+      clear_config([:mrf_simple, :accept], [{"non.matching.remote", ""}])
 
       deletion_message = build_remote_deletion_message()
 
@@ -501,7 +659,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
   end
 
   describe "when :reject_deletes has a matching host" do
-    setup do: clear_config([:mrf_simple, :reject_deletes], ["remote.instance"])
+    setup do: clear_config([:mrf_simple, :reject_deletes], [{"remote.instance", ""}])
 
     test "it rejects the deletion" do
       deletion_message = build_remote_deletion_message()
@@ -511,7 +669,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
   end
 
   describe "when :reject_deletes match with wildcard domain" do
-    setup do: clear_config([:mrf_simple, :reject_deletes], ["*.remote.instance"])
+    setup do: clear_config([:mrf_simple, :reject_deletes], [{"*.remote.instance", ""}])
 
     test "it rejects the deletion" do
       deletion_message = build_remote_deletion_message()

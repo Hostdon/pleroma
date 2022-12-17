@@ -102,7 +102,7 @@ defmodule Pleroma.Web.Auth.LDAPAuthenticator do
            {:scope, :eldap.wholeSubtree()},
            {:timeout, @search_timeout}
          ]) do
-      {:ok, {:eldap_search_result, [{:eldap_entry, _, attributes}], _}} ->
+      {:ok, {:eldap_search_result, [{:eldap_entry, _, attributes}], _, _}} ->
         params = %{
           name: name,
           nickname: name,

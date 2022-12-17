@@ -237,17 +237,6 @@ defmodule Pleroma.ModerationLog do
     insert_log_entry_with_message(%ModerationLog{data: data})
   end
 
-  def insert_log(%{actor: %User{} = actor, action: "chat_message_delete", subject_id: subject_id}) do
-    %ModerationLog{
-      data: %{
-        "actor" => %{"nickname" => actor.nickname},
-        "action" => "chat_message_delete",
-        "subject_id" => subject_id
-      }
-    }
-    |> insert_log_entry_with_message()
-  end
-
   @spec insert_log_entry_with_message(ModerationLog) :: {:ok, ModerationLog} | {:error, any}
   defp insert_log_entry_with_message(entry) do
     entry.data["message"]
@@ -336,6 +325,26 @@ defmodule Pleroma.ModerationLog do
         }
       }) do
     "@#{actor_nickname} approved users: #{users_to_nicknames_string(users)}"
+  end
+
+  def get_log_entry_message(%ModerationLog{
+        data: %{
+          "actor" => %{"nickname" => actor_nickname},
+          "action" => "add_suggestion",
+          "subject" => users
+        }
+      }) do
+    "@#{actor_nickname} added suggested users: #{users_to_nicknames_string(users)}"
+  end
+
+  def get_log_entry_message(%ModerationLog{
+        data: %{
+          "actor" => %{"nickname" => actor_nickname},
+          "action" => "remove_suggestion",
+          "subject" => users
+        }
+      }) do
+    "@#{actor_nickname} removed suggested users: #{users_to_nicknames_string(users)}"
   end
 
   def get_log_entry_message(%ModerationLog{
@@ -481,9 +490,7 @@ defmodule Pleroma.ModerationLog do
           "visibility" => visibility
         }
       }) do
-    "@#{actor_nickname} updated status ##{subject_id}, set sensitive: '#{sensitive}', visibility: '#{
-      visibility
-    }'"
+    "@#{actor_nickname} updated status ##{subject_id}, set sensitive: '#{sensitive}', visibility: '#{visibility}'"
   end
 
   def get_log_entry_message(%ModerationLog{
@@ -523,9 +530,7 @@ defmodule Pleroma.ModerationLog do
           "subject" => subjects
         }
       }) do
-    "@#{actor_nickname} re-sent confirmation email for users: #{
-      users_to_nicknames_string(subjects)
-    }"
+    "@#{actor_nickname} re-sent confirmation email for users: #{users_to_nicknames_string(subjects)}"
   end
 
   def get_log_entry_message(%ModerationLog{
@@ -536,16 +541,6 @@ defmodule Pleroma.ModerationLog do
         }
       }) do
     "@#{actor_nickname} updated users: #{users_to_nicknames_string(subjects)}"
-  end
-
-  def get_log_entry_message(%ModerationLog{
-        data: %{
-          "actor" => %{"nickname" => actor_nickname},
-          "action" => "chat_message_delete",
-          "subject_id" => subject_id
-        }
-      }) do
-    "@#{actor_nickname} deleted chat message ##{subject_id}"
   end
 
   def get_log_entry_message(%ModerationLog{

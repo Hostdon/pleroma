@@ -5,9 +5,13 @@
 defmodule Pleroma.Instances.Instance do
   @moduledoc "Instance."
 
+  @cachex Pleroma.Config.get([:cachex, :provider], Cachex)
+
   alias Pleroma.Instances
   alias Pleroma.Instances.Instance
   alias Pleroma.Repo
+  alias Pleroma.User
+  alias Pleroma.Workers.BackgroundWorker
 
   use Ecto.Schema
 
@@ -20,7 +24,9 @@ defmodule Pleroma.Instances.Instance do
     field(:host, :string)
     field(:unreachable_since, :naive_datetime_usec)
     field(:favicon, :string)
-    field(:favicon_updated_at, :naive_datetime)
+    field(:metadata_updated_at, :naive_datetime)
+    field(:nodeinfo, :map, default: %{})
+    field(:has_request_signatures, :boolean)
 
     timestamps()
   end
@@ -29,7 +35,14 @@ defmodule Pleroma.Instances.Instance do
 
   def changeset(struct, params \\ %{}) do
     struct
-    |> cast(params, [:host, :unreachable_since, :favicon, :favicon_updated_at])
+    |> cast(params, [
+      :host,
+      :unreachable_since,
+      :favicon,
+      :nodeinfo,
+      :metadata_updated_at,
+      :has_request_signatures
+    ])
     |> validate_required([:host])
     |> unique_constraint(:host)
   end
@@ -136,63 +149,199 @@ defmodule Pleroma.Instances.Instance do
 
   defp parse_datetime(datetime), do: datetime
 
-  def get_or_update_favicon(%URI{host: host} = instance_uri) do
-    existing_record = Repo.get_by(Instance, %{host: host})
+  def needs_update(nil), do: true
+
+  def needs_update(%Instance{metadata_updated_at: nil}), do: true
+
+  def needs_update(%Instance{metadata_updated_at: metadata_updated_at}) do
     now = NaiveDateTime.utc_now()
-
-    if existing_record && existing_record.favicon_updated_at &&
-         NaiveDateTime.diff(now, existing_record.favicon_updated_at) < 86_400 do
-      existing_record.favicon
-    else
-      favicon = scrape_favicon(instance_uri)
-
-      if existing_record do
-        existing_record
-        |> changeset(%{favicon: favicon, favicon_updated_at: now})
-        |> Repo.update()
-      else
-        %Instance{}
-        |> changeset(%{host: host, favicon: favicon, favicon_updated_at: now})
-        |> Repo.insert()
-      end
-
-      favicon
-    end
-  rescue
-    e ->
-      Logger.warn("Instance.get_or_update_favicon(\"#{host}\") error: #{inspect(e)}")
-      nil
+    NaiveDateTime.diff(now, metadata_updated_at) > 86_400
   end
 
-  defp scrape_favicon(%URI{} = instance_uri) do
-    try do
-      with {_, true} <- {:reachable, reachable?(instance_uri.host)},
-           {:ok, %Tesla.Env{body: html}} <-
-             Pleroma.HTTP.get(to_string(instance_uri), [{"accept", "text/html"}], pool: :media),
-           {_, [favicon_rel | _]} when is_binary(favicon_rel) <-
-             {:parse,
-              html |> Floki.parse_document!() |> Floki.attribute("link[rel=icon]", "href")},
-           {_, favicon} when is_binary(favicon) <-
-             {:merge, URI.merge(instance_uri, favicon_rel) |> to_string()} do
-        favicon
+  def local do
+    %Instance{
+      host: Pleroma.Web.Endpoint.host(),
+      favicon: Pleroma.Web.Endpoint.url() <> "/favicon.png",
+      nodeinfo: Pleroma.Web.Nodeinfo.NodeinfoController.raw_nodeinfo()
+    }
+  end
+
+  def update_metadata(%URI{host: host} = uri) do
+    Logger.debug("Checking metadata for #{host}")
+    existing_record = Repo.get_by(Instance, %{host: host})
+
+    if reachable?(host) do
+      do_update_metadata(uri, existing_record)
+    else
+      {:discard, :unreachable}
+    end
+  end
+
+  defp do_update_metadata(%URI{host: host} = uri, existing_record) do
+    if existing_record do
+      if needs_update(existing_record) do
+        Logger.info("Updating metadata for #{host}")
+        favicon = scrape_favicon(uri)
+        nodeinfo = scrape_nodeinfo(uri)
+
+        existing_record
+        |> changeset(%{
+          host: host,
+          favicon: favicon,
+          nodeinfo: nodeinfo,
+          metadata_updated_at: NaiveDateTime.utc_now()
+        })
+        |> Repo.update()
       else
-        {:reachable, false} ->
-          Logger.debug(
-            "Instance.scrape_favicon(\"#{to_string(instance_uri)}\") ignored unreachable host"
-          )
-
-          nil
-
-        _ ->
-          nil
+        {:discard, "Does not require update"}
       end
-    rescue
-      e ->
-        Logger.warn(
-          "Instance.scrape_favicon(\"#{to_string(instance_uri)}\") error: #{inspect(e)}"
+    else
+      favicon = scrape_favicon(uri)
+      nodeinfo = scrape_nodeinfo(uri)
+
+      Logger.info("Creating metadata for #{host}")
+
+      %Instance{}
+      |> changeset(%{
+        host: host,
+        favicon: favicon,
+        nodeinfo: nodeinfo,
+        metadata_updated_at: NaiveDateTime.utc_now()
+      })
+      |> Repo.insert()
+    end
+  end
+
+  def get_favicon(%URI{host: host}) do
+    existing_record = Repo.get_by(Instance, %{host: host})
+
+    if existing_record do
+      existing_record.favicon
+    else
+      nil
+    end
+  end
+
+  defp scrape_nodeinfo(%URI{} = instance_uri) do
+    with true <- Pleroma.Config.get([:instances_nodeinfo, :enabled]),
+         {_, true} <- {:reachable, reachable?(instance_uri.host)},
+         {:ok, %Tesla.Env{status: 200, body: body}} <-
+           Tesla.get(
+             "https://#{instance_uri.host}/.well-known/nodeinfo",
+             headers: [{"Accept", "application/json"}]
+           ),
+         {:ok, json} <- Jason.decode(body),
+         {:ok, %{"links" => links}} <- {:ok, json},
+         {:ok, %{"href" => href}} <-
+           {:ok,
+            Enum.find(links, &(&1["rel"] == "http://nodeinfo.diaspora.software/ns/schema/2.0"))},
+         {:ok, %Tesla.Env{body: data}} <-
+           Pleroma.HTTP.get(href, [{"accept", "application/json"}], []),
+         {:length, true} <- {:length, String.length(data) < 50_000},
+         {:ok, nodeinfo} <- Jason.decode(data) do
+      nodeinfo
+    else
+      {:reachable, false} ->
+        Logger.debug(
+          "Instance.scrape_nodeinfo(\"#{to_string(instance_uri)}\") ignored unreachable host"
         )
 
         nil
+
+      {:length, false} ->
+        Logger.debug(
+          "Instance.scrape_nodeinfo(\"#{to_string(instance_uri)}\") ignored too long body"
+        )
+
+        nil
+
+      _ ->
+        nil
     end
   end
+
+  defp scrape_favicon(%URI{} = instance_uri) do
+    with true <- Pleroma.Config.get([:instances_favicons, :enabled]),
+         {_, true} <- {:reachable, reachable?(instance_uri.host)},
+         {:ok, %Tesla.Env{body: html}} <-
+           Pleroma.HTTP.get(to_string(instance_uri), [{"accept", "text/html"}], []),
+         {_, [favicon_rel | _]} when is_binary(favicon_rel) <-
+           {:parse, html |> Floki.parse_document!() |> Floki.attribute("link[rel=icon]", "href")},
+         {_, favicon} when is_binary(favicon) <-
+           {:merge, URI.merge(instance_uri, favicon_rel) |> to_string()},
+         {:length, true} <- {:length, String.length(favicon) < 255} do
+      favicon
+    else
+      {:reachable, false} ->
+        Logger.debug(
+          "Instance.scrape_favicon(\"#{to_string(instance_uri)}\") ignored unreachable host"
+        )
+
+        nil
+
+      _ ->
+        nil
+    end
+  end
+
+  @doc """
+  Deletes all users from an instance in a background task, thus also deleting
+  all of those users' activities and notifications.
+  """
+  def delete_users_and_activities(host) when is_binary(host) do
+    BackgroundWorker.enqueue("delete_instance", %{"host" => host})
+  end
+
+  def perform(:delete_instance, host) when is_binary(host) do
+    User.Query.build(%{nickname: "@#{host}"})
+    |> Repo.chunk_stream(100, :batches)
+    |> Stream.each(fn users ->
+      users
+      |> Enum.each(fn user ->
+        User.perform(:delete, user)
+      end)
+    end)
+    |> Stream.run()
+  end
+
+  def get_by_url(url_or_host) do
+    url = host(url_or_host)
+    Repo.get_by(Instance, host: url)
+  end
+
+  def get_cached_by_url(url_or_host) do
+    url = host(url_or_host)
+
+    if url == Pleroma.Web.Endpoint.host() do
+      {:ok, local()}
+    else
+      @cachex.fetch!(:instances_cache, "instances:#{url}", fn _ ->
+        with %Instance{} = instance <- get_by_url(url) do
+          {:commit, {:ok, instance}}
+        else
+          _ -> {:ignore, nil}
+        end
+      end)
+    end
+  end
+
+  def set_request_signatures(url_or_host) when is_binary(url_or_host) do
+    host = host(url_or_host)
+    existing_record = Repo.get_by(Instance, %{host: host})
+    changes = %{has_request_signatures: true}
+
+    cond do
+      is_nil(existing_record) ->
+        %Instance{}
+        |> changeset(Map.put(changes, :host, host))
+        |> Repo.insert()
+
+      true ->
+        existing_record
+        |> changeset(changes)
+        |> Repo.update()
+    end
+  end
+
+  def set_request_signatures(_), do: {:error, :invalid_input}
 end

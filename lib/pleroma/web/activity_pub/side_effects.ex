@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2021 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2022 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.ActivityPub.SideEffects do
@@ -10,8 +10,6 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
   collection, and so on.
   """
   alias Pleroma.Activity
-  alias Pleroma.Chat
-  alias Pleroma.Chat.MessageReference
   alias Pleroma.FollowingRelationship
   alias Pleroma.Notification
   alias Pleroma.Object
@@ -23,10 +21,11 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
   alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.Push
   alias Pleroma.Web.Streamer
+  alias Pleroma.Workers.PollWorker
 
+  require Pleroma.Constants
   require Logger
 
-  @cachex Pleroma.Config.get([:cachex, :provider], Cachex)
   @logger Pleroma.Config.get([:side_effects, :logger], Logger)
 
   @behaviour Pleroma.Web.ActivityPub.SideEffects.Handling
@@ -152,23 +151,26 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
 
   # Tasks this handles:
   # - Update the user
+  # - Update a non-user object (Note, Question, etc.)
   #
   # For a local user, we also get a changeset with the full information, so we
   # can update non-federating, non-activitypub settings as well.
   @impl true
   def handle(%{data: %{"type" => "Update", "object" => updated_object}} = object, meta) do
-    if changeset = Keyword.get(meta, :user_update_changeset) do
-      changeset
-      |> User.update_and_set_cache()
+    updated_object_id = updated_object["id"]
+
+    with {_, true} <- {:has_id, is_binary(updated_object_id)},
+         %{"type" => type} <- updated_object,
+         {_, is_user} <- {:is_user, type in Pleroma.Constants.actor_types()} do
+      if is_user do
+        handle_update_user(object, meta)
+      else
+        handle_update_object(object, meta)
+      end
     else
-      {:ok, new_user_data} = ActivityPub.user_data_from_user_object(updated_object)
-
-      User.get_by_ap_id(updated_object["id"])
-      |> User.remote_user_changeset(new_user_data)
-      |> User.update_and_set_cache()
+      _ ->
+        {:ok, object, meta}
     end
-
-    {:ok, object, meta}
   end
 
   # Tasks this handles:
@@ -190,20 +192,27 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
   # - Increase the user note count
   # - Increase the reply count
   # - Increase replies count
+  # - Ask for scraping of nodeinfo
   # - Set up ActivityExpiration
   # - Set up notifications
+  # - Index incoming posts for search (if needed)
   @impl true
   def handle(%{data: %{"type" => "Create"}} = activity, meta) do
-    with {:ok, object, meta} <- handle_object_creation(meta[:object_data], meta),
+    with {:ok, object, meta} <- handle_object_creation(meta[:object_data], activity, meta),
          %User{} = user <- User.get_cached_by_ap_id(activity.data["actor"]) do
       {:ok, notifications} = Notification.create_notifications(activity, do_send: false)
       {:ok, _user} = ActivityPub.increase_note_count_if_public(user, object)
+      {:ok, _user} = ActivityPub.update_last_status_at_if_public(user, object)
 
-      if in_reply_to = object.data["inReplyTo"] && object.data["type"] != "Answer" do
+      if in_reply_to = object.data["type"] != "Answer" && object.data["inReplyTo"] do
         Object.increase_replies_count(in_reply_to)
       end
 
       reply_depth = (meta[:depth] || 0) + 1
+
+      Pleroma.Workers.NodeInfoFetcherWorker.enqueue("process", %{
+        "source_url" => activity.data["actor"]
+      })
 
       # FIXME: Force inReplyTo to replies
       if Pleroma.Web.Federator.allowed_thread_distance?(reply_depth) and
@@ -220,6 +229,8 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
         Task.start(fn -> Pleroma.Web.RichMedia.Helpers.fetch_data_for_activity(activity) end)
       end)
 
+      Pleroma.Search.add_to_index(Map.put(activity, :object, object))
+
       meta =
         meta
         |> add_notifications(notifications)
@@ -228,7 +239,9 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
 
       {:ok, activity, meta}
     else
-      e -> Repo.rollback(e)
+      e ->
+        Logger.error(inspect(e))
+        Repo.rollback(e)
     end
   end
 
@@ -275,11 +288,11 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
 
   # Tasks this handles:
   # - Delete and unpins the create activity
-  # - Replace object with Tombstone
   # - Set up notification
   # - Reduce the user note count
   # - Reduce the reply count
   # - Stream out the activity
+  # - Removes posts from search index (if needed)
   @impl true
   def handle(%{data: %{"type" => "Delete", "object" => deleted_object}} = object, meta) do
     deleted_object =
@@ -300,8 +313,6 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
               Object.decrease_replies_count(in_reply_to)
             end
 
-            MessageReference.delete_for_object(deleted_object)
-
             ap_streamer().stream_out(object)
             ap_streamer().stream_out_participations(deleted_object, user)
             :ok
@@ -318,7 +329,11 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
       end
 
     if result == :ok do
-      Notification.create_notifications(object)
+      # Only remove from index when deleting actual objects, not users or anything else
+      with %Pleroma.Object{} <- deleted_object do
+        Pleroma.Search.remove_from_index(deleted_object)
+      end
+
       {:ok, object, meta}
     else
       {:error, result}
@@ -388,42 +403,87 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
     {:ok, object, meta}
   end
 
-  def handle_object_creation(%{"type" => "ChatMessage"} = object, meta) do
-    with {:ok, object, meta} <- Pipeline.common_pipeline(object, meta) do
-      actor = User.get_cached_by_ap_id(object.data["actor"])
-      recipient = User.get_cached_by_ap_id(hd(object.data["to"]))
+  defp handle_update_user(
+         %{data: %{"type" => "Update", "object" => updated_object}} = object,
+         meta
+       ) do
+    if changeset = Keyword.get(meta, :user_update_changeset) do
+      changeset
+      |> User.update_and_set_cache()
+    else
+      {:ok, new_user_data} = ActivityPub.user_data_from_user_object(updated_object)
 
-      streamables =
-        [[actor, recipient], [recipient, actor]]
-        |> Enum.uniq()
-        |> Enum.map(fn [user, other_user] ->
-          if user.local do
-            {:ok, chat} = Chat.bump_or_create(user.id, other_user.ap_id)
-            {:ok, cm_ref} = MessageReference.create(chat, object, user.ap_id != actor.ap_id)
+      User.get_by_ap_id(updated_object["id"])
+      |> User.remote_user_changeset(new_user_data)
+      |> User.update_and_set_cache()
+    end
 
-            @cachex.put(
-              :chat_message_id_idempotency_key_cache,
-              cm_ref.id,
-              meta[:idempotency_key]
-            )
+    {:ok, object, meta}
+  end
 
-            {
-              ["user", "user:pleroma_chat"],
-              {user, %{cm_ref | chat: chat, object: object}}
-            }
+  defp handle_update_object(
+         %{data: %{"type" => "Update", "object" => updated_object}} = object,
+         meta
+       ) do
+    orig_object_ap_id = updated_object["id"]
+    orig_object = Object.get_by_ap_id(orig_object_ap_id)
+    orig_object_data = orig_object.data
+
+    updated_object =
+      if meta[:local] do
+        # If this is a local Update, we don't process it by transmogrifier,
+        # so we use the embedded object as-is.
+        updated_object
+      else
+        meta[:object_data]
+      end
+
+    if orig_object_data["type"] in Pleroma.Constants.updatable_object_types() do
+      %{
+        updated_data: updated_object_data,
+        updated: updated,
+        used_history_in_new_object?: used_history_in_new_object?
+      } = Object.Updater.make_new_object_data_from_update_object(orig_object_data, updated_object)
+
+      changeset =
+        orig_object
+        |> Repo.preload(:hashtags)
+        |> Object.change(%{data: updated_object_data})
+
+      with {:ok, new_object} <- Repo.update(changeset),
+           {:ok, _} <- Object.invalid_object_cache(new_object),
+           {:ok, _} <- Object.set_cache(new_object),
+           # The metadata/utils.ex uses the object id for the cache.
+           {:ok, _} <- Pleroma.Activity.HTML.invalidate_cache_for(new_object.id) do
+        if used_history_in_new_object? do
+          with create_activity when not is_nil(create_activity) <-
+                 Pleroma.Activity.get_create_by_object_ap_id(orig_object_ap_id),
+               {:ok, _} <- Pleroma.Activity.HTML.invalidate_cache_for(create_activity.id) do
+            nil
+          else
+            _ -> nil
           end
-        end)
-        |> Enum.filter(& &1)
+        end
 
-      meta =
-        meta
-        |> add_streamables(streamables)
+        if updated do
+          object
+          |> Activity.normalize()
+          |> ActivityPub.notify_and_stream()
+        end
+      end
+    end
 
+    {:ok, object, meta}
+  end
+
+  def handle_object_creation(%{"type" => "Question"} = object, activity, meta) do
+    with {:ok, object, meta} <- Pipeline.common_pipeline(object, meta) do
+      PollWorker.schedule_poll_end(activity)
       {:ok, object, meta}
     end
   end
 
-  def handle_object_creation(%{"type" => "Answer"} = object_map, meta) do
+  def handle_object_creation(%{"type" => "Answer"} = object_map, _activity, meta) do
     with {:ok, object, meta} <- Pipeline.common_pipeline(object_map, meta) do
       Object.increase_vote_count(
         object.data["inReplyTo"],
@@ -435,15 +495,15 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
     end
   end
 
-  def handle_object_creation(%{"type" => objtype} = object, meta)
-      when objtype in ~w[Audio Video Question Event Article Note Page] do
+  def handle_object_creation(%{"type" => objtype} = object, _activity, meta)
+      when objtype in ~w[Audio Video Event Article Note Page] do
     with {:ok, object, meta} <- Pipeline.common_pipeline(object, meta) do
       {:ok, object, meta}
     end
   end
 
   # Nothing to do
-  def handle_object_creation(object, meta) do
+  def handle_object_creation(object, _activity, meta) do
     {:ok, object, meta}
   end
 
@@ -512,13 +572,6 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
     end)
 
     meta
-  end
-
-  defp add_streamables(meta, streamables) do
-    existing = Keyword.get(meta, :streamables, [])
-
-    meta
-    |> Keyword.put(:streamables, streamables ++ existing)
   end
 
   defp add_notifications(meta, notifications) do

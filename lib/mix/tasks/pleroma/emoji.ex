@@ -7,7 +7,7 @@ defmodule Mix.Tasks.Pleroma.Emoji do
   import Mix.Pleroma
 
   @shortdoc "Manages emoji packs"
-  @moduledoc File.read!("docs/administration/CLI_tasks/emoji.md")
+  @moduledoc File.read!("docs/docs/administration/CLI_tasks/emoji.md")
 
   def run(["ls-packs" | args]) do
     start_pleroma()

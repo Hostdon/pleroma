@@ -16,7 +16,9 @@ defmodule Pleroma.Web.ActivityPub.MRF.NoEmptyPolicyTest do
         "actor" => "http://localhost:4001/users/testuser",
         "attachment" => [],
         "cc" => ["http://localhost:4001/users/testuser/followers"],
-        "source" => "this is a test post",
+        "source" => %{
+          "content" => "this is a test post"
+        },
         "to" => ["https://www.w3.org/ns/activitystreams#Public"],
         "type" => "Note"
       },
@@ -147,6 +149,29 @@ defmodule Pleroma.Web.ActivityPub.MRF.NoEmptyPolicyTest do
         "https://www.w3.org/ns/activitystreams#Public"
       ],
       "type" => "Create"
+    }
+
+    assert NoEmptyPolicy.filter(message) == {:reject, "[NoEmptyPolicy]"}
+  end
+
+  test "works with Update" do
+    message = %{
+      "actor" => "http://localhost:4001/users/testuser",
+      "cc" => ["http://localhost:4001/users/testuser/followers"],
+      "object" => %{
+        "actor" => "http://localhost:4001/users/testuser",
+        "attachment" => [],
+        "cc" => ["http://localhost:4001/users/testuser/followers"],
+        "source" => "",
+        "to" => [
+          "https://www.w3.org/ns/activitystreams#Public"
+        ],
+        "type" => "Note"
+      },
+      "to" => [
+        "https://www.w3.org/ns/activitystreams#Public"
+      ],
+      "type" => "Update"
     }
 
     assert NoEmptyPolicy.filter(message) == {:reject, "[NoEmptyPolicy]"}

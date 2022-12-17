@@ -18,6 +18,8 @@ defmodule Pleroma.Upload.Filter.AnalyzeMetadataTest do
 
     assert %{width: 1024, height: 768} = meta
     assert meta.blurhash
+    # Blurhashes should be a valid base83 string
+    assert meta.blurhash =~ ~r/^[A-Za-z0-9#$%*\+,-\.:;=\?@\[\]\^_{|}~]{6,}$/
   end
 
   test "adds the dimensions for videos" do

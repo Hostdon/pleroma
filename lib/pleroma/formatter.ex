@@ -32,26 +32,29 @@ defmodule Pleroma.Formatter do
     end
   end
 
+  def mention_tag(%User{id: id} = user, nickname, opts \\ []) do
+    user_url = user.uri || user.ap_id
+    nickname_text = get_nickname_text(nickname, opts)
+
+    :span
+    |> Phoenix.HTML.Tag.content_tag(
+      Phoenix.HTML.Tag.content_tag(
+        :a,
+        ["@", Phoenix.HTML.Tag.content_tag(:span, nickname_text)],
+        "data-user": id,
+        class: "u-url mention",
+        href: user_url,
+        rel: "ugc"
+      ),
+      class: "h-card"
+    )
+    |> Phoenix.HTML.safe_to_string()
+  end
+
   def mention_handler("@" <> nickname, buffer, opts, acc) do
     case User.get_cached_by_nickname(nickname) do
-      %User{id: id} = user ->
-        user_url = user.uri || user.ap_id
-        nickname_text = get_nickname_text(nickname, opts)
-
-        link =
-          Phoenix.HTML.Tag.content_tag(
-            :span,
-            Phoenix.HTML.Tag.content_tag(
-              :a,
-              ["@", Phoenix.HTML.Tag.content_tag(:span, nickname_text)],
-              "data-user": id,
-              class: "u-url mention",
-              href: user_url,
-              rel: "ugc"
-            ),
-            class: "h-card"
-          )
-          |> Phoenix.HTML.safe_to_string()
+      %User{id: _id} = user ->
+        link = mention_tag(user, nickname, opts)
 
         {link, %{acc | mentions: MapSet.put(acc.mentions, {"@" <> nickname, user})}}
 
@@ -131,6 +134,11 @@ defmodule Pleroma.Formatter do
 
   def html_escape(text, "text/html") do
     HTML.filter_tags(text)
+  end
+
+  def html_escape(text, "text/x.misskeymarkdown") do
+    text
+    |> HTML.filter_tags()
   end
 
   def html_escape(text, "text/plain") do

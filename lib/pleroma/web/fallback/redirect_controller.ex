@@ -55,11 +55,12 @@ defmodule Pleroma.Web.Fallback.RedirectController do
   def redirector_with_preload(conn, params) do
     {:ok, index_content} = File.read(index_file_path())
     preloads = preload_data(conn, params)
+    tags = Metadata.build_static_tags(params)
     title = "<title>#{Pleroma.Config.get([:instance, :name])}</title>"
 
     response =
       index_content
-      |> String.replace("<!--server-generated-meta-->", preloads <> title)
+      |> String.replace("<!--server-generated-meta-->", tags <> preloads <> title)
 
     conn
     |> put_resp_content_type("text/html")

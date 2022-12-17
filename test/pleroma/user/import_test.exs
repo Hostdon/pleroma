@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.User.ImportTest do
-  alias Pleroma.Repo
   alias Pleroma.Tests.ObanHelpers
   alias Pleroma.User
 
@@ -26,11 +25,14 @@ defmodule Pleroma.User.ImportTest do
         user3.nickname
       ]
 
-      {:ok, job} = User.Import.follow_import(user1, identifiers)
+      [{:ok, job1}, {:ok, job2}] = User.Import.follow_import(user1, identifiers)
 
-      assert {:ok, result} = ObanHelpers.perform(job)
-      assert is_list(result)
-      assert result == [refresh_record(user2), refresh_record(user3)]
+      assert {:ok, result} = ObanHelpers.perform(job1)
+      assert result == refresh_record(user2)
+
+      assert {:ok, result} = ObanHelpers.perform(job2)
+      assert result == refresh_record(user3)
+
       assert User.following?(user1, user2)
       assert User.following?(user1, user3)
     end
@@ -45,11 +47,14 @@ defmodule Pleroma.User.ImportTest do
         user3.nickname
       ]
 
-      {:ok, job} = User.Import.blocks_import(user1, identifiers)
+      [{:ok, job1}, {:ok, job2}] = User.Import.blocks_import(user1, identifiers)
 
-      assert {:ok, result} = ObanHelpers.perform(job)
-      assert is_list(result)
-      assert result == [user2, user3]
+      assert {:ok, result} = ObanHelpers.perform(job1)
+      assert result == user2
+
+      assert {:ok, result} = ObanHelpers.perform(job2)
+      assert result == user3
+
       assert User.blocks?(user1, user2)
       assert User.blocks?(user1, user3)
     end
@@ -64,11 +69,14 @@ defmodule Pleroma.User.ImportTest do
         user3.nickname
       ]
 
-      {:ok, job} = User.Import.mutes_import(user1, identifiers)
+      [{:ok, job1}, {:ok, job2}] = User.Import.mutes_import(user1, identifiers)
 
-      assert {:ok, result} = ObanHelpers.perform(job)
-      assert is_list(result)
-      assert result == [user2, user3]
+      assert {:ok, result} = ObanHelpers.perform(job1)
+      assert result == user2
+
+      assert {:ok, result} = ObanHelpers.perform(job2)
+      assert result == user3
+
       assert User.mutes?(user1, user2)
       assert User.mutes?(user1, user3)
     end

@@ -43,4 +43,6 @@ defmodule Pleroma.Instances do
       url_or_host
     end
   end
+
+  defdelegate set_request_signatures(url_or_host), to: Instance
 end

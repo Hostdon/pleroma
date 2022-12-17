@@ -9,7 +9,7 @@ defmodule Pleroma.ReverseProxy do
   @resp_cache_headers ~w(etag date last-modified)
   @keep_resp_headers @resp_cache_headers ++
                        ~w(content-length content-type content-disposition content-encoding) ++
-                       ~w(content-range accept-ranges vary)
+                       ~w(content-range accept-ranges vary expires)
   @default_cache_control_header "public, max-age=1209600"
   @valid_resp_codes [200, 206, 304]
   @max_read_duration :timer.seconds(30)
@@ -59,11 +59,7 @@ defmodule Pleroma.ReverseProxy do
 
   * `req_headers`, `resp_headers` additional headers.
 
-  * `http`: options for [hackney](https://github.com/benoitc/hackney) or [gun](https://github.com/ninenines/gun).
-
   """
-  @default_options [pool: :media]
-
   @inline_content_types [
     "image/gif",
     "image/jpeg",
@@ -94,7 +90,7 @@ defmodule Pleroma.ReverseProxy do
   def call(_conn, _url, _opts \\ [])
 
   def call(conn = %{method: method}, url, opts) when method in @methods do
-    client_opts = Keyword.merge(@default_options, Keyword.get(opts, :http, []))
+    client_opts = Keyword.get(opts, :http, [])
 
     req_headers = build_req_headers(conn.req_headers, opts)
 
@@ -106,32 +102,40 @@ defmodule Pleroma.ReverseProxy do
       end
 
     with {:ok, nil} <- @cachex.get(:failed_proxy_url_cache, url),
-         {:ok, code, headers, client} <- request(method, url, req_headers, client_opts),
+         {:ok, status, headers, body} <- request(method, url, req_headers, client_opts),
          :ok <-
            header_length_constraint(
              headers,
              Keyword.get(opts, :max_body_length, @max_body_length)
            ) do
-      response(conn, client, url, code, headers, opts)
+      conn
+      |> put_private(:proxied_url, url)
+      |> response(body, status, headers, opts)
     else
       {:ok, true} ->
         conn
-        |> error_or_redirect(url, 500, "Request failed", opts)
+        |> put_private(:proxied_url, url)
+        |> error_or_redirect(500, "Request failed", opts)
         |> halt()
 
-      {:ok, code, headers} ->
-        head_response(conn, url, code, headers, opts)
+      {:ok, status, headers} ->
+        conn
+        |> put_private(:proxied_url, url)
+        |> head_response(status, headers, opts)
         |> halt()
 
-      {:error, {:invalid_http_response, code}} ->
-        Logger.error("#{__MODULE__}: request to #{inspect(url)} failed with HTTP status #{code}")
-        track_failed_url(url, code, opts)
+      {:error, {:invalid_http_response, status}} ->
+        Logger.error(
+          "#{__MODULE__}: request to #{inspect(url)} failed with HTTP status #{status}"
+        )
+
+        track_failed_url(url, status, opts)
 
         conn
+        |> put_private(:proxied_url, url)
         |> error_or_redirect(
-          url,
-          code,
-          "Request failed: " <> Plug.Conn.Status.reason_phrase(code),
+          status,
+          "Request failed: " <> Plug.Conn.Status.reason_phrase(status),
           opts
         )
         |> halt()
@@ -141,7 +145,8 @@ defmodule Pleroma.ReverseProxy do
         track_failed_url(url, error, opts)
 
         conn
-        |> error_or_redirect(url, 500, "Request failed", opts)
+        |> put_private(:proxied_url, url)
+        |> error_or_redirect(500, "Request failed", opts)
         |> halt()
     end
   end
@@ -156,93 +161,48 @@ defmodule Pleroma.ReverseProxy do
     Logger.debug("#{__MODULE__} #{method} #{url} #{inspect(headers)}")
     method = method |> String.downcase() |> String.to_existing_atom()
 
-    case client().request(method, url, headers, "", opts) do
-      {:ok, code, headers, client} when code in @valid_resp_codes ->
-        {:ok, code, downcase_headers(headers), client}
+    opts = opts ++ [receive_timeout: @max_read_duration]
 
-      {:ok, code, headers} when code in @valid_resp_codes ->
-        {:ok, code, downcase_headers(headers)}
+    case Pleroma.HTTP.request(method, url, "", headers, opts) do
+      {:ok, %Tesla.Env{status: status, headers: headers, body: body}}
+      when status in @valid_resp_codes ->
+        {:ok, status, downcase_headers(headers), body}
 
-      {:ok, code, _, _} ->
-        {:error, {:invalid_http_response, code}}
+      {:ok, %Tesla.Env{status: status, headers: headers}} when status in @valid_resp_codes ->
+        {:ok, status, downcase_headers(headers)}
 
-      {:ok, code, _} ->
-        {:error, {:invalid_http_response, code}}
+      {:ok, %Tesla.Env{status: status}} ->
+        {:error, {:invalid_http_response, status}}
 
       {:error, error} ->
         {:error, error}
     end
   end
 
-  defp response(conn, client, url, status, headers, opts) do
-    Logger.debug("#{__MODULE__} #{status} #{url} #{inspect(headers)}")
-
-    result =
-      conn
-      |> put_resp_headers(build_resp_headers(headers, opts))
-      |> send_chunked(status)
-      |> chunk_reply(client, opts)
-
-    case result do
-      {:ok, conn} ->
-        halt(conn)
-
-      {:error, :closed, conn} ->
-        client().close(client)
-        halt(conn)
-
-      {:error, error, conn} ->
-        Logger.warn(
-          "#{__MODULE__} request to #{url} failed while reading/chunking: #{inspect(error)}"
-        )
-
-        client().close(client)
-        halt(conn)
-    end
-  end
-
-  defp chunk_reply(conn, client, opts) do
-    chunk_reply(conn, client, opts, 0, 0)
-  end
-
-  defp chunk_reply(conn, client, opts, sent_so_far, duration) do
-    with {:ok, duration} <-
-           check_read_duration(
-             duration,
-             Keyword.get(opts, :max_read_duration, @max_read_duration)
-           ),
-         {:ok, data, client} <- client().stream_body(client),
-         {:ok, duration} <- increase_read_duration(duration),
-         sent_so_far = sent_so_far + byte_size(data),
-         :ok <-
-           body_size_constraint(
-             sent_so_far,
-             Keyword.get(opts, :max_body_length, @max_body_length)
-           ),
-         {:ok, conn} <- chunk(conn, data) do
-      chunk_reply(conn, client, opts, sent_so_far, duration)
-    else
-      :done -> {:ok, conn}
-      {:error, error} -> {:error, error, conn}
-    end
-  end
-
-  defp head_response(conn, url, code, headers, opts) do
-    Logger.debug("#{__MODULE__} #{code} #{url} #{inspect(headers)}")
+  defp response(conn, body, status, headers, opts) do
+    Logger.debug("#{__MODULE__} #{status} #{conn.private[:proxied_url]} #{inspect(headers)}")
 
     conn
     |> put_resp_headers(build_resp_headers(headers, opts))
-    |> send_resp(code, "")
+    |> send_resp(status, body)
   end
 
-  defp error_or_redirect(conn, url, code, body, opts) do
+  defp head_response(conn, status, headers, opts) do
+    Logger.debug("#{__MODULE__} #{status} #{conn.private[:proxied_url]} #{inspect(headers)}")
+
+    conn
+    |> put_resp_headers(build_resp_headers(headers, opts))
+    |> send_resp(status, "")
+  end
+
+  defp error_or_redirect(conn, status, body, opts) do
     if Keyword.get(opts, :redirect_on_failure, false) do
       conn
-      |> Phoenix.Controller.redirect(external: url)
+      |> Phoenix.Controller.redirect(external: conn.private[:proxied_url])
       |> halt()
     else
       conn
-      |> send_resp(code, body)
+      |> send_resp(status, body)
       |> halt
     end
   end
@@ -272,7 +232,6 @@ defmodule Pleroma.ReverseProxy do
     |> downcase_headers()
     |> Enum.filter(fn {k, _} -> k in @keep_req_headers end)
     |> build_req_range_or_encoding_header(opts)
-    |> build_req_user_agent_header(opts)
     |> Keyword.merge(Keyword.get(opts, :req_headers, []))
   end
 
@@ -285,15 +244,6 @@ defmodule Pleroma.ReverseProxy do
     else
       headers
     end
-  end
-
-  defp build_req_user_agent_header(headers, _opts) do
-    List.keystore(
-      headers,
-      "user-agent",
-      0,
-      {"user-agent", Pleroma.Application.user_agent()}
-    )
   end
 
   defp build_resp_headers(headers, opts) do
@@ -381,37 +331,6 @@ defmodule Pleroma.ReverseProxy do
   end
 
   defp header_length_constraint(_, _), do: :ok
-
-  defp body_size_constraint(size, limit) when is_integer(limit) and limit > 0 and size >= limit do
-    {:error, :body_too_large}
-  end
-
-  defp body_size_constraint(_, _), do: :ok
-
-  defp check_read_duration(nil = _duration, max), do: check_read_duration(@max_read_duration, max)
-
-  defp check_read_duration(duration, max)
-       when is_integer(duration) and is_integer(max) and max > 0 do
-    if duration > max do
-      {:error, :read_duration_exceeded}
-    else
-      {:ok, {duration, :erlang.system_time(:millisecond)}}
-    end
-  end
-
-  defp check_read_duration(_, _), do: {:ok, :no_duration_limit, :no_duration_limit}
-
-  defp increase_read_duration({previous_duration, started})
-       when is_integer(previous_duration) and is_integer(started) do
-    duration = :erlang.system_time(:millisecond) - started
-    {:ok, previous_duration + duration}
-  end
-
-  defp increase_read_duration(_) do
-    {:ok, :no_duration_limit, :no_duration_limit}
-  end
-
-  defp client, do: Pleroma.ReverseProxy.Client.Wrapper
 
   defp track_failed_url(url, error, opts) do
     ttl =

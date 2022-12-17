@@ -26,7 +26,7 @@ defmodule Pleroma.Web.MastodonAPI.InstanceView do
       thumbnail:
         URI.merge(Pleroma.Web.Endpoint.url(), Keyword.get(instance, :instance_thumbnail))
         |> to_string,
-      languages: ["en"],
+      languages: Keyword.get(instance, :languages, ["en"]),
       registrations: Keyword.get(instance, :registrations_open),
       approval_required: Keyword.get(instance, :account_approval_required),
       # Extra (not present in Mastodon):
@@ -37,7 +37,6 @@ defmodule Pleroma.Web.MastodonAPI.InstanceView do
       background_upload_limit: Keyword.get(instance, :background_upload_limit),
       banner_upload_limit: Keyword.get(instance, :banner_upload_limit),
       background_image: Pleroma.Web.Endpoint.url() <> Keyword.get(instance, :background_image),
-      shout_limit: Config.get([:shout, :limit]),
       description_limit: Keyword.get(instance, :description_limit),
       pleroma: %{
         metadata: %{
@@ -45,7 +44,8 @@ defmodule Pleroma.Web.MastodonAPI.InstanceView do
           features: features(),
           federation: federation(),
           fields_limits: fields_limits(),
-          post_formats: Config.get([:instance, :allowed_post_formats])
+          post_formats: Config.get([:instance, :allowed_post_formats]),
+          privileged_staff: Config.get([:instance, :privileged_staff])
         },
         stats: %{mau: Pleroma.User.active_user_count()},
         vapid_public_key: Keyword.get(Pleroma.Web.Push.vapid_config(), :public_key)
@@ -56,25 +56,18 @@ defmodule Pleroma.Web.MastodonAPI.InstanceView do
   def features do
     [
       "pleroma_api",
+      "akkoma_api",
       "mastodon_api",
       "mastodon_api_streaming",
       "polls",
+      "v2_suggestions",
       "pleroma_explicit_addressing",
       "shareable_emoji_packs",
       "multifetch",
       "pleroma:api/v1/notifications:include_types_filter",
+      "editing",
       if Config.get([:media_proxy, :enabled]) do
         "media_proxy"
-      end,
-      if Config.get([:gopher, :enabled]) do
-        "gopher"
-      end,
-      # backwards compat
-      if Config.get([:shout, :enabled]) do
-        "chat"
-      end,
-      if Config.get([:shout, :enabled]) do
-        "shout"
       end,
       if Config.get([:instance, :allow_relay]) do
         "relay"
@@ -83,7 +76,17 @@ defmodule Pleroma.Web.MastodonAPI.InstanceView do
         "safe_dm_mentions"
       end,
       "pleroma_emoji_reactions",
-      "pleroma_chat_messages"
+      if Config.get([:instance, :show_reactions]) do
+        "exposable_reactions"
+      end,
+      if Config.get([:instance, :profile_directory]) do
+        "profile_directory"
+      end,
+      if Config.get([:translator, :enabled], false) do
+        "akkoma:machine_translation"
+      end,
+      "custom_emoji_reactions",
+      "pleroma:get:main/ostatus"
     ]
     |> Enum.filter(& &1)
   end
@@ -95,7 +98,20 @@ defmodule Pleroma.Web.MastodonAPI.InstanceView do
       {:ok, data} = MRF.describe()
 
       data
-      |> Map.merge(%{quarantined_instances: quarantined})
+      |> Map.put(
+        :quarantined_instances,
+        Enum.map(quarantined, fn {instance, _reason} -> instance end)
+      )
+      # This is for backwards compatibility. We originally didn't sent
+      # extra info like a reason why an instance was rejected/quarantined/etc.
+      # Because we didn't want to break backwards compatibility it was decided
+      # to add an extra "info" key.
+      |> Map.put(:quarantined_instances_info, %{
+        "quarantined_instances" =>
+          quarantined
+          |> Enum.map(fn {instance, reason} -> {instance, %{"reason" => reason}} end)
+          |> Map.new()
+      })
     else
       %{}
     end

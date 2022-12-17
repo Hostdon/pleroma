@@ -1,0 +1,14 @@
+# default docker Caddyfile config for Akkoma
+#
+# Simple installation instructions:
+# 1. Replace 'example.tld' with your instance's domain wherever it appears.
+
+example.tld  {
+  log {
+    output file /var/log/caddy/akkoma.log
+  }
+
+  encode gzip
+
+  reverse_proxy akkoma:4000
+}

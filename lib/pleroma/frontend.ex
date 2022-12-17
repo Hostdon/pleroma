@@ -32,20 +32,21 @@ defmodule Pleroma.Frontend do
 
     label = "#{name} (#{ref})"
     tmp_dir = Path.join(dir(), "tmp")
+    IO.puts("Downloading #{label}...")
 
     with {_, :ok} <-
            {:download_or_unzip, download_or_unzip(frontend_info, tmp_dir, opts[:file])},
-         Logger.info("Installing #{label} to #{dest}"),
+         IO.puts("Installing #{label} to #{dest}"),
          :ok <- install_frontend(frontend_info, tmp_dir, dest) do
       File.rm_rf!(tmp_dir)
-      Logger.info("Frontend #{label} installed to #{dest}")
+      IO.puts("Frontend #{label} installed to #{dest}")
     else
       {:download_or_unzip, _} ->
-        Logger.info("Could not download or unzip the frontend")
+        IO.puts("Could not download or unzip the frontend")
         {:error, "Could not download or unzip the frontend"}
 
       _e ->
-        Logger.info("Could not install the frontend")
+        IO.puts("Could not install the frontend")
         {:error, "Could not install the frontend"}
     end
   end
@@ -92,7 +93,7 @@ defmodule Pleroma.Frontend do
     url = String.replace(frontend_info["build_url"], "${ref}", frontend_info["ref"])
 
     with {:ok, %{status: 200, body: zip_body}} <-
-           Pleroma.HTTP.get(url, [], pool: :media, recv_timeout: 120_000) do
+           Pleroma.HTTP.get(url, [], recv_timeout: 120_000) do
       unzip(zip_body, dest)
     else
       {:error, e} -> {:error, e}
