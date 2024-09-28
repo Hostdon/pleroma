@@ -19,6 +19,12 @@ defmodule Pleroma.Web.ActivityPub.RelayTest do
     assert user.ap_id == "#{Pleroma.Web.Endpoint.url()}/relay"
   end
 
+  test "relay actor is an application" do
+    # See <https://www.w3.org/TR/activitystreams-vocabulary/#dfn-application>
+    user = Relay.get_actor()
+    assert user.actor_type == "Application"
+  end
+
   test "relay actor is invisible" do
     user = Relay.get_actor()
     assert User.invisible?(user)

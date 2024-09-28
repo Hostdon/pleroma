@@ -37,26 +37,28 @@ defmodule Pleroma.Web.AdminAPI.InstanceControllerTest do
     activity = insert(:note_activity, user: user2)
 
     %{"total" => 2, "activities" => activities} =
-      conn |> get("/api/pleroma/admin/instances/archae.me/statuses") |> json_response(200)
+      conn |> get("/api/v1/pleroma/admin/instances/archae.me/statuses") |> json_response(200)
 
     assert length(activities) == 2
 
     %{"total" => 1, "activities" => [_]} =
-      conn |> get("/api/pleroma/admin/instances/test.com/statuses") |> json_response(200)
+      conn |> get("/api/v1/pleroma/admin/instances/test.com/statuses") |> json_response(200)
 
     %{"total" => 0, "activities" => []} =
-      conn |> get("/api/pleroma/admin/instances/nonexistent.com/statuses") |> json_response(200)
+      conn
+      |> get("/api/v1/pleroma/admin/instances/nonexistent.com/statuses")
+      |> json_response(200)
 
     CommonAPI.repeat(activity.id, user)
 
     %{"total" => 2, "activities" => activities} =
-      conn |> get("/api/pleroma/admin/instances/archae.me/statuses") |> json_response(200)
+      conn |> get("/api/v1/pleroma/admin/instances/archae.me/statuses") |> json_response(200)
 
     assert length(activities) == 2
 
     %{"total" => 3, "activities" => activities} =
       conn
-      |> get("/api/pleroma/admin/instances/archae.me/statuses?with_reblogs=true")
+      |> get("/api/v1/pleroma/admin/instances/archae.me/statuses?with_reblogs=true")
       |> json_response(200)
 
     assert length(activities) == 3
@@ -68,7 +70,7 @@ defmodule Pleroma.Web.AdminAPI.InstanceControllerTest do
 
     response =
       conn
-      |> delete("/api/pleroma/admin/instances/lain.com")
+      |> delete("/api/v1/pleroma/admin/instances/lain.com")
       |> json_response(200)
 
     [:ok] = ObanHelpers.perform_all()

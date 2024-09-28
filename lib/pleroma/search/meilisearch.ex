@@ -154,10 +154,11 @@ defmodule Pleroma.Search.Meilisearch do
 
       with {:ok, res} <- result,
            true <- Map.has_key?(res, "taskUid") do
-        # Do nothing
+        {:ok, res}
       else
-        _ ->
+        err ->
           Logger.error("Failed to add activity #{activity.id} to index: #{inspect(result)}")
+          {:error, err}
       end
     end
   end

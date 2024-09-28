@@ -184,14 +184,15 @@ defmodule Pleroma.Web.Feed.UserControllerTest do
       note_activity = insert(:note_activity)
       user = User.get_cached_by_ap_id(note_activity.data["actor"])
 
+      %{assigns: %{csp_nonce: nonce}} = resp_conn = get(conn, "/users/#{user.nickname}")
+
       response =
-        conn
-        |> get("/users/#{user.nickname}")
+        resp_conn
         |> response(200)
 
       assert response ==
                Pleroma.Web.Fallback.RedirectController.redirector_with_meta(
-                 conn,
+                 assign(conn, :csp_nonce, nonce),
                  %{user: user}
                ).resp_body
     end

@@ -163,11 +163,6 @@ config :logger, :ex_syslogger,
   format: "$metadata[$level] $message",
   metadata: [:request_id]
 
-config :quack,
-  level: :warn,
-  meta: [:all],
-  webhook_url: "https://hooks.slack.com/services/YOUR-KEY-HERE"
-
 config :mime, :types, %{
   "application/xml" => ["xml"],
   "application/xrd+xml" => ["xrd+xml"],
@@ -184,6 +179,7 @@ config :pleroma, :http,
   receive_timeout: :timer.seconds(15),
   proxy_url: nil,
   user_agent: :default,
+  pool_size: 50,
   adapter: []
 
 config :pleroma, :instance,
@@ -264,7 +260,8 @@ config :pleroma, :instance,
   profile_directory: true,
   privileged_staff: false,
   local_bubble: [],
-  max_frontend_settings_json_chars: 100_000
+  max_frontend_settings_json_chars: 100_000,
+  export_prometheus_metrics: true
 
 config :pleroma, :welcome,
   direct_message: [
@@ -357,7 +354,7 @@ config :pleroma, :manifest,
 
 config :pleroma, :activitypub,
   unfollow_blocked: true,
-  outgoing_blocks: true,
+  outgoing_blocks: false,
   blockers_visible: true,
   follow_handshake_timeout: 500,
   note_replies_output_limit: 5,
@@ -429,7 +426,7 @@ config :pleroma, :rich_media,
     Pleroma.Web.RichMedia.Parsers.TwitterCard,
     Pleroma.Web.RichMedia.Parsers.OEmbed
   ],
-  failure_backoff: 60_000,
+  failure_backoff: :timer.minutes(20),
   ttl_setters: [Pleroma.Web.RichMedia.Parser.TTL.AwsSignedUrl]
 
 config :pleroma, :media_proxy,
@@ -655,6 +652,10 @@ config :pleroma, :auth, oauth_consumer_strategies: oauth_consumer_strategies
 
 config :pleroma, Pleroma.Emails.Mailer, adapter: Swoosh.Adapters.Sendmail, enabled: false
 
+config :swoosh,
+  api_client: Swoosh.ApiClient.Finch,
+  finch_name: MyFinch
+
 config :pleroma, Pleroma.Emails.UserEmail,
   logo: nil,
   styling: %{
@@ -782,14 +783,6 @@ config :pleroma, :frontends,
         "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/${ref}/admin-fe.zip",
       "ref" => "stable"
     },
-    "soapbox-fe" => %{
-      "name" => "soapbox-fe",
-      "git" => "https://gitlab.com/soapbox-pub/soapbox",
-      "build_url" =>
-        "https://gitlab.com/soapbox-pub/soapbox/-/jobs/artifacts/${ref}/download?job=build-production",
-      "ref" => "v2.0.0",
-      "build_dir" => "static"
-    },
     # For developers - enables a swagger frontend to view the openapi spec
     "swagger-ui" => %{
       "name" => "swagger-ui",
@@ -888,6 +881,11 @@ config :pleroma, :deepl,
 config :pleroma, :libre_translate,
   url: "http://127.0.0.1:5000",
   api_key: nil
+
+config :pleroma, :argos_translate,
+  command_argos_translate: "argos-translate",
+  command_argospm: "argospm",
+  strip_html: true
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

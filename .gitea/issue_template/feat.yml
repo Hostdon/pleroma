@@ -1,6 +1,9 @@
 name: "Feature request"
 about: "I'd like something to be added to Akkoma"
 title: "[feat] "
+labels:
+- "feature request"
+
 body:
   - type: markdown
     attributes:

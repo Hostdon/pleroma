@@ -22,6 +22,8 @@ defmodule Pleroma.Web.CommonAPI.ActivityDraft do
             attachments: [],
             in_reply_to: nil,
             in_reply_to_conversation: nil,
+            language: nil,
+            content_map: %{},
             quote_id: nil,
             quote: nil,
             visibility: nil,
@@ -58,6 +60,7 @@ defmodule Pleroma.Web.CommonAPI.ActivityDraft do
     |> with_valid(&visibility/1)
     |> with_valid(&quote_id/1)
     |> content()
+    |> with_valid(&language/1)
     |> with_valid(&to_and_cc/1)
     |> with_valid(&context/1)
     |> sensitive()
@@ -133,6 +136,20 @@ defmodule Pleroma.Web.CommonAPI.ActivityDraft do
 
   defp quote_id(draft), do: draft
 
+  defp language(%{params: %{language: language}, content_html: content} = draft)
+       when is_binary(language) do
+    if Pleroma.ISO639.valid_alpha2?(language) do
+      %__MODULE__{draft | content_map: %{language => content}}
+    else
+      add_error(draft, dgettext("errors", "Invalid language"))
+    end
+  end
+
+  defp language(%{content_html: content} = draft) do
+    # Use a default language if no language is specified
+    %__MODULE__{draft | content_map: %{"en" => content}}
+  end
+
   defp visibility(%{params: params} = draft) do
     case CommonAPI.get_visibility(params, draft.in_reply_to, draft.in_reply_to_conversation) do
       {visibility, "direct"} when visibility != "direct" ->
@@ -177,7 +194,7 @@ defmodule Pleroma.Web.CommonAPI.ActivityDraft do
   end
 
   defp context(draft) do
-    context = Utils.make_context(draft.in_reply_to, draft.in_reply_to_conversation)
+    context = Utils.make_context(draft)
     %__MODULE__{draft | context: context}
   end
 
@@ -224,6 +241,7 @@ defmodule Pleroma.Web.CommonAPI.ActivityDraft do
         "mediaType" => Utils.get_content_type(draft.params[:content_type])
       })
       |> Map.put("generator", draft.params[:generator])
+      |> Map.put("contentMap", draft.content_map)
 
     %__MODULE__{draft | object: object}
   end

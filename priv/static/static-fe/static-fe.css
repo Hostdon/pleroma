@@ -11,14 +11,14 @@
     --profileTint: rgba(15, 22, 30, 0.5);
     --btnText: rgba(185, 185, 186, 1);
     --btn: rgba(21, 30, 43, 1);
-    --btnShadow: 0px 0px 2px 0px rgba(0, 0, 0, 1) , 0px 1px 0px 0px rgba(255, 255, 255, 0.2) inset, 0px -1px 0px 0px rgba(0, 0, 0, 0.2) inset;
+    --btnShadow: 0px 0px 2px 0px rgba(0, 0, 0, 1), 0px 1px 0px 0px rgba(255, 255, 255, 0.2) inset, 0px -1px 0px 0px rgba(0, 0, 0, 0.2) inset;
     --btnHoverShadow: 0px 0px 1px 2px rgba(185, 185, 186, 0.4) inset, 0px 1px 0px 0px rgba(255, 255, 255, 0.2) inset, 0px -1px 0px 0px rgba(0, 0, 0, 0.2) inset;
     --lightText: rgba(236, 236, 236, 1);
-    --panelShadow: 0px 0px 3px 0px rgba(0, 0, 0, 0.5) , 0px 4px 6px 3px rgba(0, 0, 0, 0.3);
-    --panelHeaderShadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.4) , 0px 1px 0px 0px rgba(255, 255, 255, 0.2) inset;
+    --panelShadow: 0px 0px 3px 0px rgba(0, 0, 0, 0.5), 0px 4px 6px 3px rgba(0, 0, 0, 0.3);
+    --panelHeaderShadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.4), 0px 1px 0px 0px rgba(255, 255, 255, 0.2) inset;
     --topBar: rgba(21, 30, 43, 1);
     --topBarText: rgba(159, 159, 161, 1);
-    --topBarShadow: 0px 1px 4px 0px rgba(0, 0, 0, 0.4) , 0px 2px 7px 0px rgba(0, 0, 0, 0.3);
+    --topBarShadow: 0px 1px 4px 0px rgba(0, 0, 0, 0.4), 0px 2px 7px 0px rgba(0, 0, 0, 0.3);
     --underlay: rgba(9, 14, 20, 0.6);
     --background: rgba(15, 22, 30, 1);
     --faint: rgba(185, 185, 186, 0.5);
@@ -28,9 +28,11 @@
     --border: rgba(26, 37, 53, 1);
     --poll: rgba(99, 84, 72, 1);
 }
+
 @media (prefers-color-scheme: light) {
     :root {
-        --icon-filter: invert(67%) sepia(7%) saturate(525%) hue-rotate(173deg) brightness(90%) contrast(92%);;
+        --icon-filter: invert(67%) sepia(7%) saturate(525%) hue-rotate(173deg) brightness(90%) contrast(92%);
+        ;
         --wallpaper: rgba(248, 250, 252, 1);
         --alertNeutral: rgba(48, 64, 85, 0.5);
         --alertNeutralText: rgba(0, 0, 0, 1);
@@ -41,10 +43,10 @@
         --profileTint: rgba(242, 246, 249, 0.5);
         --btnText: rgba(48, 64, 85, 1);
         --btn: rgba(214, 223, 237, 1);
-        --btnShadow: 0px 0px 2px 0px rgba(0, 0, 0, 0.2) , 0px 1px 0px 0px rgba(255, 255, 255, 0.5) inset, 0px -1px 0px 0px rgba(0, 0, 0, 0.2) inset;
-        --btnHoverShadow: 0px 0px 2px 0px rgba(0, 0, 0, 0.2) , 0px 0px 1px 2px rgba(255, 195, 159, 1) inset, 0px -1px 0px 0px rgba(0, 0, 0, 0.2) inset;
+        --btnShadow: 0px 0px 2px 0px rgba(0, 0, 0, 0.2), 0px 1px 0px 0px rgba(255, 255, 255, 0.5) inset, 0px -1px 0px 0px rgba(0, 0, 0, 0.2) inset;
+        --btnHoverShadow: 0px 0px 2px 0px rgba(0, 0, 0, 0.2), 0px 0px 1px 2px rgba(255, 195, 159, 1) inset, 0px -1px 0px 0px rgba(0, 0, 0, 0.2) inset;
         --lightText: rgba(11, 14, 19, 1);
-        --panelShadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.5) , 0px 3px 6px 1px rgba(0, 0, 0, 0.2);
+        --panelShadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.5), 0px 3px 6px 1px rgba(0, 0, 0, 0.2);
         --panelHeaderShadow: 0px 1px 0px 0px rgba(255, 255, 255, 0.5) inset, 0px 1px 3px 0px rgba(0, 0, 0, 0.3);
         --topBar: rgba(214, 223, 237, 1);
         --topBarText: rgba(48, 64, 85, 1);
@@ -119,7 +121,7 @@ nav {
     padding-right: 5px
 }
 
-body > .container {
+body>.container {
     display: grid;
     grid-template-columns: minmax(25em, 45em) 25em;
     grid-template-areas: "content sidebar";
@@ -155,6 +157,10 @@ body > .container {
     box-shadow: var(--panelHeaderShadow);
 }
 
+.panel-content {
+    padding: 1em;
+}
+
 .about-content {
     padding: 0.6em;
 }
@@ -168,6 +174,18 @@ body > .container {
     grid-area: sidebar;
     padding-left: 0.5em;
 }
+
+.column.flex {
+    grid-column-end: sidebar-end;
+}
+
+.scopes-input {
+    display: flex;
+    flex-direction: column;
+    margin: 1em 0;
+    color: var(--muted-text-color);
+}
+
 
 .status-container,
 .repeat-header,
@@ -193,6 +211,7 @@ body > .container {
 .repeat-header .right-side {
     color: var(--faint);
 }
+
 .repeat-header .u-photo {
     height: 20px;
     width: 20px;
@@ -255,6 +274,7 @@ body > .container {
 .reply-to-link {
     color: var(--faint);
 }
+
 .reply-to-link:hover {
     text-decoration: underline;
 }
@@ -280,11 +300,13 @@ body > .container {
     margin-bottom: 8px;
 }
 
-header a, .h-card a {
+header a,
+.h-card a {
     text-decoration: none;
 }
 
-header a:hover, .h-card a:hover {
+header a:hover,
+.h-card a:hover {
     text-decoration: underline;
 }
 
@@ -307,7 +329,7 @@ header a:hover, .h-card a:hover {
     min-width: 0;
 }
 
-.attachment > * {
+.attachment>* {
     width: 100%;
     object-fit: contain;
 }
@@ -322,6 +344,7 @@ header a:hover, .h-card a:hover {
     display: flex;
     align-items: center;
 }
+
 .nsfw-banner div {
     width: 100%;
     text-align: center;
@@ -330,6 +353,7 @@ header a:hover, .h-card a:hover {
 .nsfw-banner:not(:hover) {
     background-color: var(--background);
 }
+
 .nsfw-banner:hover div {
     display: none;
 }
@@ -342,10 +366,12 @@ header a:hover, .h-card a:hover {
     word-break: break-word;
     z-index: 1;
 }
+
 .poll-option .percentage {
     width: 3.5em;
     flex-shrink: 0;
 }
+
 .poll-option .fill {
     height: 100%;
     position: absolute;
@@ -362,7 +388,8 @@ header a:hover, .h-card a:hover {
     display: flex;
     margin-top: 0.75em;
 }
-.status-actions > * {
+
+.status-actions>* {
     max-width: 4em;
     flex: 1;
     display: flex;
@@ -458,11 +485,11 @@ summary {
     right: 0;
     bottom: 0;
     background-image: linear-gradient(to bottom, var(--profileTint), var(--profileTint)),
-                      var(--user-banner);
+        var(--user-banner);
     background-size: cover;
     background-color: var(--profileBg);
     -webkit-mask: linear-gradient(to top, white, transparent) bottom no-repeat,
-                  linear-gradient(to top, white, white);
+        linear-gradient(to top, white, white);
     -webkit-mask-composite: xor;
     -webkit-mask-size: 100% 60%;
     z-index: -2;
@@ -600,7 +627,7 @@ summary {
 }
 
 @media (max-width: 800px) {
-    body > .container {
+    body>.container {
         display: block;
     }
 

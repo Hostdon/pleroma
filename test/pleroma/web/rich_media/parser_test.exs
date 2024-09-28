@@ -8,7 +8,7 @@ defmodule Pleroma.Web.RichMedia.ParserTest do
   alias Pleroma.Web.RichMedia.Parser
 
   setup do
-    Tesla.Mock.mock(fn
+    Tesla.Mock.mock_global(fn
       %{
         method: :get,
         url: "http://example.com/ogp"

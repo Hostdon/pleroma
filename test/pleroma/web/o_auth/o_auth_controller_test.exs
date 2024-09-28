@@ -316,7 +316,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
            app: app,
            conn: conn
          } do
-      user = insert(:user, password_hash: Pleroma.Password.Pbkdf2.hash_pwd_salt("testpassword"))
+      user = insert(:user, password_hash: Pleroma.Password.hash_pwd_salt("testpassword"))
       registration = insert(:registration, user: nil)
       redirect_uri = OAuthController.default_redirect_uri(app)
 
@@ -347,7 +347,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
            app: app,
            conn: conn
          } do
-      user = insert(:user, password_hash: Pleroma.Password.Pbkdf2.hash_pwd_salt("testpassword"))
+      user = insert(:user, password_hash: Pleroma.Password.hash_pwd_salt("testpassword"))
       registration = insert(:registration, user: nil)
       unlisted_redirect_uri = "http://cross-site-request.com"
 
@@ -693,45 +693,76 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
   describe "POST /oauth/authorize" do
     test "redirects with oauth authorization, " <>
-           "granting requested app-supported scopes to both admin- and non-admin users" do
+           "granting requested app-supported scopes to admin users" do
       app_scopes = ["read", "write", "admin", "secret_scope"]
+      app = insert(:oauth_app, scopes: app_scopes)
+      redirect_uri = OAuthController.default_redirect_uri(app)
+      scopes_subset = ["read:subscope", "write", "admin"]
+      admin = insert(:user, is_admin: true)
+
+      # In case scope param is missing, expecting _all_ app-supported scopes to be granted
+      conn =
+        post(
+          build_conn(),
+          "/oauth/authorize",
+          %{
+            "authorization" => %{
+              "name" => admin.nickname,
+              "password" => "test",
+              "client_id" => app.client_id,
+              "redirect_uri" => redirect_uri,
+              "scope" => scopes_subset,
+              "state" => "statepassed"
+            }
+          }
+        )
+
+      target = redirected_to(conn)
+      assert target =~ redirect_uri
+
+      query = URI.parse(target).query |> URI.query_decoder() |> Map.new()
+
+      assert %{"state" => "statepassed", "code" => code} = query
+      auth = Repo.get_by(Authorization, token: code)
+      assert auth
+      assert auth.scopes == scopes_subset
+    end
+
+    test "redirects with oauth authorization, " <>
+           "granting requested app-supported scopes for non-admin users" do
+      app_scopes = ["read", "write", "secret_scope", "admin"]
       app = insert(:oauth_app, scopes: app_scopes)
       redirect_uri = OAuthController.default_redirect_uri(app)
 
       non_admin = insert(:user, is_admin: false)
-      admin = insert(:user, is_admin: true)
-      scopes_subset = ["read:subscope", "write", "admin"]
+      scopes_subset = ["read:subscope", "write", "admin", "admin:metrics"]
 
       # In case scope param is missing, expecting _all_ app-supported scopes to be granted
-      for user <- [non_admin, admin],
-          {requested_scopes, expected_scopes} <-
-            %{scopes_subset => scopes_subset, nil: app_scopes} do
-        conn =
-          post(
-            build_conn(),
-            "/oauth/authorize",
-            %{
-              "authorization" => %{
-                "name" => user.nickname,
-                "password" => "test",
-                "client_id" => app.client_id,
-                "redirect_uri" => redirect_uri,
-                "scope" => requested_scopes,
-                "state" => "statepassed"
-              }
+      conn =
+        post(
+          build_conn(),
+          "/oauth/authorize",
+          %{
+            "authorization" => %{
+              "name" => non_admin.nickname,
+              "password" => "test",
+              "client_id" => app.client_id,
+              "redirect_uri" => redirect_uri,
+              "scope" => scopes_subset,
+              "state" => "statepassed"
             }
-          )
+          }
+        )
 
-        target = redirected_to(conn)
-        assert target =~ redirect_uri
+      target = redirected_to(conn)
+      assert target =~ redirect_uri
 
-        query = URI.parse(target).query |> URI.query_decoder() |> Map.new()
+      query = URI.parse(target).query |> URI.query_decoder() |> Map.new()
 
-        assert %{"state" => "statepassed", "code" => code} = query
-        auth = Repo.get_by(Authorization, token: code)
-        assert auth
-        assert auth.scopes == expected_scopes
-      end
+      assert %{"state" => "statepassed", "code" => code} = query
+      auth = Repo.get_by(Authorization, token: code)
+      assert auth
+      assert auth.scopes == ["read:subscope", "write"]
     end
 
     test "authorize from cookie" do
@@ -831,33 +862,6 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       assert result =~ "Invalid Username/Password"
     end
 
-    test "returns 401 for missing scopes" do
-      user = insert(:user, is_admin: false)
-      app = insert(:oauth_app, scopes: ["read", "write", "admin"])
-      redirect_uri = OAuthController.default_redirect_uri(app)
-
-      result =
-        build_conn()
-        |> post("/oauth/authorize", %{
-          "authorization" => %{
-            "name" => user.nickname,
-            "password" => "test",
-            "client_id" => app.client_id,
-            "redirect_uri" => redirect_uri,
-            "state" => "statepassed",
-            "scope" => ""
-          }
-        })
-        |> html_response(:unauthorized)
-
-      # Keep the details
-      assert result =~ app.client_id
-      assert result =~ redirect_uri
-
-      # Error message
-      assert result =~ "This action is outside the authorized scopes"
-    end
-
     test "returns 401 for scopes beyond app scopes hierarchy", %{conn: conn} do
       user = insert(:user)
       app = insert(:oauth_app, scopes: ["read", "write"])
@@ -882,7 +886,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       assert result =~ redirect_uri
 
       # Error message
-      assert result =~ "This action is outside the authorized scopes"
+      assert result =~ "This action is outside of authorized scopes"
     end
   end
 
@@ -913,7 +917,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
     test "issues a token for `password` grant_type with valid credentials, with full permissions by default" do
       password = "testpassword"
-      user = insert(:user, password_hash: Pleroma.Password.Pbkdf2.hash_pwd_salt(password))
+      user = insert(:user, password_hash: Pleroma.Password.hash_pwd_salt(password))
 
       app = insert(:oauth_app, scopes: ["read", "write"])
 
@@ -943,7 +947,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
       user =
         insert(:user,
-          password_hash: Pleroma.Password.Pbkdf2.hash_pwd_salt(password),
+          password_hash: Pleroma.Password.hash_pwd_salt(password),
           multi_factor_authentication_settings: %MFA.Settings{
             enabled: true,
             totp: %MFA.Settings.TOTP{secret: otp_secret, confirmed: true}
@@ -1052,7 +1056,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       password = "testpassword"
 
       {:ok, user} =
-        insert(:user, password_hash: Pleroma.Password.Pbkdf2.hash_pwd_salt(password))
+        insert(:user, password_hash: Pleroma.Password.hash_pwd_salt(password))
         |> User.confirmation_changeset(set_confirmation: false)
         |> User.update_and_set_cache()
 
@@ -1080,7 +1084,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
       user =
         insert(:user,
-          password_hash: Pleroma.Password.Pbkdf2.hash_pwd_salt(password),
+          password_hash: Pleroma.Password.hash_pwd_salt(password),
           is_active: false
         )
 
@@ -1108,7 +1112,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
       user =
         insert(:user,
-          password_hash: Pleroma.Password.Pbkdf2.hash_pwd_salt(password),
+          password_hash: Pleroma.Password.hash_pwd_salt(password),
           password_reset_pending: true
         )
 
@@ -1137,7 +1141,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
       user =
         insert(:user,
-          password_hash: Pleroma.Password.Pbkdf2.hash_pwd_salt(password),
+          password_hash: Pleroma.Password.hash_pwd_salt(password),
           is_confirmed: false
         )
 
@@ -1165,7 +1169,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
       user =
         insert(:user,
-          password_hash: Pleroma.Password.Pbkdf2.hash_pwd_salt(password),
+          password_hash: Pleroma.Password.hash_pwd_salt(password),
           is_approved: false
         )
 

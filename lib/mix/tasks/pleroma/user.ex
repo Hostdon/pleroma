@@ -378,9 +378,11 @@ defmodule Mix.Tasks.Pleroma.User do
   def run(["show", nickname]) do
     start_pleroma()
 
-    nickname
-    |> User.get_cached_by_nickname()
-    |> IO.inspect()
+    user =
+      nickname
+      |> User.get_cached_by_nickname()
+
+    shell_info("#{inspect(user)}")
   end
 
   def run(["send_confirmation", nickname]) do
@@ -389,7 +391,6 @@ defmodule Mix.Tasks.Pleroma.User do
     with %User{} = user <- User.get_cached_by_nickname(nickname) do
       user
       |> Pleroma.Emails.UserEmail.account_confirmation_email()
-      |> IO.inspect()
       |> Pleroma.Emails.Mailer.deliver!()
 
       shell_info("#{nickname}'s email sent")
@@ -465,7 +466,7 @@ defmodule Mix.Tasks.Pleroma.User do
 
     with %User{local: true} = user <- User.get_cached_by_nickname(nickname) do
       blocks = User.following_ap_ids(user)
-      IO.inspect(blocks, limit: :infinity)
+      IO.puts("#{inspect(blocks)}")
     end
   end
 

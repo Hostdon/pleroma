@@ -37,7 +37,7 @@ sudo dnf install git gcc g++ erlang elixir erlang-os_mon erlang-eldap erlang-xme
 
 ```shell
 cd ~
-git clone https://akkoma.dev/AkkomaGang/akkoma.git
+git clone https://akkoma.dev/AkkomaGang/akkoma.git -b stable
 ```
 
 * Change to the new directory:

@@ -27,7 +27,7 @@ Replaces embedded objects with references to them in the `objects` table. Only n
 
 ## Prune old remote posts from the database
 
-This will prune remote posts older than 90 days (configurable with [`config :pleroma, :instance, remote_post_retention_days`](../../configuration/cheatsheet.md#instance)) from the database, they will be refetched from source when accessed.
+This will prune remote posts older than 90 days (configurable with [`config :pleroma, :instance, remote_post_retention_days`](../../configuration/cheatsheet.md#instance)) from the database. Pruned posts may be refetched in some cases.
 
 !!! danger
     The disk space will only be reclaimed after `VACUUM FULL`. You may run out of disk space during the execution of the task or vacuuming if you don't have about 1/3rds of the database size free.
@@ -45,6 +45,9 @@ This will prune remote posts older than 90 days (configurable with [`config :ple
     ```
 
 ### Options
+
+- `--keep-threads` - don't prune posts when they are part of a thread where at least one post has seen local interaction (e.g. one of the posts is a local post, or is favourited by a local user, or has been repeated by a local user...)
+- `--keep-non-public` - keep non-public posts like DM's and followers-only, even if they are remote
 - `--vacuum` - run `VACUUM FULL` after the objects are pruned
 
 ## Create a conversation for all existing DMs

@@ -4,6 +4,50 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## Unreleased
+
+### Added
+- Prometheus metrics exporting from `/api/v1/akkoma/metrics`
+- Ability to alter http pool size
+- Translation of statuses via ArgosTranslate
+- Argon2 password hashing
+- Ability to "verify" links in profile fields via rel=me
+- Mix tasks to dump/load config to/from json for bulk editing
+- Followed hashtag list at /api/v1/followed\_tags, API parity with mastodon
+- Ability to set posting language in the post form, API parity with mastodon
+- Ability to match domains in MRF by a trailing wildcard
+  - Currently supported formats:
+    - `example.com` (implicitly matches `*.example.com`)
+    - `*.example.com`
+    - `example.*` (implicitly matches `*.example.*`)
+
+### Removed
+- Non-finch HTTP adapters
+- Legacy redirect from /api/pleroma/admin to /api/v1/pleroma/admin
+- Legacy redirects from /api/pleroma to /api/v1/pleroma
+- :crypt dependency
+
+### Changed
+- Return HTTP error 413 when uploading an avatar or banner that's above the configured upload limit instead of a 500.
+- Non-admin users now cannot register `admin` scope tokens (not security-critical, they didn't work before, but you _could_ create them)
+  - Admin scopes will be dropped on create
+- Rich media will now backoff for 20 minutes after a failure
+- Quote posts are now considered as part of the same thread as the post they are quoting
+- Extend the mix task `prune_objects` with options to keep more relevant posts
+- Simplified HTTP signature processing
+- Rich media will now hard-exit after 5 seconds, to prevent timeline hangs
+- HTTP Content Security Policy is now far more strict to prevent any potential XSS/CSS leakages
+- Follow requests are now paginated, matches mastodon API spec, so use the Link header to paginate.
+- `internal.fetch` and `relay` actors are now represented with the actor type `Application`
+
+### Fixed 
+- /api/v1/accounts/lookup will now respect restrict\_unauthenticated
+- Unknown atoms in the config DB will no longer crash akkoma on boot
+
+### Upgrade notes
+- Ensure `config :tesla, :adapter` is either unset, or set to `{Tesla.Adapter.Finch, name: MyFinch}` in your .exs config
+- Pleroma-FE will need to be updated to handle the new /api/v1/pleroma endpoints for  custom emoji
+
 ## 2022.12
 
 ## Added

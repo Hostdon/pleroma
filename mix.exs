@@ -4,10 +4,10 @@ defmodule Pleroma.Mixfile do
   def project do
     [
       app: :pleroma,
-      version: version("3.5.0"),
+      version: version("3.6.0"),
       elixir: "~> 1.12",
       elixirc_paths: elixirc_paths(Mix.env()),
-      compilers: [:phoenix, :gettext] ++ Mix.compilers(),
+      compilers: [:phoenix] ++ Mix.compilers(),
       elixirc_options: [warnings_as_errors: warnings_as_errors()],
       xref: [exclude: [:eldap]],
       start_permanent: Mix.env() == :prod,
@@ -76,7 +76,6 @@ defmodule Pleroma.Mixfile do
         :logger,
         :runtime_tools,
         :comeonin,
-        :quack,
         :fast_sanitize,
         :os_mon,
         :ssl
@@ -95,7 +94,8 @@ defmodule Pleroma.Mixfile do
   # Specifies OAuth dependencies.
   defp oauth_deps do
     oauth_strategy_packages =
-      System.get_env("OAUTH_CONSUMER_STRATEGIES")
+      "OAUTH_CONSUMER_STRATEGIES"
+      |> System.get_env()
       |> to_string()
       |> String.split()
       |> Enum.map(fn strategy_entry ->
@@ -114,45 +114,41 @@ defmodule Pleroma.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:phoenix, "~> 1.6.11"},
+      {:phoenix, "~> 1.6.15"},
       {:tzdata, "~> 1.1.1"},
-      {:plug_cowboy, "~> 2.5"},
+      {:plug_cowboy, "~> 2.6"},
       {:phoenix_pubsub, "~> 2.1"},
       {:phoenix_ecto, "~> 4.4"},
+      {:inet_cidr, "~> 1.0.0"},
       {:ecto_enum, "~> 1.4"},
       {:ecto_sql, "~> 3.9.0"},
       {:postgrex, ">= 0.16.3"},
       {:oban, "~> 2.12.1"},
-      {:gettext,
-       git: "https://github.com/tusooa/gettext.git",
-       ref: "72fb2496b6c5280ed911bdc3756890e7f38a4808",
-       override: true},
+      {:gettext, "~> 0.20.0"},
       {:bcrypt_elixir, "~> 2.2"},
-      {:trailing_format_plug, "~> 0.0.7"},
       {:fast_sanitize, "~> 0.2.3"},
-      {:html_entities, "~> 0.5", override: true},
-      {:phoenix_html, "~> 3.1", override: true},
+      {:html_entities, "~> 0.5"},
+      {:phoenix_html, "~> 3.2"},
       {:calendar, "~> 1.0"},
       {:cachex, "~> 3.4"},
-      {:poison, "~> 5.0", override: true},
-      {:tesla, "~> 1.4.4", override: true},
+      {:tesla, "~> 1.4.4"},
       {:castore, "~> 0.1"},
-      {:cowlib, "~> 2.9", override: true},
-      {:gun, "~> 2.0.0-rc.1", override: true},
-      {:finch, "~> 0.13.0"},
+      {:cowlib, "~> 2.9"},
+      {:finch, "~> 0.14.0"},
       {:jason, "~> 1.2"},
+      {:trailing_format_plug, "~> 0.0.7"},
       {:mogrify, "~> 0.9.1"},
       {:ex_aws, "~> 2.1.6"},
       {:ex_aws_s3, "~> 2.0"},
       {:sweet_xml, "~> 0.7.2"},
       {:earmark, "~> 1.4.15"},
       {:bbcode_pleroma, "~> 0.2.0"},
-      {:crypt,
-       git: "https://github.com/msantos/crypt.git",
-       ref: "f75cd55325e33cbea198fb41fe41871392f8fb76"},
+      {:argon2_elixir, "~> 3.0.0"},
       {:cors_plug, "~> 2.0"},
       {:web_push_encryption, "~> 0.3.1"},
       {:swoosh, "~> 1.0"},
+      # for gmail adapter in swoosh
+      {:mail, ">= 0.0.0"},
       {:phoenix_swoosh, "~> 0.3"},
       {:gen_smtp, "~> 0.13"},
       {:ex_syslogger, "~> 1.4"},
@@ -163,9 +159,11 @@ defmodule Pleroma.Mixfile do
        git: "https://akkoma.dev/AkkomaGang/linkify.git", branch: "bugfix/line-ending-buffer"},
       {:http_signatures, "~> 0.1.1"},
       {:telemetry, "~> 0.3"},
+      {:telemetry_poller, "~> 0.4"},
+      {:telemetry_metrics, "~> 0.4"},
+      {:telemetry_metrics_prometheus_core, "~> 1.1.0"},
       {:poolboy, "~> 1.5"},
       {:recon, "~> 2.5"},
-      {:quack, "~> 0.1.1"},
       {:joken, "~> 2.0"},
       {:benchee, "~> 1.0"},
       {:pot, "~> 1.0"},
@@ -173,40 +171,40 @@ defmodule Pleroma.Mixfile do
       {:plug_static_index_html, "~> 1.0.0"},
       {:flake_id, "~> 0.1.0"},
       {:concurrent_limiter, "~> 0.1.1"},
-      {:remote_ip,
-       git: "https://git.pleroma.social/pleroma/remote_ip.git",
-       ref: "b647d0deecaa3acb140854fe4bda5b7e1dc6d1c8"},
+      {:remote_ip, "~> 1.1.0"},
       {:captcha,
        git: "https://git.pleroma.social/pleroma/elixir-libraries/elixir-captcha.git",
        ref: "e0f16822d578866e186a0974d65ad58cddc1e2ab"},
       {:restarter, path: "./restarter"},
       {:majic, "~> 1.0"},
       {:eblurhash, "~> 1.2.2"},
-      {:open_api_spex, "3.10.0"},
+      {:open_api_spex, "~> 3.16.0"},
       {:search_parser,
        git: "https://github.com/FloatingGhost/pleroma-contrib-search-parser.git",
        ref: "08971a81e68686f9ac465cfb6661d51c5e4e1e7f"},
       {:nimble_parsec, "~> 1.0", override: true},
-      {:phoenix_live_dashboard, "~> 0.6.2"},
+      {:phoenix_live_dashboard, "~> 0.7.2"},
       {:ecto_psql_extras, "~> 0.6"},
       {:elasticsearch,
        git: "https://akkoma.dev/AkkomaGang/elasticsearch-elixir.git", ref: "main"},
       {:mfm_parser,
        git: "https://akkoma.dev/AkkomaGang/mfm-parser.git",
        ref: "912fba81152d4d572e457fd5427f9875b2bc3dbe"},
-
-      # indirect dependency version override
-      {:plug, "~> 1.10.4", override: true},
+      {:poison, ">= 0.0.0"},
 
       ## dev & test
       {:ex_doc, "~> 0.22", only: :dev, runtime: false},
       {:ex_machina, "~> 2.4", only: :test},
-      {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
-      {:mock, "~> 0.3.5", only: :test},
-      # temporary downgrade for excoveralls, hackney until hackney max_connections bug will be fixed
-      {:excoveralls, "0.12.3", only: :test},
+      {:credo,
+       git: "https://github.com/rrrene/credo.git",
+       ref: "1c1b99ea41a457761383d81aaf6a606913996fe7",
+       only: [:dev, :test],
+       runtime: false},
+      {:mock, "~> 0.3.7", only: :test},
+      {:excoveralls, "0.15.1", only: :test},
       {:mox, "~> 1.0", only: :test},
-      {:websockex, "~> 0.4.3", only: :test}
+      {:websockex, "~> 0.4.3", only: :test},
+      {:dialyxir, "~> 1.0", only: [:dev], runtime: false}
     ] ++ oauth_deps()
   end
 
@@ -338,7 +336,7 @@ defmodule Pleroma.Mixfile do
 # Pleroma: A lightweight social networking server
 # Copyright © 2017-#{year} Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
-# Akkoma: The cooler pleroma
+# Akkoma: Magically expressive social media
 # Copyright © 2022-#{year} Akkoma Authors <https://akkoma.dev/>
 # SPDX-License-Identifier: AGPL-3.0-only
 

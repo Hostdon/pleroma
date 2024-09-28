@@ -1056,14 +1056,13 @@ Most of the settings will be applied in `runtime`, this means that you don't nee
 
 Example of setting without keyword in value:
 ```elixir
-config :tesla, :adapter, Tesla.Adapter.Hackney
+config :tesla, :adapter, {Tesla.Adapter.Finch, name: MyFinch}
 ```
 
 List of settings which support only full update by key:
 ```elixir
 @full_key_update [
     {:pleroma, :ecto_repos},
-    {:quack, :meta},
     {:mime, :types},
     {:cors_plug, [:max_age, :methods, :expose, :headers]},
     {:auto_linker, :opts},
@@ -1083,22 +1082,6 @@ List of settings which support only full update by subkey:
   ]
 ```
 
-*Settings without explicit key must be sended in separate config object params.*
-```elixir
-config :quack,
-  level: :debug,
-  meta: [:all],
-  ...
-```
-```json
-{
-  "configs": [
-    {"group": ":quack", "key": ":level", "value": ":debug"},
-    {"group": ":quack", "key": ":meta", "value": [":all"]},
-    ...
-  ]
-}
-```
 - Request:
 
 ```json

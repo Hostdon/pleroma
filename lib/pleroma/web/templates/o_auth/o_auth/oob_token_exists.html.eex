@@ -1,2 +1,8 @@
-<h1><%= Gettext.dpgettext("static_pages", "oauth authorization exists page title", "Authorization exists") %></h1>
-<h2><%= raw Gettext.dpgettext("static_pages", "oauth token code message", "Token code is <br>%{token}", token: safe_to_string(html_escape(@token.token))) %></h2>
+<div>
+    <div class="panel-heading">
+        <%= Gettext.dpgettext("static_pages", "oauth authorization exists page title", "Authorization exists") %>
+    </div>
+    <div class="panel-content">
+        <%= raw Gettext.dpgettext("static_pages", "oauth token code message", "Token code is <br>%{token}", token: safe_to_string(html_escape(@token.token))) %>
+    </div>
+</div>

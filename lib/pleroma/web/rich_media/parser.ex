@@ -15,7 +15,7 @@ defmodule Pleroma.Web.RichMedia.Parser do
 
   if Pleroma.Config.get(:env) == :test do
     @spec parse(String.t()) :: {:ok, map()} | {:error, any()}
-    def parse(url), do: parse_url(url)
+    def parse(url), do: parse_with_timeout(url)
   else
     @spec parse(String.t()) :: {:ok, map()} | {:error, any()}
     def parse(url) do
@@ -27,7 +27,7 @@ defmodule Pleroma.Web.RichMedia.Parser do
 
     defp get_cached_or_parse(url) do
       case @cachex.fetch(:rich_media_cache, url, fn ->
-             case parse_url(url) do
+             case parse_with_timeout(url) do
                {:ok, _} = res ->
                  {:commit, res}
 
@@ -138,6 +138,21 @@ defmodule Pleroma.Web.RichMedia.Parser do
       |> Map.put("url", url)
       |> clean_parsed_data()
       |> check_parsed_data()
+    end
+  end
+
+  def parse_with_timeout(url) do
+    try do
+      task =
+        Task.Supervisor.async_nolink(Pleroma.TaskSupervisor, fn ->
+          parse_url(url)
+        end)
+
+      Task.await(task, 5000)
+    catch
+      :exit, {:timeout, _} ->
+        Logger.warn("Timeout while fetching rich media for #{url}")
+        {:error, :timeout}
     end
   end
 

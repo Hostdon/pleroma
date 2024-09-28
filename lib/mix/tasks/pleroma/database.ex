@@ -67,33 +67,92 @@ defmodule Mix.Tasks.Pleroma.Database do
       OptionParser.parse(
         args,
         strict: [
-          vacuum: :boolean
+          vacuum: :boolean,
+          keep_threads: :boolean,
+          keep_non_public: :boolean
         ]
       )
 
     start_pleroma()
 
     deadline = Pleroma.Config.get([:instance, :remote_post_retention_days])
+    time_deadline = NaiveDateTime.utc_now() |> NaiveDateTime.add(-(deadline * 86_400))
 
-    Logger.info("Pruning objects older than #{deadline} days")
+    log_message = "Pruning objects older than #{deadline} days"
 
-    time_deadline =
-      NaiveDateTime.utc_now()
-      |> NaiveDateTime.add(-(deadline * 86_400))
+    log_message =
+      if Keyword.get(options, :keep_non_public) do
+        log_message <> ", keeping non public posts"
+      else
+        log_message
+      end
 
-    from(o in Object,
-      where:
-        fragment(
-          "?->'to' \\? ? OR ?->'cc' \\? ?",
-          o.data,
-          ^Pleroma.Constants.as_public(),
-          o.data,
-          ^Pleroma.Constants.as_public()
-        ),
-      where: o.inserted_at < ^time_deadline,
-      where:
+    log_message =
+      if Keyword.get(options, :keep_threads) do
+        log_message <> ", keeping threads intact"
+      else
+        log_message
+      end
+
+    Logger.info(log_message)
+
+    if Keyword.get(options, :keep_threads) do
+      # We want to delete objects from threads where
+      # 1. the newest post is still old
+      # 2. none of the activities is local
+      # 3. none of the activities is bookmarked
+      # 4. optionally none of the posts is non-public
+      deletable_context =
+        if Keyword.get(options, :keep_non_public) do
+          Pleroma.Activity
+          |> join(:left, [a], b in Pleroma.Bookmark, on: a.id == b.activity_id)
+          |> group_by([a], fragment("? ->> 'context'::text", a.data))
+          |> having(
+            [a],
+            not fragment(
+              # Posts (checked on Create Activity) is non-public
+              "bool_or((not(?->'to' \\? ? OR ?->'cc' \\? ?)) and ? ->> 'type' = 'Create')",
+              a.data,
+              ^Pleroma.Constants.as_public(),
+              a.data,
+              ^Pleroma.Constants.as_public(),
+              a.data
+            )
+          )
+        else
+          Pleroma.Activity
+          |> join(:left, [a], b in Pleroma.Bookmark, on: a.id == b.activity_id)
+          |> group_by([a], fragment("? ->> 'context'::text", a.data))
+        end
+        |> having([a], max(a.updated_at) < ^time_deadline)
+        |> having([a], not fragment("bool_or(?)", a.local))
+        |> having([_, b], fragment("max(?::text) is null", b.id))
+        |> select([a], fragment("? ->> 'context'::text", a.data))
+
+      Pleroma.Object
+      |> where([o], fragment("? ->> 'context'::text", o.data) in subquery(deletable_context))
+    else
+      if Keyword.get(options, :keep_non_public) do
+        Pleroma.Object
+        |> where(
+          [o],
+          fragment(
+            "?->'to' \\? ? OR ?->'cc' \\? ?",
+            o.data,
+            ^Pleroma.Constants.as_public(),
+            o.data,
+            ^Pleroma.Constants.as_public()
+          )
+        )
+      else
+        Pleroma.Object
+      end
+      |> where([o], o.updated_at < ^time_deadline)
+      |> where(
+        [o],
         fragment("split_part(?->>'actor', '/', 3) != ?", o.data, ^Pleroma.Web.Endpoint.host())
-    )
+      )
+    end
     |> Repo.delete_all(timeout: :infinity)
 
     prune_hashtags_query = """
@@ -115,7 +174,6 @@ defmodule Mix.Tasks.Pleroma.Database do
 
     nil
     |> Pleroma.Workers.Cron.PruneDatabaseWorker.perform()
-    |> IO.inspect()
   end
 
   def run(["fix_likes_collections"]) do

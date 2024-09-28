@@ -56,7 +56,10 @@ defmodule Pleroma.Web do
               plug_module.skip_plug(conn)
             rescue
               UndefinedFunctionError ->
-                raise "`#{plug_module}` is not skippable. Append `use Pleroma.Web, :plug` to its code."
+                reraise(
+                  "`#{plug_module}` is not skippable. Append `use Pleroma.Web, :plug` to its code.",
+                  __STACKTRACE__
+                )
             end
           end
         )
@@ -129,66 +132,6 @@ defmodule Pleroma.Web do
     end
   end
 
-  def view do
-    quote do
-      use Phoenix.View,
-        root: "lib/pleroma/web/templates",
-        namespace: Pleroma.Web
-
-      # Import convenience functions from controllers
-      import Phoenix.Controller, only: [get_csrf_token: 0, get_flash: 2, view_module: 1]
-
-      import Pleroma.Web.ErrorHelpers
-      import Pleroma.Web.Gettext
-
-      alias Pleroma.Web.Router.Helpers, as: Routes
-
-      require Logger
-
-      @doc "Same as `render/3` but wrapped in a rescue block"
-      def safe_render(view, template, assigns \\ %{}) do
-        Phoenix.View.render(view, template, assigns)
-      rescue
-        error ->
-          Logger.error(
-            "#{__MODULE__} failed to render #{inspect({view, template})}\n" <>
-              Exception.format(:error, error, __STACKTRACE__)
-          )
-
-          nil
-      end
-
-      @doc """
-      Same as `render_many/4` but wrapped in rescue block.
-      """
-      def safe_render_many(collection, view, template, assigns \\ %{}) do
-        Enum.map(collection, fn resource ->
-          as = Map.get(assigns, :as) || view.__resource__
-          assigns = Map.put(assigns, as, resource)
-          safe_render(view, template, assigns)
-        end)
-        |> Enum.filter(& &1)
-      end
-    end
-  end
-
-  def router do
-    quote do
-      use Phoenix.Router
-      # credo:disable-for-next-line Credo.Check.Consistency.MultiAliasImportRequireUse
-      import Plug.Conn
-      import Phoenix.Controller
-    end
-  end
-
-  def channel do
-    quote do
-      # credo:disable-for-next-line Credo.Check.Consistency.MultiAliasImportRequireUse
-      import Phoenix.Channel
-      import Pleroma.Web.Gettext
-    end
-  end
-
   def plug do
     quote do
       @behaviour Pleroma.Web.Plug
@@ -230,6 +173,80 @@ defmodule Pleroma.Web do
           apply(__MODULE__, :perform, [conn, options])
         end
       end
+    end
+  end
+
+  def view do
+    quote do
+      use Phoenix.View,
+        root: "lib/pleroma/web/templates",
+        namespace: Pleroma.Web
+
+      # Import convenience functions from controllers
+      import Phoenix.Controller,
+        only: [get_flash: 1, get_flash: 2, view_module: 1, view_template: 1]
+
+      # Include shared imports and aliases for views
+      unquote(view_helpers())
+    end
+  end
+
+  def live_view do
+    quote do
+      use Phoenix.LiveView,
+        layout: {Pleroma.Web.LayoutView, "live.html"}
+
+      unquote(view_helpers())
+    end
+  end
+
+  def live_component do
+    quote do
+      use Phoenix.LiveComponent
+
+      unquote(view_helpers())
+    end
+  end
+
+  def component do
+    quote do
+      use Phoenix.Component
+
+      unquote(view_helpers())
+    end
+  end
+
+  def router do
+    quote do
+      use Phoenix.Router
+
+      import Plug.Conn
+      import Phoenix.Controller
+      import Phoenix.LiveView.Router
+    end
+  end
+
+  def channel do
+    quote do
+      use Phoenix.Channel
+      import Pleroma.Web.Gettext
+    end
+  end
+
+  defp view_helpers do
+    quote do
+      # Use all HTML functionality (forms, tags, etc)
+      use Phoenix.HTML
+
+      # Import LiveView and .heex helpers (live_render, live_patch, <.form>, etc)
+      import Phoenix.LiveView.Helpers
+
+      # Import basic rendering functionality (render, render_layout, etc)
+      import Phoenix.View
+
+      import Pleroma.Web.ErrorHelpers
+      import Pleroma.Web.Gettext
+      alias Pleroma.Web.Router.Helpers, as: Routes
     end
   end
 

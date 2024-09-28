@@ -15,7 +15,7 @@ defmodule Pleroma.Web.Auth.PleromaAuthenticatorTest do
     user =
       insert(:user,
         nickname: name,
-        password_hash: Pleroma.Password.Pbkdf2.hash_pwd_salt(password)
+        password_hash: Pleroma.Password.hash_pwd_salt(password)
       )
 
     {:ok, [user: user, name: name, password: password]}
@@ -30,7 +30,7 @@ defmodule Pleroma.Web.Auth.PleromaAuthenticatorTest do
 
     assert {:ok, returned_user} = res
     assert returned_user.id == user.id
-    assert "$pbkdf2" <> _ = returned_user.password_hash
+    assert "$argon2" <> _ = returned_user.password_hash
   end
 
   test "get_user/authorization with invalid password", %{name: name} do

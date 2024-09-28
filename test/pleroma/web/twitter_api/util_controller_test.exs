@@ -77,11 +77,11 @@ defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
     end
   end
 
-  describe "/api/pleroma/emoji" do
+  describe "/api/v1/pleroma/emoji" do
     test "returns json with custom emoji with tags", %{conn: conn} do
       emoji =
         conn
-        |> get("/api/pleroma/emoji")
+        |> get("/api/v1/pleroma/emoji")
         |> json_response_and_validate_schema(200)
 
       assert Enum.all?(emoji, fn
@@ -95,7 +95,7 @@ defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
     end
   end
 
-  describe "GET /api/pleroma/healthcheck" do
+  describe "GET /api/v1/pleroma/healthcheck" do
     setup do: clear_config([:instance, :healthcheck])
 
     test "returns 503 when healthcheck disabled", %{conn: conn} do
@@ -103,7 +103,7 @@ defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
 
       response =
         conn
-        |> get("/api/pleroma/healthcheck")
+        |> get("/api/v1/pleroma/healthcheck")
         |> json_response_and_validate_schema(503)
 
       assert response == %{}
@@ -116,7 +116,7 @@ defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
         system_info: fn -> %Pleroma.Healthcheck{healthy: true} end do
         response =
           conn
-          |> get("/api/pleroma/healthcheck")
+          |> get("/api/v1/pleroma/healthcheck")
           |> json_response_and_validate_schema(200)
 
         assert %{
@@ -136,7 +136,7 @@ defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
         system_info: fn -> %Pleroma.Healthcheck{healthy: false} end do
         response =
           conn
-          |> get("/api/pleroma/healthcheck")
+          |> get("/api/v1/pleroma/healthcheck")
           |> json_response_and_validate_schema(503)
 
         assert %{
@@ -334,7 +334,7 @@ defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
       new: fn -> "test_captcha" end do
       resp =
         conn
-        |> get("/api/pleroma/captcha")
+        |> get("/api/v1/pleroma/captcha")
         |> response(200)
 
       assert resp == "\"test_captcha\""
@@ -459,7 +459,10 @@ defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
       conn =
         conn
         |> put_req_header("content-type", "multipart/form-data")
-        |> post("/api/pleroma/change_email", %{password: "test", email: "cofe@foobar.com"})
+        |> post("/api/pleroma/change_email", %{
+          password: "test",
+          email: "cofe@foobar.com"
+        })
 
       assert json_response_and_validate_schema(conn, 200) == %{"status" => "success"}
     end
@@ -550,7 +553,7 @@ defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
 
       assert json_response_and_validate_schema(conn, 200) == %{"status" => "success"}
       fetched_user = User.get_cached_by_id(user.id)
-      assert Pleroma.Password.Pbkdf2.verify_pass("newpass", fetched_user.password_hash) == true
+      assert Pleroma.Password.checkpw("newpass", fetched_user.password_hash) == true
     end
   end
 
@@ -961,7 +964,9 @@ defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
       conn =
         conn
         |> put_req_header("content-type", "application/json")
-        |> delete("/api/pleroma/aliases", %{alias: non_alias_user |> User.full_nickname()})
+        |> delete("/api/pleroma/aliases", %{
+          alias: non_alias_user |> User.full_nickname()
+        })
 
       assert %{"error" => "Account has no such alias."} =
                json_response_and_validate_schema(conn, 404)

@@ -5,7 +5,7 @@
 defmodule Pleroma.Web.RelMe do
   @options [
     max_body: 2_000_000,
-    recv_timeout: 2_000
+    receive_timeout: 2_000
   ]
 
   if Pleroma.Config.get(:env) == :test do
@@ -38,7 +38,6 @@ defmodule Pleroma.Web.RelMe do
 
   def maybe_put_rel_me("http" <> _ = target_page, profile_urls) when is_list(profile_urls) do
     {:ok, rel_me_hrefs} = parse(target_page)
-
     true = Enum.any?(rel_me_hrefs, fn x -> x in profile_urls end)
 
     "me"

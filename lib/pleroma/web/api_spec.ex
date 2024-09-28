@@ -23,19 +23,19 @@ defmodule Pleroma.Web.ApiSpec do
           []
         end,
       info: %OpenApiSpex.Info{
-        title: "Pleroma API",
+        title: "Akkoma API",
         description: """
-        This is documentation for client Pleroma API. Most of the endpoints and entities come
+        This is documentation for the Akkoma API. Most of the endpoints and entities come
         from Mastodon API and have custom extensions on top.
 
-        While this document aims to be a complete guide to the client API Pleroma exposes,
-        the details are still being worked out. Some endpoints may have incomplete or poorly worded documentation.
+        While this document aims to be a complete guide to the client API Akkoma exposes,
+        it may not be complete. Some endpoints may have incomplete or poorly worded documentation.
         You might want to check the following resources if something is not clear:
         - [Legacy Pleroma-specific endpoint documentation](https://docs-develop.pleroma.social/backend/development/API/pleroma_api/)
         - [Mastodon API documentation](https://docs.joinmastodon.org/client/intro/)
-        - [Differences in Mastodon API responses from vanilla Mastodon](https://docs-develop.pleroma.social/backend/development/API/differences_in_mastoapi_responses/)
+        - [Differences in Mastodon API responses from vanilla Mastodon](https://docs.akkoma.dev/stable/development/API/differences_in_mastoapi_responses/)
 
-        Please report such occurences on our [issue tracker](https://git.pleroma.social/pleroma/pleroma/-/issues). Feel free to submit API questions or proposals there too!
+        Please report such occurrences on our [issue tracker](https://akkoma.dev/AkkomaGang/akkoma). Feel free to submit API questions or proposals there too!
         """,
         # Strip environment from the version
         version: Application.spec(:pleroma, :vsn) |> to_string() |> String.replace(~r/\+.*$/, ""),

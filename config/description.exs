@@ -964,6 +964,11 @@ config :pleroma, :config_description, [
         type: {:list, :string},
         description:
           "List of instances that make up your local bubble (closely-related instances). Used to populate the 'bubble' timeline (domain only)."
+      },
+      %{
+        key: :export_prometheus_metrics,
+        type: :boolean,
+        description: "Enable prometheus metrics (at /api/v1/akkoma/metrics)"
       }
     ]
   },
@@ -1115,45 +1120,6 @@ config :pleroma, :config_description, [
         key: :metadata,
         type: {:list, :atom},
         suggestions: [:request_id]
-      }
-    ]
-  },
-  %{
-    group: :quack,
-    type: :group,
-    label: "Quack Logger",
-    description: "Quack-related settings",
-    children: [
-      %{
-        key: :level,
-        type: {:dropdown, :atom},
-        description: "Log level",
-        suggestions: [:debug, :info, :warn, :error]
-      },
-      %{
-        key: :meta,
-        type: {:list, :atom},
-        description: "Configure which metadata you want to report on",
-        suggestions: [
-          :application,
-          :module,
-          :file,
-          :function,
-          :line,
-          :pid,
-          :crash_reason,
-          :initial_call,
-          :registered_name,
-          :all,
-          :none
-        ]
-      },
-      %{
-        key: :webhook_url,
-        label: "Webhook URL",
-        type: :string,
-        description: "Configure the Slack incoming webhook",
-        suggestions: ["https://hooks.slack.com/services/YOUR-KEY-HERE"]
       }
     ]
   },
@@ -2696,6 +2662,12 @@ config :pleroma, :config_description, [
         suggestions: ["Pleroma", :default]
       },
       %{
+        key: :pool_size,
+        type: :integer,
+        description: "Number of concurrent outbound HTTP requests to allow. Default 50.",
+        suggestions: [50]
+      },
+      %{
         key: :adapter,
         type: :keyword,
         description: "Adapter specific options",
@@ -3468,6 +3440,33 @@ config :pleroma, :config_description, [
         type: :string,
         description: "API key for libretranslate",
         suggestion: [nil]
+      }
+    ]
+  },
+  %{
+    group: :pleroma,
+    key: :argos_translate,
+    type: :group,
+    description: "ArgosTranslate Settings.",
+    children: [
+      %{
+        key: :command_argos_translate,
+        type: :string,
+        description:
+          "command for `argos-translate`. Can be the command if it's in your PATH, or the full path to the file.",
+        suggestion: ["argos-translate"]
+      },
+      %{
+        key: :command_argospm,
+        type: :string,
+        description:
+          "command for `argospm`. Can be the command if it's in your PATH, or the full path to the file.",
+        suggestion: ["argospm"]
+      },
+      %{
+        key: :strip_html,
+        type: :boolean,
+        description: "Strip html from the post before translating it."
       }
     ]
   }

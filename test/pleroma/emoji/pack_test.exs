@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Emoji.PackTest do
-  use Pleroma.DataCase
+  use Pleroma.DataCase, async: false
   alias Pleroma.Emoji.Pack
 
   @emoji_path Path.join(

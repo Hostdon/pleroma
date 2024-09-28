@@ -8,7 +8,6 @@ defmodule Pleroma.Web.Plugs.RemoteIp do
   """
 
   alias Pleroma.Config
-  import Plug.Conn
 
   @behaviour Plug
 
@@ -16,15 +15,21 @@ defmodule Pleroma.Web.Plugs.RemoteIp do
 
   def call(%{remote_ip: original_remote_ip} = conn, _) do
     if Config.get([__MODULE__, :enabled]) do
-      %{remote_ip: new_remote_ip} = conn = RemoteIp.call(conn, remote_ip_opts())
-      assign(conn, :remote_ip_found, original_remote_ip != new_remote_ip)
+      {headers, proxies} = remote_ip_opts()
+      new_remote_ip = RemoteIp.from(conn.req_headers, headers: headers, proxies: proxies)
+
+      if new_remote_ip != original_remote_ip do
+        Map.put(conn, :remote_ip, new_remote_ip)
+      else
+        conn
+      end
     else
       conn
     end
   end
 
   defp remote_ip_opts do
-    headers = Config.get([__MODULE__, :headers], []) |> MapSet.new()
+    headers = Config.get([__MODULE__, :headers], [])
     reserved = Config.get([__MODULE__, :reserved], [])
 
     proxies =
@@ -36,13 +41,10 @@ defmodule Pleroma.Web.Plugs.RemoteIp do
   end
 
   defp maybe_add_cidr(proxy) when is_binary(proxy) do
-    proxy =
-      cond do
-        "/" in String.codepoints(proxy) -> proxy
-        InetCidr.v4?(InetCidr.parse_address!(proxy)) -> proxy <> "/32"
-        InetCidr.v6?(InetCidr.parse_address!(proxy)) -> proxy <> "/128"
-      end
-
-    InetCidr.parse(proxy, true)
+    cond do
+      "/" in String.codepoints(proxy) -> proxy
+      InetCidr.v4?(InetCidr.parse_address!(proxy)) -> proxy <> "/32"
+      InetCidr.v6?(InetCidr.parse_address!(proxy)) -> proxy <> "/128"
+    end
   end
 end

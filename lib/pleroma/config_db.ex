@@ -163,7 +163,6 @@ defmodule Pleroma.ConfigDB do
   defp only_full_update?(%ConfigDB{group: group, key: key}) do
     full_key_update = [
       {:pleroma, :ecto_repos},
-      {:quack, :meta},
       {:mime, :types},
       {:cors_plug, [:max_age, :methods, :expose, :headers]},
       {:swarm, :node_blacklist},
@@ -343,7 +342,11 @@ defmodule Pleroma.ConfigDB do
 
   def string_to_elixir_types(value) do
     if module_name?(value) do
-      String.to_existing_atom("Elixir." <> value)
+      try do
+        String.to_existing_atom("Elixir." <> value)
+      rescue
+        ArgumentError -> :invalid_atom
+      end
     else
       value
     end

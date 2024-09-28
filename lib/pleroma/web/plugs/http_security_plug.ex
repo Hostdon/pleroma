@@ -13,7 +13,7 @@ defmodule Pleroma.Web.Plugs.HTTPSecurityPlug do
   def call(conn, _options) do
     if Config.get([:http_security, :enabled]) do
       conn
-      |> merge_resp_headers(headers())
+      |> merge_resp_headers(headers(conn))
       |> maybe_send_sts_header(Config.get([:http_security, :sts]))
     else
       conn
@@ -36,7 +36,8 @@ defmodule Pleroma.Web.Plugs.HTTPSecurityPlug do
     end
   end
 
-  def headers do
+  @spec headers(Plug.Conn.t()) :: [{String.t(), String.t()}]
+  def headers(conn) do
     referrer_policy = Config.get([:http_security, :referrer_policy])
     report_uri = Config.get([:http_security, :report_uri])
     custom_http_frontend_headers = custom_http_frontend_headers()
@@ -47,7 +48,7 @@ defmodule Pleroma.Web.Plugs.HTTPSecurityPlug do
       {"x-frame-options", "DENY"},
       {"x-content-type-options", "nosniff"},
       {"referrer-policy", referrer_policy},
-      {"content-security-policy", csp_string()},
+      {"content-security-policy", csp_string(conn)},
       {"permissions-policy", "interest-cohort=()"}
     ]
 
@@ -77,19 +78,18 @@ defmodule Pleroma.Web.Plugs.HTTPSecurityPlug do
     "default-src 'none'",
     "base-uri 'none'",
     "frame-ancestors 'none'",
-    "style-src 'self' 'unsafe-inline'",
-    "font-src 'self'",
     "manifest-src 'self'"
   ]
 
   @csp_start [Enum.join(static_csp_rules, ";") <> ";"]
 
-  defp csp_string do
+  defp csp_string(conn) do
     scheme = Config.get([Pleroma.Web.Endpoint, :url])[:scheme]
     static_url = Pleroma.Web.Endpoint.static_url()
     websocket_url = Pleroma.Web.Endpoint.websocket_url()
     report_uri = Config.get([:http_security, :report_uri])
-
+    %{assigns: %{csp_nonce: nonce}} = conn
+    nonce_tag = "nonce-" <> nonce
     img_src = "img-src 'self' data: blob:"
     media_src = "media-src 'self'"
 
@@ -106,17 +106,15 @@ defmodule Pleroma.Web.Plugs.HTTPSecurityPlug do
     connect_src =
       if Config.get([:media_proxy, :enabled]) do
         sources = build_csp_multimedia_source_list()
-        ["connect-src 'self' blob: ", static_url, ?\s, websocket_url, ?\s, sources]
+        ["connect-src 'self' ", static_url, ?\s, websocket_url, ?\s, sources]
       else
-        ["connect-src 'self' blob: ", static_url, ?\s, websocket_url]
+        ["connect-src 'self' ", static_url, ?\s, websocket_url]
       end
 
-    script_src =
-      if Config.get(:env) == :dev do
-        "script-src 'self' 'unsafe-eval'"
-      else
-        "script-src 'self'"
-      end
+    style_src = "style-src 'self' '#{nonce_tag}'"
+    font_src = "font-src 'self'"
+
+    script_src = "script-src 'self' '#{nonce_tag}'"
 
     report = if report_uri, do: ["report-uri ", report_uri, ";report-to csp-endpoint"]
     insecure = if scheme == "https", do: "upgrade-insecure-requests"
@@ -126,6 +124,8 @@ defmodule Pleroma.Web.Plugs.HTTPSecurityPlug do
     |> add_csp_param(media_src)
     |> add_csp_param(connect_src)
     |> add_csp_param(script_src)
+    |> add_csp_param(font_src)
+    |> add_csp_param(style_src)
     |> add_csp_param(insecure)
     |> add_csp_param(report)
     |> :erlang.iolist_to_binary()

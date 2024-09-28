@@ -4,17 +4,33 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,minimal-ui">
     <title><%= Pleroma.Config.get([:instance, :name]) %></title>
-    <link rel="stylesheet" href="/instance/static.css">
+    <link rel="stylesheet" href="/static-fe/static-fe.css">
+    <link rel="stylesheet" href="/static-fe/forms.css">
   </head>
   <body>
-    <div class="instance-header">
-      <a class="instance-header__content" href="/">
-        <img class="instance-header__thumbnail" src="<%= Pleroma.Config.get([:instance, :instance_thumbnail]) %>">
-        <h1 class="instance-header__title"><%= Pleroma.Config.get([:instance, :name]) %></h1>
-      </a>
-    </div>
+
+    <div class="background-image"></div>
+    <nav>
+      <div class="inner-nav">
+        <a class="site-brand" href="/">
+          <img class="favicon" src="/favicon.png" />
+          <span><%= Pleroma.Config.get([:instance, :name]) %></span>
+        </a>
+      </div>
+    </nav>
     <div class="container">
-      <%= @inner_content %>
+      <div class="underlay"></div>
+      <div class="column main flex">
+        <div class="panel oauth">
+          <%= @inner_content %>
+        </div>
+      </div>
     </div>
   </body>
+
+  <style>
+  :root {
+    --background-image: url("<%= Pleroma.Config.get([:instance, :background_image]) %>");
+  }
+  </style>
 </html>

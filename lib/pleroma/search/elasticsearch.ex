@@ -13,25 +13,21 @@ defmodule Pleroma.Search.Elasticsearch do
   def es_query(:activity, query, offset, limit) do
     must = Parsers.Activity.parse(query)
 
-    if must == [] do
-      :skip
-    else
-      %{
-        size: limit,
-        from: offset,
-        terminate_after: 50,
-        timeout: "5s",
-        sort: [
-          "_score",
-          %{"_timestamp" => %{order: "desc", format: "basic_date_time"}}
-        ],
-        query: %{
-          bool: %{
-            must: must
-          }
+    %{
+      size: limit,
+      from: offset,
+      terminate_after: 50,
+      timeout: "5s",
+      sort: [
+        "_score",
+        %{"_timestamp" => %{order: "desc", format: "basic_date_time"}}
+      ],
+      query: %{
+        bool: %{
+          must: must
         }
       }
-    end
+    }
   end
 
   defp maybe_fetch(:activity, search_query) do

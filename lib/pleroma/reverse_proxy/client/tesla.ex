@@ -5,8 +5,6 @@
 defmodule Pleroma.ReverseProxy.Client.Tesla do
   @behaviour Pleroma.ReverseProxy.Client
 
-  alias Pleroma.Gun.ConnectionPool
-
   @type headers() :: [{String.t(), String.t()}]
   @type status() :: pos_integer()
 
@@ -33,8 +31,6 @@ defmodule Pleroma.ReverseProxy.Client.Tesla do
       if is_map(response.body) and method != :head do
         {:ok, response.status, response.headers, response.body}
       else
-        conn_pid = response.opts[:adapter][:conn]
-        ConnectionPool.release_conn(conn_pid)
         {:ok, response.status, response.headers}
       end
     else
@@ -45,8 +41,7 @@ defmodule Pleroma.ReverseProxy.Client.Tesla do
   @impl true
   @spec stream_body(map()) ::
           {:ok, binary(), map()} | {:error, atom() | String.t()} | :done | no_return()
-  def stream_body(%{pid: pid, fin: true}) do
-    ConnectionPool.release_conn(pid)
+  def stream_body(%{pid: _pid, fin: true}) do
     :done
   end
 
@@ -70,16 +65,12 @@ defmodule Pleroma.ReverseProxy.Client.Tesla do
 
   @impl true
   @spec close(map) :: :ok | no_return()
-  def close(%{pid: pid}) do
-    ConnectionPool.release_conn(pid)
+  def close(%{pid: _pid}) do
+    :ok
   end
 
   defp check_adapter do
     adapter = Application.get_env(:tesla, :adapter)
-
-    unless adapter == Tesla.Adapter.Gun do
-      raise "#{adapter} doesn't support reading body in chunks"
-    end
 
     adapter
   end

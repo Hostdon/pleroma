@@ -495,8 +495,16 @@ defmodule Pleroma.Web.CommonAPI.UtilsTest do
       assert Utils.to_masto_date("2015-01-23T23:50:07.123Z") == "2015-01-23T23:50:07.000Z"
     end
 
-    test "returns empty string when date invalid" do
-      assert Utils.to_masto_date("2015-01?23T23:50:07.123Z") == ""
+    test "returns unix epoch when date invalid" do
+      assert Utils.to_masto_date("2015-01?23T23:50:07.123Z") == "1970-01-01T00:00:00Z"
+    end
+
+    test "returns unix epoch when date is before the introduction of the Gregorian Calendar" do
+      assert Utils.to_masto_date("0621-01-01T00:00:00Z") == "1970-01-01T00:00:00Z"
+    end
+
+    test "returns unix epoch when date is BCE" do
+      assert Utils.to_masto_date("-0420-01-01T00:00:00Z") == "1970-01-01T00:00:00Z"
     end
   end
 

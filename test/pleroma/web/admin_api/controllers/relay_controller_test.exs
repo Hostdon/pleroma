@@ -34,7 +34,7 @@ defmodule Pleroma.Web.AdminAPI.RelayControllerTest do
       conn =
         conn
         |> put_req_header("content-type", "application/json")
-        |> post("/api/pleroma/admin/relay", %{
+        |> post("/api/v1/pleroma/admin/relay", %{
           relay_url: "http://mastodon.example.org/users/admin"
         })
 
@@ -58,7 +58,7 @@ defmodule Pleroma.Web.AdminAPI.RelayControllerTest do
         User.follow(relay_user, user)
       end)
 
-      conn = get(conn, "/api/pleroma/admin/relay")
+      conn = get(conn, "/api/v1/pleroma/admin/relay")
 
       assert json_response_and_validate_schema(conn, 200)["relays"] |> Enum.sort() == [
                %{
@@ -72,14 +72,14 @@ defmodule Pleroma.Web.AdminAPI.RelayControllerTest do
     test "DELETE /relay", %{conn: conn, admin: admin} do
       conn
       |> put_req_header("content-type", "application/json")
-      |> post("/api/pleroma/admin/relay", %{
+      |> post("/api/v1/pleroma/admin/relay", %{
         relay_url: "http://mastodon.example.org/users/admin"
       })
 
       conn =
         conn
         |> put_req_header("content-type", "application/json")
-        |> delete("/api/pleroma/admin/relay", %{
+        |> delete("/api/v1/pleroma/admin/relay", %{
           relay_url: "http://mastodon.example.org/users/admin"
         })
 

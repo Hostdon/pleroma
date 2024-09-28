@@ -121,7 +121,7 @@ defmodule Pleroma.Emails.UserEmail do
           "user invitation email body",
           """
           <h3>You are invited to %{instance_name}</h3>
-          <p>%{inviter_name} invites you to join %{instance_name}, an instance of Pleroma federated social networking platform.</p>
+          <p>%{inviter_name} invites you to join %{instance_name}, an instance of Akkoma federated social networking platform.</p>
           <p>Click the following link to register: <a href="%{registration_url}">accept invitation</a>.</p>
           """,
           instance_name: instance_name(),
@@ -357,7 +357,7 @@ defmodule Pleroma.Emails.UserEmail do
             "static_pages",
             "account archive email body - self-requested",
             """
-            <p>You requested a full backup of your Pleroma account. It's ready for download:</p>
+            <p>You requested a full backup of your Akkoma account. It's ready for download:</p>
             <p><a href="%{download_url}">%{download_url}</a></p>
             """,
             download_url: download_url
@@ -369,7 +369,7 @@ defmodule Pleroma.Emails.UserEmail do
             "static_pages",
             "account archive email body - admin requested",
             """
-            <p>Admin @%{admin_nickname} requested a full backup of your Pleroma account. It's ready for download:</p>
+            <p>Admin @%{admin_nickname} requested a full backup of your Akkoma account. It's ready for download:</p>
             <p><a href="%{download_url}">%{download_url}</a></p>
             """,
             admin_nickname: admin.nickname,

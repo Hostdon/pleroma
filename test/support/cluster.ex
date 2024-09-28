@@ -96,7 +96,7 @@ defmodule Pleroma.Cluster do
 
     silence_logger_warnings(fn ->
       node_configs
-      |> Enum.map(&Task.async(fn -> start_slave(&1) end))
+      |> Enum.map(&Task.async(fn -> start_peer(&1) end))
       |> Enum.map(&Task.await(&1, 90_000))
     end)
   end
@@ -121,9 +121,12 @@ defmodule Pleroma.Cluster do
     result
   end
 
-  defp start_slave({node_host, override_configs}) do
+  defp start_peer({node_host, override_configs}) do
     log(node_host, "booting federated VM")
-    {:ok, node} = :slave.start(~c"127.0.0.1", node_name(node_host), vm_args())
+
+    {:ok, _pid, node} =
+      :peer.start(%{host: ~c"127.0.0.1", name: node_name(node_host), args: vm_args()})
+
     add_code_paths(node)
     load_apps_and_transfer_configuration(node, override_configs)
     ensure_apps_started(node)

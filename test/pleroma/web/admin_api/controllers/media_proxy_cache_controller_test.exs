@@ -28,7 +28,7 @@ defmodule Pleroma.Web.AdminAPI.MediaProxyCacheControllerTest do
     {:ok, %{admin: admin, token: token, conn: conn}}
   end
 
-  describe "GET /api/pleroma/admin/media_proxy_caches" do
+  describe "GET /api/v1/pleroma/admin/media_proxy_caches" do
     test "shows banned MediaProxy URLs", %{conn: conn} do
       MediaProxy.put_in_banned_urls([
         "http://localhost:4001/media/a688346.jpg",
@@ -41,7 +41,7 @@ defmodule Pleroma.Web.AdminAPI.MediaProxyCacheControllerTest do
 
       response =
         conn
-        |> get("/api/pleroma/admin/media_proxy_caches?page_size=2")
+        |> get("/api/v1/pleroma/admin/media_proxy_caches?page_size=2")
         |> json_response_and_validate_schema(200)
 
       assert response["page_size"] == 2
@@ -51,7 +51,7 @@ defmodule Pleroma.Web.AdminAPI.MediaProxyCacheControllerTest do
 
       response =
         conn
-        |> get("/api/pleroma/admin/media_proxy_caches?page_size=2&page=2")
+        |> get("/api/v1/pleroma/admin/media_proxy_caches?page_size=2&page=2")
         |> json_response_and_validate_schema(200)
 
       assert response["page_size"] == 2
@@ -61,7 +61,7 @@ defmodule Pleroma.Web.AdminAPI.MediaProxyCacheControllerTest do
 
       response =
         conn
-        |> get("/api/pleroma/admin/media_proxy_caches?page_size=2&page=3")
+        |> get("/api/v1/pleroma/admin/media_proxy_caches?page_size=2&page=3")
         |> json_response_and_validate_schema(200)
 
       results = results ++ response["urls"]
@@ -89,7 +89,7 @@ defmodule Pleroma.Web.AdminAPI.MediaProxyCacheControllerTest do
 
       response =
         conn
-        |> get("/api/pleroma/admin/media_proxy_caches?page_size=2&query=F44")
+        |> get("/api/v1/pleroma/admin/media_proxy_caches?page_size=2&query=F44")
         |> json_response_and_validate_schema(200)
 
       assert response["urls"] |> Enum.sort() == [
@@ -102,7 +102,7 @@ defmodule Pleroma.Web.AdminAPI.MediaProxyCacheControllerTest do
     end
   end
 
-  describe "POST /api/pleroma/admin/media_proxy_caches/delete" do
+  describe "POST /api/v1/pleroma/admin/media_proxy_caches/delete" do
     test "deleted MediaProxy URLs from banned", %{conn: conn} do
       MediaProxy.put_in_banned_urls([
         "http://localhost:4001/media/a688346.jpg",
@@ -111,7 +111,7 @@ defmodule Pleroma.Web.AdminAPI.MediaProxyCacheControllerTest do
 
       conn
       |> put_req_header("content-type", "application/json")
-      |> post("/api/pleroma/admin/media_proxy_caches/delete", %{
+      |> post("/api/v1/pleroma/admin/media_proxy_caches/delete", %{
         urls: ["http://localhost:4001/media/a688346.jpg"]
       })
       |> json_response_and_validate_schema(200)
@@ -121,7 +121,7 @@ defmodule Pleroma.Web.AdminAPI.MediaProxyCacheControllerTest do
     end
   end
 
-  describe "POST /api/pleroma/admin/media_proxy_caches/purge" do
+  describe "POST /api/v1/pleroma/admin/media_proxy_caches/purge" do
     test "perform invalidates cache of MediaProxy", %{conn: conn} do
       urls = [
         "http://example.com/media/a688346.jpg",
@@ -136,7 +136,7 @@ defmodule Pleroma.Web.AdminAPI.MediaProxyCacheControllerTest do
       ] do
         conn
         |> put_req_header("content-type", "application/json")
-        |> post("/api/pleroma/admin/media_proxy_caches/purge", %{urls: urls, ban: false})
+        |> post("/api/v1/pleroma/admin/media_proxy_caches/purge", %{urls: urls, ban: false})
         |> json_response_and_validate_schema(200)
 
         refute MediaProxy.in_banned_urls("http://example.com/media/a688346.jpg")
@@ -154,7 +154,7 @@ defmodule Pleroma.Web.AdminAPI.MediaProxyCacheControllerTest do
         conn
         |> put_req_header("content-type", "application/json")
         |> post(
-          "/api/pleroma/admin/media_proxy_caches/purge",
+          "/api/v1/pleroma/admin/media_proxy_caches/purge",
           %{urls: urls, ban: true}
         )
         |> json_response_and_validate_schema(200)

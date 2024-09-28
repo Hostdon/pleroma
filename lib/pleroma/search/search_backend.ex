@@ -4,7 +4,7 @@ defmodule Pleroma.Search.SearchBackend do
 
   The whole activity is passed, to allow filtering on things such as scope.
   """
-  @callback add_to_index(activity :: Pleroma.Activity.t()) :: nil
+  @callback add_to_index(activity :: Pleroma.Activity.t()) :: {:ok, any()} | {:error, any()}
 
   @doc """
   Remove the object from the index.
@@ -13,5 +13,5 @@ defmodule Pleroma.Search.SearchBackend do
   is what contains the actual content and there is no need for fitlering when removing
   from index.
   """
-  @callback remove_from_index(object :: Pleroma.Object.t()) :: nil
+  @callback remove_from_index(object :: Pleroma.Object.t()) :: {:ok, any()} | {:error, any()}
 end

@@ -14,6 +14,8 @@ defmodule Pleroma.FollowingRelationship do
   alias Pleroma.Repo
   alias Pleroma.User
 
+  @type follow_state :: :follow_pending | :follow_accept | :follow_reject | :unfollow
+
   schema "following_relationships" do
     field(:state, State, default: :follow_pending)
 
@@ -72,6 +74,7 @@ defmodule Pleroma.FollowingRelationship do
     end
   end
 
+  @spec follow(User.t(), User.t()) :: {:ok, User.t(), User.t()} | {:error, any}
   def follow(%User{} = follower, %User{} = following, state \\ :follow_accept) do
     with {:ok, _following_relationship} <-
            %__MODULE__{}
@@ -81,6 +84,7 @@ defmodule Pleroma.FollowingRelationship do
     end
   end
 
+  @spec unfollow(User.t(), User.t()) :: {:ok, User.t(), User.t()} | {:error, any}
   def unfollow(%User{} = follower, %User{} = following) do
     case get(follower, following) do
       %__MODULE__{} = following_relationship ->
@@ -89,10 +93,12 @@ defmodule Pleroma.FollowingRelationship do
         end
 
       _ ->
-        {:ok, nil}
+        {:ok, follower, following}
     end
   end
 
+  @spec after_update(follow_state(), User.t(), User.t()) ::
+          {:ok, User.t(), User.t()} | {:error, any()}
   defp after_update(state, %User{} = follower, %User{} = following) do
     with {:ok, following} <- User.update_follower_count(following),
          {:ok, follower} <- User.update_following_count(follower) do
@@ -103,6 +109,8 @@ defmodule Pleroma.FollowingRelationship do
       })
 
       {:ok, follower, following}
+    else
+      err -> {:error, err}
     end
   end
 
@@ -147,14 +155,13 @@ defmodule Pleroma.FollowingRelationship do
     |> Repo.aggregate(:count, :id)
   end
 
-  def get_follow_requests(%User{id: id}) do
+  def get_follow_requests_query(%User{id: id}) do
     __MODULE__
-    |> join(:inner, [r], f in assoc(r, :follower))
+    |> join(:inner, [r], f in assoc(r, :follower), as: :follower)
     |> where([r], r.state == ^:follow_pending)
     |> where([r], r.following_id == ^id)
-    |> where([r, f], f.is_active == true)
-    |> select([r, f], f)
-    |> Repo.all()
+    |> where([r, follower: f], f.is_active == true)
+    |> select([r, follower: f], f)
   end
 
   def following?(%User{id: follower_id}, %User{id: followed_id}) do

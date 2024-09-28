@@ -14,11 +14,11 @@ defmodule Pleroma.Web.TwitterAPI.PasswordControllerTest do
   import Pleroma.Factory
   import Swoosh.TestAssertions
 
-  describe "GET /api/pleroma/password_reset/token" do
+  describe "GET /api/v1/pleroma/password_reset/token" do
     test "it returns error when token invalid", %{conn: conn} do
       response =
         conn
-        |> get("/api/pleroma/password_reset/token")
+        |> get("/api/v1/pleroma/password_reset/token")
         |> html_response(:ok)
 
       assert response =~ "<h2>Invalid Token</h2>"
@@ -30,7 +30,7 @@ defmodule Pleroma.Web.TwitterAPI.PasswordControllerTest do
 
       response =
         conn
-        |> get("/api/pleroma/password_reset/#{token.token}")
+        |> get("/api/v1/pleroma/password_reset/#{token.token}")
         |> html_response(:ok)
 
       assert response =~ "<h2>Password Reset for #{user.nickname}</h2>"
@@ -45,14 +45,14 @@ defmodule Pleroma.Web.TwitterAPI.PasswordControllerTest do
 
       response =
         conn
-        |> get("/api/pleroma/password_reset/#{token.token}")
+        |> get("/api/v1/pleroma/password_reset/#{token.token}")
         |> html_response(:ok)
 
       assert response =~ "<h2>Invalid Token</h2>"
     end
   end
 
-  describe "POST /api/pleroma/password_reset" do
+  describe "POST /api/v1/pleroma/password_reset" do
     test "it fails for an expired token", %{conn: conn} do
       clear_config([:instance, :password_reset_token_validity], 0)
 
@@ -70,7 +70,7 @@ defmodule Pleroma.Web.TwitterAPI.PasswordControllerTest do
       response =
         conn
         |> assign(:user, user)
-        |> post("/api/pleroma/password_reset", %{data: params})
+        |> post("/api/v1/pleroma/password_reset", %{data: params})
         |> html_response(:ok)
 
       refute response =~ "<h2>Password changed!</h2>"
@@ -90,13 +90,13 @@ defmodule Pleroma.Web.TwitterAPI.PasswordControllerTest do
       response =
         conn
         |> assign(:user, user)
-        |> post("/api/pleroma/password_reset", %{data: params})
+        |> post("/api/v1/pleroma/password_reset", %{data: params})
         |> html_response(:ok)
 
       assert response =~ "<h2>Password changed!</h2>"
 
       user = refresh_record(user)
-      assert Pleroma.Password.Pbkdf2.verify_pass("test", user.password_hash)
+      assert Pleroma.Password.checkpw("test", user.password_hash)
       assert Enum.empty?(Token.get_user_tokens(user))
     end
 
@@ -114,7 +114,7 @@ defmodule Pleroma.Web.TwitterAPI.PasswordControllerTest do
 
       conn
       |> assign(:user, user)
-      |> post("/api/pleroma/password_reset", %{data: params})
+      |> post("/api/v1/pleroma/password_reset", %{data: params})
       |> html_response(:ok)
 
       assert User.get_by_id(user.id).password_reset_pending == false

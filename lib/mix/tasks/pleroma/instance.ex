@@ -247,9 +247,13 @@ defmodule Mix.Tasks.Pleroma.Instance do
       config_dir = Path.dirname(config_path)
       psql_dir = Path.dirname(psql_path)
 
-      [config_dir, psql_dir, static_dir, uploads_dir]
-      |> Enum.reject(&File.exists?/1)
-      |> Enum.map(&File.mkdir_p!/1)
+      to_create =
+        [config_dir, psql_dir, static_dir, uploads_dir]
+        |> Enum.reject(&File.exists?/1)
+
+      for dir <- to_create do
+        File.mkdir_p!(dir)
+      end
 
       shell_info("Writing config to #{config_path}.")
 
@@ -319,6 +323,4 @@ defmodule Mix.Tasks.Pleroma.Instance do
 
     enabled_filters
   end
-
-  defp upload_filters(_), do: []
 end

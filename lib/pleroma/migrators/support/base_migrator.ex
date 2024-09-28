@@ -14,7 +14,7 @@ defmodule Pleroma.Migrators.Support.BaseMigrator do
   @callback fault_rate_allowance() :: integer() | float()
 
   defmacro __using__(_opts) do
-    quote do
+    quote generated: true do
       use GenServer
 
       require Logger

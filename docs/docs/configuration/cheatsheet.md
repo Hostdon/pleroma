@@ -62,6 +62,7 @@ To add configuration to your config file, you can copy it from the base config. 
 * `password_reset_token_validity`: The time after which reset tokens aren't accepted anymore, in seconds (default: one day).
 * `local_bubble`: Array of domains representing instances closely related to yours. Used to populate the `bubble` timeline. e.g `["example.com"]`, (default: `[]`)
 * `languages`: List of Language Codes used by the instance. This is used to try and set a default language from the frontend. It will try and find the first match between the languages set here and the user's browser languages. It will default to the first language in this setting if there is no match.. (default `["en"]`)
+* `export_prometheus_metrics`: Enable prometheus metrics, served at `/api/v1/akkoma/metrics`, requiring the `admin:metrics` oauth scope.
 
 ## :database
 * `improved_hashtag_timeline`: Setting to force toggle / force disable improved hashtags timeline. `:enabled` forces hashtags to be fetched from `hashtags` table for hashtags timeline. `:disabled` forces object-embedded hashtags to be used (slower). Keep it `:auto` for automatic behaviour (it is auto-set to `:enabled` [unless overridden] when HashtagsTableMigrator completes).
@@ -528,54 +529,6 @@ Available caches:
 * `user_agent`: what user agent should we use? (default: `:default`), must be string or `:default`
 * `adapter`: array of adapter options
 
-### :hackney_pools
-
-Advanced. Tweaks Hackney (http client) connections pools.
-
-There's three pools used:
-
-* `:federation` for the federation jobs.
-  You may want this pool max_connections to be at least equal to the number of federator jobs + retry queue jobs.
-* `:media` for rich media, media proxy
-* `:upload` for uploaded media (if using a remote uploader and `proxy_remote: true`)
-
-For each pool, the options are:
-
-* `max_connections` - how much connections a pool can hold
-* `timeout` - retention duration for connections
-
-
-### :connections_pool
-
-*For `gun` adapter*
-
-Settings for HTTP connection pool.
-
-* `:connection_acquisition_wait` - Timeout to acquire a connection from pool.The total max time is this value multiplied by the number of retries.
-* `connection_acquisition_retries` - Number of attempts to acquire the connection from the pool if it is overloaded. Each attempt is timed `:connection_acquisition_wait` apart.
-* `:max_connections` - Maximum number of connections in the pool.
-* `:connect_timeout` - Timeout to connect to the host.
-* `:reclaim_multiplier` - Multiplied by `:max_connections` this will be the maximum number of idle connections that will be reclaimed in case the pool is overloaded.
-
-### :pools
-
-*For `gun` adapter*
-
-Settings for request pools. These pools are limited on top of `:connections_pool`.
-
-There are four pools used:
-
-* `:federation` for the federation jobs. You may want this pool's max_connections to be at least equal to the number of federator jobs + retry queue jobs.
-* `:media` - for rich media, media proxy.
-* `:upload` - for proxying media when a remote uploader is used and `proxy_remote: true`.
-* `:default` - for other requests.
-
-For each pool, the options are:
-
-* `:size` - limit to how much requests can be concurrently executed.
-* `:recv_timeout` - timeout while `gun` will wait for response
-* `:max_waiting` - limit to how much requests can be waiting for others to finish, after this is reached, subsequent requests will be dropped.
-
 ## Captcha
 
 ### Pleroma.Captcha
@@ -833,16 +786,7 @@ config :logger, :ex_syslogger,
   level: :info,
   ident: "pleroma",
   format: "$metadata[$level] $message"
-
-config :quack,
-  level: :warn,
-  meta: [:all],
-  webhook_url: "https://hooks.slack.com/services/YOUR-API-KEY-HERE"
 ```
-
-See the [Quack Github](https://github.com/azohra/quack) for more details
-
-
 
 ## Database options
 
@@ -1175,7 +1119,7 @@ Each job has these settings:
 ### Translation Settings
 
 Settings to automatically translate statuses for end users. Currently supported
-translation services are DeepL and LibreTranslate.
+translation services are DeepL and LibreTranslate. The supported command line tool is [Argos Translate](https://github.com/argosopentech/argos-translate).
 
 Translations are available at `/api/v1/statuses/:id/translations/:language`, where
 `language` is the target language code (e.g `en`)
@@ -1184,7 +1128,7 @@ Translations are available at `/api/v1/statuses/:id/translations/:language`, whe
 
 - `:enabled` - enables translation
 - `:module` - Sets module to be used
-  - Either `Pleroma.Akkoma.Translators.DeepL` or `Pleroma.Akkoma.Translators.LibreTranslate`
+  - Either `Pleroma.Akkoma.Translators.DeepL`, `Pleroma.Akkoma.Translators.LibreTranslate`, or `Pleroma.Akkoma.Translators.ArgosTranslate`
 
 ### `:deepl`
 
@@ -1196,3 +1140,9 @@ Translations are available at `/api/v1/statuses/:id/translations/:language`, whe
 
 - `:url` - URL of LibreTranslate instance
 - `:api_key` - API key for LibreTranslate
+
+### `:argos_translate`
+
+- `:command_argos_translate` - command for `argos-translate`. Can be the command if it's in your PATH, or the full path to the file  (default: `argos-translate`).
+- `:command_argospm` - command for `argospm`. Can be the command if it's in your PATH, or the full path to the file (default: `argospm`).
+- `:strip_html` - Strip html from the post before translating it (default: `true`).

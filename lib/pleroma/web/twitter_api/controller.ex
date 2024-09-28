@@ -18,10 +18,21 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
   action_fallback(:errors)
 
   def confirm_email(conn, %{"user_id" => uid, "token" => token}) do
-    with %User{} = user <- User.get_cached_by_id(uid),
-         true <- user.local and !user.is_confirmed and user.confirmation_token == token,
-         {:ok, _} <- User.confirm(user) do
-      redirect(conn, to: "/")
+    case User.get_cached_by_id(uid) do
+      %User{local: true, is_confirmed: false, confirmation_token: ^token} = user ->
+        case User.confirm(user) do
+          {:ok, _} ->
+            redirect(conn, to: "/")
+
+          {:error, _} ->
+            json_reply(conn, 400, "Unable to confirm")
+        end
+
+      %User{is_confirmed: true} ->
+        json_reply(conn, 400, "Already verified email")
+
+      _ ->
+        json_reply(conn, 400, "Couldn't verify email")
     end
   end
 
