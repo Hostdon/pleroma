@@ -41,7 +41,11 @@
                 "@type": "@id"
             },
             "vcard": "http://www.w3.org/2006/vcard/ns#",
-            "formerRepresentations": "litepub:formerRepresentations"
+            "formerRepresentations": "litepub:formerRepresentations",
+            "contentMap": {
+                "@id": "as:content",
+                "@container": "@language"
+            }
         }
     ]
 }

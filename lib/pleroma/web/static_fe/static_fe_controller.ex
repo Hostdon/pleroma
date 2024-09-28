@@ -25,7 +25,7 @@ defmodule Pleroma.Web.StaticFE.StaticFEController do
          true <- Visibility.is_public?(activity.object),
          {_, true} <- {:visible?, Visibility.visible_for_user?(activity, _reading_user = nil)},
          %User{} = user <- User.get_by_ap_id(activity.object.data["actor"]) do
-      meta = Metadata.build_tags(%{activity_id: notice_id, object: activity.object, user: user})
+      meta = Metadata.build_tags(%{url: activity.data["id"], object: activity.object, user: user})
 
       timeline =
         activity.object.data["context"]

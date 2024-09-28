@@ -24,8 +24,10 @@ defmodule Pleroma.Announcement do
   end
 
   def change(struct, params \\ %{}) do
+    params = validate_params(struct, params)
+
     struct
-    |> cast(validate_params(struct, params), [:data, :starts_at, :ends_at, :rendered])
+    |> cast(params, [:data, :starts_at, :ends_at, :rendered])
     |> validate_required([:data])
   end
 

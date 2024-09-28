@@ -30,11 +30,11 @@ defmodule Pleroma.Web.AdminAPI.FrontendControllerTest do
     {:ok, %{admin: admin, token: token, conn: conn}}
   end
 
-  describe "GET /api/pleroma/admin/frontends" do
+  describe "GET /api/v1/pleroma/admin/frontends" do
     test "it lists available frontends", %{conn: conn} do
       response =
         conn
-        |> get("/api/pleroma/admin/frontends")
+        |> get("/api/v1/pleroma/admin/frontends")
         |> json_response_and_validate_schema(:ok)
 
       assert Enum.map(response, & &1["name"]) ==
@@ -48,7 +48,7 @@ defmodule Pleroma.Web.AdminAPI.FrontendControllerTest do
 
       response =
         conn
-        |> get("/api/pleroma/admin/frontends")
+        |> get("/api/v1/pleroma/admin/frontends")
         |> json_response_and_validate_schema(:ok)
 
       assert Enum.map(response, & &1["name"]) ==
@@ -58,7 +58,7 @@ defmodule Pleroma.Web.AdminAPI.FrontendControllerTest do
     end
   end
 
-  describe "POST /api/pleroma/admin/frontends/install" do
+  describe "POST /api/v1/pleroma/admin/frontends/install" do
     test "from available frontends", %{conn: conn} do
       clear_config([:frontends, :available], %{
         "pleroma" => %{
@@ -74,14 +74,14 @@ defmodule Pleroma.Web.AdminAPI.FrontendControllerTest do
 
       conn
       |> put_req_header("content-type", "application/json")
-      |> post("/api/pleroma/admin/frontends/install", %{name: "pleroma"})
+      |> post("/api/v1/pleroma/admin/frontends/install", %{name: "pleroma"})
       |> json_response_and_validate_schema(:ok)
 
       assert File.exists?(Path.join([@dir, "frontends", "pleroma", "fantasy", "test.txt"]))
 
       response =
         conn
-        |> get("/api/pleroma/admin/frontends")
+        |> get("/api/v1/pleroma/admin/frontends")
         |> json_response_and_validate_schema(:ok)
 
       assert response == [
@@ -106,7 +106,7 @@ defmodule Pleroma.Web.AdminAPI.FrontendControllerTest do
 
       conn
       |> put_req_header("content-type", "application/json")
-      |> post("/api/pleroma/admin/frontends/install", %{
+      |> post("/api/v1/pleroma/admin/frontends/install", %{
         name: "pleroma",
         file: "test/fixtures/tesla_mock/frontend.zip"
       })
@@ -122,7 +122,7 @@ defmodule Pleroma.Web.AdminAPI.FrontendControllerTest do
 
       conn
       |> put_req_header("content-type", "application/json")
-      |> post("/api/pleroma/admin/frontends/install", %{
+      |> post("/api/v1/pleroma/admin/frontends/install", %{
         name: "unknown",
         ref: "baka",
         build_url: "http://gensokyo.2hu/madeup.zip",
@@ -141,7 +141,7 @@ defmodule Pleroma.Web.AdminAPI.FrontendControllerTest do
       result =
         conn
         |> put_req_header("content-type", "application/json")
-        |> post("/api/pleroma/admin/frontends/install", %{
+        |> post("/api/v1/pleroma/admin/frontends/install", %{
           name: "unknown",
           ref: "baka",
           build_url: "http://gensokyo.2hu/madeup.zip",

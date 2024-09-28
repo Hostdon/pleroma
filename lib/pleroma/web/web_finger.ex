@@ -100,6 +100,7 @@ defmodule Pleroma.Web.WebFinger do
     Pleroma.Config.get([__MODULE__, :domain]) || Pleroma.Web.Endpoint.host()
   end
 
+  @spec webfinger_from_xml(binary()) :: {:ok, map()} | nil
   defp webfinger_from_xml(body) do
     with {:ok, doc} <- XML.parse_document(body) do
       subject = XML.string_from_xpath("//Subject", doc)

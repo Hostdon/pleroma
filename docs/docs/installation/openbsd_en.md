@@ -1,6 +1,6 @@
 # Installing on OpenBSD
 
-This guide describes the installation and configuration of akkoma (and the required software to run it) on a single OpenBSD 6.6 server.
+This guide describes the installation and configuration of akkoma (and the required software to run it) on a single OpenBSD 7.2 server.
 
 For any additional information regarding commands and configuration files mentioned here, check the man pages [online](https://man.openbsd.org/) or directly on your server with the man command.
 
@@ -12,10 +12,9 @@ For any additional information regarding commands and configuration files mentio
 To install them, run the following command (with doas or as root):
 
 ```
-pkg_add elixir gmake git postgresql-server postgresql-contrib cmake ffmpeg ImageMagick erlang-wx-25
+pkg_add elixir gmake git postgresql-server postgresql-contrib cmake ffmpeg erlang-wx libmagic
+pkg_add erlang-wx # Choose the latest version as package version when promted
 ```
-
-(Note that the erlang version may change, it was 25 at the time of writing)
 
 Akkoma requires a reverse proxy, OpenBSD has relayd in base (and is used in this guide) and packages/ports are available for nginx (www/nginx) and apache (www/apache-httpd). Independently of the reverse proxy, [acme-client(1)](https://man.openbsd.org/acme-client) can be used to get a certificate from Let's Encrypt.
 
@@ -29,32 +28,35 @@ Per [`docs/installation/optional/media_graphics_packages.md`](../installation/op
 To install the above:
 
 ```
-pkg_add ImageMagick ffmpeg p5-Image-ExifTool
+pkg_add ffmpeg p5-Image-ExifTool
 ```
 
 #### Creating the akkoma user
-Akkoma will be run by a dedicated user, \_akkoma. Before creating it, insert the following lines in login.conf:
+Akkoma will be run by a dedicated user, `_akkoma`. Before creating it, insert the following lines in `/etc/login.conf`:
 ```
 akkoma:\
 	:datasize-max=1536M:\
 	:datasize-cur=1536M:\
 	:openfiles-max=4096
 ```
-This creates a "akkoma" login class and sets higher values than default for datasize and openfiles (see [login.conf(5)](https://man.openbsd.org/login.conf)), this is required to avoid having akkoma crash some time after starting.
+This creates a `akkoma` login class and sets higher values than default for datasize and openfiles (see [login.conf(5)](https://man.openbsd.org/login.conf)), this is required to avoid having akkoma crash some time after starting.
 
-Create the \_akkoma user, assign it the akkoma login class and create its home directory (/home/\_akkoma/): `useradd -m -L akkoma _akkoma`
+Create the `_akkoma` user, assign it the akkoma login class and create its home directory (`/home/_akkoma/`): `useradd -m -L akkoma _akkoma`
 
 #### Clone akkoma's directory
-Enter a shell as the \_akkoma user. As root, run `su _akkoma -;cd`. Then clone the repository with `git clone https://akkoma.dev/AkkomaGang/akkoma.git`. Akkoma is now installed in /home/\_akkoma/akkoma/, it will be configured and started at the end of this guide.
+Enter a shell as the `_akkoma` user. As root, run `su _akkoma -;cd`. Then clone the repository with `git clone https://akkoma.dev/AkkomaGang/akkoma.git`. Akkoma is now installed in `/home/_akkoma/akkoma/`, it will be configured and started at the end of this guide.
 
 #### PostgreSQL
-Start a shell as the \_postgresql user (as root run `su _postgresql -` then run the `initdb` command to initialize postgresql:
-You will need to specify pgdata directory to the default (/var/postgresql/data) with the `-D <path>` and set the user to postgres with the `-U <username>` flag. This can be done as follows:
+Create `_postgresql`'s user directory (it hasn't been created yet): `mdir var/postgresql/data`. To set it as home
+directory for user `_postgresql` run `usermod -d  /var/postgresql/data _postgresql`.
+
+Start a shell as the `_postgresql` user (as root run `su _postgresql -` then run the `initdb` command to initialize postgresql.
+You will need to specify pgdata directory to the default (`/var/postgresql/data`) with the `-D <path>` and set the user to postgres with the `-U <username>` flag. This can be done as follows:
 
 ```
 initdb -D /var/postgresql/data -U postgres
 ```
-If you are not using the default directory, you will have to update the `datadir` variable in the /etc/rc.d/postgresql script.
+If you are not using the default directory, you will have to update the `datadir` variable in the `/etc/rc.d/postgresql` script.
 
 When this is done, enable postgresql so that it starts on boot and start it. As root, run:
 ```
@@ -70,7 +72,7 @@ httpd will have three fuctions:
   * serve a robots.txt file
   * get Let's Encrypt certificates, with acme-client
 
-Insert the following config in httpd.conf:
+Insert the following config in `/etc/httpd.conf`:
 ```
 # $OpenBSD: httpd.conf,v 1.17 2017/04/16 08:50:49 ajacoutot Exp $
 
@@ -93,13 +95,10 @@ server "default" {
 	location "/robots.txt" { root "/htdocs/local/" }
 	location "/*" { block return 302 "https://$HTTP_HOST$REQUEST_URI" }
 }
-
-types {
-}
 ```
 Do not forget to change *<IPv4/6 address\>* to your server's address(es). If httpd should only listen on one protocol family, comment one of the two first *listen* options.
 
-Create the /var/www/htdocs/local/ folder and write the content of your robots.txt in /var/www/htdocs/local/robots.txt.
+Create the `/var/www/htdocs/local/` folder and write the content of your robots.txt in `/var/www/htdocs/local/robots.txt`.
 Check the configuration with `httpd -n`, if it is OK enable and start httpd (as root):
 ```
 rcctl enable httpd
@@ -108,7 +107,7 @@ rcctl start httpd
 
 #### acme-client
 acme-client is used to get SSL/TLS certificates from Let's Encrypt.
-Insert the following configuration in /etc/acme-client.conf:
+Insert the following configuration in `/etc/acme-client.conf`:
 ```
 #
 # $OpenBSD: acme-client.conf,v 1.4 2017/03/22 11:14:14 benno Exp $
@@ -129,7 +128,7 @@ domain <domain name> {
 }
 ```
 Replace *<domain name\>* by the domain name you'll use for your instance. As root, run `acme-client -n` to check the config, then `acme-client -ADv <domain name>` to create account and domain keys, and request a certificate for the first time.
-Make acme-client run everyday by adding it in /etc/daily.local. As root, run the following command: `echo "acme-client <domain name>" >> /etc/daily.local`.
+Make acme-client run everyday by adding it in `/etc/daily.local`. As root, run the following command: `echo "acme-client <domain name>" >> /etc/daily.local`.
 
 Relayd will look for certificates and keys based on the address it listens on (see next part), the easiest way to make them available to relayd is to create a link, as root run:
 ```
@@ -140,7 +139,7 @@ This will have to be done for each IPv4 and IPv6 address relayd listens on.
 
 #### relayd
 relayd will be used as the reverse proxy sitting in front of akkoma.
-Insert the following configuration in /etc/relayd.conf:
+Insert the following configuration in `/etc/relayd.conf`:
 ```
 # $OpenBSD: relayd.conf,v 1.4 2018/03/23 09:55:06 claudio Exp $
 
@@ -198,7 +197,7 @@ rcctl start relayd
 
 #### pf
 Enabling and configuring pf is highly recommended.
-In /etc/pf.conf, insert the following configuration:
+In `/etc/pf.conf`, insert the following configuration:
 ```
 # Macros
 if="<network interface>"
@@ -222,31 +221,30 @@ pass in quick on $if inet6 proto icmp6 to ($if) icmp6-type { echoreq unreach par
 pass in quick on $if proto tcp to ($if) port { http https } # relayd/httpd
 pass in quick on $if proto tcp from $authorized_ssh_clients to ($if) port ssh
 ```
-Replace *<network interface\>* by your server's network interface name (which you can get with ifconfig). Consider replacing the content of the authorized\_ssh\_clients macro by, for exemple, your home IP address, to avoid SSH connection attempts from bots.
+Replace *<network interface\>* by your server's network interface name (which you can get with ifconfig). Consider replacing the content of the `authorized_ssh_clients` macro by, for example, your home IP address, to avoid SSH connection attempts from bots.
 
 Check pf's configuration by running `pfctl -nf /etc/pf.conf`, load it with `pfctl -f /etc/pf.conf` and enable pf at boot with `rcctl enable pf`.
 
 #### Configure and start akkoma
-Enter a shell as \_akkoma (as root `su _akkoma -`) and enter akkoma's installation directory (`cd ~/akkoma/`).
+Enter a shell as `_akkoma` (as root `su _akkoma -`) and enter akkoma's installation directory (`cd ~/akkoma/`).
 
 Then follow the main installation guide:
 
   * run `mix deps.get`
   * run `MIX_ENV=prod mix pleroma.instance gen` and enter your instance's information when asked
-  * copy config/generated\_config.exs to config/prod.secret.exs. The default values should be sufficient but you should edit it and check that everything seems OK.
+  * copy `config/generated_config.exs` to `config/prod.secret.exs`. The default values should be sufficient but you should edit it and check that everything seems OK.
   * exit your current shell back to a root one and run `psql -U postgres -f /home/_akkoma/akkoma/config/setup_db.psql` to setup the database.
-  * return to a \_akkoma shell into akkoma's installation directory (`su _akkoma -;cd ~/akkoma`) and run `MIX_ENV=prod mix ecto.migrate`
+  * return to a `_akkoma` shell into akkoma's installation directory (`su _akkoma -;cd ~/akkoma`) and run `MIX_ENV=prod mix ecto.migrate`
 
-As \_akkoma in /home/\_akkoma/akkoma, you can now run `LC_ALL=en_US.UTF-8 MIX_ENV=prod mix phx.server` to start your instance.
+As `_akkoma` in `/home/_akkoma/akkoma`, you can now run `LC_ALL=en_US.UTF-8 MIX_ENV=prod mix phx.server` to start your instance.
 In another SSH session/tmux window, check that it is working properly by running `ftp -MVo - http://127.0.0.1:4000/api/v1/instance`, you should get json output. Double-check that *uri*'s value is your instance's domain name.
 
 ##### Starting akkoma at boot
 An rc script to automatically start akkoma at boot hasn't been written yet, it can be run in a tmux session (tmux is in base).
 
-
 #### Create administrative user
 
-If your instance is up and running, you can create your first user with administrative rights with the following command as the \_akkoma user.
+If your instance is up and running, you can create your first user with administrative rights with the following command as the `_akkoma` user.
 ```
 LC_ALL=en_US.UTF-8 MIX_ENV=prod mix pleroma.user new <username> <your@emailaddress> --admin
 ```

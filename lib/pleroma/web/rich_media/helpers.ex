@@ -11,7 +11,7 @@ defmodule Pleroma.Web.RichMedia.Helpers do
 
   @options [
     max_body: 2_000_000,
-    recv_timeout: 2_000
+    receive_timeout: 2_000
   ]
 
   @spec validate_page_url(URI.t() | binary()) :: :ok | :error

@@ -237,7 +237,8 @@ defmodule Pleroma.ModerationLog do
     insert_log_entry_with_message(%ModerationLog{data: data})
   end
 
-  @spec insert_log_entry_with_message(ModerationLog) :: {:ok, ModerationLog} | {:error, any}
+  @spec insert_log_entry_with_message(ModerationLog.t()) ::
+          {:ok, ModerationLog.t()} | {:error, any}
   defp insert_log_entry_with_message(entry) do
     entry.data["message"]
     |> put_in(get_log_entry_message(entry))

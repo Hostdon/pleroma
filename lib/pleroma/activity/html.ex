@@ -38,7 +38,11 @@ defmodule Pleroma.Activity.HTML do
 
   def invalidate_cache_for(activity_id) do
     keys = get_cache_keys_for(activity_id)
-    Enum.map(keys, &@cachex.del(:scrubber_cache, &1))
+
+    for key <- keys do
+      @cachex.del(:scrubber_cache, key)
+    end
+
     @cachex.del(:scrubber_management_cache, activity_id)
   end
 

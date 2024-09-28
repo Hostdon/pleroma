@@ -14,11 +14,11 @@ defmodule Pleroma.Web.AdminAPI.StatusView do
   defdelegate merge_account_views(user), to: AdminAPI.AccountView
 
   def render("index.json", %{total: total} = opts) do
-    %{total: total, activities: safe_render_many(opts.activities, __MODULE__, "show.json", opts)}
+    %{total: total, activities: render_many(opts.activities, __MODULE__, "show.json", opts)}
   end
 
   def render("index.json", opts) do
-    safe_render_many(opts.activities, __MODULE__, "show.json", opts)
+    render_many(opts.activities, __MODULE__, "show.json", opts)
   end
 
   def render("show.json", %{activity: %{data: %{"object" => _object}} = activity} = opts) do

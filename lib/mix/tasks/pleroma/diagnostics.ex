@@ -1,3 +1,4 @@
+# credo:disable-for-this-file
 defmodule Mix.Tasks.Pleroma.Diagnostics do
   alias Pleroma.Repo
   alias Pleroma.User
@@ -8,6 +9,13 @@ defmodule Mix.Tasks.Pleroma.Diagnostics do
   import Mix.Pleroma
   import Ecto.Query
   use Mix.Task
+
+  def run(["http", url]) do
+    start_pleroma()
+
+    Pleroma.HTTP.get(url)
+    |> IO.inspect()
+  end
 
   def run(["home_timeline", nickname]) do
     start_pleroma()

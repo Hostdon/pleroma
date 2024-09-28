@@ -49,12 +49,12 @@ sudo useradd -r -s /bin/false -m -d /var/lib/akkoma -U akkoma
 
 **Note**: To execute a single command as the Akkoma system user, use `sudo -Hu akkoma command`. You can also switch to a shell by using `sudo -Hu akkoma $SHELL`. If you don’t have and want `sudo` on your system, you can use `su` as root user (UID 0) for a single command by using `su -l akkoma -s $SHELL -c 'command'` and `su -l akkoma -s $SHELL` for starting a shell.
 
-* Git clone the AkkomaBE repository and make the Akkoma user the owner of the directory:
+* Git clone the AkkomaBE repository from stable-branch and make the Akkoma user the owner of the directory:
 
 ```shell
 sudo mkdir -p /opt/akkoma
 sudo chown -R akkoma:akkoma /opt/akkoma
-sudo -Hu akkoma git clone https://akkoma.dev/AkkomaGang/akkoma.git /opt/akkoma
+sudo -Hu akkoma git clone https://akkoma.dev/AkkomaGang/akkoma.git -b stable /opt/akkoma
 ```
 
 * Change to the new directory:
@@ -74,7 +74,7 @@ sudo -Hu akkoma mix deps.get
   * This may take some time, because parts of akkoma get compiled first.
   * After that it will ask you a few questions about your instance and generates a configuration file in `config/generated_config.exs`.
 
-* Check the configuration and if all looks right, rename it, so Akkoma will load it (`prod.secret.exs` for productive instance, `dev.secret.exs` for development instances):
+* Check the configuration and if all looks right, rename it, so Akkoma will load it (`prod.secret.exs` for productive instances):
 
 ```shell
 sudo -Hu akkoma mv config/{generated_config.exs,prod.secret.exs}

@@ -36,7 +36,7 @@ defmodule Pleroma.Web.WebFinger.WebFingerController do
     else
       _e ->
         conn
-        |> put_status(404)
+        |> put_status(:not_found)
         |> json("Couldn't find user")
     end
   end

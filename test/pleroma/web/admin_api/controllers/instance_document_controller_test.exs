@@ -28,9 +28,9 @@ defmodule Pleroma.Web.AdminAPI.InstanceDocumentControllerTest do
     {:ok, %{admin: admin, token: token, conn: conn}}
   end
 
-  describe "GET /api/pleroma/admin/instance_document/:name" do
+  describe "GET /api/v1/pleroma/admin/instance_document/:name" do
     test "return the instance document url", %{conn: conn} do
-      conn = get(conn, "/api/pleroma/admin/instance_document/instance-panel")
+      conn = get(conn, "/api/v1/pleroma/admin/instance_document/instance-panel")
 
       assert content = html_response(conn, 200)
       assert String.contains?(content, @default_instance_panel)
@@ -44,7 +44,7 @@ defmodule Pleroma.Web.AdminAPI.InstanceDocumentControllerTest do
         build_conn()
         |> assign(:user, non_admin_user)
         |> assign(:token, token)
-        |> get("/api/pleroma/admin/instance_document/instance-panel")
+        |> get("/api/v1/pleroma/admin/instance_document/instance-panel")
 
       assert json_response(conn, :forbidden)
     end
@@ -52,13 +52,13 @@ defmodule Pleroma.Web.AdminAPI.InstanceDocumentControllerTest do
     test "it returns 404 if the instance document with the given name doesn't exist", %{
       conn: conn
     } do
-      conn = get(conn, "/api/pleroma/admin/instance_document/1234")
+      conn = get(conn, "/api/v1/pleroma/admin/instance_document/1234")
 
       assert json_response_and_validate_schema(conn, 404)
     end
   end
 
-  describe "PATCH /api/pleroma/admin/instance_document/:name" do
+  describe "PATCH /api/v1/pleroma/admin/instance_document/:name" do
     test "uploads the instance document", %{conn: conn} do
       image = %Plug.Upload{
         content_type: "text/html",
@@ -69,7 +69,7 @@ defmodule Pleroma.Web.AdminAPI.InstanceDocumentControllerTest do
       conn =
         conn
         |> put_req_header("content-type", "multipart/form-data")
-        |> patch("/api/pleroma/admin/instance_document/instance-panel", %{
+        |> patch("/api/v1/pleroma/admin/instance_document/instance-panel", %{
           "file" => image
         })
 
@@ -79,24 +79,24 @@ defmodule Pleroma.Web.AdminAPI.InstanceDocumentControllerTest do
     end
   end
 
-  describe "DELETE /api/pleroma/admin/instance_document/:name" do
+  describe "DELETE /api/v1/pleroma/admin/instance_document/:name" do
     test "deletes the instance document", %{conn: conn} do
       File.mkdir!(@dir <> "/instance/")
       File.write!(@dir <> "/instance/panel.html", "Custom instance panel")
 
       conn_resp =
         conn
-        |> get("/api/pleroma/admin/instance_document/instance-panel")
+        |> get("/api/v1/pleroma/admin/instance_document/instance-panel")
 
       assert html_response(conn_resp, 200) == "Custom instance panel"
 
       conn
-      |> delete("/api/pleroma/admin/instance_document/instance-panel")
+      |> delete("/api/v1/pleroma/admin/instance_document/instance-panel")
       |> json_response_and_validate_schema(200)
 
       conn_resp =
         conn
-        |> get("/api/pleroma/admin/instance_document/instance-panel")
+        |> get("/api/v1/pleroma/admin/instance_document/instance-panel")
 
       assert content = html_response(conn_resp, 200)
       assert String.contains?(content, @default_instance_panel)

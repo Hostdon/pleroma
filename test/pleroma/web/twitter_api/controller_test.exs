@@ -38,16 +38,30 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
       refute user.confirmation_token
     end
 
-    test "it returns 500 if user cannot be found by id", %{conn: conn, user: user} do
-      conn = get(conn, "/api/account/confirm_email/0/#{user.confirmation_token}")
+    test "confirmation is requested twice", %{conn: conn, user: user} do
+      conn = get(conn, "/api/account/confirm_email/#{user.id}/#{user.confirmation_token}")
+      assert 302 == conn.status
 
-      assert 500 == conn.status
+      conn = get(conn, "/api/account/confirm_email/#{user.id}/#{user.confirmation_token}")
+      assert 400 == conn.status
+      assert "Already verified email" == conn.resp_body
+
+      user = User.get_cached_by_id(user.id)
+
+      assert user.is_confirmed
+      refute user.confirmation_token
     end
 
-    test "it returns 500 if token is invalid", %{conn: conn, user: user} do
+    test "it returns 400 if user cannot be found by id", %{conn: conn, user: user} do
+      conn = get(conn, "/api/account/confirm_email/0/#{user.confirmation_token}")
+
+      assert 400 == conn.status
+    end
+
+    test "it returns 400 if token is invalid", %{conn: conn, user: user} do
       conn = get(conn, "/api/account/confirm_email/#{user.id}/wrong_token")
 
-      assert 500 == conn.status
+      assert 400 == conn.status
     end
   end
 

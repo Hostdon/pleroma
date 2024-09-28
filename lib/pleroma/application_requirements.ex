@@ -194,8 +194,6 @@ defmodule Pleroma.ApplicationRequirements do
     end
   end
 
-  defp check_system_commands!(result), do: result
-
   defp check_repo_pool_size!(:ok) do
     if Pleroma.Config.get([Pleroma.Repo, :pool_size], 10) != 10 and
          not Pleroma.Config.get([:dangerzone, :override_repo_pool_size], false) do

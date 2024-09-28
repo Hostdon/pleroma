@@ -211,11 +211,11 @@ defmodule Pleroma.Web.OAuth.OAuthController do
          {:error, scopes_issue},
          %{"authorization" => _} = params
        )
-       when scopes_issue in [:unsupported_scopes, :missing_scopes] do
+       when scopes_issue in [:unsupported_scopes, :missing_scopes, :user_is_not_an_admin] do
     # Per https://github.com/tootsuite/mastodon/blob/
     #   51e154f5e87968d6bb115e053689767ab33e80cd/app/controllers/api/base_controller.rb#L39
     conn
-    |> put_flash(:error, dgettext("errors", "This action is outside the authorized scopes"))
+    |> put_flash(:error, dgettext("errors", "This action is outside of authorized scopes"))
     |> put_status(:unauthorized)
     |> authorize(params)
   end
@@ -558,10 +558,9 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     else
       {:error, changeset} ->
         message =
-          Enum.map(changeset.errors, fn {field, {error, _}} ->
+          Enum.map_join(changeset.errors, "; ", fn {field, {error, _}} ->
             "#{field} #{error}"
           end)
-          |> Enum.join("; ")
 
         message =
           String.replace(
@@ -606,7 +605,8 @@ defmodule Pleroma.Web.OAuth.OAuthController do
   defp do_create_authorization(%User{} = user, %App{} = app, requested_scopes)
        when is_list(requested_scopes) do
     with {:account_status, :active} <- {:account_status, User.account_status(user)},
-         {:ok, scopes} <- validate_scopes(app, requested_scopes),
+         requested_scopes <- Scopes.filter_admin_scopes(requested_scopes, user),
+         {:ok, scopes} <- validate_scopes(user, app, requested_scopes),
          {:ok, auth} <- Authorization.create_authorization(app, user, scopes) do
       {:ok, auth}
     end
@@ -638,15 +638,16 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     end
   end
 
-  @spec validate_scopes(App.t(), map() | list()) ::
+  @spec validate_scopes(User.t(), App.t(), map() | list()) ::
           {:ok, list()} | {:error, :missing_scopes | :unsupported_scopes}
-  defp validate_scopes(%App{} = app, params) when is_map(params) do
+  defp validate_scopes(%User{} = user, %App{} = app, params) when is_map(params) do
     requested_scopes = Scopes.fetch_scopes(params, app.scopes)
-    validate_scopes(app, requested_scopes)
+    validate_scopes(user, app, requested_scopes)
   end
 
-  defp validate_scopes(%App{} = app, requested_scopes) when is_list(requested_scopes) do
-    Scopes.validate(requested_scopes, app.scopes)
+  defp validate_scopes(%User{} = user, %App{} = app, requested_scopes)
+       when is_list(requested_scopes) do
+    Scopes.validate(requested_scopes, app.scopes, user)
   end
 
   def default_redirect_uri(%App{} = app) do

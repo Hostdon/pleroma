@@ -21,33 +21,15 @@
 6. Restore the database schema and akkoma role using either of the following options
     * You can use the original `setup_db.psql` if you have it[²]: `sudo -Hu postgres psql -f config/setup_db.psql`.
     * Or recreate the database and user yourself (replace the password with the one you find in the config file) `sudo -Hu postgres psql -c "CREATE USER akkoma WITH ENCRYPTED PASSWORD '<database-password-wich-you-can-find-in-your-config-file>'; CREATE DATABASE akkoma OWNER akkoma;"`.
-7. Now restore the Akkoma instance's data into the empty database schema[¹][³]: `sudo -Hu postgres pg_restore -d akkoma -v -1 </path/to/backup_location/akkoma.pgdump>`
-8. If you installed a newer Akkoma version, you should run `MIX_ENV=prod mix ecto.migrate`[⁴]. This task performs database migrations, if there were any.
+7. Now restore the Akkoma instance's data into the empty database schema[¹]: `sudo -Hu postgres pg_restore -d akkoma -v -1 </path/to/backup_location/akkoma.pgdump>`
+8. If you installed a newer Akkoma version, you should run `MIX_ENV=prod mix ecto.migrate`[³]. This task performs database migrations, if there were any.
 9. Restart the Akkoma service.
 10. Run `sudo -Hu postgres vacuumdb --all --analyze-in-stages`. This will quickly generate the statistics so that postgres can properly plan queries.
 11. If setting up on a new server configure Nginx by using the `installation/akkoma.nginx` config sample or reference the Akkoma installation guide for your OS which contains the Nginx configuration instructions.
 
 [¹]: We assume the database name and user are both "akkoma". If not, you can find the correct name in your config files.  
 [²]: You can recreate the `config/setup_db.psql` by running the `mix pleroma.instance gen` task again. You can ignore most of the questions, but make the database user, name, and password the same as found in your backed up config file. This will also create a new `config/generated_config.exs` file which you may delete as it is not needed.  
-[³]: `pg_restore` will add data before adding indexes. The indexes are added in alphabetical order. There's one index, `activities_visibility_index` which may take a long time because it can't make use of an index that's only added later. You can significantly speed up restoration by skipping this index and add it afterwards. For that, you can do the following (we assume the akkoma.pgdump is in the directory you're running the commands):  
-
-```sh
-pg_restore -l akkoma.pgdump > db.list
-
-# Comment out the step for creating activities_visibility_index by adding a semi colon at the start of the line
-sed -i -E 's/(.*activities_visibility_index.*)/;\1/' db.list
-
-# We restore the database using the db.list list-file
-sudo -Hu postgres pg_restore -L db.list -d akkoma -v -1 akkoma.pgdump
-
-# You can see the sql statement with which to create the index using
-grep -Eao 'CREATE INDEX activities_visibility_index.*' akkoma.pgdump
-
-# Then create the index manually
-# Make sure that the command to create is correct! You never know it has changed since writing this guide
-sudo -Hu postgres psql -d pleroma_ynh -c "CREATE INDEX activities_visibility_index ON public.activities USING btree (public.activity_visibility(actor, recipients, data), id DESC NULLS LAST) WHERE ((data ->> 'type'::text) = 'Create'::text);"
-```
-[⁴]: Prefix with `MIX_ENV=prod` to run it using the production config file.  
+[³]: Prefix with `MIX_ENV=prod` to run it using the production config file.  
 
 ## Remove
 

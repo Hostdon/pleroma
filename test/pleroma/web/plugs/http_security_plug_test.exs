@@ -140,7 +140,7 @@ defmodule Pleroma.Web.Plugs.HTTPSecurityPlugTest do
   defp assert_connect_src(conn, url) do
     conn = get(conn, "/api/v1/instance")
     [csp] = Conn.get_resp_header(conn, "content-security-policy")
-    assert csp =~ ~r/connect-src 'self' blob: [^;]+ #{url}/
+    assert csp =~ ~r/connect-src 'self' [^;]+ #{url}/
   end
 
   test "it does not send CSP headers when disabled", %{conn: conn} do

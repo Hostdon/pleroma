@@ -12,7 +12,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.MediaProxyWarmingPolicy do
   require Logger
 
   @adapter_options [
-    recv_timeout: 10_000
+    receive_timeout: 10_000
   ]
 
   @impl true

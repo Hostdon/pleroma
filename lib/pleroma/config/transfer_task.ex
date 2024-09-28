@@ -25,7 +25,9 @@ defmodule Pleroma.Config.TransferTask do
     do: [
       {:pleroma, Pleroma.Captcha, [:seconds_valid]},
       {:pleroma, Pleroma.Upload, [:proxy_remote]},
-      {:pleroma, :instance, [:upload_limit]}
+      {:pleroma, :instance, [:upload_limit]},
+      {:pleroma, :http, [:pool_size]},
+      {:pleroma, :http, [:proxy_url]}
     ]
 
   def start_link(restart_pleroma? \\ true) do
@@ -40,8 +42,9 @@ defmodule Pleroma.Config.TransferTask do
       # We need to restart applications for loaded settings take effect
       {logger, other} =
         (Repo.all(ConfigDB) ++ deleted_settings)
+        |> Enum.reject(&invalid_key_or_group/1)
         |> Enum.map(&merge_with_default/1)
-        |> Enum.split_with(fn {group, _, _, _} -> group in [:logger, :quack] end)
+        |> Enum.split_with(fn {group, _, _, _} -> group == :logger end)
 
       logger
       |> Enum.sort()
@@ -83,6 +86,10 @@ defmodule Pleroma.Config.TransferTask do
     end
   end
 
+  defp invalid_key_or_group(%ConfigDB{key: :invalid_atom}), do: true
+  defp invalid_key_or_group(%ConfigDB{group: :invalid_atom}), do: true
+  defp invalid_key_or_group(_), do: false
+
   defp merge_with_default(%{group: group, key: key, value: value} = setting) do
     default =
       if group == :pleroma do
@@ -99,12 +106,6 @@ defmodule Pleroma.Config.TransferTask do
       end
 
     {group, key, value, merged}
-  end
-
-  # change logger configuration in runtime, without restart
-  defp configure({:quack, key, _, merged}) do
-    Logger.configure_backend(Quack.Logger, [{key, merged}])
-    :ok = update_env(:quack, key, merged)
   end
 
   defp configure({_, :backends, _, merged}) do

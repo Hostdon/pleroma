@@ -12,7 +12,7 @@ Release URLs will always be of the form
 https://akkoma-updates.s3-website.fr-par.scw.cloud/{branch}/akkoma-{flavour}.zip
 ```
 
-Where branch is usually `stable` or `develop`, and `flavour` is
+Where branch is usually `stable` and `flavour` is
 the one [that you detect on install](../otp_en/#detecting-flavour).
 
 So, for an AMD64 stable install, your update URL will be

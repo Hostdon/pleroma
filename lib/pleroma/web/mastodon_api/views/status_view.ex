@@ -131,7 +131,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
       |> Map.put(:parent_activities, parent_activities)
       |> Map.put(:relationships, relationships_opt)
 
-    safe_render_many(activities, StatusView, "show.json", opts)
+    render_many(activities, StatusView, "show.json", opts)
   end
 
   def render(
@@ -169,6 +169,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
       |> Enum.map(fn user -> AccountView.render("mention.json", %{user: user}) end)
 
     {pinned?, pinned_at} = pin_data(object, user)
+    lang = language(object)
 
     %{
       id: to_string(activity.id),
@@ -182,7 +183,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
       in_reply_to_id: nil,
       in_reply_to_account_id: nil,
       reblog: reblogged,
-      content: reblogged[:content] || "",
+      content: "",
       created_at: created_at,
       reblogs_count: 0,
       replies_count: 0,
@@ -199,7 +200,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
       mentions: mentions,
       tags: reblogged[:tags] || [],
       application: build_application(object.data["generator"]),
-      language: nil,
+      language: lang,
       emojis: [],
       pleroma: %{
         local: activity.local,
@@ -226,8 +227,10 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
         |> Enum.filter(fn tag -> is_map(tag) and tag["type"] == "Mention" end)
         |> Enum.map(fn tag -> tag["href"] end)
 
+      to_data = if is_nil(object.data["to"]), do: [], else: object.data["to"]
+
       mentions =
-        (object.data["to"] ++ tag_mentions)
+        (to_data ++ tag_mentions)
         |> Enum.uniq()
         |> Enum.map(fn
           Pleroma.Constants.as_public() -> nil
@@ -357,6 +360,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
       {pinned?, pinned_at} = pin_data(object, user)
 
       quote = Activity.get_quoted_activity_from_object(object)
+      lang = language(object)
 
       %{
         id: to_string(activity.id),
@@ -391,7 +395,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
         mentions: mentions,
         tags: build_tags(tags),
         application: build_application(object.data["generator"]),
-        language: nil,
+        language: lang,
         emojis: build_emojis(object.data["emoji"]),
         quote_id: if(quote, do: quote.id, else: nil),
         quote: maybe_render_quote(quote, opts),
@@ -784,4 +788,12 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
   defp get_source_content_type(_source) do
     Utils.get_content_type(nil)
   end
+
+  defp language(%Object{data: %{"contentMap" => contentMap}}) when is_map(contentMap) do
+    contentMap
+    |> Map.keys()
+    |> Enum.at(0)
+  end
+
+  defp language(_), do: nil
 end

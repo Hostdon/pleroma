@@ -14,9 +14,7 @@ defmodule Pleroma.HTTP.AdapterHelper do
   alias Pleroma.HTTP.AdapterHelper
   require Logger
 
-  @type proxy ::
-          {Connection.host(), pos_integer()}
-          | {Connection.proxy_type(), Connection.host(), pos_integer()}
+  @type proxy :: {Connection.proxy_type(), Connection.host(), pos_integer(), list()}
 
   @callback options(keyword(), URI.t()) :: keyword()
 
@@ -25,7 +23,6 @@ defmodule Pleroma.HTTP.AdapterHelper do
 
   def format_proxy(proxy_url) do
     case parse_proxy(proxy_url) do
-      {:ok, host, port} -> {:http, host, port, []}
       {:ok, type, host, port} -> {type, host, port, []}
       _ -> nil
     end
@@ -48,6 +45,13 @@ defmodule Pleroma.HTTP.AdapterHelper do
     |> maybe_add_default_pool()
     |> maybe_add_conn_opts()
     |> put_in([:pools, :default, :conn_opts, :proxy], proxy)
+  end
+
+  def add_pool_size(opts, pool_size) do
+    opts
+    |> maybe_add_pools()
+    |> maybe_add_default_pool()
+    |> put_in([:pools, :default, :size], pool_size)
   end
 
   defp maybe_add_pools(opts) do
@@ -94,8 +98,7 @@ defmodule Pleroma.HTTP.AdapterHelper do
   defp proxy_type(_), do: {:error, :unknown}
 
   @spec parse_proxy(String.t() | tuple() | nil) ::
-          {:ok, host(), pos_integer()}
-          | {:ok, proxy_type(), host(), pos_integer()}
+          {:ok, proxy_type(), host(), pos_integer()}
           | {:error, atom()}
           | nil
   def parse_proxy(nil), do: nil

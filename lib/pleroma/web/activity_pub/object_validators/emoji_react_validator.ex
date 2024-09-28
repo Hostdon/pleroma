@@ -13,7 +13,6 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.EmojiReactValidator do
   import Pleroma.Web.ActivityPub.ObjectValidators.CommonValidations
 
   @primary_key false
-  @emoji_regex ~r/:[A-Za-z0-9_-]+(@.+)?:/
 
   embedded_schema do
     quote do
@@ -75,9 +74,6 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.EmojiReactValidator do
     end
   end
 
-  defp matches_shortcode?(nil), do: false
-  defp matches_shortcode?(s), do: Regex.match?(@emoji_regex, s)
-
   defp fix_emoji_qualification(%{"content" => emoji} = data) do
     new_emoji = Pleroma.Emoji.fully_qualify_emoji(emoji)
 
@@ -98,7 +94,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.EmojiReactValidator do
   defp validate_emoji(cng) do
     content = get_field(cng, :content)
 
-    if Emoji.is_unicode_emoji?(content) || matches_shortcode?(content) do
+    if Emoji.is_unicode_emoji?(content) || Emoji.matches_shortcode?(content) do
       cng
     else
       cng

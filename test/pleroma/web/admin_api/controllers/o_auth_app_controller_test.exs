@@ -22,12 +22,12 @@ defmodule Pleroma.Web.AdminAPI.OAuthAppControllerTest do
     {:ok, %{admin: admin, token: token, conn: conn}}
   end
 
-  describe "POST /api/pleroma/admin/oauth_app" do
+  describe "POST /api/v1/pleroma/admin/oauth_app" do
     test "errors", %{conn: conn} do
       response =
         conn
         |> put_req_header("content-type", "application/json")
-        |> post("/api/pleroma/admin/oauth_app", %{})
+        |> post("/api/v1/pleroma/admin/oauth_app", %{})
         |> json_response_and_validate_schema(400)
 
       assert %{
@@ -42,7 +42,7 @@ defmodule Pleroma.Web.AdminAPI.OAuthAppControllerTest do
       response =
         conn
         |> put_req_header("content-type", "application/json")
-        |> post("/api/pleroma/admin/oauth_app", %{
+        |> post("/api/v1/pleroma/admin/oauth_app", %{
           name: app_name,
           redirect_uris: base_url
         })
@@ -64,7 +64,7 @@ defmodule Pleroma.Web.AdminAPI.OAuthAppControllerTest do
       response =
         conn
         |> put_req_header("content-type", "application/json")
-        |> post("/api/pleroma/admin/oauth_app", %{
+        |> post("/api/v1/pleroma/admin/oauth_app", %{
           name: app_name,
           redirect_uris: base_url,
           trusted: true
@@ -81,7 +81,7 @@ defmodule Pleroma.Web.AdminAPI.OAuthAppControllerTest do
     end
   end
 
-  describe "GET /api/pleroma/admin/oauth_app" do
+  describe "GET /api/v1/pleroma/admin/oauth_app" do
     setup do
       app = insert(:oauth_app)
       {:ok, app: app}
@@ -90,7 +90,7 @@ defmodule Pleroma.Web.AdminAPI.OAuthAppControllerTest do
     test "list", %{conn: conn} do
       response =
         conn
-        |> get("/api/pleroma/admin/oauth_app")
+        |> get("/api/v1/pleroma/admin/oauth_app")
         |> json_response_and_validate_schema(200)
 
       assert %{"apps" => apps, "count" => count, "page_size" => _} = response
@@ -104,7 +104,7 @@ defmodule Pleroma.Web.AdminAPI.OAuthAppControllerTest do
 
       response =
         conn
-        |> get("/api/pleroma/admin/oauth_app?page_size=#{page_size}")
+        |> get("/api/v1/pleroma/admin/oauth_app?page_size=#{page_size}")
         |> json_response_and_validate_schema(200)
 
       assert %{"apps" => apps, "count" => _, "page_size" => ^page_size} = response
@@ -115,7 +115,7 @@ defmodule Pleroma.Web.AdminAPI.OAuthAppControllerTest do
     test "search by client name", %{conn: conn, app: app} do
       response =
         conn
-        |> get("/api/pleroma/admin/oauth_app?name=#{app.client_name}")
+        |> get("/api/v1/pleroma/admin/oauth_app?name=#{app.client_name}")
         |> json_response_and_validate_schema(200)
 
       assert %{"apps" => [returned], "count" => _, "page_size" => _} = response
@@ -127,7 +127,7 @@ defmodule Pleroma.Web.AdminAPI.OAuthAppControllerTest do
     test "search by client id", %{conn: conn, app: app} do
       response =
         conn
-        |> get("/api/pleroma/admin/oauth_app?client_id=#{app.client_id}")
+        |> get("/api/v1/pleroma/admin/oauth_app?client_id=#{app.client_id}")
         |> json_response_and_validate_schema(200)
 
       assert %{"apps" => [returned], "count" => _, "page_size" => _} = response
@@ -141,7 +141,7 @@ defmodule Pleroma.Web.AdminAPI.OAuthAppControllerTest do
 
       response =
         conn
-        |> get("/api/pleroma/admin/oauth_app?trusted=true")
+        |> get("/api/v1/pleroma/admin/oauth_app?trusted=true")
         |> json_response_and_validate_schema(200)
 
       assert %{"apps" => [returned], "count" => _, "page_size" => _} = response
@@ -151,13 +151,13 @@ defmodule Pleroma.Web.AdminAPI.OAuthAppControllerTest do
     end
   end
 
-  describe "DELETE /api/pleroma/admin/oauth_app/:id" do
+  describe "DELETE /api/v1/pleroma/admin/oauth_app/:id" do
     test "with id", %{conn: conn} do
       app = insert(:oauth_app)
 
       response =
         conn
-        |> delete("/api/pleroma/admin/oauth_app/" <> to_string(app.id))
+        |> delete("/api/v1/pleroma/admin/oauth_app/" <> to_string(app.id))
         |> json_response_and_validate_schema(:no_content)
 
       assert response == ""
@@ -166,14 +166,14 @@ defmodule Pleroma.Web.AdminAPI.OAuthAppControllerTest do
     test "with non existance id", %{conn: conn} do
       response =
         conn
-        |> delete("/api/pleroma/admin/oauth_app/0")
+        |> delete("/api/v1/pleroma/admin/oauth_app/0")
         |> json_response_and_validate_schema(:bad_request)
 
       assert response == ""
     end
   end
 
-  describe "PATCH /api/pleroma/admin/oauth_app/:id" do
+  describe "PATCH /api/v1/pleroma/admin/oauth_app/:id" do
     test "with id", %{conn: conn} do
       app = insert(:oauth_app)
 
@@ -186,7 +186,7 @@ defmodule Pleroma.Web.AdminAPI.OAuthAppControllerTest do
       response =
         conn
         |> put_req_header("content-type", "application/json")
-        |> patch("/api/pleroma/admin/oauth_app/#{id}", %{
+        |> patch("/api/v1/pleroma/admin/oauth_app/#{id}", %{
           name: name,
           trusted: true,
           redirect_uris: url,
@@ -210,7 +210,7 @@ defmodule Pleroma.Web.AdminAPI.OAuthAppControllerTest do
       response =
         conn
         |> put_req_header("content-type", "application/json")
-        |> patch("/api/pleroma/admin/oauth_app/0")
+        |> patch("/api/v1/pleroma/admin/oauth_app/0")
         |> json_response_and_validate_schema(:bad_request)
 
       assert response == ""

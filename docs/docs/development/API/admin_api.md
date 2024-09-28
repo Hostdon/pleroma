@@ -2,7 +2,7 @@
 
 Authentication is required and the user must be an admin.
 
-The `/api/v1/pleroma/admin/*` path is backwards compatible with `/api/pleroma/admin/*` (`/api/pleroma/admin/*` will be deprecated in the future).
+Backwards-compatibility for admin API endpoints without version prefixes (`/api/pleroma/admin/*`) has been removed as of Akkoma 3.6.0. Please use `/api/v1/pleroma/admin/*` instead.
 
 ## `GET /api/v1/pleroma/admin/users`
 
@@ -1056,14 +1056,13 @@ Most of the settings will be applied in `runtime`, this means that you don't nee
 
 Example of setting without keyword in value:
 ```elixir
-config :tesla, :adapter, Tesla.Adapter.Hackney
+config :tesla, :adapter, {Tesla.Adapter.Finch, name: MyFinch}
 ```
 
 List of settings which support only full update by key:
 ```elixir
 @full_key_update [
     {:pleroma, :ecto_repos},
-    {:quack, :meta},
     {:mime, :types},
     {:cors_plug, [:max_age, :methods, :expose, :headers]},
     {:auto_linker, :opts},
@@ -1083,22 +1082,6 @@ List of settings which support only full update by subkey:
   ]
 ```
 
-*Settings without explicit key must be sended in separate config object params.*
-```elixir
-config :quack,
-  level: :debug,
-  meta: [:all],
-  ...
-```
-```json
-{
-  "configs": [
-    {"group": ":quack", "key": ":level", "value": ":debug"},
-    {"group": ":quack", "key": ":meta", "value": [":all"]},
-    ...
-  ]
-}
-```
 - Request:
 
 ```json

@@ -225,6 +225,12 @@ defmodule Pleroma.Web.ApiSpec.FilterOperation do
           type: :integer,
           description:
             "Number of seconds from now the filter should expire. Otherwise, null for a filter that doesn't expire."
+        },
+        expires_at: %Schema{
+          nullable: true,
+          type: :string,
+          description:
+            "When the filter should no longer be applied. String (ISO 8601 Datetime), or null if the filter does not expire."
         }
       },
       required: [:phrase, :context],

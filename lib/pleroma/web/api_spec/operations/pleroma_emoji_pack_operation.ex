@@ -231,9 +231,18 @@ defmodule Pleroma.Web.ApiSpec.PleromaEmojiPackOperation do
       "application/json",
       %Schema{
         type: :object,
-        additionalProperties: emoji_pack(),
+        properties: %{
+          count: %Schema{type: :integer},
+          packs: %Schema{
+            type: :object,
+            additionalProperties: emoji_pack()
+          }
+        },
         example: %{
-          "emojos" => emoji_pack().example
+          "count" => 4,
+          "packs" => %{
+            "emojos" => emoji_pack().example
+          }
         }
       }
     )

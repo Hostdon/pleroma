@@ -130,7 +130,8 @@ defmodule Pleroma.User.Backup do
          :ok <- statuses(dir, backup.user),
          :ok <- likes(dir, backup.user),
          :ok <- bookmarks(dir, backup.user),
-         {:ok, zip_path} <- :zip.create(String.to_charlist(dir <> ".zip"), @files, cwd: dir),
+         {:ok, zip_path} <-
+           :zip.create(String.to_charlist(dir <> ".zip"), @files, cwd: String.to_charlist(dir)),
          {:ok, _} <- File.rm_rf(dir) do
       {:ok, to_string(zip_path)}
     end

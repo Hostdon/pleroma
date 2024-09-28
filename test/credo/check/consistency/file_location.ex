@@ -163,4 +163,8 @@ defmodule Credo.Check.Consistency.FileLocation do
       line_no: 1
     )
   end
+
+  defp append_issues_and_timings(_issues, exec) do
+    exec
+  end
 end

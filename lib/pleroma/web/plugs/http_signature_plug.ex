@@ -4,7 +4,7 @@
 
 defmodule Pleroma.Web.Plugs.HTTPSignaturePlug do
   import Plug.Conn
-  import Phoenix.Controller, only: [get_format: 1, text: 2]
+  import Phoenix.Controller, only: [get_format: 1]
   alias Pleroma.Activity
   alias Pleroma.Web.Router
   alias Pleroma.Signature
@@ -22,7 +22,7 @@ defmodule Pleroma.Web.Plugs.HTTPSignaturePlug do
   end
 
   def call(conn, _opts) do
-    if get_format(conn) == "activity+json" do
+    if get_format(conn) in ["json", "activity+json"] do
       conn
       |> maybe_assign_valid_signature()
       |> maybe_require_signature()
@@ -113,18 +113,7 @@ defmodule Pleroma.Web.Plugs.HTTPSignaturePlug do
     conn
   end
 
-  defp maybe_require_signature(%{assigns: %{valid_signature: true}} = conn), do: conn
-
-  defp maybe_require_signature(conn) do
-    if Pleroma.Config.get([:activitypub, :authorized_fetch_mode], false) do
-      conn
-      |> put_status(:unauthorized)
-      |> text("Request not signed")
-      |> halt()
-    else
-      conn
-    end
-  end
+  defp maybe_require_signature(conn), do: conn
 
   defp signature_host(conn) do
     with %{"keyId" => kid} <- HTTPSignatures.signature_for_conn(conn),

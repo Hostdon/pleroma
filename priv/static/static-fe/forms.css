@@ -1,0 +1,158 @@
+form {
+    width: 100%;
+}
+
+.input {
+    color: var(--muted-text-color);
+    display: flex;
+    margin-left: 1em;
+    margin-right: 1em;
+    flex-direction: column;
+}
+
+input {
+    padding: 10px;
+    margin-top: 5px;
+    margin-bottom: 10px;
+    background-color: var(--background-color);
+    color: var(--primary-text-color);
+    border: 0;
+    transition-property: border-bottom;
+    transition-duration: 0.35s;
+    border-bottom: 2px solid #2a384a;
+    font-size: 14px;
+    width: inherit;
+    box-sizing: border-box;
+}
+
+.scopes-input {
+    display: flex;
+    flex-direction: column;
+    margin: 1em 0;
+    color: var(--muted-text-color);
+}
+
+.scopes-input label:first-child {
+    height: 2em;
+}
+
+.scopes {
+    display: flex;
+    flex-wrap: wrap;
+    color: var(--primary-text-color);
+}
+
+.scope {
+    display: flex;
+    flex-basis: 100%;
+    height: 2em;
+    align-items: center;
+}
+
+.scope:before {
+    color: var(--primary-text-color);
+    content: "✔\fe0e";
+    margin-left: 1em;
+    margin-right: 1em;
+}
+
+[type="checkbox"]+label {
+    display: none;
+    cursor: pointer;
+    margin: 0.5em;
+}
+
+[type="checkbox"] {
+    display: none;
+}
+
+[type="checkbox"]+label:before {
+    cursor: pointer;
+    display: inline-block;
+    color: white;
+    background-color: var(--background-color);
+    border: 4px solid var(--background-color);
+    box-shadow: 0px 0px 1px 0 var(--brand-color);
+    width: 1.2em;
+    height: 1.2em;
+    margin-right: 1.0em;
+    content: "";
+    transition-property: background-color;
+    transition-duration: 0.35s;
+    color: var(--background-color);
+    margin-bottom: -0.2em;
+    border-radius: 2px;
+}
+
+[type="checkbox"]:checked+label:before {
+    background-color: var(--brand-color);
+}
+
+a.button,
+button {
+    width: 100%;
+    background-color: #1c2a3a;
+    color: var(--primary-text-color);
+    border-radius: 4px;
+    border: none;
+    padding: 10px 16px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    font-size: 16px;
+    box-shadow: 0px 0px 2px 0px black,
+        0px 1px 0px 0px rgba(255, 255, 255, 0.2) inset,
+        0px -1px 0px 0px rgba(0, 0, 0, 0.2) inset;
+}
+
+a.button:hover,
+button:hover {
+    cursor: pointer;
+    box-shadow: 0px 0px 0px 1px var(--brand-color),
+        0px 1px 0px 0px rgba(255, 255, 255, 0.2) inset,
+        0px -1px 0px 0px rgba(0, 0, 0, 0.2) inset;
+}
+
+.actions {
+    display: flex;
+    flex-grow: 1;
+}
+
+.actions button,
+.actions a.button {
+    width: auto;
+    margin-left: 2%;
+    width: 45%;
+    text-align: center;
+}
+
+.account-header__banner {
+    width: 100%;
+    height: 80px;
+    background-size: cover;
+    background-position: center;
+}
+
+.account-header__avatar {
+    width: 64px;
+    height: 64px;
+    background-size: cover;
+    background-position: center;
+    margin: -60px 10px 10px;
+    border: 6px solid var(--foreground-color);
+    border-radius: 999px;
+}
+
+.account-header__meta {
+    padding: 12px 20px 17px 70px;
+}
+
+.account-header__display-name {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.account-header__nickname {
+    font-size: 14px;
+    color: var(--muted-text-color);
+}

@@ -38,7 +38,8 @@ defmodule Pleroma.Constants do
       "summary",
       "sensitive",
       "attachment",
-      "generator"
+      "generator",
+      "contentMap"
     ]
   )
 

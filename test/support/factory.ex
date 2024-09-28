@@ -47,12 +47,16 @@ defmodule Pleroma.Factory do
 
   def user_factory(attrs \\ %{}) do
     pem = Enum.random(@rsa_keys)
+    # Argon2.hash_pwd_salt("test")
+    # it really eats CPU time, so we use a precomputed hash
+    password_hash =
+      "$argon2id$v=19$m=65536,t=8,p=2$FEAarFuiOsROO24NHIHMYw$oxdaz2fTPpuU+dYCl60FsqE65T1Tjy6lGikKfmql4xo"
 
     user = %User{
       name: sequence(:name, &"Test テスト User #{&1}"),
       email: sequence(:email, &"user#{&1}@example.com"),
       nickname: sequence(:nickname, &"nick#{&1}"),
-      password_hash: Pleroma.Password.Pbkdf2.hash_pwd_salt("test"),
+      password_hash: password_hash,
       bio: sequence(:bio, &"Tester Number #{&1}"),
       is_discoverable: true,
       last_digest_emailed_at: NaiveDateTime.utc_now(),
@@ -554,7 +558,7 @@ defmodule Pleroma.Factory do
     %Pleroma.Web.OAuth.App{
       client_name: sequence(:client_name, &"Some client #{&1}"),
       redirect_uris: "https://example.com/callback",
-      scopes: ["read", "write", "follow", "push", "admin"],
+      scopes: ["read", "write", "follow", "push"],
       website: "https://example.com",
       client_id: Ecto.UUID.generate(),
       client_secret: "aaa;/&bbb"

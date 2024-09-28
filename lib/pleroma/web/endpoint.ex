@@ -13,6 +13,7 @@ defmodule Pleroma.Web.Endpoint do
 
   plug(Pleroma.Web.Plugs.SetLocalePlug)
   plug(CORSPlug)
+  plug(Pleroma.Web.Plugs.CSPNoncePlug)
   plug(Pleroma.Web.Plugs.HTTPSecurityPlug)
   plug(Pleroma.Web.Plugs.UploadedMedia)
 
@@ -123,7 +124,7 @@ defmodule Pleroma.Web.Endpoint do
   plug(Plug.Parsers,
     parsers: [
       :urlencoded,
-      {:multipart, length: {Config, :get, [[:instance, :upload_limit]]}},
+      Pleroma.Web.Plugs.Parsers.Multipart,
       :json
     ],
     pass: ["*/*"],

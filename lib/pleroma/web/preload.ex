@@ -5,7 +5,7 @@
 defmodule Pleroma.Web.Preload do
   alias Phoenix.HTML
 
-  def build_tags(_conn, params) do
+  def build_tags(%{assigns: %{csp_nonce: nonce}}, params) do
     preload_data =
       Enum.reduce(Pleroma.Config.get([__MODULE__, :providers], []), %{}, fn parser, acc ->
         terms =
@@ -20,16 +20,17 @@ defmodule Pleroma.Web.Preload do
     rendered_html =
       preload_data
       |> Jason.encode!()
-      |> build_script_tag()
+      |> build_script_tag(nonce)
       |> HTML.safe_to_string()
 
     rendered_html
   end
 
-  def build_script_tag(content) do
+  def build_script_tag(content, nonce) do
     HTML.Tag.content_tag(:script, HTML.raw(content),
       id: "initial-results",
-      type: "application/json"
+      type: "application/json",
+      nonce: nonce
     )
   end
 end

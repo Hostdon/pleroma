@@ -66,4 +66,11 @@ defmodule Pleroma.HTTP.AdapterHelperTest do
       assert options[:receive_timeout] == 20_000
     end
   end
+
+  describe "pool size settings" do
+    test "should get set" do
+      options = AdapterHelper.add_pool_size([], 50)
+      assert options[:pools][:default][:size] == 50
+    end
+  end
 end

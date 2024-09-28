@@ -262,7 +262,7 @@ defmodule Pleroma.Object.Fetcher do
   def fetch_and_contain_remote_object_from_id(_id),
     do: {:error, "id must be a string"}
 
-  defp get_object(id) do
+  def get_object(id) do
     date = Pleroma.Signature.signed_date()
 
     headers =
@@ -280,6 +280,11 @@ defmodule Pleroma.Object.Fetcher do
 
               {:ok, "application", "ld+json",
                %{"profile" => "https://www.w3.org/ns/activitystreams"}} ->
+                {:ok, body}
+
+              # pixelfed sometimes (and only sometimes) responds with http instead of https
+              {:ok, "application", "ld+json",
+               %{"profile" => "http://www.w3.org/ns/activitystreams"}} ->
                 {:ok, body}
 
               _ ->

@@ -17,7 +17,6 @@ defmodule Pleroma.Web.CommonAPI.Utils do
   alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Web.CommonAPI.ActivityDraft
   alias Pleroma.Web.MediaProxy
-  alias Pleroma.Web.Plugs.AuthenticationPlug
   alias Pleroma.Web.Utils.Params
 
   require Logger
@@ -231,12 +230,13 @@ defmodule Pleroma.Web.CommonAPI.Utils do
     end
   end
 
-  def make_context(_, %Participation{} = participation) do
+  def make_context(%{in_reply_to_conversation: %Participation{} = participation}) do
     Repo.preload(participation, :conversation).conversation.ap_id
   end
 
-  def make_context(%Activity{data: %{"context" => context}}, _), do: context
-  def make_context(_, _), do: Utils.generate_context_id()
+  def make_context(%{in_reply_to: %Activity{data: %{"context" => context}}}), do: context
+  def make_context(%{quote: %Activity{data: %{"context" => context}}}), do: context
+  def make_context(_), do: Utils.generate_context_id()
 
   def maybe_add_attachments(parsed, _attachments, false = _no_links), do: parsed
 
@@ -289,7 +289,7 @@ defmodule Pleroma.Web.CommonAPI.Utils do
 
   def format_input(text, "text/x.misskeymarkdown", options) do
     text
-    |> Formatter.markdown_to_html()
+    |> Formatter.markdown_to_html(%{breaks: true})
     |> MfmParser.Parser.parse()
     |> MfmParser.Encoder.to_html()
     |> Formatter.linkify(options)
@@ -328,20 +328,27 @@ defmodule Pleroma.Web.CommonAPI.Utils do
   end
 
   def to_masto_date(%NaiveDateTime{} = date) do
-    date
-    |> NaiveDateTime.to_iso8601()
-    |> String.replace(~r/(\.\d+)?$/, ".000Z", global: false)
+    # NOTE: Elixir’s ISO 8601 format is a superset of the real standard
+    # It supports negative years for example.
+    # ISO8601 only supports years before 1583 with mutual agreement
+    if date.year < 1583 do
+      "1970-01-01T00:00:00Z"
+    else
+      date
+      |> NaiveDateTime.to_iso8601()
+      |> String.replace(~r/(\.\d+)?$/, ".000Z", global: false)
+    end
   end
 
   def to_masto_date(date) when is_binary(date) do
     with {:ok, date} <- NaiveDateTime.from_iso8601(date) do
       to_masto_date(date)
     else
-      _ -> ""
+      _ -> "1970-01-01T00:00:00Z"
     end
   end
 
-  def to_masto_date(_), do: ""
+  def to_masto_date(_), do: "1970-01-01T00:00:00Z"
 
   defp shortname(name) do
     with max_length when max_length > 0 <-
@@ -356,7 +363,7 @@ defmodule Pleroma.Web.CommonAPI.Utils do
   @spec confirm_current_password(User.t(), String.t()) :: {:ok, User.t()} | {:error, String.t()}
   def confirm_current_password(user, password) do
     with %User{local: true} = db_user <- User.get_cached_by_id(user.id),
-         true <- AuthenticationPlug.checkpw(password, db_user.password_hash) do
+         true <- Pleroma.Password.checkpw(password, db_user.password_hash) do
       {:ok, db_user}
     else
       _ -> {:error, dgettext("errors", "Invalid password.")}

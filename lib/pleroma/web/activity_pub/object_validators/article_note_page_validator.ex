@@ -30,6 +30,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
 
     field(:replies, {:array, ObjectValidators.ObjectID}, default: [])
     field(:source, :map)
+    field(:contentMap, :map)
   end
 
   def cast_and_apply(data) do
@@ -103,9 +104,9 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
     end
   end
 
-  # https://github.com/misskey-dev/misskey/pull/8787
-  # Misskey has an awful tendency to drop all custom formatting when it sends remotely
-  # So this basically reprocesses their MFM source
+  # See https://akkoma.dev/FoundKeyGang/FoundKey/issues/343
+  # Misskey/Foundkey drops some of the custom formatting when it sends remotely
+  # So this basically reprocesses the MFM source
   defp fix_misskey_content(
          %{"source" => %{"mediaType" => "text/x.misskeymarkdown", "content" => content}} = object
        )
@@ -120,6 +121,8 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
     Map.put(object, "content", linked)
   end
 
+  # See https://github.com/misskey-dev/misskey/pull/8787
+  # This is for compatibility with older Misskey instances
   defp fix_misskey_content(%{"_misskey_content" => content} = object) when is_binary(content) do
     mention_handler = fn nick, buffer, opts, acc ->
       remote_mention_resolver(object, nick, buffer, opts, acc)
@@ -146,6 +149,21 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
 
   defp fix_source(object), do: object
 
+  defp fix_content_map_languages(%{"contentMap" => content_map} = object)
+       when is_map(content_map) do
+    # Only allow valid languages
+    content_map =
+      content_map
+      |> Enum.reject(fn {lang, _content} ->
+        !Pleroma.ISO639.valid_alpha2?(lang)
+      end)
+      |> Enum.into(%{})
+
+    Map.put(object, "contentMap", content_map)
+  end
+
+  defp fix_content_map_languages(object), do: object
+
   defp fix(data) do
     data
     |> CommonFixes.fix_actor()
@@ -158,6 +176,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
     |> Transmogrifier.fix_attachments()
     |> Transmogrifier.fix_emoji()
     |> Transmogrifier.fix_content_map()
+    |> fix_content_map_languages()
   end
 
   def changeset(struct, data) do

@@ -5,7 +5,7 @@
 This guide covers a installation using an OTP release. To install Akkoma from source, please check out the corresponding guide for your distro.
 
 ## Pre-requisites
-* A machine running Linux with GNU (e.g. Debian, Ubuntu) or musl (e.g. Alpine) libc and `x86_64`, `aarch64` or `armv7l` CPU, you have root access to. If you are not sure if it's compatible see [Detecting flavour section](#detecting-flavour) below
+* A machine running Linux with GNU (e.g. Debian, Ubuntu) or musl (e.g. Alpine) libc and an `x86_64` CPU you have root access to. If you are not sure if it's compatible see [Detecting flavour section](#detecting-flavour) below
 * For installing OTP releases on RedHat-based distros like Fedora and Centos Stream, please follow [this guide](./otp_redhat_en.md) instead.
 * A (sub)domain pointed to the machine
 
@@ -118,8 +118,8 @@ Restart PostgreSQL to apply configuration changes:
 adduser --system --shell  /bin/false --home /opt/akkoma akkoma
 
 # Set the flavour environment variable to the string you got in Detecting flavour section.
-# For example if the flavour is `amd64-musl` the command will be
-export FLAVOUR="amd64-musl"
+# For example if the flavour is `amd64` the command will be
+export FLAVOUR="amd64"
 
 # Clone the release build into a temporary directory and unpack it
 su akkoma -s $SHELL -lc "

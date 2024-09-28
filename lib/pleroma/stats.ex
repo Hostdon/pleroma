@@ -11,7 +11,7 @@ defmodule Pleroma.Stats do
   alias Pleroma.Repo
   alias Pleroma.User
 
-  @interval :timer.seconds(60)
+  @interval :timer.seconds(300)
 
   def start_link(_) do
     GenServer.start_link(
@@ -85,14 +85,24 @@ defmodule Pleroma.Stats do
         where: not u.invisible
       )
 
+    remote_users_query =
+      from(u in User,
+        where: u.is_active == true,
+        where: u.local == false,
+        where: not is_nil(u.nickname),
+        where: not u.invisible
+      )
+
     user_count = Repo.aggregate(users_query, :count, :id)
+    remote_user_count = Repo.aggregate(remote_users_query, :count, :id)
 
     %{
       peers: peers,
       stats: %{
         domain_count: domain_count,
         status_count: status_count || 0,
-        user_count: user_count
+        user_count: user_count,
+        remote_user_count: remote_user_count
       }
     }
   end

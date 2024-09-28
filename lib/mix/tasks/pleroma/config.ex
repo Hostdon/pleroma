@@ -79,6 +79,45 @@ defmodule Mix.Tasks.Pleroma.Config do
     end)
   end
 
+  def run(["dump_to_file", group, key, fname]) do
+    check_configdb(fn ->
+      start_pleroma()
+
+      group = maybe_atomize(group)
+      key = maybe_atomize(key)
+
+      config = ConfigDB.get_by_group_and_key(group, key)
+
+      json =
+        %{
+          group: ConfigDB.to_json_types(config.group),
+          key: ConfigDB.to_json_types(config.key),
+          value: ConfigDB.to_json_types(config.value)
+        }
+        |> Jason.encode!()
+        |> Jason.Formatter.pretty_print()
+
+      File.write(fname, json)
+      shell_info("Wrote #{group}_#{key}.json")
+    end)
+  end
+
+  def run(["load_from_file", fname]) do
+    check_configdb(fn ->
+      start_pleroma()
+
+      json = File.read!(fname)
+      config = Jason.decode!(json)
+      group = ConfigDB.to_elixir_types(config["group"])
+      key = ConfigDB.to_elixir_types(config["key"])
+      value = ConfigDB.to_elixir_types(config["value"])
+      params = %{group: group, key: key, value: value}
+
+      ConfigDB.update_or_create(params)
+      shell_info("Loaded #{config["group"]}, #{config["key"]}")
+    end)
+  end
+
   def run(["groups"]) do
     check_configdb(fn ->
       start_pleroma()

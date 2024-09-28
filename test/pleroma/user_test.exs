@@ -499,9 +499,6 @@ defmodule Pleroma.UserTest do
       ObanHelpers.perform_all()
 
       Pleroma.Emails.UserEmail.account_confirmation_email(registered_user)
-      # temporary hackney fix until hackney max_connections bug is fixed
-      # https://git.pleroma.social/pleroma/pleroma/-/issues/2101
-      |> Swoosh.Email.put_private(:hackney_options, ssl_options: [versions: [:"tlsv1.2"]])
       |> assert_email_sent()
     end
 
