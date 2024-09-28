@@ -19,6 +19,7 @@
 <link rel='preload' as='script' crossorigin='anonymous' href='/packs/js/features/getting_started.js'>
 <link rel='preload' as='script' crossorigin='anonymous' href='/packs/js/features/compose.js'>
 <link rel='preload' as='script' crossorigin='anonymous' href='/packs/js/features/home_timeline.js'>
+<link rel='preload' as='script' crossorigin='anonymous' href='/packs/js/features/public_timeline.js'>
 <link rel='preload' as='script' crossorigin='anonymous' href='/packs/js/features/notifications.js'>
 <script crossorigin='anonymous' src="/packs/js/application.js"></script>
 

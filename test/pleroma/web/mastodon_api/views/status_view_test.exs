@@ -594,6 +594,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
     represented = StatusView.render("show.json", %{for: user, activity: reblog})
 
     assert represented[:id] == to_string(reblog.id)
+    assert represented[:content] == ""
     assert represented[:reblog][:id] == to_string(activity.id)
     assert represented[:emojis] == []
     assert_schema(represented, "Status", Pleroma.Web.ApiSpec.spec())

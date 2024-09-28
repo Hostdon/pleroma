@@ -21,6 +21,7 @@ defmodule Pleroma.Emoji do
     :named_table,
     {:read_concurrency, true}
   ]
+  @emoji_regex ~r/:[A-Za-z0-9_-]+(@.+)?:/
 
   defstruct [:code, :file, :tags, :safe_code, :safe_file]
 
@@ -205,4 +206,7 @@ defmodule Pleroma.Emoji do
   end
 
   def fully_qualify_emoji(emoji), do: emoji
+
+  def matches_shortcode?(nil), do: false
+  def matches_shortcode?(s), do: Regex.match?(@emoji_regex, s)
 end

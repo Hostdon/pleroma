@@ -73,6 +73,7 @@ pleroma.iml
 
 # Generated documentation
 docs/site
+docs/venv
 
 # docker stuff
 docker-db

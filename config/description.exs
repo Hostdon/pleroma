@@ -790,7 +790,7 @@ config :pleroma, :config_description, [
       %{
         key: :healthcheck,
         type: :boolean,
-        description: "If enabled, system data will be shown on `/api/pleroma/healthcheck`"
+        description: "If enabled, system data will be shown on `/api/v1/pleroma/healthcheck`"
       },
       %{
         key: :remote_post_retention_days,

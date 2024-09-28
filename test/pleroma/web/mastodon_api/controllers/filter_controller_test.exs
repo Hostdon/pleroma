@@ -85,6 +85,40 @@ defmodule Pleroma.Web.MastodonAPI.FilterControllerTest do
 
       assert Repo.aggregate(Filter, :count, :id) == 0
     end
+
+    test "a filter with expires_at", %{conn: conn, user: user} do
+      response =
+        with_mock NaiveDateTime, [:passthrough], utc_now: fn -> ~N[2017-03-17 17:09:58] end do
+          conn
+          |> put_req_header("content-type", "application/json")
+          |> post("/api/v1/filters", %{
+            "phrase" => "bad memes",
+            context: ["home"],
+            expires_at: "2017-03-17T17:19:58.000Z"
+          })
+          |> json_response_and_validate_schema(200)
+        end
+
+      assert response["irreversible"] == false
+
+      assert response["expires_at"] == "2017-03-17T17:19:58.000Z"
+
+      filter = Filter.get(response["id"], user)
+
+      id = filter.id
+
+      assert_enqueued(
+        worker: PurgeExpiredFilter,
+        args: %{filter_id: filter.id}
+      )
+
+      assert {:ok, %{id: ^id}} =
+               perform_job(PurgeExpiredFilter, %{
+                 filter_id: filter.id
+               })
+
+      assert Repo.aggregate(Filter, :count, :id) == 0
+    end
   end
 
   test "fetching a list of filters" do

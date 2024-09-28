@@ -183,7 +183,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
       in_reply_to_id: nil,
       in_reply_to_account_id: nil,
       reblog: reblogged,
-      content: reblogged[:content] || "",
+      content: "",
       created_at: created_at,
       reblogs_count: 0,
       replies_count: 0,
@@ -227,8 +227,10 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
         |> Enum.filter(fn tag -> is_map(tag) and tag["type"] == "Mention" end)
         |> Enum.map(fn tag -> tag["href"] end)
 
+      to_data = if is_nil(object.data["to"]), do: [], else: object.data["to"]
+
       mentions =
-        (object.data["to"] ++ tag_mentions)
+        (to_data ++ tag_mentions)
         |> Enum.uniq()
         |> Enum.map(fn
           Pleroma.Constants.as_public() -> nil

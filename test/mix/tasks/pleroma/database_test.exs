@@ -353,6 +353,186 @@ defmodule Mix.Tasks.Pleroma.DatabaseTest do
 
       assert length(Repo.all(Object)) == 1
     end
+
+    test "We don't have unexpected tables which may contain objects that are referenced by activities" do
+      # We can delete orphaned activities. For that we look for the objects they reference in the 'objects', 'activities', and 'users' table.
+      # If someone adds another table with objects (idk, maybe with separate relations, or collections or w/e), then we need to make sure we 
+      # add logic for that in the 'prune_objects' task so that we don't wrongly delete their corresponding activities.
+      # So when someone adds (or removes) a table, this test will fail.
+      # Either the table contains objects which can be referenced from the activities table
+      # => in that case the prune_objects job should be adapted so we don't delete activities who still have the referenced object.
+      # Or it doesn't contain objects which can be referenced from the activities table
+      # => in that case you can add/remove the table to/from this (sorted) list.
+
+      assert Repo.query!(
+               "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';"
+             ).rows
+             |> Enum.sort() == [
+               ["activities"],
+               ["announcement_read_relationships"],
+               ["announcements"],
+               ["apps"],
+               ["backups"],
+               ["bookmarks"],
+               ["chat_message_references"],
+               ["chats"],
+               ["config"],
+               ["conversation_participation_recipient_ships"],
+               ["conversation_participations"],
+               ["conversations"],
+               ["counter_cache"],
+               ["data_migration_failed_ids"],
+               ["data_migrations"],
+               ["deliveries"],
+               ["filters"],
+               ["following_relationships"],
+               ["hashtags"],
+               ["hashtags_objects"],
+               ["instances"],
+               ["lists"],
+               ["markers"],
+               ["mfa_tokens"],
+               ["moderation_log"],
+               ["notifications"],
+               ["oauth_authorizations"],
+               ["oauth_tokens"],
+               ["oban_jobs"],
+               ["oban_peers"],
+               ["objects"],
+               ["password_reset_tokens"],
+               ["push_subscriptions"],
+               ["registrations"],
+               ["report_notes"],
+               ["scheduled_activities"],
+               ["schema_migrations"],
+               ["thread_mutes"],
+               ["user_follows_hashtag"],
+               ["user_frontend_setting_profiles"],
+               ["user_invite_tokens"],
+               ["user_notes"],
+               ["user_relationships"],
+               ["users"]
+             ]
+    end
+
+    test "it prunes orphaned activities with the --prune-orphaned-activities" do
+      %Object{} |> Map.merge(%{data: %{"id" => "object_for_activity"}}) |> Repo.insert()
+
+      %Activity{}
+      |> Map.merge(%{
+        local: false,
+        data: %{"id" => "remote_activity_with_object", "object" => "object_for_activity"}
+      })
+      |> Repo.insert()
+
+      %Activity{}
+      |> Map.merge(%{
+        local: false,
+        data: %{
+          "id" => "remote_activity_with_activity",
+          "object" => "remote_activity_with_object"
+        }
+      })
+      |> Repo.insert()
+
+      %User{} |> Map.merge(%{ap_id: "actor"}) |> Repo.insert()
+
+      %Activity{}
+      |> Map.merge(%{
+        local: false,
+        data: %{"id" => "remote_activity_with_actor", "object" => "actor"}
+      })
+      |> Repo.insert()
+
+      %Activity{}
+      |> Map.merge(%{
+        local: false,
+        data: %{
+          "id" => "remote_activity_without_existing_referenced_object",
+          "object" => "non_existing"
+        }
+      })
+      |> Repo.insert()
+
+      %Activity{}
+      |> Map.merge(%{
+        local: true,
+        data: %{"id" => "local_activity_with_actor", "object" => "non_existing"}
+      })
+      |> Repo.insert()
+
+      assert length(Repo.all(Activity)) == 5
+      Mix.Tasks.Pleroma.Database.run(["prune_objects"])
+      assert length(Repo.all(Activity)) == 5
+      Mix.Tasks.Pleroma.Database.run(["prune_objects", "--prune-orphaned-activities"])
+      activities = Repo.all(Activity)
+
+      assert "remote_activity_without_existing_referenced_object" not in Enum.map(
+               activities,
+               fn a -> a.data["id"] end
+             )
+
+      assert length(activities) == 4
+    end
+
+    test "it prunes orphaned activities with the --prune-orphaned-activities when the objects are referenced from an array" do
+      %Object{} |> Map.merge(%{data: %{"id" => "existing_object"}}) |> Repo.insert()
+      %User{} |> Map.merge(%{ap_id: "existing_actor"}) |> Repo.insert()
+
+      %Activity{}
+      |> Map.merge(%{
+        local: false,
+        data: %{
+          "id" => "remote_activity_existing_object",
+          "object" => ["non_ existing_object", "existing_object"]
+        }
+      })
+      |> Repo.insert()
+
+      %Activity{}
+      |> Map.merge(%{
+        local: false,
+        data: %{
+          "id" => "remote_activity_existing_actor",
+          "object" => ["non_ existing_object", "existing_actor"]
+        }
+      })
+      |> Repo.insert()
+
+      %Activity{}
+      |> Map.merge(%{
+        local: false,
+        data: %{
+          "id" => "remote_activity_existing_activity",
+          "object" => ["non_ existing_object", "remote_activity_existing_actor"]
+        }
+      })
+      |> Repo.insert()
+
+      %Activity{}
+      |> Map.merge(%{
+        local: false,
+        data: %{
+          "id" => "remote_activity_without_existing_referenced_object",
+          "object" => ["owo", "whats_this"]
+        }
+      })
+      |> Repo.insert()
+
+      assert length(Repo.all(Activity)) == 4
+      Mix.Tasks.Pleroma.Database.run(["prune_objects"])
+      assert length(Repo.all(Activity)) == 4
+      Mix.Tasks.Pleroma.Database.run(["prune_objects", "--prune-orphaned-activities"])
+      activities = Repo.all(Activity)
+      assert length(activities) == 3
+
+      assert "remote_activity_without_existing_referenced_object" not in Enum.map(
+               activities,
+               fn a -> a.data["id"] end
+             )
+
+      assert length(activities) == 3
+    end
   end
 
   describe "running update_users_following_followers_counts" do

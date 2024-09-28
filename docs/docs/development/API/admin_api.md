@@ -2,7 +2,7 @@
 
 Authentication is required and the user must be an admin.
 
-The `/api/v1/pleroma/admin/*` path is backwards compatible with `/api/pleroma/admin/*` (`/api/pleroma/admin/*` will be deprecated in the future).
+Backwards-compatibility for admin API endpoints without version prefixes (`/api/pleroma/admin/*`) has been removed as of Akkoma 3.6.0. Please use `/api/v1/pleroma/admin/*` instead.
 
 ## `GET /api/v1/pleroma/admin/users`
 

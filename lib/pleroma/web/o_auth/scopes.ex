@@ -71,6 +71,8 @@ defmodule Pleroma.Web.OAuth.Scopes do
   """
   def filter_admin_scopes(scopes, %Pleroma.User{is_admin: true}), do: scopes
 
+  def filter_admin_scopes(scopes, %Pleroma.User{is_moderator: true}), do: scopes
+
   def filter_admin_scopes(scopes, _user) do
     drop_scopes = OAuthScopesPlug.filter_descendants(scopes, ["admin"])
     Enum.reject(scopes, fn scope -> Enum.member?(drop_scopes, scope) end)

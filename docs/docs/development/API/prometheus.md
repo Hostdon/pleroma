@@ -5,27 +5,16 @@ Akkoma includes support for exporting metrics via the [prometheus_ex](https://gi
 Config example:
 
 ```
-config :prometheus, Pleroma.Web.Endpoint.MetricsExporter,
-  enabled: true,
-  auth: {:basic, "myusername", "mypassword"},
-  ip_whitelist: ["127.0.0.1"],
-  path: "/api/pleroma/app_metrics",
-  format: :text
+config :pleroma, :instance,
+  export_prometheus_metrics: true
 ```
 
-* `enabled` (Akkoma extension) enables the endpoint
-* `ip_whitelist` (Akkoma extension) could be used to restrict access only to specified IPs
-* `auth` sets the authentication (`false` for no auth; configurable to HTTP Basic Auth, see [prometheus-plugs](https://github.com/deadtrickster/prometheus-plugs#exporting) documentation)
-* `format` sets the output format (`:text` or `:protobuf`)
-* `path` sets the path to app metrics page 
-
-
-## `/api/pleroma/app_metrics`
+## `/api/v1/akkoma/metrics`
 
 ### Exports Prometheus application metrics
 
 * Method: `GET`
-* Authentication: not required by default (see configuration options above)
+* Authentication: required
 * Params: none
 * Response: text
 
@@ -37,7 +26,7 @@ The following is a config example to use with [Grafana](https://grafana.com)
 
 ```
   - job_name: 'beam'
-    metrics_path: /api/pleroma/app_metrics
+    metrics_path: /api/v1/akkoma/metrics
     scheme: https
     static_configs:
     - targets: ['otp.akkoma.dev']

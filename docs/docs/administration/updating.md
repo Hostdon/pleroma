@@ -26,11 +26,11 @@ su -s "$SHELL" akkoma
 # Run database migrations
 ./bin/pleroma_ctl migrate
 
-# Update Pleroma-FE frontend to latest stable. For other Frontends see Frontend Configration doc for more information.
-./bin/pleroma_ctl frontend install pleroma-fe --ref stable
-
 # Start akkoma
 ./bin/pleroma daemon # or using the system service manager (e.g. systemctl start akkoma)
+
+# Update frontend(s). See Frontend Configuration doc for more information.
+./bin/pleroma_ctl frontend install pleroma-fe --ref stable
 ```
 
 If you selected an alternate flavour on installation, 
@@ -59,9 +59,9 @@ sudo systemctl stop akkoma
 # Run database migrations
 mix ecto.migrate
 
-# Update Pleroma-FE frontend to latest stable. For other Frontends see Frontend Configration doc for more information.
-mix pleroma.frontend install pleroma-fe --ref stable
-
 # Start akkoma (replace with your system service manager's equivalent if different)
 sudo systemctl start akkoma
+
+# Update Pleroma-FE frontend to latest stable. For other Frontends see Frontend Configuration doc for more information.
+mix pleroma.frontend install pleroma-fe --ref stable
 ```

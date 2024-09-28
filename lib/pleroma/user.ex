@@ -2077,10 +2077,14 @@ defmodule Pleroma.User do
     # TODO: get profile URLs other than user.ap_id
     profile_urls = [user.ap_id]
 
-    bio
-    |> CommonUtils.format_input("text/plain",
+    CommonUtils.format_input(bio, "text/plain",
       mentions_format: :full,
-      rel: &RelMe.maybe_put_rel_me(&1, profile_urls)
+      rel: fn link ->
+        case RelMe.maybe_put_rel_me(link, profile_urls) do
+          "me" -> "me"
+          _ -> nil
+        end
+      end
     )
     |> elem(0)
   end

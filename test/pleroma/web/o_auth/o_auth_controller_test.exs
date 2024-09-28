@@ -729,6 +729,42 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
     end
 
     test "redirects with oauth authorization, " <>
+           "granting requested app-supported scopes to moderators" do
+      app_scopes = ["read", "write", "admin", "secret_scope"]
+      app = insert(:oauth_app, scopes: app_scopes)
+      redirect_uri = OAuthController.default_redirect_uri(app)
+      scopes_subset = ["read:subscope", "write", "admin"]
+      admin = insert(:user, is_moderator: true)
+
+      # In case scope param is missing, expecting _all_ app-supported scopes to be granted
+      conn =
+        post(
+          build_conn(),
+          "/oauth/authorize",
+          %{
+            "authorization" => %{
+              "name" => admin.nickname,
+              "password" => "test",
+              "client_id" => app.client_id,
+              "redirect_uri" => redirect_uri,
+              "scope" => scopes_subset,
+              "state" => "statepassed"
+            }
+          }
+        )
+
+      target = redirected_to(conn)
+      assert target =~ redirect_uri
+
+      query = URI.parse(target).query |> URI.query_decoder() |> Map.new()
+
+      assert %{"state" => "statepassed", "code" => code} = query
+      auth = Repo.get_by(Authorization, token: code)
+      assert auth
+      assert auth.scopes == scopes_subset
+    end
+
+    test "redirects with oauth authorization, " <>
            "granting requested app-supported scopes for non-admin users" do
       app_scopes = ["read", "write", "secret_scope", "admin"]
       app = insert(:oauth_app, scopes: app_scopes)

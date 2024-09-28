@@ -104,9 +104,9 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
     end
   end
 
-  # https://github.com/misskey-dev/misskey/pull/8787
-  # Misskey has an awful tendency to drop all custom formatting when it sends remotely
-  # So this basically reprocesses their MFM source
+  # See https://akkoma.dev/FoundKeyGang/FoundKey/issues/343
+  # Misskey/Foundkey drops some of the custom formatting when it sends remotely
+  # So this basically reprocesses the MFM source
   defp fix_misskey_content(
          %{"source" => %{"mediaType" => "text/x.misskeymarkdown", "content" => content}} = object
        )
@@ -121,6 +121,8 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
     Map.put(object, "content", linked)
   end
 
+  # See https://github.com/misskey-dev/misskey/pull/8787
+  # This is for compatibility with older Misskey instances
   defp fix_misskey_content(%{"_misskey_content" => content} = object) when is_binary(content) do
     mention_handler = fn nick, buffer, opts, acc ->
       remote_mention_resolver(object, nick, buffer, opts, acc)

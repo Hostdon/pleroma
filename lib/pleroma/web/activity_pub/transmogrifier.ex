@@ -419,28 +419,19 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   def handle_incoming(
         %{
           "type" => "Like",
-          "_misskey_reaction" => reaction,
-          "tag" => _
+          "content" => reaction
         } = data,
         options
       ) do
-    data
-    |> Map.put("type", "EmojiReact")
-    |> Map.put("content", reaction)
-    |> handle_incoming(options)
-  end
-
-  def handle_incoming(
-        %{
-          "type" => "Like",
-          "_misskey_reaction" => reaction
-        } = data,
-        options
-      ) do
-    data
-    |> Map.put("type", "EmojiReact")
-    |> Map.put("content", reaction)
-    |> handle_incoming(options)
+    if Pleroma.Emoji.is_unicode_emoji?(reaction) || Pleroma.Emoji.matches_shortcode?(reaction) do
+      data
+      |> Map.put("type", "EmojiReact")
+      |> handle_incoming(options)
+    else
+      data
+      |> Map.delete("content")
+      |> handle_incoming(options)
+    end
   end
 
   def handle_incoming(

@@ -37,15 +37,18 @@ defmodule Pleroma.Web.RelMe do
   end
 
   def maybe_put_rel_me("http" <> _ = target_page, profile_urls) when is_list(profile_urls) do
-    {:ok, rel_me_hrefs} = parse(target_page)
-    true = Enum.any?(rel_me_hrefs, fn x -> x in profile_urls end)
-
-    "me"
+    with {:parse, {:ok, rel_me_hrefs}} <- {:parse, parse(target_page)},
+         {:link_match, true} <-
+           {:link_match, Enum.any?(rel_me_hrefs, fn x -> x in profile_urls end)} do
+      "me"
+    else
+      e -> {:error, {:could_not_verify, target_page, e}}
+    end
   rescue
-    _ -> nil
+    e -> {:error, {:could_not_fetch, target_page, e}}
   end
 
   def maybe_put_rel_me(_, _) do
-    nil
+    {:error, :invalid_url}
   end
 end
