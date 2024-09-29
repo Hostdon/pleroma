@@ -78,3 +78,4 @@ docs/venv
 # docker stuff
 docker-db
 *.iml
+docker-compose.override.yml

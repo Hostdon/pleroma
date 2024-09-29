@@ -4,7 +4,8 @@
 
 defmodule Pleroma.Web.ActivityPub.SideEffectsTest do
   use Oban.Testing, repo: Pleroma.Repo
-  use Pleroma.DataCase
+  use Pleroma.DataCase, async: false
+  @moduletag :mocked
 
   alias Pleroma.Activity
   alias Pleroma.Notification
@@ -154,7 +155,13 @@ defmodule Pleroma.Web.ActivityPub.SideEffectsTest do
       user = insert(:user, local: false)
 
       {:ok, update_data, []} =
-        Builder.update(user, %{"id" => user.ap_id, "type" => "Person", "name" => "new name!"})
+        Builder.update(user, %{
+          "id" => user.ap_id,
+          "type" => "Person",
+          "name" => "new name!",
+          "icon" => %{"type" => "Image", "url" => "https://example.org/icon.png"},
+          "backgroundUrl" => %{"type" => "Image", "url" => "https://example.org/bg.jxl"}
+        })
 
       {:ok, update, _meta} = ActivityPub.persist(update_data, local: true)
 
@@ -164,7 +171,10 @@ defmodule Pleroma.Web.ActivityPub.SideEffectsTest do
     test "it updates the user", %{user: user, update: update} do
       {:ok, _, _} = SideEffects.handle(update)
       user = User.get_by_id(user.id)
+
       assert user.name == "new name!"
+      assert [%{"href" => "https://example.org/icon.png"}] = user.avatar["url"]
+      assert [%{"href" => "https://example.org/bg.jxl"}] = user.background["url"]
     end
 
     test "it uses a given changeset to update", %{user: user, update: update} do
@@ -512,10 +522,12 @@ defmodule Pleroma.Web.ActivityPub.SideEffectsTest do
     test "enqueues the poll end", %{activity: activity, meta: meta} do
       {:ok, activity, meta} = SideEffects.handle(activity, meta)
 
+      {:ok, time, _} = DateTime.from_iso8601(meta[:object_data]["closed"])
+
       assert_enqueued(
         worker: Pleroma.Workers.PollWorker,
         args: %{op: "poll_end", activity_id: activity.id},
-        scheduled_at: NaiveDateTime.from_iso8601!(meta[:object_data]["closed"])
+        scheduled_at: time
       )
     end
   end
@@ -732,9 +744,7 @@ defmodule Pleroma.Web.ActivityPub.SideEffectsTest do
       ]) do
         {:ok, announce, _} = SideEffects.handle(announce)
 
-        assert called(
-                 Pleroma.Web.Streamer.stream(["user", "list", "public", "public:local"], announce)
-               )
+        assert called(Pleroma.Web.Streamer.stream(["user", "list"], announce))
 
         assert called(Pleroma.Web.Push.send(:_))
       end

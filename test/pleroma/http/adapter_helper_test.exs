@@ -49,20 +49,20 @@ defmodule Pleroma.HTTP.AdapterHelperTest do
 
   describe "timeout settings" do
     test "should default to 5000/15000" do
-      options = AdapterHelper.options(%URI{host: 'somewhere'})
+      options = AdapterHelper.options(%URI{host: ~c"somewhere"})
       assert options[:pool_timeout] == 5000
       assert options[:receive_timeout] == 15_000
     end
 
     test "pool_timeout should be overridden by :http, :pool_timeout" do
       clear_config([:http, :pool_timeout], 10_000)
-      options = AdapterHelper.options(%URI{host: 'somewhere'})
+      options = AdapterHelper.options(%URI{host: ~c"somewhere"})
       assert options[:pool_timeout] == 10_000
     end
 
     test "receive_timeout should be overridden by :http, :receive_timeout" do
       clear_config([:http, :receive_timeout], 20_000)
-      options = AdapterHelper.options(%URI{host: 'somewhere'})
+      options = AdapterHelper.options(%URI{host: ~c"somewhere"})
       assert options[:receive_timeout] == 20_000
     end
   end

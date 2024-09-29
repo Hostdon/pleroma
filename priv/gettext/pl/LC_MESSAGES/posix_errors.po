@@ -1,0 +1,161 @@
+## "msgid"s in this file come from POT (.pot) files.
+###
+### Do not add, change, or remove "msgid"s manually here as
+### they're tied to the ones in the corresponding POT file
+### (with the same domain).
+###
+### Use "mix gettext.extract --merge" or "mix gettext.merge"
+### to merge POT files into PO files.
+msgid ""
+msgstr ""
+"PO-Revision-Date: 2023-10-09 18:53+0000\n"
+"Last-Translator: subtype <subtype@hollow.capital>\n"
+"Language-Team: Polish <http://translate.akkoma.dev/projects/akkoma/"
+"akkoma-backend-posix-errors/pl/>\n"
+"Language: pl\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Plural-Forms: nplurals=3; plural=n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
+"|| n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 4.18.2\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "eperm"
+msgstr "Operacja niedozwolona"
+
+msgid "eacces"
+msgstr "Brak dostępu"
+
+msgid "eagain"
+msgstr "Zasoby chwilowo niedostępne"
+
+msgid "ebadf"
+msgstr "Błędny deskryptor pliku"
+
+msgid "ebadmsg"
+msgstr "Błędny komunikat"
+
+msgid "ebusy"
+msgstr "Urządzenie lub zasoby zajęte"
+
+msgid "edeadlk"
+msgstr "Uniknięto zakleszczenia zasobów"
+
+msgid "edeadlock"
+msgstr "Uniknięto zakleszczenia zasobów"
+
+msgid "edquot"
+msgstr "Przekroczony limit dyskowy"
+
+msgid "eexist"
+msgstr "Plik istnieje"
+
+msgid "efault"
+msgstr "Błędny adres"
+
+msgid "efbig"
+msgstr "Plik zbyt duży"
+
+msgid "eftype"
+msgstr "Niewłaściwy typ pliku"
+
+msgid "eintr"
+msgstr "Przerwane wywołanie systemowe"
+
+msgid "einval"
+msgstr "Zły argument"
+
+msgid "eio"
+msgstr "Błąd wejścia/wyjścia"
+
+msgid "eisdir"
+msgstr "Jest katalogiem"
+
+msgid "eloop"
+msgstr "Za duże zagnieżdżenie dowiązań symbolicznych"
+
+msgid "emfile"
+msgstr "Za dużo otwartych plików"
+
+msgid "emlink"
+msgstr "Za dużo dowiązań"
+
+msgid "emultihop"
+msgstr "Multihop attempted"
+
+msgid "enametoolong"
+msgstr "Za długa nazwa pliku"
+
+msgid "enfile"
+msgstr "Za dużo otwartych plików w systemie"
+
+msgid "enobufs"
+msgstr "Brak miejsca w buforze"
+
+msgid "enodev"
+msgstr "Nie ma takiego urządzenia"
+
+msgid "enolck"
+msgstr "Brak dostępnych blokad"
+
+msgid "enolink"
+msgstr "Połączenie zostało przerwane"
+
+msgid "enoent"
+msgstr "Nie ma takiego pliku ani katalogu"
+
+msgid "enomem"
+msgstr "Nie można przydzielić pamięci"
+
+msgid "enospc"
+msgstr "Brak miejsca na urządzeniu"
+
+msgid "enosr"
+msgstr "Brak dodatkowych strumieni"
+
+msgid "enostr"
+msgstr "Nie jest strumieniem"
+
+msgid "enosys"
+msgstr "Niezaimplementowana funkcja"
+
+msgid "enotblk"
+msgstr "Wymagane urządzenie blokowe"
+
+msgid "enotdir"
+msgstr "Nie jest katalogiem"
+
+msgid "enotsup"
+msgstr "Operacja nieobsługiwana"
+
+msgid "enxio"
+msgstr "Nie ma takiego urządzenia ani adresu"
+
+msgid "eopnotsupp"
+msgstr "Operacja na gnieździe nieobsługiwana"
+
+msgid "eoverflow"
+msgstr "Wartość za duża dla zdefiniowanego typu danych"
+
+msgid "epipe"
+msgstr "Przerwany potok"
+
+msgid "erange"
+msgstr "Za duży wynik"
+
+msgid "erofs"
+msgstr "System plików wyłącznie do odczytu"
+
+msgid "espipe"
+msgstr "Błędne przesunięcie"
+
+msgid "esrch"
+msgstr "Nie ma takiego procesu"
+
+msgid "estale"
+msgstr "Nieaktualny uchwyt pliku"
+
+msgid "etxtbsy"
+msgstr "Plik tekstowy zajęty"
+
+msgid "exdev"
+msgstr "Niepoprawne dowiązanie"

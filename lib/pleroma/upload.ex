@@ -13,7 +13,6 @@ defmodule Pleroma.Upload do
   * `:uploader`: override uploader
   * `:filters`: override filters
   * `:size_limit`: override size limit
-  * `:activity_type`: override activity type
 
   The `%Pleroma.Upload{}` struct: all documented fields are meant to be overwritten in filters:
 
@@ -48,7 +47,6 @@ defmodule Pleroma.Upload do
   @type option ::
           {:type, :avatar | :banner | :background}
           | {:description, String.t()}
-          | {:activity_type, String.t()}
           | {:size_limit, nil | non_neg_integer()}
           | {:uploader, module()}
           | {:filters, [module()]}
@@ -61,18 +59,23 @@ defmodule Pleroma.Upload do
           width: integer(),
           height: integer(),
           blurhash: String.t(),
+          description: String.t(),
           path: String.t()
         }
-  defstruct [:id, :name, :tempfile, :content_type, :width, :height, :blurhash, :path]
 
-  defp get_description(opts, upload) do
-    case {opts[:description], Pleroma.Config.get([Pleroma.Upload, :default_description])} do
-      {description, _} when is_binary(description) -> description
-      {_, :filename} -> upload.name
-      {_, str} when is_binary(str) -> str
-      _ -> ""
-    end
-  end
+  @always_enabled_filters [Pleroma.Upload.Filter.Dedupe]
+
+  defstruct [
+    :id,
+    :name,
+    :tempfile,
+    :content_type,
+    :width,
+    :height,
+    :blurhash,
+    :description,
+    :path
+  ]
 
   @spec store(source, options :: [option()]) :: {:ok, Map.t()} | {:error, any()}
   @doc "Store a file. If using a `Plug.Upload{}` as the source, be sure to use `Majic.Plug` to ensure its content_type and filename is correct."
@@ -82,7 +85,7 @@ defmodule Pleroma.Upload do
     with {:ok, upload} <- prepare_upload(upload, opts),
          upload = %__MODULE__{upload | path: upload.path || "#{upload.id}/#{upload.name}"},
          {:ok, upload} <- Pleroma.Upload.Filter.filter(opts.filters, upload),
-         description = get_description(opts, upload),
+         description = Map.get(upload, :description) || "",
          {_, true} <-
            {:description_limit,
             String.length(description) <= Pleroma.Config.get([:instance, :description_limit])},
@@ -138,10 +141,14 @@ defmodule Pleroma.Upload do
       end
 
     %{
-      activity_type: Keyword.get(opts, :activity_type, activity_type),
+      activity_type: activity_type,
       size_limit: Keyword.get(opts, :size_limit, size_limit),
       uploader: Keyword.get(opts, :uploader, Pleroma.Config.get([__MODULE__, :uploader])),
-      filters: Keyword.get(opts, :filters, Pleroma.Config.get([__MODULE__, :filters])),
+      filters:
+        Enum.uniq(
+          Keyword.get(opts, :filters, Pleroma.Config.get([__MODULE__, :filters])) ++
+            @always_enabled_filters
+        ),
       description: Keyword.get(opts, :description),
       base_url: base_url()
     }
@@ -154,7 +161,8 @@ defmodule Pleroma.Upload do
          id: UUID.generate(),
          name: file.filename,
          tempfile: file.path,
-         content_type: file.content_type
+         content_type: file.content_type,
+         description: opts.description
        }}
     end
   end
@@ -174,7 +182,8 @@ defmodule Pleroma.Upload do
          id: UUID.generate(),
          name: hash <> "." <> ext,
          tempfile: tmp_path,
-         content_type: content_type
+         content_type: content_type,
+         description: opts.description
        }}
     end
   end
@@ -237,7 +246,7 @@ defmodule Pleroma.Upload do
 
     case uploader do
       Pleroma.Uploaders.Local ->
-        upload_base_url || Pleroma.Web.Endpoint.url() <> "/media/"
+        upload_base_url
 
       Pleroma.Uploaders.S3 ->
         bucket = Config.get([Pleroma.Uploaders.S3, :bucket])
@@ -263,7 +272,7 @@ defmodule Pleroma.Upload do
         end
 
       _ ->
-        public_endpoint || upload_base_url || Pleroma.Web.Endpoint.url() <> "/media/"
+        public_endpoint || upload_base_url
     end
   end
 end

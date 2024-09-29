@@ -6,6 +6,7 @@ defmodule Pleroma.Emoji.PackTest do
   use Pleroma.DataCase, async: false
   alias Pleroma.Emoji.Pack
 
+  @static_dir Pleroma.Config.get!([:instance, :static_dir])
   @emoji_path Path.join(
                 Pleroma.Config.get!([:instance, :static_dir]),
                 "emoji"
@@ -13,7 +14,8 @@ defmodule Pleroma.Emoji.PackTest do
 
   setup do
     pack_path = Path.join(@emoji_path, "dump_pack")
-    File.mkdir(pack_path)
+    File.mkdir_p!(pack_path)
+    clear_config([:instance, :static_dir], @static_dir)
 
     File.write!(Path.join(pack_path, "pack.json"), """
     {
@@ -34,7 +36,7 @@ defmodule Pleroma.Emoji.PackTest do
   end
 
   describe "add_file/4" do
-    test "add emojies from zip file", %{pack: pack} do
+    test "add emojis from zip file", %{pack: pack} do
       file = %Plug.Upload{
         content_type: "application/zip",
         filename: "emojis.zip",
@@ -89,5 +91,11 @@ defmodule Pleroma.Emoji.PackTest do
            }
 
     assert updated_pack.files_count == 1
+  end
+
+  test "load_pack/1 panics on path traversal in a forged pack name" do
+    assert_raise(RuntimeError, "Invalid or malicious pack name: ../../../../../dump_pack", fn ->
+      Pack.load_pack("../../../../../dump_pack")
+    end)
   end
 end

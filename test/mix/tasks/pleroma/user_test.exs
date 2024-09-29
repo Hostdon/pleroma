@@ -13,8 +13,9 @@ defmodule Mix.Tasks.Pleroma.UserTest do
   alias Pleroma.Web.OAuth.Authorization
   alias Pleroma.Web.OAuth.Token
 
-  use Pleroma.DataCase
+  use Pleroma.DataCase, async: false
   use Oban.Testing, repo: Pleroma.Repo
+  @moduletag :mocked
 
   import ExUnit.CaptureIO
   import Mock
@@ -52,13 +53,13 @@ defmodule Mix.Tasks.Pleroma.UserTest do
         "--admin"
       ])
 
-      assert_received {:mix_shell, :info, [message]}
+      assert_receive {:mix_shell, :info, [message]}
       assert message =~ "user will be created"
 
-      assert_received {:mix_shell, :prompt, [message]}
+      assert_receive {:mix_shell, :prompt, [message]}
       assert message =~ "Continue"
 
-      assert_received {:mix_shell, :info, [message]}
+      assert_receive {:mix_shell, :info, [message]}
       assert message =~ "created"
 
       user = User.get_cached_by_nickname(unsaved.nickname)
@@ -77,13 +78,13 @@ defmodule Mix.Tasks.Pleroma.UserTest do
 
       Mix.Tasks.Pleroma.User.run(["new", unsaved.nickname, unsaved.email])
 
-      assert_received {:mix_shell, :info, [message]}
+      assert_receive {:mix_shell, :info, [message]}
       assert message =~ "user will be created"
 
-      assert_received {:mix_shell, :prompt, [message]}
+      assert_receive {:mix_shell, :prompt, [message]}
       assert message =~ "Continue"
 
-      assert_received {:mix_shell, :info, [message]}
+      assert_receive {:mix_shell, :info, [message]}
       assert message =~ "will not be created"
 
       refute User.get_cached_by_nickname(unsaved.nickname)
@@ -100,7 +101,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
         Mix.Tasks.Pleroma.User.run(["rm", user.nickname])
         ObanHelpers.perform_all()
 
-        assert_received {:mix_shell, :info, [message]}
+        assert_receive {:mix_shell, :info, [message]}
         assert message =~ " deleted"
         assert %{is_active: false} = User.get_by_nickname(user.nickname)
 
@@ -138,7 +139,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
         Mix.Tasks.Pleroma.User.run(["rm", user.nickname])
         ObanHelpers.perform_all()
 
-        assert_received {:mix_shell, :info, [message]}
+        assert_receive {:mix_shell, :info, [message]}
         assert message =~ " deleted"
         assert %{is_active: false} = User.get_by_nickname(user.nickname)
 
@@ -152,7 +153,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
     test "no user to delete" do
       Mix.Tasks.Pleroma.User.run(["rm", "nonexistent"])
 
-      assert_received {:mix_shell, :error, [message]}
+      assert_receive {:mix_shell, :error, [message]}
       assert message =~ "No local user"
     end
   end
@@ -169,7 +170,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
       Mix.Tasks.Pleroma.User.run(["deactivate", user.nickname])
 
       # Note that the task has delay :timer.sleep(500)
-      assert_received {:mix_shell, :info, [message]}
+      assert_receive {:mix_shell, :info, [message]}
 
       assert message ==
                "Successfully deactivated #{user.nickname} and unsubscribed all local followers"
@@ -183,7 +184,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
       %{id: id, nickname: nickname} = insert(:user, is_active: false)
 
       assert :ok = Mix.Tasks.Pleroma.User.run(["deactivate", nickname])
-      assert_received {:mix_shell, :info, [message]}
+      assert_receive {:mix_shell, :info, [message]}
       assert message == "User #{nickname} already deactivated"
 
       user = Repo.get(User, id)
@@ -193,7 +194,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
     test "no user to deactivate" do
       Mix.Tasks.Pleroma.User.run(["deactivate", "nonexistent"])
 
-      assert_received {:mix_shell, :error, [message]}
+      assert_receive {:mix_shell, :error, [message]}
       assert message =~ "No user"
     end
   end
@@ -211,16 +212,16 @@ defmodule Mix.Tasks.Pleroma.UserTest do
         "--moderator"
       ])
 
-      assert_received {:mix_shell, :info, [message]}
+      assert_receive {:mix_shell, :info, [message]}
       assert message =~ ~r/Admin status .* true/
 
-      assert_received {:mix_shell, :info, [message]}
+      assert_receive {:mix_shell, :info, [message]}
       assert message =~ ~r/Confirmation status.* true/
 
-      assert_received {:mix_shell, :info, [message]}
+      assert_receive {:mix_shell, :info, [message]}
       assert message =~ ~r/Locked status .* true/
 
-      assert_received {:mix_shell, :info, [message]}
+      assert_receive {:mix_shell, :info, [message]}
       assert message =~ ~r/Moderator status .* true/
 
       user = User.get_cached_by_nickname(user.nickname)
@@ -248,16 +249,16 @@ defmodule Mix.Tasks.Pleroma.UserTest do
         "--no-moderator"
       ])
 
-      assert_received {:mix_shell, :info, [message]}
+      assert_receive {:mix_shell, :info, [message]}
       assert message =~ ~r/Admin status .* false/
 
-      assert_received {:mix_shell, :info, [message]}
+      assert_receive {:mix_shell, :info, [message]}
       assert message =~ ~r/Confirmation status.* false/
 
-      assert_received {:mix_shell, :info, [message]}
+      assert_receive {:mix_shell, :info, [message]}
       assert message =~ ~r/Locked status .* false/
 
-      assert_received {:mix_shell, :info, [message]}
+      assert_receive {:mix_shell, :info, [message]}
       assert message =~ ~r/Moderator status .* false/
 
       user = User.get_cached_by_nickname(user.nickname)
@@ -270,7 +271,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
     test "no user to set status" do
       Mix.Tasks.Pleroma.User.run(["set", "nonexistent", "--moderator"])
 
-      assert_received {:mix_shell, :error, [message]}
+      assert_receive {:mix_shell, :error, [message]}
       assert message =~ "No local user"
     end
   end
@@ -283,14 +284,14 @@ defmodule Mix.Tasks.Pleroma.UserTest do
                Mix.Tasks.Pleroma.User.run(["reset_password", user.nickname])
              end) =~ "URL:"
 
-      assert_received {:mix_shell, :info, [message]}
+      assert_receive {:mix_shell, :info, [message]}
       assert message =~ "Generated"
     end
 
     test "no user to reset password" do
       Mix.Tasks.Pleroma.User.run(["reset_password", "nonexistent"])
 
-      assert_received {:mix_shell, :error, [message]}
+      assert_receive {:mix_shell, :error, [message]}
       assert message =~ "No local user"
     end
   end
@@ -307,7 +308,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
 
       Mix.Tasks.Pleroma.User.run(["reset_mfa", user.nickname])
 
-      assert_received {:mix_shell, :info, [message]}
+      assert_receive {:mix_shell, :info, [message]}
       assert message == "Multi-Factor Authentication disabled for #{user.nickname}"
 
       assert %{enabled: false, totp: false} ==
@@ -319,7 +320,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
     test "no user to reset MFA" do
       Mix.Tasks.Pleroma.User.run(["reset_password", "nonexistent"])
 
-      assert_received {:mix_shell, :error, [message]}
+      assert_receive {:mix_shell, :error, [message]}
       assert message =~ "No local user"
     end
   end
@@ -330,7 +331,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
                Mix.Tasks.Pleroma.User.run(["invite"])
              end) =~ "http"
 
-      assert_received {:mix_shell, :info, [message]}
+      assert_receive {:mix_shell, :info, [message]}
       assert message =~ "Generated user invite token one time"
     end
 
@@ -343,7 +344,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
                ])
              end)
 
-      assert_received {:mix_shell, :info, [message]}
+      assert_receive {:mix_shell, :info, [message]}
       assert message =~ "Generated user invite token date limited"
     end
 
@@ -356,7 +357,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
                ])
              end)
 
-      assert_received {:mix_shell, :info, [message]}
+      assert_receive {:mix_shell, :info, [message]}
       assert message =~ "Generated user invite token reusable"
     end
 
@@ -371,7 +372,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
                ])
              end)
 
-      assert_received {:mix_shell, :info, [message]}
+      assert_receive {:mix_shell, :info, [message]}
       assert message =~ "Generated user invite token reusable date limited"
     end
   end
@@ -390,9 +391,9 @@ defmodule Mix.Tasks.Pleroma.UserTest do
 
       #  end)
 
-      assert_received {:mix_shell, :info, [message]}
-      assert_received {:mix_shell, :info, [message2]}
-      assert_received {:mix_shell, :info, [message3]}
+      assert_receive {:mix_shell, :info, [message]}
+      assert_receive {:mix_shell, :info, [message2]}
+      assert_receive {:mix_shell, :info, [message3]}
       assert message =~ "Invites list:"
       assert message2 =~ invite.invite_type
       assert message3 =~ invite2.invite_type
@@ -410,7 +411,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
                ])
              end)
 
-      assert_received {:mix_shell, :info, [message]}
+      assert_receive {:mix_shell, :info, [message]}
       assert message =~ "Invite for token #{invite.token} was revoked."
     end
   end
@@ -420,14 +421,14 @@ defmodule Mix.Tasks.Pleroma.UserTest do
       %{nickname: nickname} = insert(:user)
 
       assert :ok == Mix.Tasks.Pleroma.User.run(["delete_activities", nickname])
-      assert_received {:mix_shell, :info, [message]}
+      assert_receive {:mix_shell, :info, [message]}
       assert message == "User #{nickname} statuses deleted."
     end
 
     test "it prints an error message when user is not exist" do
       Mix.Tasks.Pleroma.User.run(["delete_activities", "foo"])
 
-      assert_received {:mix_shell, :error, [message]}
+      assert_receive {:mix_shell, :error, [message]}
       assert message =~ "No local user"
     end
   end
@@ -437,7 +438,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
       %{id: id, nickname: nickname} = insert(:user, is_confirmed: true)
 
       assert :ok = Mix.Tasks.Pleroma.User.run(["confirm", nickname])
-      assert_received {:mix_shell, :info, [message]}
+      assert_receive {:mix_shell, :info, [message]}
       assert message == "#{nickname} doesn't need confirmation."
 
       user = Repo.get(User, id)
@@ -450,7 +451,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
         insert(:user, is_confirmed: false, confirmation_token: "some token")
 
       assert :ok = Mix.Tasks.Pleroma.User.run(["confirm", nickname])
-      assert_received {:mix_shell, :info, [message]}
+      assert_receive {:mix_shell, :info, [message]}
       assert message == "#{nickname} doesn't need confirmation."
 
       user = Repo.get(User, id)
@@ -461,7 +462,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
     test "it prints an error message when user is not exist" do
       Mix.Tasks.Pleroma.User.run(["confirm", "foo"])
 
-      assert_received {:mix_shell, :error, [message]}
+      assert_receive {:mix_shell, :error, [message]}
       assert message =~ "No local user"
     end
   end
@@ -471,7 +472,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
       %{id: id, nickname: nickname} = insert(:user, is_active: true)
 
       assert :ok = Mix.Tasks.Pleroma.User.run(["activate", nickname])
-      assert_received {:mix_shell, :info, [message]}
+      assert_receive {:mix_shell, :info, [message]}
       assert message == "User #{nickname} already activated"
 
       user = Repo.get(User, id)
@@ -482,7 +483,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
       %{id: id, nickname: nickname} = insert(:user, is_active: false)
 
       assert :ok = Mix.Tasks.Pleroma.User.run(["activate", nickname])
-      assert_received {:mix_shell, :info, [message]}
+      assert_receive {:mix_shell, :info, [message]}
       assert message == "Successfully activated #{nickname}"
 
       user = Repo.get(User, id)
@@ -492,7 +493,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
     test "no user to activate" do
       Mix.Tasks.Pleroma.User.run(["activate", "foo"])
 
-      assert_received {:mix_shell, :error, [message]}
+      assert_receive {:mix_shell, :error, [message]}
       assert message =~ "No user"
     end
   end
@@ -536,7 +537,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
     test "it prints an error message when user is not exist" do
       Mix.Tasks.Pleroma.User.run(["sign_out", "foo"])
 
-      assert_received {:mix_shell, :error, [message]}
+      assert_receive {:mix_shell, :error, [message]}
       assert message =~ "No local user"
     end
   end
@@ -554,7 +555,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
     test "it prints an error message when user is not exist" do
       Mix.Tasks.Pleroma.User.run(["tag", "foo"])
 
-      assert_received {:mix_shell, :error, [message]}
+      assert_receive {:mix_shell, :error, [message]}
       assert message =~ "Could not change user tags"
     end
   end
@@ -573,7 +574,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
     test "it prints an error message when user is not exist" do
       Mix.Tasks.Pleroma.User.run(["untag", "foo"])
 
-      assert_received {:mix_shell, :error, [message]}
+      assert_receive {:mix_shell, :error, [message]}
       assert message =~ "Could not change user tags"
     end
   end

@@ -4,6 +4,9 @@
 # 1. Replace 'example.tld' with your instance's domain wherever it appears.
 # 2. Copy this section into your Caddyfile and restart Caddy.
 
+# If you are able to, it's highly recommended to have your media served via a separate subdomain for improved security.
+# Uncomment the relevant sectons here and modify the base_url setting for Pleroma.Upload and :media_proxy accordingly.
+
 example.tld  {
   log {
     output file /var/log/caddy/akkoma.log
@@ -14,4 +17,21 @@ example.tld  {
   # this is explicitly IPv4 since Pleroma.Web.Endpoint binds on IPv4 only
   # and `localhost.` resolves to [::0] on some systems: see issue #930
   reverse_proxy 127.0.0.1:4000
+
+  # Uncomment if using a separate media subdomain
+  #@mediaproxy path /media/* /proxy/*
+  #handle @mediaproxy {
+  #  redir https://media.example.tld{uri} permanent
+  #}
 }
+
+# Uncomment if using a separate media subdomain
+#media.example.tld {
+#  @mediaproxy path /media/* /proxy/*
+#  reverse_proxy @mediaproxy 127.0.0.1:4000 {
+#    transport http {
+#      response_header_timeout 10s
+#      read_timeout 15s
+#    }
+#  }
+#}

@@ -3,7 +3,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.SignatureTest do
-  use Pleroma.DataCase
+  use Pleroma.DataCase, async: false
+  @moduletag :mocked
 
   import ExUnit.CaptureLog
   import Pleroma.Factory
@@ -70,6 +71,35 @@ defmodule Pleroma.SignatureTest do
     end
   end
 
+  defp split_signature(sig) do
+    sig
+    |> String.split(",")
+    |> Enum.map(fn part ->
+      [key, value] = String.split(part, "=", parts: 2)
+      [key, String.trim(value, ~s|"|)]
+    end)
+    |> Enum.sort_by(fn [k, _] -> k end)
+  end
+
+  # Break up a signature and check by parts
+  defp assert_signature_equal(sig_a, sig_b) when is_binary(sig_a) and is_binary(sig_b) do
+    parts_a = split_signature(sig_a)
+    parts_b = split_signature(sig_b)
+
+    parts_a
+    |> Enum.with_index()
+    |> Enum.each(fn {part_a, index} ->
+      part_b = Enum.at(parts_b, index)
+      assert_part_equal(part_a, part_b)
+    end)
+  end
+
+  defp assert_part_equal(part_a, part_b) do
+    if part_a != part_b do
+      flunk("Signature check failed - expected #{part_a} to equal #{part_b}")
+    end
+  end
+
   describe "sign/2" do
     test "it returns signature headers" do
       user =
@@ -78,14 +108,18 @@ defmodule Pleroma.SignatureTest do
           keys: @private_key
         })
 
-      assert Signature.sign(
-               user,
-               %{
-                 host: "test.test",
-                 "content-length": 100
-               }
-             ) ==
-               "keyId=\"https://mastodon.social/users/lambadalambda#main-key\",algorithm=\"rsa-sha256\",headers=\"content-length host\",signature=\"sibUOoqsFfTDerquAkyprxzDjmJm6erYc42W5w1IyyxusWngSinq5ILTjaBxFvfarvc7ci1xAi+5gkBwtshRMWm7S+Uqix24Yg5EYafXRun9P25XVnYBEIH4XQ+wlnnzNIXQkU3PU9e6D8aajDZVp3hPJNeYt1gIPOA81bROI8/glzb1SAwQVGRbqUHHHKcwR8keiR/W2h7BwG3pVRy4JgnIZRSW7fQogKedDg02gzRXwUDFDk0pr2p3q6bUWHUXNV8cZIzlMK+v9NlyFbVYBTHctAR26GIAN6Hz0eV0mAQAePHDY1mXppbA8Gpp6hqaMuYfwifcXmcc+QFm4e+n3A==\""
+      headers = %{
+        host: "test.test",
+        "content-length": 100
+      }
+
+      assert_signature_equal(
+        Signature.sign(
+          user,
+          headers
+        ),
+        "keyId=\"https://mastodon.social/users/lambadalambda#main-key\",algorithm=\"rsa-sha256\",headers=\"content-length host\",signature=\"sibUOoqsFfTDerquAkyprxzDjmJm6erYc42W5w1IyyxusWngSinq5ILTjaBxFvfarvc7ci1xAi+5gkBwtshRMWm7S+Uqix24Yg5EYafXRun9P25XVnYBEIH4XQ+wlnnzNIXQkU3PU9e6D8aajDZVp3hPJNeYt1gIPOA81bROI8/glzb1SAwQVGRbqUHHHKcwR8keiR/W2h7BwG3pVRy4JgnIZRSW7fQogKedDg02gzRXwUDFDk0pr2p3q6bUWHUXNV8cZIzlMK+v9NlyFbVYBTHctAR26GIAN6Hz0eV0mAQAePHDY1mXppbA8Gpp6hqaMuYfwifcXmcc+QFm4e+n3A==\""
+      )
     end
 
     test "it returns error" do
@@ -112,6 +146,16 @@ defmodule Pleroma.SignatureTest do
     test "it deduces the actor id for gotoSocial" do
       assert Signature.key_id_to_actor_id("https://example.com/users/1234/main-key") ==
                {:ok, "https://example.com/users/1234"}
+    end
+
+    test "it deduces the actor ID for streams" do
+      assert Signature.key_id_to_actor_id("https://example.com/users/1234?operation=getkey") ==
+               {:ok, "https://example.com/users/1234"}
+    end
+
+    test "it deduces the actor ID for bridgy" do
+      assert Signature.key_id_to_actor_id("https://example.com/1234#key") ==
+               {:ok, "https://example.com/1234"}
     end
 
     test "it calls webfinger for 'acct:' accounts" do

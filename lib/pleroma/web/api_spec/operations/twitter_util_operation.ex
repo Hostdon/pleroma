@@ -150,7 +150,7 @@ defmodule Pleroma.Web.ApiSpec.TwitterUtilOperation do
           "removes the contents of a message from the push notification"
         )
       ],
-      requestBody: nil,
+      requestBody: request_body("Parameters", update_notification_settings_request()),
       responses: %{
         200 =>
           Operation.response("Success", "application/json", %Schema{
@@ -429,6 +429,24 @@ defmodule Pleroma.Web.ApiSpec.TwitterUtilOperation do
       },
       example: %{
         "password" => "prettyp0ony1313"
+      }
+    }
+  end
+
+  defp update_notification_settings_request do
+    %Schema{
+      title: "UpdateNotificationSettings",
+      description: "PUT paramenters (query, form or JSON) for updating notification settings",
+      type: :object,
+      properties: %{
+        block_from_strangers: %Schema{
+          type: :boolean,
+          description: "blocks notifications from accounts you do not follow"
+        },
+        hide_notification_contents: %Schema{
+          type: :boolean,
+          description: "removes the contents of a message from the push notification"
+        }
       }
     }
   end

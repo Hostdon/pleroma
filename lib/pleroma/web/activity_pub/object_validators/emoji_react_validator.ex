@@ -8,6 +8,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.EmojiReactValidator do
   alias Pleroma.Emoji
   alias Pleroma.Object
   alias Pleroma.Web.ActivityPub.ObjectValidators.CommonFixes
+  alias Pleroma.Web.ActivityPub.Transmogrifier
 
   import Ecto.Changeset
   import Pleroma.Web.ActivityPub.ObjectValidators.CommonValidations
@@ -52,6 +53,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.EmojiReactValidator do
   defp fix(data) do
     data =
       data
+      |> Transmogrifier.fix_tag()
       |> fix_emoji_qualification()
       |> CommonFixes.fix_actor()
       |> CommonFixes.fix_activity_addressing()

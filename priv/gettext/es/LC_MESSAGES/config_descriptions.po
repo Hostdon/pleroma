@@ -3,49 +3,26 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-08-06 22:23+0000\n"
-"PO-Revision-Date: 2022-08-06 22:24+0000\n"
+"PO-Revision-Date: 2023-08-04 14:19+0000\n"
 "Last-Translator: Anonymous <noreply@weblate.org>\n"
-"Language-Team: Spanish <http://translate.akkoma.dev/projects/akkoma/akkoma-"
-"backend-config-descriptions/es/>\n"
+"Language-Team: Spanish <http://translate.akkoma.dev/projects/akkoma/"
+"akkoma-backend-config-descriptions/es/>\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.13.1\n"
-
-# # This file is a PO Template file.
-# #
-# # "msgid"s here are often extracted from source code.
-# # Add new translations manually only if they're dynamic
-# # translations that can't be statically extracted.
-# #
-# # Run "mix gettext.extract" to bring this file up to
-# # date. Leave "msgstr"s empty as changing them here has no
-# # effect: edit them in PO (.po) files instead.
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :esshd"
-msgid ""
-"Before enabling this you must add :esshd to mix.exs as one of the "
-"extra_applications and generate host keys in your priv dir with ssh-keygen -"
-"m PEM -N \"\" -b 2048 -t rsa -f ssh_host_rsa_key"
-msgstr ""
-"Before enabling this you must add :esshd to mix.exs as one of the "
-"extra_applications and generate host keys in your priv dir with ssh-keygen -"
-"m PEM -N \"\" -b 2048 -t rsa -f ssh_host_rsa_key"
+"X-Generator: Weblate 4.18.2\n"
 
 #: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt "config description at :logger"
 msgid "Logger-related settings"
-msgstr "Logger-related settings"
+msgstr "Configuraciones relacionadas con el registrador"
 
 #: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt "config description at :mime"
 msgid "Mime Types settings"
-msgstr "Mime Types settings"
+msgstr "Ajustes de los Tipos de Mímica"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
@@ -69,21 +46,9 @@ msgstr "Authenticator"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt "config description at :quack"
-msgid "Quack-related settings"
-msgstr "Quack-related settings"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt "config label at :cors_plug"
 msgid "CORS plug config"
 msgstr "CORS plug config"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :esshd"
-msgid "ESSHD"
-msgstr "ESSHD"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
@@ -108,12 +73,6 @@ msgstr "Pleroma Admin Token"
 msgctxt "config label at :pleroma"
 msgid "Pleroma Authenticator"
 msgstr "Pleroma Authenticator"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :quack"
-msgid "Quack Logger"
-msgstr "Quack Logger"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
@@ -151,12 +110,6 @@ msgstr "Authentication / authorization settings"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt "config description at :pleroma-:connections_pool"
-msgid "Advanced settings for `Gun` connections pool"
-msgstr "Advanced settings for `Gun` connections pool"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt "config description at :pleroma-:email_notifications"
 msgid "Email notifications settings"
 msgstr "Email notifications settings"
@@ -175,35 +128,9 @@ msgstr "Configure feed rendering"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt "config description at :pleroma-:frontend_configurations"
-msgid ""
-"This form can be used to configure a keyword list that keeps the "
-"configuration data for any kind of frontend. By default, settings for "
-"pleroma_fe are configured. If you want to add your own configuration your "
-"settings all fields must be complete."
-msgstr ""
-"This form can be used to configure a keyword list that keeps the "
-"configuration data for any kind of frontend. By default, settings for "
-"pleroma_fe are configured. If you want to add your own configuration your "
-"settings all fields must be complete."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt "config description at :pleroma-:frontends"
 msgid "Installed frontends management"
 msgstr "Installed frontends management"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:gopher"
-msgid "Gopher settings"
-msgstr "Gopher settings"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:hackney_pools"
-msgid "Advanced settings for `Hackney` connections pools"
-msgstr "Advanced settings for `Hackney` connections pools"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
@@ -395,12 +322,6 @@ msgstr "Configure OAuth 2 provider capabilities"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt "config description at :pleroma-:pools"
-msgid "Advanced settings for `Gun` workers pools"
-msgstr "Advanced settings for `Gun` workers pools"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt "config description at :pleroma-:populate_hashtags_table"
 msgid "`populate_hashtags_table` background migration settings"
 msgstr "`populate_hashtags_table` background migration settings"
@@ -417,16 +338,6 @@ msgstr ""
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt "config description at :pleroma-:restrict_unauthenticated"
-msgid ""
-"Disallow viewing timelines, user profiles and statuses for unauthenticated "
-"users."
-msgstr ""
-"Disallow viewing timelines, user profiles and statuses for unauthenticated "
-"users."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt "config description at :pleroma-:rich_media"
 msgid ""
 "If enabled the instance will parse metadata from attached links to generate "
@@ -434,12 +345,6 @@ msgid ""
 msgstr ""
 "If enabled the instance will parse metadata from attached links to generate "
 "link previews"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:shout"
-msgid "Pleroma shout settings"
-msgstr "Pleroma shout settings"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
@@ -638,13 +543,6 @@ msgstr "Expired activities settings"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt ""
-"config description at :prometheus-Pleroma.Web.Endpoint.MetricsExporter"
-msgid "Prometheus app metrics endpoint configuration"
-msgstr "Prometheus app metrics endpoint configuration"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt "config description at :web_push_encryption-:vapid_details"
 msgid ""
 "Web Push Notifications configuration. You can use the mix task mix web_push."
@@ -691,12 +589,6 @@ msgstr "Auth"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt "config label at :pleroma-:connections_pool"
-msgid "Connections pool"
-msgstr "Connections pool"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt "config label at :pleroma-:email_notifications"
 msgid "Email notifications"
 msgstr "Email notifications"
@@ -730,18 +622,6 @@ msgstr "Frontend configurations"
 msgctxt "config label at :pleroma-:frontends"
 msgid "Frontends"
 msgstr "Frontends"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:gopher"
-msgid "Gopher"
-msgstr "Gopher"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:hackney_pools"
-msgid "Hackney pools"
-msgstr "Hackney pools"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
@@ -901,12 +781,6 @@ msgstr "OAuth2"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt "config label at :pleroma-:pools"
-msgid "Pools"
-msgstr "Pools"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt "config label at :pleroma-:populate_hashtags_table"
 msgid "Populate hashtags table"
 msgstr "Populate hashtags table"
@@ -928,12 +802,6 @@ msgstr "Restrict Unauthenticated"
 msgctxt "config label at :pleroma-:rich_media"
 msgid "Rich media"
 msgstr "Rich media"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:shout"
-msgid "Shout"
-msgstr "Shout"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
@@ -1117,45 +985,9 @@ msgstr "Pleroma.Workers.PurgeExpiredActivity"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt "config label at :prometheus-Pleroma.Web.Endpoint.MetricsExporter"
-msgid "Pleroma.Web.Endpoint.MetricsExporter"
-msgstr "Pleroma.Web.Endpoint.MetricsExporter"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt "config label at :web_push_encryption-:vapid_details"
 msgid "Vapid Details"
 msgstr "Vapid Details"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :esshd > :enabled"
-msgid "Enables SSH"
-msgstr "Enables SSH"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :esshd > :handler"
-msgid "Handler module"
-msgstr "Handler module"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :esshd > :password_authenticator"
-msgid "Authenticator module"
-msgstr "Authenticator module"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :esshd > :port"
-msgid "Port to connect"
-msgstr "Port to connect"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :esshd > :priv_dir"
-msgid "Dir with SSH keys"
-msgstr "Dir with SSH keys"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
@@ -1352,57 +1184,6 @@ msgstr ""
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt "config description at :pleroma-:connections_pool > :connect_timeout"
-msgid "Timeout while `gun` will wait until connection is up. Default: 5000ms."
-msgstr "Timeout while `gun` will wait until connection is up. Default: 5000ms."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config description at :pleroma-:connections_pool > :"
-"connection_acquisition_retries"
-msgid ""
-"Number of attempts to acquire the connection from the pool if it is "
-"overloaded. Default: 5"
-msgstr ""
-"Number of attempts to acquire the connection from the pool if it is "
-"overloaded. Default: 5"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config description at :pleroma-:connections_pool > :"
-"connection_acquisition_wait"
-msgid ""
-"Timeout to acquire a connection from pool. The total max time is this value "
-"multiplied by the number of retries. Default: 250ms."
-msgstr ""
-"Timeout to acquire a connection from pool. The total max time is this value "
-"multiplied by the number of retries. Default: 250ms."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:connections_pool > :max_connections"
-msgid "Maximum number of connections in the pool. Default: 250 connections."
-msgstr "Maximum number of connections in the pool. Default: 250 connections."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config description at :pleroma-:connections_pool > :reclaim_multiplier"
-msgid ""
-"Multiplier for the number of idle connection to be reclaimed if the pool is "
-"full. For example if the pool maxes out at 250 connections and this setting "
-"is set to 0.3, the pool will reclaim at most 75 idle connections if it's "
-"overloaded. Default: 0.1"
-msgstr ""
-"Multiplier for the number of idle connection to be reclaimed if the pool is "
-"full. For example if the pool maxes out at 250 connections and this setting "
-"is set to 0.3, the pool will reclaim at most 75 idle connections if it's "
-"overloaded. Default: 0.1"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt "config description at :pleroma-:email_notifications > :digest"
 msgid ""
 "emails of \"what you've missed\" for users who have been inactive for a while"
@@ -1586,14 +1367,6 @@ msgstr "Hide notices statistics (repeats, favorites, ...)"
 #, fuzzy
 msgctxt ""
 "config description at :pleroma-:frontend_configurations > :pleroma_fe > :"
-"hideSitename"
-msgid "Hides instance name from PleromaFE banner"
-msgstr "Hides instance name from PleromaFE banner"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config description at :pleroma-:frontend_configurations > :pleroma_fe > :"
 "hideUserStats"
 msgid ""
 "Hide profile statistics (posts, posts per day, followers, followings, ...)"
@@ -1634,18 +1407,6 @@ msgstr ""
 "By default it assumes logo used will be monochrome with alpha channel to be "
 "compatible with both light and dark themes. If you want a colorful logo you "
 "must disable logoMask."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config description at :pleroma-:frontend_configurations > :pleroma_fe > :"
-"minimalScopesMode"
-msgid ""
-"Limit scope selection to Direct, User default, and Scope of post replying "
-"to. Also prevents replying to a DM with a public post from PleromaFE."
-msgstr ""
-"Limit scope selection to Direct, User default, and Scope of post replying "
-"to. Also prevents replying to a DM with a public post from PleromaFE."
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
@@ -1848,89 +1609,6 @@ msgstr ""
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt "config description at :pleroma-:gopher > :dstport"
-msgid "Port advertised in URLs (optional, defaults to port)"
-msgstr "Port advertised in URLs (optional, defaults to port)"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:gopher > :enabled"
-msgid "Enables the gopher interface"
-msgstr "Enables the gopher interface"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:gopher > :ip"
-msgid "IP address to bind to"
-msgstr "IP address to bind to"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:gopher > :port"
-msgid "Port to bind to"
-msgstr "Port to bind to"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:hackney_pools > :federation"
-msgid "Settings for federation pool."
-msgstr "Settings for federation pool."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config description at :pleroma-:hackney_pools > :federation > :"
-"max_connections"
-msgid "Number workers in the pool."
-msgstr "Number workers in the pool."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config description at :pleroma-:hackney_pools > :federation > :timeout"
-msgid "Timeout while `hackney` will wait for response."
-msgstr "Timeout while `hackney` will wait for response."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:hackney_pools > :media"
-msgid "Settings for media pool."
-msgstr "Settings for media pool."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config description at :pleroma-:hackney_pools > :media > :max_connections"
-msgid "Number workers in the pool."
-msgstr "Number workers in the pool."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:hackney_pools > :media > :timeout"
-msgid "Timeout while `hackney` will wait for response."
-msgstr "Timeout while `hackney` will wait for response."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:hackney_pools > :upload"
-msgid "Settings for upload pool."
-msgstr "Settings for upload pool."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config description at :pleroma-:hackney_pools > :upload > :max_connections"
-msgid "Number workers in the pool."
-msgstr "Number workers in the pool."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:hackney_pools > :upload > :timeout"
-msgid "Timeout while `hackney` will wait for response."
-msgstr "Timeout while `hackney` will wait for response."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt "config description at :pleroma-:http > :adapter"
 msgid "Adapter specific options"
 msgstr "Adapter specific options"
@@ -1947,12 +1625,6 @@ msgctxt ""
 "config description at :pleroma-:http > :adapter > :ssl_options > :versions"
 msgid "List of TLS version to use"
 msgstr "List of TLS version to use"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:http > :proxy_url"
-msgid "Proxy URL"
-msgstr "Proxy URL"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
@@ -2082,22 +1754,6 @@ msgstr "File size limit of user's profile banners"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt "config description at :pleroma-:instance > :birthday_min_age"
-msgid ""
-"Minimum required age for users to create account. Only used if birthday is "
-"required."
-msgstr ""
-"Minimum required age for users to create account. Only used if birthday is "
-"required."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:instance > :birthday_required"
-msgid "Require users to enter their birthday."
-msgstr "Require users to enter their birthday."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt "config description at :pleroma-:instance > :cleanup_attachments"
 msgid ""
 "Enable to remove associated attachments when status is removed.\n"
@@ -2179,12 +1835,6 @@ msgstr ""
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt "config description at :pleroma-:instance > :healthcheck"
-msgid "If enabled, system data will be shown on `/api/pleroma/healthcheck`"
-msgstr "If enabled, system data will be shown on `/api/pleroma/healthcheck`"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt "config description at :pleroma-:instance > :instance_thumbnail"
 msgid ""
 "The instance thumbnail can be any image that represents your instance and is "
@@ -2226,19 +1876,6 @@ msgstr ""
 msgctxt "config description at :pleroma-:instance > :max_account_fields"
 msgid "The maximum number of custom fields in the user profile. Default: 10."
 msgstr "The maximum number of custom fields in the user profile. Default: 10."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:instance > :max_endorsed_users"
-msgid "The maximum number of recommended accounts. 0 will disable the feature."
-msgstr ""
-"The maximum number of recommended accounts. 0 will disable the feature."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:instance > :max_media_attachments"
-msgid "Maximum number of post media attachments"
-msgstr "Maximum number of post media attachments"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
@@ -2375,45 +2012,9 @@ msgstr "Minimum expiration time (in seconds)"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt "config description at :pleroma-:instance > :privileged_staff"
-msgid ""
-"Let moderators access sensitive data (e.g. updating user credentials, get "
-"password reset token, delete users, index and read private statuses and "
-"chats)"
-msgstr ""
-"Let moderators access sensitive data (e.g. updating user credentials, get "
-"password reset token, delete users, index and read private statuses and "
-"chats)"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt "config description at :pleroma-:instance > :profile_directory"
 msgid "Enable profile directory."
 msgstr "Enable profile directory."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:instance > :public"
-msgid ""
-"Makes the client API in authenticated mode-only except for user-profiles. "
-"Useful for disabling the Local Timeline and The Whole Known Network.  Note: "
-"when setting to `false`, please also check `:restrict_unauthenticated` "
-"setting."
-msgstr ""
-"Makes the client API in authenticated mode-only except for user-profiles. "
-"Useful for disabling the Local Timeline and The Whole Known Network.  Note: "
-"when setting to `false`, please also check `:restrict_unauthenticated` "
-"setting."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:instance > :quarantined_instances"
-msgid ""
-"List of ActivityPub instances where private (DMs, followers-only) activities "
-"will not be sent and the reason for doing so"
-msgstr ""
-"List of ActivityPub instances where private (DMs, followers-only) activities "
-"will not be sent and the reason for doing so"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
@@ -2593,21 +2194,9 @@ msgstr "Number of majic workers to start."
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt "config description at :pleroma-:manifest > :background_color"
-msgid "Describe the background color of the app"
-msgstr "Describe the background color of the app"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt "config description at :pleroma-:manifest > :icons"
 msgid "Describe the icons of the app"
 msgstr "Describe the icons of the app"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:manifest > :theme_color"
-msgid "Describe the theme color of the app"
-msgstr "Describe the theme color of the app"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
@@ -2750,12 +2339,6 @@ msgstr ""
 "exposes the\n"
 "\n"
 "IP addresses of your users to the other servers, bypassing the MediaProxy.\n"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:media_proxy > :whitelist"
-msgid "List of hosts with scheme to bypass the MediaProxy"
-msgstr "List of hosts with scheme to bypass the MediaProxy"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
@@ -3108,126 +2691,6 @@ msgstr "The lifetime in seconds of the access token"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt "config description at :pleroma-:pools > :default"
-msgid "Settings for default pool."
-msgstr "Settings for default pool."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:pools > :default > :max_waiting"
-msgid ""
-"Maximum number of requests waiting for other requests to finish. After this "
-"number is reached, the pool will start returning errrors when a new request "
-"is made"
-msgstr ""
-"Maximum number of requests waiting for other requests to finish. After this "
-"number is reached, the pool will start returning errrors when a new request "
-"is made"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:pools > :default > :recv_timeout"
-msgid "Timeout for the pool while gun will wait for response"
-msgstr "Timeout for the pool while gun will wait for response"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:pools > :default > :size"
-msgid "Maximum number of concurrent requests in the pool."
-msgstr "Maximum number of concurrent requests in the pool."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:pools > :federation"
-msgid "Settings for federation pool."
-msgstr "Settings for federation pool."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:pools > :federation > :max_waiting"
-msgid ""
-"Maximum number of requests waiting for other requests to finish. After this "
-"number is reached, the pool will start returning errrors when a new request "
-"is made"
-msgstr ""
-"Maximum number of requests waiting for other requests to finish. After this "
-"number is reached, the pool will start returning errrors when a new request "
-"is made"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:pools > :federation > :recv_timeout"
-msgid "Timeout for the pool while gun will wait for response"
-msgstr "Timeout for the pool while gun will wait for response"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:pools > :federation > :size"
-msgid "Maximum number of concurrent requests in the pool."
-msgstr "Maximum number of concurrent requests in the pool."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:pools > :media"
-msgid "Settings for media pool."
-msgstr "Settings for media pool."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:pools > :media > :max_waiting"
-msgid ""
-"Maximum number of requests waiting for other requests to finish. After this "
-"number is reached, the pool will start returning errrors when a new request "
-"is made"
-msgstr ""
-"Maximum number of requests waiting for other requests to finish. After this "
-"number is reached, the pool will start returning errrors when a new request "
-"is made"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:pools > :media > :recv_timeout"
-msgid "Timeout for the pool while gun will wait for response"
-msgstr "Timeout for the pool while gun will wait for response"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:pools > :media > :size"
-msgid "Maximum number of concurrent requests in the pool."
-msgstr "Maximum number of concurrent requests in the pool."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:pools > :upload"
-msgid "Settings for upload pool."
-msgstr "Settings for upload pool."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:pools > :upload > :max_waiting"
-msgid ""
-"Maximum number of requests waiting for other requests to finish. After this "
-"number is reached, the pool will start returning errrors when a new request "
-"is made"
-msgstr ""
-"Maximum number of requests waiting for other requests to finish. After this "
-"number is reached, the pool will start returning errrors when a new request "
-"is made"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:pools > :upload > :recv_timeout"
-msgid "Timeout for the pool while gun will wait for response"
-msgstr "Timeout for the pool while gun will wait for response"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:pools > :upload > :size"
-msgid "Maximum number of concurrent requests in the pool."
-msgstr "Maximum number of concurrent requests in the pool."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt ""
 "config description at :pleroma-:populate_hashtags_table > :"
 "fault_rate_allowance"
@@ -3311,69 +2774,15 @@ msgstr "For requests to timelines (each timeline has it's own limiter)"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt ""
-"config description at :pleroma-:restrict_unauthenticated > :activities"
-msgid "Settings for statuses."
-msgstr "Settings for statuses."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config description at :pleroma-:restrict_unauthenticated > :activities > :"
-"local"
-msgid "Disallow view local statuses."
-msgstr "Disallow view local statuses."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config description at :pleroma-:restrict_unauthenticated > :activities > :"
-"remote"
-msgid "Disallow view remote statuses."
-msgstr "Disallow view remote statuses."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt "config description at :pleroma-:restrict_unauthenticated > :profiles"
 msgid "Settings for user profiles."
 msgstr "Settings for user profiles."
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt ""
-"config description at :pleroma-:restrict_unauthenticated > :profiles > :local"
-msgid "Disallow view local user profiles."
-msgstr "Disallow view local user profiles."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config description at :pleroma-:restrict_unauthenticated > :profiles > :"
-"remote"
-msgid "Disallow view remote user profiles."
-msgstr "Disallow view remote user profiles."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt "config description at :pleroma-:restrict_unauthenticated > :timelines"
 msgid "Settings for public and federated timelines."
 msgstr "Settings for public and federated timelines."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config description at :pleroma-:restrict_unauthenticated > :timelines > :"
-"federated"
-msgid "Disallow view federated timeline."
-msgstr "Disallow view federated timeline."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config description at :pleroma-:restrict_unauthenticated > :timelines > :"
-"local"
-msgid "Disallow view public timeline."
-msgstr "Disallow view public timeline."
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
@@ -3429,18 +2838,6 @@ msgstr ""
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt "config description at :pleroma-:shout > :enabled"
-msgid "Enables the backend Shoutbox chat feature."
-msgstr "Enables the backend Shoutbox chat feature."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:shout > :limit"
-msgid "Shout message character limit."
-msgstr "Shout message character limit."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt "config description at :pleroma-:static_fe > :enabled"
 msgid "Enables the rendering of static HTML. Default: disabled."
 msgstr "Enables the rendering of static HTML. Default: disabled."
@@ -3481,26 +2878,6 @@ msgid ""
 "Activity pub routes (question activities). Default: `30_000` (30 seconds)."
 msgstr ""
 "Activity pub routes (question activities). Default: `30_000` (30 seconds)."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:welcome > :chat_message > :enabled"
-msgid "Enables sending a chat message to newly registered users"
-msgstr "Enables sending a chat message to newly registered users"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:welcome > :chat_message > :message"
-msgid "A message that will be sent to newly registered users as a chat message"
-msgstr ""
-"A message that will be sent to newly registered users as a chat message"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config description at :pleroma-:welcome > :chat_message > :sender_nickname"
-msgid "The nickname of the local user that sends a welcome chat message"
-msgstr "The nickname of the local user that sends a welcome chat message"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
@@ -4181,64 +3558,6 @@ msgstr "Minimum lifetime for ephemeral activity (in seconds)"
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
 msgctxt ""
-"config description at :prometheus-Pleroma.Web.Endpoint.MetricsExporter > :"
-"auth"
-msgid "Enables HTTP Basic Auth for app metrics endpoint."
-msgstr "Enables HTTP Basic Auth for app metrics endpoint."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config description at :prometheus-Pleroma.Web.Endpoint.MetricsExporter > :"
-"enabled"
-msgid "[Pleroma extension] Enables app metrics endpoint."
-msgstr "[Pleroma extension] Enables app metrics endpoint."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config description at :prometheus-Pleroma.Web.Endpoint.MetricsExporter > :"
-"format"
-msgid "App metrics endpoint output format."
-msgstr "App metrics endpoint output format."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config description at :prometheus-Pleroma.Web.Endpoint.MetricsExporter > :"
-"ip_whitelist"
-msgid "Restrict access of app metrics endpoint to the specified IP addresses."
-msgstr "Restrict access of app metrics endpoint to the specified IP addresses."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config description at :prometheus-Pleroma.Web.Endpoint.MetricsExporter > :"
-"path"
-msgid "App metrics endpoint URI path."
-msgstr "App metrics endpoint URI path."
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :quack > :level"
-msgid "Log level"
-msgstr "Log level"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :quack > :meta"
-msgid "Configure which metadata you want to report on"
-msgstr "Configure which metadata you want to report on"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :quack > :webhook_url"
-msgid "Configure the Slack incoming webhook"
-msgstr "Configure the Slack incoming webhook"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
 "config description at :web_push_encryption-:vapid_details > :private_key"
 msgid "VAPID private key"
 msgstr "VAPID private key"
@@ -4291,36 +3610,6 @@ msgstr "Max age"
 msgctxt "config label at :cors_plug > :methods"
 msgid "Methods"
 msgstr "Methods"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :esshd > :enabled"
-msgid "Enabled"
-msgstr "Enabled"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :esshd > :handler"
-msgid "Handler"
-msgstr "Handler"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :esshd > :password_authenticator"
-msgid "Password authenticator"
-msgstr "Password authenticator"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :esshd > :port"
-msgid "Port"
-msgstr "Port"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :esshd > :priv_dir"
-msgid "Priv dir"
-msgstr "Priv dir"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
@@ -4522,38 +3811,6 @@ msgstr "OAuth consumer template"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt "config label at :pleroma-:connections_pool > :connect_timeout"
-msgid "Connect timeout"
-msgstr "Connect timeout"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config label at :pleroma-:connections_pool > :connection_acquisition_retries"
-msgid "Connection acquisition retries"
-msgstr "Connection acquisition retries"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config label at :pleroma-:connections_pool > :connection_acquisition_wait"
-msgid "Connection acquisition wait"
-msgstr "Connection acquisition wait"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:connections_pool > :max_connections"
-msgid "Max connections"
-msgstr "Max connections"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:connections_pool > :reclaim_multiplier"
-msgid "Reclaim multiplier"
-msgstr "Reclaim multiplier"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt "config label at :pleroma-:email_notifications > :digest"
 msgid "Digest"
 msgstr "Digest"
@@ -4702,14 +3959,6 @@ msgstr "Hide post stats"
 #, fuzzy
 msgctxt ""
 "config label at :pleroma-:frontend_configurations > :pleroma_fe > :"
-"hideSitename"
-msgid "Hide Sitename"
-msgstr "Hide Sitename"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config label at :pleroma-:frontend_configurations > :pleroma_fe > :"
 "hideUserStats"
 msgid "Hide user stats"
 msgstr "Hide user stats"
@@ -4734,14 +3983,6 @@ msgctxt ""
 "config label at :pleroma-:frontend_configurations > :pleroma_fe > :logoMask"
 msgid "Logo mask"
 msgstr "Logo mask"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config label at :pleroma-:frontend_configurations > :pleroma_fe > :"
-"minimalScopesMode"
-msgid "Minimal scopes mode"
-msgstr "Minimal scopes mode"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
@@ -4902,85 +4143,6 @@ msgstr "Reference"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt "config label at :pleroma-:gopher > :dstport"
-msgid "Dstport"
-msgstr "Dstport"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:gopher > :enabled"
-msgid "Enabled"
-msgstr "Enabled"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:gopher > :ip"
-msgid "IP"
-msgstr "IP"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:gopher > :port"
-msgid "Port"
-msgstr "Port"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:hackney_pools > :federation"
-msgid "Federation"
-msgstr "Federation"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config label at :pleroma-:hackney_pools > :federation > :max_connections"
-msgid "Max connections"
-msgstr "Max connections"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:hackney_pools > :federation > :timeout"
-msgid "Timeout"
-msgstr "Timeout"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:hackney_pools > :media"
-msgid "Media"
-msgstr "Media"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:hackney_pools > :media > :max_connections"
-msgid "Max connections"
-msgstr "Max connections"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:hackney_pools > :media > :timeout"
-msgid "Timeout"
-msgstr "Timeout"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:hackney_pools > :upload"
-msgid "Upload"
-msgstr "Upload"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:hackney_pools > :upload > :max_connections"
-msgid "Max connections"
-msgstr "Max connections"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:hackney_pools > :upload > :timeout"
-msgid "Timeout"
-msgstr "Timeout"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt "config label at :pleroma-:http > :adapter"
 msgid "Adapter"
 msgstr "Adapter"
@@ -5002,12 +4164,6 @@ msgstr "Versions"
 msgctxt "config label at :pleroma-:http > :proxy_url"
 msgid "Proxy URL"
 msgstr "Proxy URL"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:http > :send_user_agent"
-msgid "Send user agent"
-msgstr "Send user agent"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
@@ -5119,18 +4275,6 @@ msgstr "Banner upload limit"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt "config label at :pleroma-:instance > :birthday_min_age"
-msgid "Birthday min age"
-msgstr "Birthday min age"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:instance > :birthday_required"
-msgid "Birthday required"
-msgstr "Birthday required"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt "config label at :pleroma-:instance > :cleanup_attachments"
 msgid "Cleanup attachments"
 msgstr "Cleanup attachments"
@@ -5214,18 +4358,6 @@ msgstr "Limit to local content"
 msgctxt "config label at :pleroma-:instance > :max_account_fields"
 msgid "Max account fields"
 msgstr "Max account fields"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:instance > :max_endorsed_users"
-msgid "Max endorsed users"
-msgstr "Max endorsed users"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:instance > :max_media_attachments"
-msgid "Max media attachments"
-msgstr "Max media attachments"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
@@ -5897,102 +5029,6 @@ msgstr "Token expires in"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt "config label at :pleroma-:pools > :default"
-msgid "Default"
-msgstr "Default"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:pools > :default > :max_waiting"
-msgid "Max waiting"
-msgstr "Max waiting"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:pools > :default > :recv_timeout"
-msgid "Recv timeout"
-msgstr "Recv timeout"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:pools > :default > :size"
-msgid "Size"
-msgstr "Size"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:pools > :federation"
-msgid "Federation"
-msgstr "Federation"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:pools > :federation > :max_waiting"
-msgid "Max waiting"
-msgstr "Max waiting"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:pools > :federation > :recv_timeout"
-msgid "Recv timeout"
-msgstr "Recv timeout"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:pools > :federation > :size"
-msgid "Size"
-msgstr "Size"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:pools > :media"
-msgid "Media"
-msgstr "Media"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:pools > :media > :max_waiting"
-msgid "Max waiting"
-msgstr "Max waiting"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:pools > :media > :recv_timeout"
-msgid "Recv timeout"
-msgstr "Recv timeout"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:pools > :media > :size"
-msgid "Size"
-msgstr "Size"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:pools > :upload"
-msgid "Upload"
-msgstr "Upload"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:pools > :upload > :max_waiting"
-msgid "Max waiting"
-msgstr "Max waiting"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:pools > :upload > :recv_timeout"
-msgid "Recv timeout"
-msgstr "Recv timeout"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:pools > :upload > :size"
-msgid "Size"
-msgstr "Size"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt ""
 "config label at :pleroma-:populate_hashtags_table > :fault_rate_allowance"
 msgid "Fault rate allowance"
@@ -6151,18 +5187,6 @@ msgstr "TTL setters"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt "config label at :pleroma-:shout > :enabled"
-msgid "Enabled"
-msgstr "Enabled"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:shout > :limit"
-msgid "Limit"
-msgstr "Limit"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt "config label at :pleroma-:static_fe > :enabled"
 msgid "Enabled"
 msgstr "Enabled"
@@ -6202,30 +5226,6 @@ msgstr "Activity pub"
 msgctxt "config label at :pleroma-:web_cache_ttl > :activity_pub_question"
 msgid "Activity pub question"
 msgstr "Activity pub question"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:welcome > :chat_message"
-msgid "Chat message"
-msgstr "Chat message"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:welcome > :chat_message > :enabled"
-msgid "Enabled"
-msgstr "Enabled"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:welcome > :chat_message > :message"
-msgid "Message"
-msgstr "Message"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :pleroma-:welcome > :chat_message > :sender_nickname"
-msgid "Sender nickname"
-msgstr "Sender nickname"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
@@ -7005,60 +6005,6 @@ msgstr "Min lifetime"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt ""
-"config label at :prometheus-Pleroma.Web.Endpoint.MetricsExporter > :auth"
-msgid "Auth"
-msgstr "Auth"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config label at :prometheus-Pleroma.Web.Endpoint.MetricsExporter > :enabled"
-msgid "Enabled"
-msgstr "Enabled"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config label at :prometheus-Pleroma.Web.Endpoint.MetricsExporter > :format"
-msgid "Format"
-msgstr "Format"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config label at :prometheus-Pleroma.Web.Endpoint.MetricsExporter > :"
-"ip_whitelist"
-msgid "IP Whitelist"
-msgstr "IP Whitelist"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt ""
-"config label at :prometheus-Pleroma.Web.Endpoint.MetricsExporter > :path"
-msgid "Path"
-msgstr "Path"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :quack > :level"
-msgid "Level"
-msgstr "Level"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :quack > :meta"
-msgid "Meta"
-msgstr "Meta"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config label at :quack > :webhook_url"
-msgid "Webhook URL"
-msgstr "Webhook URL"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt "config label at :web_push_encryption-:vapid_details > :private_key"
 msgid "Private key"
 msgstr "Private key"
@@ -7077,26 +6023,1210 @@ msgstr "Subject"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt "config description at :pleroma-:activitypub > :authorized_fetch_mode"
-msgid "Require HTTP signatures for AP fetches"
-msgstr "Require HTTP signatures for AP fetches"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
-msgctxt "config description at :pleroma-:instance > :short_description"
-msgid ""
-"Shorter version of instance description. It can be seen on `/api/v1/instance`"
-msgstr ""
-"Shorter version of instance description. It can be seen on `/api/v1/instance`"
-
-#: lib/pleroma/docs/translator.ex:5
-#, fuzzy
 msgctxt "config label at :pleroma-:activitypub > :authorized_fetch_mode"
 msgid "Authorized fetch mode"
 msgstr "Authorized fetch mode"
 
 #: lib/pleroma/docs/translator.ex:5
 #, fuzzy
-msgctxt "config label at :pleroma-:instance > :short_description"
-msgid "Short description"
-msgstr "Short description"
+msgctxt "config description at :pleroma-:activitypub > :authorized_fetch_mode"
+msgid "Require HTTP signatures on AP fetches"
+msgstr "Require HTTP signatures for AP fetches"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:activitypub > :max_collection_objects"
+msgid ""
+"The maximum number of items to fetch from a remote collections. Setting this "
+"too low can lead to only getting partial collections, but too high and you "
+"can end up fetching far too many objects."
+msgstr ""
+"The maximum number of items to fetch from a remote collections. Setting this "
+"too low can lead to only getting partial collections, but too high and you "
+"can end up fetching far too many objects."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:argos_translate"
+msgid "ArgosTranslate Settings."
+msgstr "Preload-related settings"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-:argos_translate > :command_argos_translate"
+msgid ""
+"command for `argos-translate`. Can be the command if it's in your PATH, or "
+"the full path to the file."
+msgstr ""
+"command for `argos-translate`. Can be the command if it's in your PATH, or "
+"the full path to the file."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:argos_translate > :command_argospm"
+msgid ""
+"command for `argospm`. Can be the command if it's in your PATH, or the full "
+"path to the file."
+msgstr ""
+"command for `argospm`. Can be the command if it's in your PATH, or the full "
+"path to the file."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:argos_translate > :strip_html"
+msgid "Strip html from the post before translating it."
+msgstr "Strip html from the post before translating it."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:deepl"
+msgid "DeepL Settings."
+msgstr "Markup Settings"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:deepl > :api_key"
+msgid "API key for DeepL"
+msgstr "API key for DeepL"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:deepl > :tier"
+msgid "API Tier"
+msgstr "API Tier"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:frontend_configurations"
+msgid ""
+"This form can be used to configure a keyword list that keeps the "
+"configuration data for any kind of frontend. By default, settings for "
+"pleroma_fe and masto_fe are configured. If you want to add your own "
+"configuration your settings all fields must be complete."
+msgstr ""
+"This form can be used to configure a keyword list that keeps the "
+"configuration data for any kind of frontend. By default, settings for "
+"pleroma_fe are configured. If you want to add your own configuration your "
+"settings all fields must be complete."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:frontend_configurations > :masto_fe"
+msgid "Settings for Masto FE"
+msgstr "Settings for Pleroma FE"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-:frontend_configurations > :masto_fe > :"
+"showInstanceSpecificPanel"
+msgid "Whenether to show the instance's specific panel"
+msgstr "Whether to show the instance's custom panel"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-:frontend_configurations > :pleroma_fe > :"
+"conversationDisplay"
+msgid "How to display conversations (linear or tree)"
+msgstr "How to display conversations (linear or tree)"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-:frontend_configurations > :pleroma_fe > :"
+"hideSiteFavicon"
+msgid "Whether to hide the instance favicon from the navbar"
+msgstr "Whether to show the instance's custom panel"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-:frontend_configurations > :pleroma_fe > :"
+"hideSiteName"
+msgid "Whether to hide the site name from the navbar"
+msgstr "Whether to hide the site name from the navbar"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-:frontend_configurations > :pleroma_fe > :"
+"renderMisskeyMarkdown"
+msgid "Whether to render Misskey-flavoured markdown"
+msgstr "Whether to render Misskey-flavoured markdown"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-:frontend_configurations > :pleroma_fe > :"
+"showNavShortcuts"
+msgid "Whether to put extra navigation options on the navbar"
+msgstr "Whether to put extra navigation options on the navbar"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-:frontend_configurations > :pleroma_fe > :"
+"showPanelNavShortcuts"
+msgid "Whether to put timeline nav tabs on the top of the panel"
+msgstr "Whether to put timeline nav tabs on the top of the panel"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-:frontend_configurations > :pleroma_fe > :"
+"showWiderShortcuts"
+msgid "Whether to add extra space between navbar icons"
+msgstr "Whether to add extra space between navbar icons"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-:frontend_configurations > :pleroma_fe > :"
+"stopGifs"
+msgid "Whether to pause animated images until they're hovered on"
+msgstr "Whether to pause animated images until they're hovered on"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:frontends > :mastodon"
+msgid "Mastodon frontend"
+msgstr "Admin frontend"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:frontends > :mastodon > name"
+msgid ""
+"Name of the installed frontend. Valid config must include both `Name` and "
+"`Reference` values."
+msgstr ""
+"Name of the installed frontend. Valid config must include both `Name` and "
+"`Reference` values."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:frontends > :mastodon > ref"
+msgid ""
+"Reference of the installed frontend to be used. Valid config must include "
+"both `Name` and `Reference` values."
+msgstr ""
+"Reference of the installed frontend to be used. Valid config must include "
+"both `Name` and `Reference` values."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:frontends > :swagger"
+msgid "Swagger API reference frontend"
+msgstr "Swagger API reference frontend"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:frontends > :swagger > enabled"
+msgid "Whether to have this enabled at all"
+msgstr "Whether to show the instance's custom panel"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:frontends > :swagger > name"
+msgid ""
+"Name of the installed frontend. Valid config must include both `Name` and "
+"`Reference` values."
+msgstr ""
+"Name of the installed frontend. Valid config must include both `Name` and "
+"`Reference` values."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:frontends > :swagger > ref"
+msgid ""
+"Reference of the installed frontend to be used. Valid config must include "
+"both `Name` and `Reference` values."
+msgstr ""
+"Reference of the installed frontend to be used. Valid config must include "
+"both `Name` and `Reference` values."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:http > :pool_size"
+msgid "Number of concurrent outbound HTTP requests to allow. Default 50."
+msgstr "Number of concurrent outbound HTTP requests to allow. Default 50."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:http > :pool_timeout"
+msgid "Timeout for initiating HTTP requests (in ms, default 5000)"
+msgstr "Timeout for initiating HTTP requests (in ms, default 5000)"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:http > :proxy_url"
+msgid ""
+"Proxy URL - of the format http://host:port. Advise setting in .exs instead "
+"of admin-fe due to this being set at boot-time."
+msgstr ""
+"Proxy URL - of the format http://host:port. Advise setting in .exs instead "
+"of admin-fe due to this being set at boot-time."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:http > :receive_timeout"
+msgid ""
+"Timeout for waiting on remote servers to respond to HTTP requests (in ms, "
+"default 15000)"
+msgstr ""
+"Timeout for waiting on remote servers to respond to HTTP requests (in ms, "
+"default 15000)"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:instance > :export_prometheus_metrics"
+msgid "Enable prometheus metrics (at /api/v1/akkoma/metrics)"
+msgstr "Enable prometheus metrics (at /api/v1/akkoma/metrics)"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:instance > :languages"
+msgid "Languages the instance uses"
+msgstr "Name of the instance"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:instance > :local_bubble"
+msgid ""
+"List of instances that make up your local bubble (closely-related "
+"instances). Used to populate the 'bubble' timeline (domain only)."
+msgstr ""
+"List of instances that make up your local bubble (closely-related "
+"instances). Used to populate the 'bubble' timeline (domain only)."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:instance > :privileged_staff"
+msgid ""
+"Let moderators access sensitive data (e.g. updating user credentials, get "
+"password reset token, delete users, index and read private statuses)"
+msgstr ""
+"Let moderators access sensitive data (e.g. updating user credentials, get "
+"password reset token, delete users, index and read private statuses and "
+"chats)"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:instance > :public"
+msgid ""
+"Switching this on will allow unauthenticated users access to all public "
+"resources on your instance Switching it off is useful for disabling the "
+"Local Timeline and The Whole Known Network.  Note: when setting to `false`, "
+"please also check `:restrict_unauthenticated` setting."
+msgstr ""
+"Makes the client API in authenticated mode-only except for user-profiles. "
+"Useful for disabling the Local Timeline and The Whole Known Network.  Note: "
+"when setting to `false`, please also check `:restrict_unauthenticated` "
+"setting."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:instance > :quarantined_instances"
+msgid ""
+"(Deprecated, will be removed in next release) List of ActivityPub instances "
+"where activities will not be sent, and the reason for doing so"
+msgstr ""
+"List of ActivityPub instances where private (DMs, followers-only) activities "
+"will not be sent and the reason for doing so"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:instances_nodeinfo"
+msgid "Control favicons for instances"
+msgstr "Control favicons for instances"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:instances_nodeinfo > :enabled"
+msgid "Allow/disallow getting instance nodeinfo"
+msgstr "Allow/disallow displaying and getting instances favicons"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:libre_translate"
+msgid "LibreTranslate Settings."
+msgstr "Logger-related settings"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:libre_translate > :api_key"
+msgid "API key for libretranslate"
+msgstr "API key for libretranslate"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:libre_translate > :url"
+msgid "URL for libretranslate"
+msgstr "URL for libretranslate"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:manifest > :background_color"
+msgid ""
+"Describe the background color of the app - this is only used for mastodon-fe"
+msgstr "Describe the background color of the app"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:manifest > :theme_color"
+msgid "Describe the theme color of the app - this is only used for mastodon-fe"
+msgstr "Describe the theme color of the app"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:mrf > :transparency_obfuscate_domains"
+msgid ""
+"Obfuscate domains in MRF transparency. This is useful if the domain you're "
+"blocking contains words you don't want displayed, but still want to disclose "
+"the MRF settings."
+msgstr ""
+"Obfuscate domains in MRF transparency. This is useful if the domain you're "
+"blocking contains words you don't want displayed, but still want to disclose "
+"the MRF settings."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:mrf_inline_quote"
+msgid "Force quote post URLs inline"
+msgstr "Force quote post URLs inline"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:mrf_inline_quote > :prefix"
+msgid "Prefix before the link"
+msgstr "Prefix before the link"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:mrf_simple > :handle_threads"
+msgid ""
+"Enable to filter replies to threads based from their originating instance, "
+"using the reject and accept rules"
+msgstr ""
+"Enable to filter replies to threads based from their originating instance, "
+"using the reject and accept rules"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:restrict_unauthenticated"
+msgid ""
+"Disallow unauthenticated viewing of timelines, user profiles and statuses."
+msgstr ""
+"Disallow viewing timelines, user profiles and statuses for unauthenticated "
+"users."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-:restrict_unauthenticated > :activities"
+msgid "Settings for posts."
+msgstr "Settings for statuses."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-:restrict_unauthenticated > :activities > :"
+"local"
+msgid "Disallow viewing local posts."
+msgstr "Disallow view local statuses."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-:restrict_unauthenticated > :activities > :"
+"remote"
+msgid "Disallow viewing remote posts."
+msgstr "Disallow view remote statuses."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-:restrict_unauthenticated > :profiles > :local"
+msgid "Disallow viewing local user profiles."
+msgstr "Disallow view local user profiles."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-:restrict_unauthenticated > :profiles > :"
+"remote"
+msgid "Disallow viewing remote user profiles."
+msgstr "Disallow view remote user profiles."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-:restrict_unauthenticated > :timelines > :"
+"federated"
+msgid "Disallow viewing the whole known network timeline."
+msgstr "Disallow view federated timeline."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-:restrict_unauthenticated > :timelines > :"
+"local"
+msgid "Disallow viewing the public timeline."
+msgstr "Disallow view public timeline."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:translator"
+msgid "Translation Settings"
+msgstr "Invalidation script settings"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:translator > :enabled"
+msgid "Is translation enabled?"
+msgstr "Streaming enabled"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:translator > :module"
+msgid "Translation module."
+msgstr "Handler module"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:workers > :timeout"
+msgid "Timeout for jobs, per `Oban` queue, in ms"
+msgstr "Max retry attempts for failed jobs, per `Oban` queue"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-Pleroma.Search"
+msgid "General search settings."
+msgstr "General MRF settings"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-Pleroma.Search > :module"
+msgid "Selected search module."
+msgstr "Rejected shortcodes"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-Pleroma.Search.Elasticsearch.Cluster"
+msgid "Elasticsearch settings."
+msgstr "Email template settings"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-Pleroma.Search.Elasticsearch.Cluster > :api"
+msgid ""
+"The API module used by Elasticsearch. Should always be Elasticsearch.API.HTTP"
+msgstr ""
+"The API module used by Elasticsearch. Should always be Elasticsearch.API.HTTP"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-Pleroma.Search.Elasticsearch.Cluster > :"
+"indexes"
+msgid "The indices to set up in Elasticsearch"
+msgstr "The indices to set up in Elasticsearch"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-Pleroma.Search.Elasticsearch.Cluster > :"
+"indexes > :activities"
+msgid "Config for the index to use for activities"
+msgstr "Config for the index to use for activities"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-Pleroma.Search.Elasticsearch.Cluster > :"
+"indexes > :activities > :bulk_page_size"
+msgid "Size for bulk put requests, mostly used on building the index"
+msgstr "Size for bulk put requests, mostly used on building the index"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-Pleroma.Search.Elasticsearch.Cluster > :"
+"indexes > :activities > :bulk_wait_interval"
+msgid "Time to wait between bulk put requests (in ms)"
+msgstr "Time to wait between bulk put requests (in ms)"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-Pleroma.Search.Elasticsearch.Cluster > :"
+"indexes > :activities > :settings"
+msgid ""
+"Path to the file containing index settings for the activities index. Should "
+"contain a mapping."
+msgstr ""
+"Path to the file containing index settings for the activities index. Should "
+"contain a mapping."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-Pleroma.Search.Elasticsearch.Cluster > :"
+"indexes > :activities > :sources"
+msgid "The internal types to use for this index"
+msgstr "The internal types to use for this index"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-Pleroma.Search.Elasticsearch.Cluster > :"
+"indexes > :activities > :store"
+msgid "The internal store module"
+msgstr "Authenticator module"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-Pleroma.Search.Elasticsearch.Cluster > :"
+"json_library"
+msgid ""
+"The JSON module used to encode/decode when communicating with Elasticsearch"
+msgstr ""
+"The JSON module used to encode/decode when communicating with Elasticsearch"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-Pleroma.Search.Elasticsearch.Cluster > :"
+"password"
+msgid ""
+"Password to connect to ES. Set to nil if your cluster is unauthenticated."
+msgstr ""
+"Password to connect to ES. Set to nil if your cluster is unauthenticated."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-Pleroma.Search.Elasticsearch.Cluster > :url"
+msgid "Elasticsearch URL."
+msgstr "Elasticsearch URL."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-Pleroma.Search.Elasticsearch.Cluster > :"
+"username"
+msgid ""
+"Username to connect to ES. Set to nil if your cluster is unauthenticated."
+msgstr ""
+"Username to connect to ES. Set to nil if your cluster is unauthenticated."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-Pleroma.Search.Meilisearch"
+msgid "Meilisearch settings."
+msgstr "Mailer-related settings"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-Pleroma.Search.Meilisearch > :"
+"initial_indexing_chunk_size"
+msgid ""
+"Amount of posts in a batch when running the initial indexing operation. "
+"Should probably not be more than 100000 since there's a limit on maximum "
+"insert size"
+msgstr ""
+"Amount of posts in a batch when running the initial indexing operation. "
+"Should probably not be more than 100000 since there's a limit on maximum "
+"insert size"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-Pleroma.Search.Meilisearch > :private_key"
+msgid ""
+"Private key for meilisearch authentication, or `nil` to disable private key "
+"authentication."
+msgstr ""
+"Private key for meilisearch authentication, or `nil` to disable private key "
+"authentication."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-Pleroma.Search.Meilisearch > :url"
+msgid "Meilisearch URL."
+msgstr "Meilisearch URL."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-Pleroma.Web.Metadata.Providers.Theme"
+msgid ""
+"Specific provider to hand out themes to instances that scrape index.html"
+msgstr ""
+"Specific provider to hand out themes to instances that scrape index.html"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-Pleroma.Web.Metadata.Providers.Theme > :"
+"theme_color"
+msgid ""
+"The 'accent color' of the instance, used in places like misskey's instance "
+"ticker"
+msgstr ""
+"The 'accent color' of the instance, used in places like misskey's instance "
+"ticker"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:activitypub > :max_collection_objects"
+msgid "Max collection objects"
+msgstr "Max connections"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:argos_translate"
+msgid "Argos translate"
+msgstr "Argos translate"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:argos_translate > :command_argos_translate"
+msgid "Command argos translate"
+msgstr "Command argos translate"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:argos_translate > :command_argospm"
+msgid "Command argospm"
+msgstr "Cmd args"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:argos_translate > :strip_html"
+msgid "Strip html"
+msgstr "Strict"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:deepl"
+msgid "DeepL"
+msgstr "DeepL"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:deepl > :api_key"
+msgid "Api key"
+msgstr "VAPID public key"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:deepl > :tier"
+msgid "Tier"
+msgstr "Tier"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:frontend_configurations > :masto_fe"
+msgid "Masto FE"
+msgstr "Masto FE"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config label at :pleroma-:frontend_configurations > :masto_fe > :"
+"showInstanceSpecificPanel"
+msgid "Show instance specific panel"
+msgstr "Show instance specific panel"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config label at :pleroma-:frontend_configurations > :pleroma_fe > :"
+"conversationDisplay"
+msgid "Conversation display style"
+msgstr "Conversation display style"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config label at :pleroma-:frontend_configurations > :pleroma_fe > :"
+"hideSiteFavicon"
+msgid "Hide site favicon"
+msgstr "Instances favicons"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config label at :pleroma-:frontend_configurations > :pleroma_fe > :"
+"hideSiteName"
+msgid "Hide site name"
+msgstr "Hide Sitename"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config label at :pleroma-:frontend_configurations > :pleroma_fe > :"
+"renderMisskeyMarkdown"
+msgid "Render misskey markdown"
+msgstr "Render misskey markdown"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config label at :pleroma-:frontend_configurations > :pleroma_fe > :"
+"showNavShortcuts"
+msgid "Show navbar shortcuts"
+msgstr "Show navbar shortcuts"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config label at :pleroma-:frontend_configurations > :pleroma_fe > :"
+"showPanelNavShortcuts"
+msgid "Show timeline panel nav shortcuts"
+msgstr "Show timeline panel nav shortcuts"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config label at :pleroma-:frontend_configurations > :pleroma_fe > :"
+"showWiderShortcuts"
+msgid "Increase navbar shortcut spacing"
+msgstr "Increase navbar shortcut spacing"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config label at :pleroma-:frontend_configurations > :pleroma_fe > :stopGifs"
+msgid "Stop Gifs"
+msgstr "Stop Gifs"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:frontends > :mastodon"
+msgid "Mastodon"
+msgstr "Mastodon"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:frontends > :mastodon > name"
+msgid "Name"
+msgstr "Name"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:frontends > :mastodon > ref"
+msgid "Reference"
+msgstr "Reference"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:frontends > :swagger"
+msgid "Swagger"
+msgstr "Logger"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:frontends > :swagger > enabled"
+msgid "Enabled"
+msgstr "Enabled"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:frontends > :swagger > name"
+msgid "Name"
+msgstr "Name"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:frontends > :swagger > ref"
+msgid "Reference"
+msgstr "Reference"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:http > :pool_size"
+msgid "Pool size"
+msgstr "Pools"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:http > :pool_timeout"
+msgid "HTTP Pool Request Timeout"
+msgstr "HTTP Pool Request Timeout"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:http > :receive_timeout"
+msgid "HTTP Receive Timeout"
+msgstr "Recv timeout"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:instance > :export_prometheus_metrics"
+msgid "Export prometheus metrics"
+msgstr "Export prometheus metrics"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:instance > :languages"
+msgid "Languages"
+msgstr "Languages"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:instance > :local_bubble"
+msgid "Local bubble"
+msgstr "Local bubble"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:instances_nodeinfo"
+msgid "Instances nodeinfo"
+msgstr "Instances favicons"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:instances_nodeinfo > :enabled"
+msgid "Enabled"
+msgstr "Enabled"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:libre_translate"
+msgid "Libre translate"
+msgstr "Libre translate"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:libre_translate > :api_key"
+msgid "Api key"
+msgstr "VAPID public key"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:libre_translate > :url"
+msgid "Url"
+msgstr "Url"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:mrf > :transparency_obfuscate_domains"
+msgid "MRF domain obfuscation"
+msgstr "MRF domain obfuscation"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:mrf_inline_quote"
+msgid "MRF Inline Quote"
+msgstr "MRF Inline Quote"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:mrf_inline_quote > :prefix"
+msgid "Prefix"
+msgstr "Prefix"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:mrf_simple > :handle_threads"
+msgid "Apply to entire threads"
+msgstr "Apply to entire threads"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:translator"
+msgid "Translator"
+msgstr "Translator"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:translator > :enabled"
+msgid "Enabled"
+msgstr "Enabled"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:translator > :module"
+msgid "Module"
+msgstr "Modules"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:workers > :timeout"
+msgid "Timeout"
+msgstr "Timeout"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-Pleroma.Search"
+msgid "Search"
+msgstr "Search"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-Pleroma.Search > :module"
+msgid "Module"
+msgstr "Modules"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-Pleroma.Search.Elasticsearch.Cluster"
+msgid "Elasticsearch"
+msgstr "Elasticsearch"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-Pleroma.Search.Elasticsearch.Cluster > :api"
+msgid "Api"
+msgstr "Api"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config label at :pleroma-Pleroma.Search.Elasticsearch.Cluster > :indexes"
+msgid "Indexes"
+msgstr "Indexes"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config label at :pleroma-Pleroma.Search.Elasticsearch.Cluster > :indexes > :"
+"activities"
+msgid "Activities"
+msgstr "Activities"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config label at :pleroma-Pleroma.Search.Elasticsearch.Cluster > :indexes > :"
+"activities > :bulk_page_size"
+msgid "Bulk page size"
+msgstr "Bulk page size"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config label at :pleroma-Pleroma.Search.Elasticsearch.Cluster > :indexes > :"
+"activities > :bulk_wait_interval"
+msgid "Bulk wait interval"
+msgstr "Bulk wait interval"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config label at :pleroma-Pleroma.Search.Elasticsearch.Cluster > :indexes > :"
+"activities > :settings"
+msgid "Settings"
+msgstr "Markup Settings"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config label at :pleroma-Pleroma.Search.Elasticsearch.Cluster > :indexes > :"
+"activities > :sources"
+msgid "Sources"
+msgstr "Sources"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config label at :pleroma-Pleroma.Search.Elasticsearch.Cluster > :indexes > :"
+"activities > :store"
+msgid "Store"
+msgstr "Store"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config label at :pleroma-Pleroma.Search.Elasticsearch.Cluster > :json_library"
+msgid "Json library"
+msgstr "Json library"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config label at :pleroma-Pleroma.Search.Elasticsearch.Cluster > :password"
+msgid "Password"
+msgstr "Password"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-Pleroma.Search.Elasticsearch.Cluster > :url"
+msgid "Url"
+msgstr "Url"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config label at :pleroma-Pleroma.Search.Elasticsearch.Cluster > :username"
+msgid "Username"
+msgstr "Username"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-Pleroma.Search.Meilisearch"
+msgid "Pleroma.Search.Meilisearch"
+msgstr "Pleroma.Emails.Mailer"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config label at :pleroma-Pleroma.Search.Meilisearch > :"
+"initial_indexing_chunk_size"
+msgid "Initial indexing chunk size"
+msgstr "Initial indexing chunk size"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-Pleroma.Search.Meilisearch > :private_key"
+msgid "Private key"
+msgstr "Private key"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-Pleroma.Search.Meilisearch > :url"
+msgid "Url"
+msgstr "Url"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-Pleroma.Web.Metadata.Providers.Theme"
+msgid "Pleroma.Web.Metadata.Providers.Theme"
+msgstr "Pleroma.Web.Metadata"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config label at :pleroma-Pleroma.Web.Metadata.Providers.Theme > :theme_color"
+msgid "Theme color"
+msgstr "Theme color"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:instance > :healthcheck"
+msgid "If enabled, system data will be shown on `/api/v1/pleroma/healthcheck`"
+msgstr "If enabled, system data will be shown on `/api/pleroma/healthcheck`"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:frontends > :pickable"
+msgid ""
+"A list containing all frontends users can pick as their preference, format "
+"is :name/:ref, e.g pleroma-fe/stable."
+msgstr ""
+"A list containing all frontends users can pick as their preference, format "
+"is :name/:ref, e.g pleroma-fe/stable."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-:instance > :federated_timeline_available"
+msgid ""
+"Let people view the 'firehose' feed of all public statuses from all "
+"instances."
+msgstr ""
+"Let people view the 'firehose' feed of all public statuses from all "
+"instances."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:media_proxy > :blocklist"
+msgid ""
+"List of hosts with scheme which will not go through the MediaProxy, and will "
+"not be explicitly allowed by the Content-Security-Policy.\n"
+"This is to be used for instances where you do not want their media to go "
+"through your server or to be accessed by clients.\n"
+msgstr ""
+"List of hosts with scheme which will not go through the MediaProxy, and will "
+"not be explicitly allowed by the Content-Security-Policy.\n"
+"This is to be used for instances where you do not want their media to go "
+"through your server or to be accessed by clients.\n"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config description at :pleroma-:media_proxy > :whitelist"
+msgid ""
+"List of hosts with scheme to bypass the MediaProxy.\n"
+"\n"
+"The media will be fetched by the client, directly from the remote server.\n"
+"\n"
+"To allow this, it will Content-Security-Policy exceptions for each instance "
+"listed.\n"
+"\n"
+"This is to be used for instances you trust and do not want to cache media "
+"for.\n"
+msgstr ""
+"List of hosts with scheme to bypass the MediaProxy.\n"
+"\n"
+"The media will be fetched by the client, directly from the remote server.\n"
+"\n"
+"To allow this, it will Content-Security-Policy exceptions for each instance "
+"listed.\n"
+"\n"
+"This is to be used for instances you trust and do not want to cache media "
+"for.\n"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-:mrf_reject_newly_created_account_notes"
+msgid "Reject notes from accounts created too recently"
+msgstr "Reject notes from accounts created too recently"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-:mrf_reject_newly_created_account_notes > :age"
+msgid "Time below which to reject (in seconds)"
+msgstr "Time below which to reject (in seconds)"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config description at :pleroma-:restrict_unauthenticated > :timelines > :"
+"bubble"
+msgid "Disallow viewing the bubble timeline."
+msgstr "Disallow view public timeline."
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:frontends > :pickable"
+msgid "Pickable"
+msgstr "Public key"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:instance > :federated_timeline_available"
+msgid "Federated timeline available"
+msgstr "Federated timeline removal"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:media_proxy > :blocklist"
+msgid "Blocklist"
+msgstr "Blocklist"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt "config label at :pleroma-:mrf_reject_newly_created_account_notes"
+msgid "MRF Reject New Accounts"
+msgstr "MRF Reject Non Public"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config label at :pleroma-:mrf_reject_newly_created_account_notes > :age"
+msgid "Age"
+msgstr "Age"
+
+#: lib/pleroma/docs/translator.ex:5
+#, fuzzy
+msgctxt ""
+"config label at :pleroma-:restrict_unauthenticated > :timelines > :bubble"
+msgid "Bubble"
+msgstr "Bubble"

@@ -1884,12 +1884,6 @@ msgstr ""
 
 #: lib/pleroma/docs/translator.ex:5
 #, elixir-autogen, elixir-format
-msgctxt "config description at :pleroma-:media_proxy > :whitelist"
-msgid "List of hosts with scheme to bypass the MediaProxy"
-msgstr ""
-
-#: lib/pleroma/docs/translator.ex:5
-#, elixir-autogen, elixir-format
 msgctxt "config description at :pleroma-:modules > :runtime_dir"
 msgid "A path to custom Elixir modules (such as MRF policies)."
 msgstr ""
@@ -5972,4 +5966,82 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgctxt "config description at :pleroma-:instance > :healthcheck"
 msgid "If enabled, system data will be shown on `/api/v1/pleroma/healthcheck`"
+msgstr ""
+
+#: lib/pleroma/docs/translator.ex:5
+#, elixir-autogen, elixir-format
+msgctxt "config description at :pleroma-:frontends > :pickable"
+msgid "A list containing all frontends users can pick as their preference, format is :name/:ref, e.g pleroma-fe/stable."
+msgstr ""
+
+#: lib/pleroma/docs/translator.ex:5
+#, elixir-autogen, elixir-format
+msgctxt "config description at :pleroma-:instance > :federated_timeline_available"
+msgid "Let people view the 'firehose' feed of all public statuses from all instances."
+msgstr ""
+
+#: lib/pleroma/docs/translator.ex:5
+#, elixir-autogen, elixir-format
+msgctxt "config description at :pleroma-:media_proxy > :blocklist"
+msgid "List of hosts with scheme which will not go through the MediaProxy, and will not be explicitly allowed by the Content-Security-Policy.\nThis is to be used for instances where you do not want their media to go through your server or to be accessed by clients.\n"
+msgstr ""
+
+#: lib/pleroma/docs/translator.ex:5
+#, elixir-autogen, elixir-format
+msgctxt "config description at :pleroma-:media_proxy > :whitelist"
+msgid "List of hosts with scheme to bypass the MediaProxy.\n\nThe media will be fetched by the client, directly from the remote server.\n\nTo allow this, it will Content-Security-Policy exceptions for each instance listed.\n\nThis is to be used for instances you trust and do not want to cache media for.\n"
+msgstr ""
+
+#: lib/pleroma/docs/translator.ex:5
+#, elixir-autogen, elixir-format
+msgctxt "config description at :pleroma-:mrf_reject_newly_created_account_notes"
+msgid "Reject notes from accounts created too recently"
+msgstr ""
+
+#: lib/pleroma/docs/translator.ex:5
+#, elixir-autogen, elixir-format
+msgctxt "config description at :pleroma-:mrf_reject_newly_created_account_notes > :age"
+msgid "Time below which to reject (in seconds)"
+msgstr ""
+
+#: lib/pleroma/docs/translator.ex:5
+#, elixir-autogen, elixir-format
+msgctxt "config description at :pleroma-:restrict_unauthenticated > :timelines > :bubble"
+msgid "Disallow viewing the bubble timeline."
+msgstr ""
+
+#: lib/pleroma/docs/translator.ex:5
+#, elixir-autogen, elixir-format
+msgctxt "config label at :pleroma-:frontends > :pickable"
+msgid "Pickable"
+msgstr ""
+
+#: lib/pleroma/docs/translator.ex:5
+#, elixir-autogen, elixir-format
+msgctxt "config label at :pleroma-:instance > :federated_timeline_available"
+msgid "Federated timeline available"
+msgstr ""
+
+#: lib/pleroma/docs/translator.ex:5
+#, elixir-autogen, elixir-format
+msgctxt "config label at :pleroma-:media_proxy > :blocklist"
+msgid "Blocklist"
+msgstr ""
+
+#: lib/pleroma/docs/translator.ex:5
+#, elixir-autogen, elixir-format
+msgctxt "config label at :pleroma-:mrf_reject_newly_created_account_notes"
+msgid "MRF Reject New Accounts"
+msgstr ""
+
+#: lib/pleroma/docs/translator.ex:5
+#, elixir-autogen, elixir-format
+msgctxt "config label at :pleroma-:mrf_reject_newly_created_account_notes > :age"
+msgid "Age"
+msgstr ""
+
+#: lib/pleroma/docs/translator.ex:5
+#, elixir-autogen, elixir-format
+msgctxt "config label at :pleroma-:restrict_unauthenticated > :timelines > :bubble"
+msgid "Bubble"
 msgstr ""

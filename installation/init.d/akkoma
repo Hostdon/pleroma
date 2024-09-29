@@ -8,6 +8,7 @@ pidfile="/var/run/akkoma.pid"
 directory=/opt/akkoma
 healthcheck_delay=60
 healthcheck_timer=30
+no_new_privs="yes"
 
 : ${akkoma_port:-4000}
 

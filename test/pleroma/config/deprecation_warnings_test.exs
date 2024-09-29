@@ -3,13 +3,69 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Config.DeprecationWarningsTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: false
   use Pleroma.Tests.Helpers
 
   import ExUnit.CaptureLog
 
   alias Pleroma.Config
   alias Pleroma.Config.DeprecationWarnings
+
+  describe "filter exiftool" do
+    test "gives warning when still used" do
+      clear_config(
+        [Pleroma.Upload, :filters],
+        [Pleroma.Upload.Filter.Exiftool]
+      )
+
+      assert capture_log(fn -> DeprecationWarnings.check_exiftool_filter() end) =~
+               """
+               !!!DEPRECATION WARNING!!!
+               Your config is using Exiftool as a filter instead of Exiftool.StripMetadata. This should work for now, but you are advised to change to the new configuration to prevent possible issues later:
+
+               ```
+               config :pleroma, Pleroma.Upload,
+                 filters: [Pleroma.Upload.Filter.Exiftool]
+               ```
+
+               Is now
+
+
+               ```
+               config :pleroma, Pleroma.Upload,
+                 filters: [Pleroma.Upload.Filter.Exiftool.StripMetadata]
+               ```
+               """
+    end
+
+    test "changes setting to exiftool strip metadata" do
+      clear_config(
+        [Pleroma.Upload, :filters],
+        [Pleroma.Upload.Filter.Exiftool, Pleroma.Upload.Filter.Exiftool.ReadDescription]
+      )
+
+      expected_config = [
+        Pleroma.Upload.Filter.Exiftool.StripMetadata,
+        Pleroma.Upload.Filter.Exiftool.ReadDescription
+      ]
+
+      capture_log(fn -> DeprecationWarnings.warn() end)
+
+      assert Config.get([Pleroma.Upload]) |> Keyword.get(:filters, []) == expected_config
+    end
+
+    test "doesn't give a warning with correct config" do
+      clear_config(
+        [Pleroma.Upload, :filters],
+        [
+          Pleroma.Upload.Filter.Exiftool.StripMetadata,
+          Pleroma.Upload.Filter.Exiftool.ReadDescription
+        ]
+      )
+
+      assert capture_log(fn -> DeprecationWarnings.check_exiftool_filter() end) == ""
+    end
+  end
 
   describe "simple policy tuples" do
     test "gives warning when there are still strings" do
@@ -288,5 +344,65 @@ defmodule Pleroma.Config.DeprecationWarningsTest do
            end) =~ "Your config is using a custom tesla adapter"
 
     Application.put_env(:tesla, :adapter, Tesla.Mock)
+  end
+
+  describe "check_uploader_base_url_set/0" do
+    test "should error if the base_url is not set" do
+      clear_config([Pleroma.Upload, :base_url], nil)
+
+      # we need to capture the error
+      assert_raise ArgumentError, fn ->
+        assert capture_log(fn ->
+                 DeprecationWarnings.check_uploader_base_url_set()
+               end) =~ "Your config does not specify a base_url for uploads!"
+      end
+    end
+
+    test "should not error if the base_url is set" do
+      clear_config([Pleroma.Upload, :base_url], "https://example.com")
+
+      refute capture_log(fn ->
+               DeprecationWarnings.check_uploader_base_url_set()
+             end) =~ "Your config does not specify a base_url for uploads!"
+    end
+
+    test "should not error if local uploader is not used" do
+      clear_config([Pleroma.Upload, :base_url], nil)
+      clear_config([Pleroma.Upload, :uploader], Pleroma.Uploaders.S3)
+
+      refute capture_log(fn ->
+               DeprecationWarnings.check_uploader_base_url_set()
+             end) =~ "Your config does not specify a base_url for uploads!"
+    end
+  end
+
+  describe "check_uploader_base_url_is_not_base_domain/0" do
+    test "should error if the akkoma domain is the same as the upload domain" do
+      clear_config([Pleroma.Upload, :base_url], "http://localhost")
+
+      assert capture_log(fn ->
+               DeprecationWarnings.check_uploader_base_url_is_not_base_domain()
+             end) =~ "Your Akkoma Host and your Upload base_url's host are the same!"
+    end
+
+    test "should not error if the local uploader is not used" do
+      clear_config([Pleroma.Upload, :base_url], "http://localhost")
+      clear_config([Pleroma.Upload, :uploader], Pleroma.Uploaders.S3)
+
+      refute capture_log(fn ->
+               DeprecationWarnings.check_uploader_base_url_is_not_base_domain()
+             end) =~ "Your Akkoma Host and your Upload base_url's host are the same!"
+    end
+
+    test "should not error if the akkoma domain is different from the upload domain" do
+      clear_config([Pleroma.Upload, :base_url], "https://media.localhost")
+      clear_config([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
+
+      refute capture_log(fn ->
+               DeprecationWarnings.check_uploader_base_url_is_not_base_domain()
+             end) =~ "Your Akkoma Host and your Upload base_url's host are the same!"
+
+      clear_config([Pleroma.Upload, :base_url])
+    end
   end
 end

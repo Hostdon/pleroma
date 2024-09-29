@@ -3,8 +3,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-07-28 09:15+0000\n"
-"PO-Revision-Date: 2022-07-30 21:58+0000\n"
-"Last-Translator: sola <spla@mastodont.cat>\n"
+"PO-Revision-Date: 2024-04-13 22:55+0000\n"
+"Last-Translator: fadelkon <fadelkon@posteo.net>\n"
 "Language-Team: Catalan <http://translate.akkoma.dev/projects/akkoma/"
 "akkoma-backend-static-pages/ca/>\n"
 "Language: ca\n"
@@ -12,7 +12,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.13.1\n"
+"X-Generator: Weblate 4.18.2\n"
 
 ## This file is a PO Template file.
 ##
@@ -95,6 +95,7 @@ msgctxt "remote follow success"
 msgid "Account followed!"
 msgstr "Compte seguit!"
 
+#: lib/pleroma/web/templates/twitter_api/util/status_interact.html.eex:7
 #: lib/pleroma/web/templates/twitter_api/util/subscribe.html.eex:7
 #, elixir-autogen, elixir-format
 msgctxt "placeholder text for account id"
@@ -176,32 +177,32 @@ msgstr ""
 "Aquests son apunts públics etiquetats amb #%{tag}. Pots interactuar amb ells "
 "si tens un compte en qualsevol lloc del fedivers."
 
-#: lib/pleroma/web/templates/o_auth/o_auth/oob_token_exists.html.eex:1
+#: lib/pleroma/web/templates/o_auth/o_auth/oob_token_exists.html.eex:3
 #, elixir-autogen, elixir-format
 msgctxt "oauth authorization exists page title"
 msgid "Authorization exists"
 msgstr "Existeix autorització"
 
-#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:32
+#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:37
 #, elixir-autogen, elixir-format
 msgctxt "oauth authorize approve button"
 msgid "Approve"
 msgstr "Aprova"
 
-#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:30
+#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:35
 #, elixir-autogen, elixir-format
 msgctxt "oauth authorize cancel button"
 msgid "Cancel"
 msgstr "Cancel·la"
 
-#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:23
+#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:26
 #, elixir-autogen, elixir-format
 msgctxt "oauth authorize message"
 msgid "Application <strong>%{client_name}</strong> is requesting access to your account."
 msgstr ""
 "L'aplicació <strong>%{client_name}</strong> sol·licita accés al teu compte."
 
-#: lib/pleroma/web/templates/o_auth/o_auth/oob_authorization_created.html.eex:1
+#: lib/pleroma/web/templates/o_auth/o_auth/oob_authorization_created.html.eex:3
 #, elixir-autogen, elixir-format
 msgctxt "oauth authorized page title"
 msgid "Successfully authorized"
@@ -219,31 +220,31 @@ msgctxt "oauth external provider sign in button"
 msgid "Sign in with %{strategy}"
 msgstr "Inicia sessió amb %{strategy}"
 
-#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:54
+#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:59
 #, elixir-autogen, elixir-format
 msgctxt "oauth login button"
 msgid "Log In"
 msgstr "Inicia sessió"
 
-#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:51
+#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:56
 #, elixir-autogen, elixir-format
 msgctxt "oauth login password prompt"
 msgid "Password"
 msgstr "Contrasenya"
 
-#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:47
+#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:52
 #, elixir-autogen, elixir-format
 msgctxt "oauth login username prompt"
 msgid "Username"
 msgstr "Nom d'usuari"
 
-#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:39
+#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:44
 #, elixir-autogen, elixir-format
 msgctxt "oauth register nickname prompt"
 msgid "Pleroma Handle"
 msgstr "Sobrenom Akkoma"
 
-#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:37
+#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:42
 #, elixir-autogen, elixir-format
 msgctxt "oauth register nickname unchangeable warning"
 msgid "Choose carefully! You won't be able to change this later. You will be able to change your display name, though."
@@ -307,76 +308,68 @@ msgctxt "oauth register page title"
 msgid "Registration Details"
 msgstr "Detalls del registre"
 
-#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:36
-#, elixir-autogen, elixir-format
-msgctxt "oauth register page title"
-msgid "This is the first time you visit! Please enter your Pleroma handle."
-msgstr ""
-"Aquesta és la primera vegada que ens visites! Si us plau introdueix el teu "
-"sobrenom a Akkoma."
-
 #: lib/pleroma/web/templates/o_auth/o_auth/_scopes.html.eex:2
 #, elixir-autogen, elixir-format
 msgctxt "oauth scopes message"
 msgid "The following permissions will be granted"
 msgstr "Es concediran els següents permisos"
 
-#: lib/pleroma/web/templates/o_auth/o_auth/oob_authorization_created.html.eex:2
-#: lib/pleroma/web/templates/o_auth/o_auth/oob_token_exists.html.eex:2
+#: lib/pleroma/web/templates/o_auth/o_auth/oob_authorization_created.html.eex:6
+#: lib/pleroma/web/templates/o_auth/o_auth/oob_token_exists.html.eex:6
 #, elixir-autogen, elixir-format
 msgctxt "oauth token code message"
 msgid "Token code is <br>%{token}"
 msgstr "El codi del Token és <br>%{token}"
 
-#: lib/pleroma/web/templates/o_auth/mfa/totp.html.eex:12
+#: lib/pleroma/web/templates/o_auth/mfa/totp.html.eex:14
 #, elixir-autogen, elixir-format
 msgctxt "mfa auth code prompt"
 msgid "Authentication code"
 msgstr "Codi d'autenticació"
 
-#: lib/pleroma/web/templates/o_auth/mfa/totp.html.eex:8
+#: lib/pleroma/web/templates/o_auth/mfa/totp.html.eex:9
 #, elixir-autogen, elixir-format
 msgctxt "mfa auth page title"
 msgid "Two-factor authentication"
 msgstr "Autenticació de dos factors"
 
-#: lib/pleroma/web/templates/o_auth/mfa/totp.html.eex:23
+#: lib/pleroma/web/templates/o_auth/mfa/totp.html.eex:25
 #, elixir-autogen, elixir-format
 msgctxt "mfa auth page use recovery code link"
 msgid "Enter a two-factor recovery code"
 msgstr "Entra el codi de recuperació de dos factors"
 
-#: lib/pleroma/web/templates/o_auth/mfa/totp.html.eex:20
+#: lib/pleroma/web/templates/o_auth/mfa/totp.html.eex:22
 #, elixir-autogen, elixir-format
 msgctxt "mfa auth verify code button"
 msgid "Verify"
 msgstr "Verifica"
 
-#: lib/pleroma/web/templates/o_auth/mfa/recovery.html.eex:8
+#: lib/pleroma/web/templates/o_auth/mfa/recovery.html.eex:9
 #, elixir-autogen, elixir-format
 msgctxt "mfa recover page title"
 msgid "Two-factor recovery"
 msgstr "Recuperació de dos factors"
 
-#: lib/pleroma/web/templates/o_auth/mfa/recovery.html.eex:12
+#: lib/pleroma/web/templates/o_auth/mfa/recovery.html.eex:14
 #, elixir-autogen, elixir-format
 msgctxt "mfa recover recovery code prompt"
 msgid "Recovery code"
 msgstr "Codi de recuperació"
 
-#: lib/pleroma/web/templates/o_auth/mfa/recovery.html.eex:23
+#: lib/pleroma/web/templates/o_auth/mfa/recovery.html.eex:25
 #, elixir-autogen, elixir-format
 msgctxt "mfa recover use 2fa code link"
 msgid "Enter a two-factor code"
 msgstr "Entra el codi de dos factors"
 
-#: lib/pleroma/web/templates/o_auth/mfa/recovery.html.eex:20
+#: lib/pleroma/web/templates/o_auth/mfa/recovery.html.eex:22
 #, elixir-autogen, elixir-format
 msgctxt "mfa recover verify recovery code button"
 msgid "Verify"
 msgstr "Verifica"
 
-#: lib/pleroma/web/templates/static_fe/static_fe/profile.html.eex:8
+#: lib/pleroma/web/templates/static_fe/static_fe/profile.html.eex:42
 #, elixir-autogen, elixir-format
 msgctxt "static fe profile page remote follow button"
 msgid "Remote follow"
@@ -435,15 +428,6 @@ msgid "%{count} New Follower"
 msgid_plural "%{count} New Followers"
 msgstr[0] "%{count} Nou Seguidor"
 msgstr[1] "%{count} Nous Seguidors"
-
-#: lib/pleroma/emails/user_email.ex:356
-#, elixir-autogen, elixir-format
-msgctxt "account archive email body - self-requested"
-msgid "<p>You requested a full backup of your Pleroma account. It's ready for download:</p>\n<p><a href=\"%{download_url}\">%{download_url}</a></p>\n"
-msgstr ""
-"<p>Has sol·licitat una copia de seguretat completa del teu compte Akkoma. "
-"Està llest per a descarrega:</p>\n"
-"<p><a href=\"%{download_url}\">%{download_url}</a></p>\n"
 
 #: lib/pleroma/emails/user_email.ex:384
 #, elixir-autogen, elixir-format
@@ -522,17 +506,6 @@ msgctxt "successful registration email subject"
 msgid "Account registered on %{instance_name}"
 msgstr "Compte registrat a %{instance_name}"
 
-#: lib/pleroma/emails/user_email.ex:119
-#, elixir-autogen, elixir-format
-msgctxt "user invitation email body"
-msgid "<h3>You are invited to %{instance_name}</h3>\n<p>%{inviter_name} invites you to join %{instance_name}, an instance of Pleroma federated social networking platform.</p>\n<p>Click the following link to register: <a href=\"%{registration_url}\">accept invitation</a>.</p>\n"
-msgstr ""
-"<h3>Has estat invitat a %{instance_name}</h3>\n"
-"<p>%{inviter_name} t'invita a unir-te a %{instance_name}, una instància de "
-"la plataforma de xarxa social federada Akkoma.</p>\n"
-"<p>Clica el següent enllaç per a registrar-te: <a href=\"%{registration_url}"
-"\">accepta invitació</a>.</p>\n"
-
 #: lib/pleroma/emails/user_email.ex:136
 #, elixir-autogen, elixir-format
 msgctxt "user invitation email subject"
@@ -560,8 +533,84 @@ msgstr "Benvingut a %{instance_name}!"
 #: lib/pleroma/emails/user_email.ex:368
 #, elixir-autogen, elixir-format
 msgctxt "account archive email body - admin requested"
-msgid "<p>Admin @%{admin_nickname} requested a full backup of your Pleroma account. It's ready for download:</p>\n<p><a href=\"%{download_url}\">%{download_url}</a></p>\n"
+msgid "<p>Admin @%{admin_nickname} requested a full backup of your Akkoma account. It's ready for download:</p>\n<p><a href=\"%{download_url}\">%{download_url}</a></p>\n"
 msgstr ""
-"<p>L'Administrador @%{admin_nickname} ha sol·licitat una copia de seguretat "
-"completa del teu compte Akkoma. Està preparat per a descarrega:</p>\n"
+"<p>L'Administrador @%{admin_nickname} ha sol·licitat una còpia de seguretat "
+"completa del teu compte Akkoma. Està preparada per descarregar:</p>\n"
 "<p><a href=\"%{download_url}\">%{download_url}</a></p>\n"
+
+#: lib/pleroma/emails/user_email.ex:356
+#, elixir-autogen, elixir-format
+msgctxt "account archive email body - self-requested"
+msgid "<p>You requested a full backup of your Akkoma account. It's ready for download:</p>\n<p><a href=\"%{download_url}\">%{download_url}</a></p>\n"
+msgstr ""
+"<p>Has sol·licitat una còpia de seguretat completa del teu compte Akkoma. Ja "
+"la pots descarregar:</p>\n"
+"<p><a href=\"%{download_url}\">%{download_url}</a></p>\n"
+
+#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:41
+#, elixir-autogen, elixir-format
+msgctxt "oauth register page title"
+msgid "This is your first visit! Please enter your Akkoma handle."
+msgstr ""
+"Aquesta és la primera vegada que ens visites! Si us plau introdueix el teu "
+"sobrenom a Akkoma."
+
+#: lib/pleroma/web/twitter_api/controllers/util_controller.ex:123
+#, elixir-autogen, elixir-format
+msgctxt "remote follow error message - unknown error"
+msgid "Something went wrong."
+msgstr "Hi ha hagut algun problema."
+
+#: lib/pleroma/web/twitter_api/controllers/util_controller.ex:67
+#, elixir-autogen, elixir-format
+msgctxt "remote follow error message - user not found"
+msgid "Could not find user"
+msgstr "No s'ha trobat l'usuari/a/ï"
+
+#: lib/pleroma/web/templates/twitter_api/util/status_interact.html.eex:8
+#, elixir-autogen, elixir-format
+msgctxt "status interact authorization button"
+msgid "Interact"
+msgstr "Interacciona"
+
+#: lib/pleroma/web/templates/twitter_api/util/status_interact.html.eex:2
+#, elixir-autogen, elixir-format
+msgctxt "status interact error"
+msgid "Error: %{error}"
+msgstr "Error: %{error}"
+
+#: lib/pleroma/web/twitter_api/controllers/util_controller.ex:95
+#, elixir-autogen, elixir-format
+msgctxt "status interact error message - status not found"
+msgid "Could not find status"
+msgstr "No s'ha trobat l'estat"
+
+#: lib/pleroma/web/twitter_api/controllers/util_controller.ex:144
+#, elixir-autogen, elixir-format
+msgctxt "status interact error message - unknown error"
+msgid "Something went wrong."
+msgstr "Hi ha hagut algun problema."
+
+#: lib/pleroma/web/templates/twitter_api/util/status_interact.html.eex:4
+#, elixir-autogen, elixir-format
+msgctxt "status interact header"
+msgid "Interacting with %{nickname}'s %{status_link}"
+msgstr "S'està interactuant amb %{status_link} de %{nickname}"
+
+#: lib/pleroma/web/templates/twitter_api/util/status_interact.html.eex:4
+#, elixir-autogen, elixir-format
+msgctxt "status interact header - status link text"
+msgid "status"
+msgstr "estat"
+
+#: lib/pleroma/emails/user_email.ex:119
+#, elixir-autogen, elixir-format
+msgctxt "user invitation email body"
+msgid "<h3>You are invited to %{instance_name}</h3>\n<p>%{inviter_name} invites you to join %{instance_name}, an instance of Akkoma federated social networking platform.</p>\n<p>Click the following link to register: <a href=\"%{registration_url}\">accept invitation</a>.</p>\n"
+msgstr ""
+"<h3>T'han convidat a %{instance_name}</h3>\n"
+"<p>%{inviter_name} t'anima a unir-te a %{instance_name}, una instància de la "
+"plataforma de xarxa social federada Akkoma.</p>\n"
+"<p>Clica el següent enllaç per a registrar-te: <a href=\"%{registration_url}"
+"\">accepta la invitació</a>.</p>\n"

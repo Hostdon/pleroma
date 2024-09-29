@@ -108,15 +108,33 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
       Config.get([:mrf_simple, :reject], [])
   end
 
+  defp allowed_instances do
+    Config.get([:mrf_simple, :accept])
+  end
+
   def should_federate?(url) do
     %{host: host} = URI.parse(url)
 
-    quarantined_instances =
-      blocked_instances()
+    with {nil, false} <- {nil, is_nil(host)},
+         allowed <- allowed_instances(),
+         false <- Enum.empty?(allowed) do
+      allowed
       |> Pleroma.Web.ActivityPub.MRF.instance_list_from_tuples()
       |> Pleroma.Web.ActivityPub.MRF.subdomains_regex()
+      |> Pleroma.Web.ActivityPub.MRF.subdomain_match?(host)
+    else
+      # oi!
+      {nil, true} ->
+        false
 
-    !Pleroma.Web.ActivityPub.MRF.subdomain_match?(quarantined_instances, host)
+      _ ->
+        quarantined_instances =
+          blocked_instances()
+          |> Pleroma.Web.ActivityPub.MRF.instance_list_from_tuples()
+          |> Pleroma.Web.ActivityPub.MRF.subdomains_regex()
+
+        not Pleroma.Web.ActivityPub.MRF.subdomain_match?(quarantined_instances, host)
+    end
   end
 
   @spec recipients(User.t(), Activity.t()) :: list(User.t()) | []

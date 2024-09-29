@@ -3,8 +3,9 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Workers.ReceiverWorkerTest do
-  use Pleroma.DataCase, async: true
+  use Pleroma.DataCase, async: false
   use Oban.Testing, repo: Pleroma.Repo
+  @moduletag :mocked
 
   import Mock
   import Pleroma.Factory

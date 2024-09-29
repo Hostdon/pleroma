@@ -35,6 +35,7 @@ Once `SimplePolicy` is enabled, you can configure various groups in the `:mrf_si
 * `media_removal`: Servers in this group will have media stripped from incoming messages.
 * `avatar_removal`: Avatars from these servers will be stripped from incoming messages.
 * `banner_removal`: Banner images from these servers will be stripped from incoming messages.
+* `background_removal`: User background images from these servers will be stripped from incoming messages.
 * `report_removal`: Servers in this group will have their reports (flags) rejected.
 * `federated_timeline_removal`: Servers in this group will have their messages unlisted from the public timelines by flipping the `to` and `cc` fields.
 * `reject_deletes`: Deletion requests will be rejected from these servers.
@@ -60,6 +61,32 @@ config :pleroma, :mrf_simple,
 ### Use with Care
 
 The effects of MRF policies can be very drastic. It is important to use this functionality carefully. Always try to talk to an admin before writing an MRF policy concerning their instance.
+
+## Hiding or Obfuscating Policies
+
+You can opt out of publicly displaying all MRF policies or only hide or obfuscate selected domains.
+
+To just hide everything set:
+
+```elixir
+config :pleroma, :mrf,
+  ...
+  transparency: false,
+```
+
+To hide or obfuscate only select entries, use:
+
+```elixir
+config :pleroma, :mrf,
+  ...
+  transparency_obfuscate_domains: ["handholdi.ng", "badword.com"],
+  transparency_exclusions: [{"ghost.club", "even a fragment is too spoopy for humans"}]
+```
+
+## More MRF Policies
+
+See the [documentation cheatsheet](cheatsheet.md)
+for all available MRF policies and their options.
 
 ## Writing your own MRF Policy
 

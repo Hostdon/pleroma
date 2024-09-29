@@ -119,7 +119,7 @@ defmodule Pleroma.User.Backup do
     end
   end
 
-  @files ['actor.json', 'outbox.json', 'likes.json', 'bookmarks.json']
+  @files [~c"actor.json", ~c"outbox.json", ~c"likes.json", ~c"bookmarks.json"]
   def export(%__MODULE__{} = backup) do
     backup = Repo.preload(backup, :user)
     name = String.trim_trailing(backup.file_name, ".zip")

@@ -34,9 +34,9 @@ defmodule Pleroma.Web.MastoFEController do
 
       index =
         if flavour == "fedibird-fe" do
-          "fedibird.index.html"
+          "fedibird.html"
         else
-          "glitchsoc.index.html"
+          "glitchsoc.html"
         end
 
       conn

@@ -6,10 +6,10 @@
     <title><%= Pleroma.Config.get([:instance, :name]) %></title>
     <meta content='noindex' name='robots'>
     <%= Phoenix.HTML.raw(assigns[:meta] || "") %>
-    <link rel="stylesheet" href="/embed.css">
+    <link rel="stylesheet" href="/embed/embed.css">
     <base target="_parent">
   </head>
   <body>
-    <%= render @view_module, @view_template, assigns %>
+    <%= render view_module(@conn), view_template(@conn), assigns %>
   </body>
 </html>

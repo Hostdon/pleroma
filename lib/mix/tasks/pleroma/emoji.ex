@@ -130,6 +130,7 @@ defmodule Mix.Tasks.Pleroma.Emoji do
         }
 
         File.write!(Path.join(pack_path, "pack.json"), Jason.encode!(pack_json, pretty: true))
+        Pleroma.Emoji.reload()
       else
         IO.puts(IO.ANSI.format([:bright, :red, "No pack named \"#{pack_name}\" found"]))
       end
@@ -235,6 +236,8 @@ defmodule Mix.Tasks.Pleroma.Emoji do
 
       IO.puts("#{pack_file} has been created with the #{name} pack")
     end
+
+    Pleroma.Emoji.reload()
   end
 
   def run(["reload"]) do

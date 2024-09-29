@@ -3,7 +3,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.AdminAPI.MediaProxyCacheControllerTest do
-  use Pleroma.Web.ConnCase
+  use Pleroma.Web.ConnCase, async: false
+  @moduletag :mocked
 
   import Pleroma.Factory
   import Mock
@@ -21,6 +22,7 @@ defmodule Pleroma.Web.AdminAPI.MediaProxyCacheControllerTest do
       |> assign(:user, admin)
       |> assign(:token, token)
 
+    clear_config([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
     clear_config([:media_proxy, :enabled], true)
     clear_config([:media_proxy, :invalidation, :enabled], true)
     clear_config([:media_proxy, :invalidation, :provider], MediaProxy.Invalidation.Script)

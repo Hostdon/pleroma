@@ -11,6 +11,7 @@ defmodule Pleroma.Web.Plugs.UploadedMedia do
   require Logger
 
   alias Pleroma.Web.MediaProxy
+  alias Pleroma.Web.Plugs.Utils
 
   @behaviour Plug
   # no slashes
@@ -28,26 +29,34 @@ defmodule Pleroma.Web.Plugs.UploadedMedia do
       |> Keyword.put(:at, "/__unconfigured_media_plug")
       |> Plug.Static.init()
 
-    %{static_plug_opts: static_plug_opts}
+    config = Pleroma.Config.get(Pleroma.Upload)
+    allowed_mime_types = Keyword.fetch!(config, :allowed_mime_types)
+    uploader = Keyword.fetch!(config, :uploader)
+
+    %{
+      static_plug_opts: static_plug_opts,
+      allowed_mime_types: allowed_mime_types,
+      uploader: uploader
+    }
   end
 
-  def call(%{request_path: <<"/", @path, "/", file::binary>>} = conn, opts) do
+  def call(
+        %{request_path: <<"/", @path, "/", file::binary>>} = conn,
+        %{uploader: uploader} = opts
+      ) do
     conn =
       case fetch_query_params(conn) do
         %{query_params: %{"name" => name}} = conn ->
           name = escape_header_value(name)
 
-          put_resp_header(conn, "content-disposition", "filename=\"#{name}\"")
+          put_resp_header(conn, "content-disposition", ~s[inline; filename="#{name}"])
 
         conn ->
           conn
       end
       |> merge_resp_headers([{"content-security-policy", "sandbox"}])
 
-    config = Pleroma.Config.get(Pleroma.Upload)
-
-    with uploader <- Keyword.fetch!(config, :uploader),
-         {:ok, get_method} <- uploader.get_file(file),
+    with {:ok, get_method} <- uploader.get_file(file),
          false <- media_is_banned(conn, get_method) do
       get_media(conn, get_method, opts)
     else
@@ -68,13 +77,23 @@ defmodule Pleroma.Web.Plugs.UploadedMedia do
 
   defp media_is_banned(_, _), do: false
 
+  defp set_content_type(conn, opts, filepath) do
+    real_mime = MIME.from_path(filepath)
+    clean_mime = Utils.get_safe_mime_type(opts, real_mime)
+    put_resp_header(conn, "content-type", clean_mime)
+  end
+
   defp get_media(conn, {:static_dir, directory}, opts) do
     static_opts =
       Map.get(opts, :static_plug_opts)
       |> Map.put(:at, [@path])
       |> Map.put(:from, directory)
+      |> Map.put(:set_content_type, false)
 
-    conn = Plug.Static.call(conn, static_opts)
+    conn =
+      conn
+      |> set_content_type(opts, conn.request_path)
+      |> Pleroma.Web.Plugs.StaticNoCT.call(static_opts)
 
     if conn.halted do
       conn

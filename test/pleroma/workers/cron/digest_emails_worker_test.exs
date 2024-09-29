@@ -39,7 +39,7 @@ defmodule Pleroma.Workers.Cron.DigestEmailsWorkerTest do
     # Performing job(s) enqueued at previous step
     ObanHelpers.perform_all()
 
-    assert_received {:email, email}
+    assert_receive {:email, email}
     assert email.to == [{user2.name, user2.email}]
     assert email.subject == "Your digest from #{Pleroma.Config.get(:instance)[:name]}"
   end

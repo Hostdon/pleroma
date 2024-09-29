@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.ActivityPub.Transmogrifier.AcceptHandlingTest do
-  use Pleroma.DataCase, async: true
+  use Pleroma.DataCase
 
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.Transmogrifier

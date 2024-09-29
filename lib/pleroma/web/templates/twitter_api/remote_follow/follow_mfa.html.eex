@@ -4,7 +4,7 @@
 <h2><%= Gettext.dpgettext("static_pages", "remote follow mfa header", "Two-factor authentication") %></h2>
 <p><%= @followee.nickname %></p>
 <img height="128" width="128" src="<%= avatar_url(@followee) %>">
-<%= form_for @conn, Routes.remote_follow_path(@conn, :do_follow), [as: "mfa"], fn f -> %>
+<%= form_for @conn, ~p"/ostatus_subscribe", [as: "mfa"], fn f -> %>
 <%= text_input f, :code, placeholder: Gettext.dpgettext("static_pages", "placeholder text for auth code entry", "Authentication code"), required: true %>
 <br>
 <%= hidden_input f, :id, value: @followee.id %>

@@ -1,7 +1,6 @@
 defmodule Pleroma.Web.MastodonAPI.TagView do
   use Pleroma.Web, :view
   alias Pleroma.User
-  alias Pleroma.Web.Router.Helpers
 
   def render("index.json", %{tags: tags, for_user: user}) do
     render_many(tags, __MODULE__, "show.json", %{for_user: user})
@@ -17,7 +16,7 @@ defmodule Pleroma.Web.MastodonAPI.TagView do
 
     %{
       name: tag.name,
-      url: Helpers.tag_feed_url(Pleroma.Web.Endpoint, :feed, tag.name),
+      url: url(~p[/tags/#{tag.name}]),
       history: [],
       following: following
     }

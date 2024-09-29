@@ -4,7 +4,8 @@
 
 defmodule Pleroma.Web.CommonAPITest do
   use Oban.Testing, repo: Pleroma.Repo
-  use Pleroma.DataCase
+  use Pleroma.DataCase, async: false
+  @moduletag :mocked
 
   alias Pleroma.Activity
   alias Pleroma.Conversation.Participation
@@ -50,10 +51,12 @@ defmodule Pleroma.Web.CommonAPITest do
       assert object.data["type"] == "Question"
       assert object.data["oneOf"] |> length() == 2
 
+      {:ok, time, _} = DateTime.from_iso8601(object.data["closed"])
+
       assert_enqueued(
         worker: PollWorker,
         args: %{op: "poll_end", activity_id: activity.id},
-        scheduled_at: NaiveDateTime.from_iso8601!(object.data["closed"])
+        scheduled_at: time
       )
     end
   end
@@ -222,6 +225,20 @@ defmodule Pleroma.Web.CommonAPITest do
         assert delete.local
         refute called(Pleroma.Web.Federator.publish(:_))
       end
+
+      refute Activity.get_by_id(post.id)
+    end
+
+    test "it allows privileged users to delete banned user's posts" do
+      clear_config([:instance, :moderator_privileges], [:messages_delete])
+      user = insert(:user)
+      moderator = insert(:user, is_moderator: true)
+
+      {:ok, post} = CommonAPI.post(user, %{status: "namu amida butsu"})
+      User.set_activation(user, false)
+
+      assert {:ok, delete} = CommonAPI.delete(post.id, moderator)
+      assert delete.local
 
       refute Activity.get_by_id(post.id)
     end
@@ -1043,6 +1060,36 @@ defmodule Pleroma.Web.CommonAPITest do
       {:ok, follower, followed, _} = CommonAPI.follow(follower, followed)
 
       assert User.following?(follower, followed)
+    end
+
+    test "directly follows back a locked, but followback-allowing local user" do
+      uopen = insert(:user, is_locked: false)
+      uselective = insert(:user, is_locked: true, permit_followback: true)
+
+      assert {:ok, uselective, uopen, %{data: %{"state" => "accept"}}} =
+               CommonAPI.follow(uselective, uopen)
+
+      assert User.get_follow_state(uselective, uopen) == :follow_accept
+
+      assert {:ok, uopen, uselective, %{data: %{"state" => "accept"}}} =
+               CommonAPI.follow(uopen, uselective)
+
+      assert User.get_follow_state(uopen, uselective) == :follow_accept
+    end
+
+    test "creates a pending request for locked, non-followback local user" do
+      uopen = insert(:user, is_locked: false)
+      ulocked = insert(:user, is_locked: true, permit_followback: false)
+
+      assert {:ok, ulocked, uopen, %{data: %{"state" => "accept"}}} =
+               CommonAPI.follow(ulocked, uopen)
+
+      assert User.get_follow_state(ulocked, uopen) == :follow_accept
+
+      assert {:ok, uopen, ulocked, %{data: %{"state" => "pending"}}} =
+               CommonAPI.follow(uopen, ulocked)
+
+      assert User.get_follow_state(uopen, ulocked) == :follow_pending
     end
   end
 

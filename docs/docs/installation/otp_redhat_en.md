@@ -82,6 +82,7 @@ Other than things bundled in the OTP release Akkoma depends on:
 * PostgreSQL (also utilizes extensions in postgresql-contrib)
 * nginx (could be swapped with another reverse proxy but this guide covers only it)
 * certbot (for Let's Encrypt certificates, could be swapped with another ACME client, but this guide covers only it)
+    * If you are using certbot, also install the `python3-certbot-nginx` package for the nginx plugin
 * libmagic/file
 
 First, update your system, if not already done:
@@ -169,16 +170,10 @@ sudo -Hu akkoma ./bin/pleroma stop
 
 ### Setting up nginx and getting Let's Encrypt SSL certificaties
 
-#### Get a Let's Encrypt certificate
-
-```shell
-certbot certonly --standalone --preferred-challenges http -d yourinstance.tld
-```
-
 #### Copy Akkoma nginx configuration to the nginx folder
 
 ```shell
-cp /opt/akkoma/installation/nginx/akkoma.nginx /etc/nginx/conf.d/akkoma.conf
+cp /opt/akkoma/installation/akkoma.nginx /etc/nginx/conf.d/akkoma.conf
 ```
 
 #### Edit the nginx config
@@ -195,8 +190,15 @@ sudo nginx -t
 sudo systemctl start nginx
 ```
 
-At this point if you open your (sub)domain in a browser you should see a 502 error, that's because Akkoma is not started yet.
+#### Get a Let's Encrypt certificate
 
+```shell
+sudo certbot --email <your@emailaddress> -d <yourdomain> -d <media_domain> --nginx
+```
+
+If that doesn't work the first time, add `--dry-run` to further attempts to avoid being ratelimited as you identify the issue, and do not remove it until the dry run succeeds. A common source of problems are nginx config syntax errors; this can be checked for by running `nginx -t`.
+
+If you're successful with obtaining the certificates, opening your (sub)domain in a browser will result in a 502 error, since Akkoma hasn't been started yet.
 
 ### Setting up a system service
 
@@ -239,19 +241,11 @@ sudo nginx -t
 # Restart nginx
 sudo systemctl restart nginx
 
-# Ensure the webroot menthod and post hook is working
-sudo certbot renew --cert-name yourinstance.tld --webroot -w /var/lib/letsencrypt/ --dry-run --post-hook 'systemctl reload nginx'
-
-# Add it to the daily cron
-echo '#!/bin/sh
-certbot renew --cert-name yourinstance.tld --webroot -w /var/lib/letsencrypt/ --post-hook "systemctl reload nginx"
-' > /etc/cron.daily/renew-akkoma-cert
-sudo chmod +x /etc/cron.daily/renew-akkoma-cert
-
-# If everything worked the output should contain /etc/cron.daily/renew-akkoma-cert
-sudo run-parts --test /etc/cron.daily
+# Test that renewals work properly
+sudo certbot renew --cert-name yourinstance.tld --nginx --dry-run
 ```
 
+Assuming the commands were run successfully, certbot should be able to renew your certificates automatically via the `certbot-renew.timer` systemd unit.
 
 ## Create your first user and set as admin
 ```shell

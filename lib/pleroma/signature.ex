@@ -10,13 +10,14 @@ defmodule Pleroma.Signature do
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
 
-  @known_suffixes ["/publickey", "/main-key"]
+  @known_suffixes ["/publickey", "/main-key", "#key"]
 
   def key_id_to_actor_id(key_id) do
     uri =
       key_id
       |> URI.parse()
       |> Map.put(:fragment, nil)
+      |> Map.put(:query, nil)
       |> remove_suffix(@known_suffixes)
 
     maybe_ap_id = URI.to_string(uri)
@@ -75,6 +76,6 @@ defmodule Pleroma.Signature do
   def signed_date, do: signed_date(NaiveDateTime.utc_now())
 
   def signed_date(%NaiveDateTime{} = date) do
-    Timex.format!(date, "{WDshort}, {0D} {Mshort} {YYYY} {h24}:{m}:{s} GMT")
+    Timex.lformat!(date, "{WDshort}, {0D} {Mshort} {YYYY} {h24}:{m}:{s} GMT", "en")
   end
 end

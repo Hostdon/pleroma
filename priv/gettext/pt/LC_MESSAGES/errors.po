@@ -1,0 +1,657 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-03-18 12:55+0000\n"
+"PO-Revision-Date: 2024-03-19 01:10+0000\n"
+"Last-Translator: Jammer Lammer <akHarINlMYExpSmVPDRT@proton.me>\n"
+"Language-Team: Portuguese <http://translate.akkoma.dev/projects/akkoma/"
+"akkoma-backend-errors/pt/>\n"
+"Language: pt\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Generator: Weblate 4.18.2\n"
+
+## This file is a PO Template file.
+##
+## `msgid`s here are often extracted from source code.
+## Add new translations manually only if they're dynamic
+## translations that can't be statically extracted.
+##
+## Run `mix gettext.extract` to bring this file up to
+## date. Leave `msgstr`s empty as changing them here as no
+## effect: edit them in PO (`.po`) files instead.
+## From Ecto.Changeset.cast/4
+msgid "can't be blank"
+msgstr "não pode estar em branco"
+
+## From Ecto.Changeset.unique_constraint/3
+msgid "has already been taken"
+msgstr "já está em uso"
+
+## From Ecto.Changeset.put_change/3
+msgid "is invalid"
+msgstr "é inválido"
+
+## From Ecto.Changeset.validate_format/3
+msgid "has invalid format"
+msgstr "tem um formato inválido"
+
+## From Ecto.Changeset.validate_subset/3
+msgid "has an invalid entry"
+msgstr "tem uma entrada inválida"
+
+## From Ecto.Changeset.validate_exclusion/3
+msgid "is reserved"
+msgstr "está reservado"
+
+## From Ecto.Changeset.validate_confirmation/3
+msgid "does not match confirmation"
+msgstr "a confirmação não coincide"
+
+## From Ecto.Changeset.no_assoc_constraint/3
+msgid "is still associated with this entry"
+msgstr "ainda está associado com essa entrada"
+
+msgid "are still associated with this entry"
+msgstr "ainda estão associados com essa entrada"
+
+## From Ecto.Changeset.validate_length/3
+msgid "should be %{count} character(s)"
+msgid_plural "should be %{count} character(s)"
+msgstr[0] "deve ser %{count} caractere"
+msgstr[1] "deve ser %{count} caracteres"
+
+msgid "should have %{count} item(s)"
+msgid_plural "should have %{count} item(s)"
+msgstr[0] "deve ter %{count} item"
+msgstr[1] "deve ter %{count} itens"
+
+msgid "should be at least %{count} character(s)"
+msgid_plural "should be at least %{count} character(s)"
+msgstr[0] "deve ter pelo menos %{count} caractere"
+msgstr[1] "deve ter pelo menos %{count} caracteres"
+
+msgid "should have at least %{count} item(s)"
+msgid_plural "should have at least %{count} item(s)"
+msgstr[0] "deve ter pelo menos %{count} item"
+msgstr[1] "deve ter pelo menos %{count} itens"
+
+msgid "should be at most %{count} character(s)"
+msgid_plural "should be at most %{count} character(s)"
+msgstr[0] "deve ter no máximo %{count} caractere"
+msgstr[1] "deve ter no máximo %{count} caracteres"
+
+msgid "should have at most %{count} item(s)"
+msgid_plural "should have at most %{count} item(s)"
+msgstr[0] "deve ter no máximo %{count} item"
+msgstr[1] "deve ter no máximo %{count} itens"
+
+## From Ecto.Changeset.validate_number/3
+msgid "must be less than %{number}"
+msgstr "deve ser menor que %{number}"
+
+msgid "must be greater than %{number}"
+msgstr "deve ser maior que %{number}"
+
+msgid "must be less than or equal to %{number}"
+msgstr "deve ser menor ou igual a %{number}"
+
+msgid "must be greater than or equal to %{number}"
+msgstr "deve ser maior ou igual a %{number}"
+
+msgid "must be equal to %{number}"
+msgstr "deve ser igual a %{number}"
+
+#: lib/pleroma/web/common_api.ex:503
+#, elixir-autogen, elixir-format
+msgid "Account not found"
+msgstr "Conta não encontrada"
+
+#: lib/pleroma/web/common_api.ex:263
+#, elixir-autogen, elixir-format
+msgid "Already voted"
+msgstr "Já votado"
+
+#: lib/pleroma/web/o_auth/o_auth_controller.ex:427
+#, elixir-autogen, elixir-format
+msgid "Bad request"
+msgstr "Má requisição"
+
+#: lib/pleroma/web/controller_helper.ex:105
+#, elixir-autogen, elixir-format
+msgid "Can't display this activity"
+msgstr "Não é possível mostrar essa atividade"
+
+#: lib/pleroma/web/mastodon_api/controllers/account_controller.ex:335
+#, elixir-autogen, elixir-format
+msgid "Can't find user"
+msgstr "Não é possível encontrar o usuário"
+
+#: lib/pleroma/web/pleroma_api/controllers/account_controller.ex:61
+#, elixir-autogen, elixir-format
+msgid "Can't get favorites"
+msgstr "Não é possível obter os favoritos"
+
+#: lib/pleroma/web/common_api/utils.ex:480
+#, elixir-autogen, elixir-format
+msgid "Cannot post an empty status without attachments"
+msgstr "Não é possível publicar um status vazio sem anexos"
+
+#: lib/pleroma/web/common_api/utils.ex:468
+#, elixir-autogen, elixir-format
+msgid "Comment must be up to %{max_size} characters"
+msgstr "Comentários devem ter no máximo %{max_size} caracteres"
+
+#: lib/pleroma/config_db.ex:199
+#, elixir-autogen, elixir-format
+msgid "Config with params %{params} not found"
+msgstr "Configuração com parâmetros %{params} não encontrada"
+
+#: lib/pleroma/web/common_api.ex:114
+#: lib/pleroma/web/common_api.ex:118
+#, elixir-autogen, elixir-format
+msgid "Could not delete"
+msgstr "Não foi possível apagar"
+
+#: lib/pleroma/web/common_api.ex:164
+#, elixir-autogen, elixir-format
+msgid "Could not favorite"
+msgstr "Não foi possível favoritar"
+
+#: lib/pleroma/web/common_api.ex:201
+#, elixir-autogen, elixir-format
+msgid "Could not unfavorite"
+msgstr "Não foi possível eliminar favorito"
+
+#: lib/pleroma/web/common_api.ex:149
+#, elixir-autogen, elixir-format
+msgid "Could not unrepeat"
+msgstr "Não foi possível republicar"
+
+#: lib/pleroma/web/common_api.ex:510
+#: lib/pleroma/web/common_api.ex:519
+#, elixir-autogen, elixir-format
+msgid "Could not update state"
+msgstr "Não foi possível atualizar estado"
+
+#: lib/pleroma/web/mastodon_api/controllers/timeline_controller.ex:278
+#, elixir-autogen, elixir-format
+msgid "Error."
+msgstr "Erro."
+
+#: lib/pleroma/web/twitter_api/twitter_api.ex:104
+#, elixir-autogen, elixir-format
+msgid "Invalid CAPTCHA"
+msgstr "CAPTCHA inválido"
+
+#: lib/pleroma/web/mastodon_api/controllers/account_controller.ex:143
+#: lib/pleroma/web/o_auth/o_auth_controller.ex:660
+#, elixir-autogen, elixir-format
+msgid "Invalid credentials"
+msgstr "Credenciais inválidas"
+
+#: lib/pleroma/web/plugs/ensure_authenticated_plug.ex:42
+#, elixir-autogen, elixir-format
+msgid "Invalid credentials."
+msgstr "Credenciais inválidas."
+
+#: lib/pleroma/web/common_api.ex:284
+#, elixir-autogen, elixir-format
+msgid "Invalid indices"
+msgstr "Índices inválidos"
+
+#: lib/pleroma/web/admin_api/controllers/fallback_controller.ex:29
+#, elixir-autogen, elixir-format
+msgid "Invalid parameters"
+msgstr "Parâmetros inválidos"
+
+#: lib/pleroma/web/common_api/utils.ex:376
+#, elixir-autogen, elixir-format
+msgid "Invalid password."
+msgstr "Senha inválida."
+
+#: lib/pleroma/web/mastodon_api/controllers/account_controller.ex:265
+#, elixir-autogen, elixir-format
+msgid "Invalid request"
+msgstr "Requisição inválida"
+
+#: lib/pleroma/web/twitter_api/twitter_api.ex:107
+#, elixir-autogen, elixir-format
+msgid "Kocaptcha service unavailable"
+msgstr "Serviço de Kocaptcha indisponível"
+
+#: lib/pleroma/web/mastodon_api/controllers/account_controller.ex:139
+#, elixir-autogen, elixir-format
+msgid "Missing parameters"
+msgstr "Parâmetros faltando"
+
+#: lib/pleroma/web/admin_api/controllers/admin_api_controller.ex:151
+#: lib/pleroma/web/admin_api/controllers/admin_api_controller.ex:177
+#: lib/pleroma/web/admin_api/controllers/admin_api_controller.ex:219
+#, elixir-autogen, elixir-format
+msgid "No such permission_group"
+msgstr "Não a tal permission_group"
+
+#: lib/pleroma/web/activity_pub/activity_pub_controller.ex:480
+#: lib/pleroma/web/admin_api/controllers/fallback_controller.ex:11
+#: lib/pleroma/web/feed/tag_controller.ex:16
+#: lib/pleroma/web/feed/user_controller.ex:70
+#: lib/pleroma/web/o_status/o_status_controller.ex:135
+#: lib/pleroma/web/plugs/uploaded_media.ex:83
+#, elixir-autogen, elixir-format
+msgid "Not found"
+msgstr "Não encontrado"
+
+#: lib/pleroma/web/common_api.ex:255
+#, elixir-autogen, elixir-format
+msgid "Poll's author can't vote"
+msgstr "Autor da enquete não pode votar"
+
+#: lib/pleroma/web/mastodon_api/controllers/account_controller.ex:478
+#: lib/pleroma/web/mastodon_api/controllers/fallback_controller.ex:20
+#: lib/pleroma/web/mastodon_api/controllers/poll_controller.ex:39
+#: lib/pleroma/web/mastodon_api/controllers/poll_controller.ex:51
+#: lib/pleroma/web/mastodon_api/controllers/poll_controller.ex:52
+#: lib/pleroma/web/mastodon_api/controllers/subscription_controller.ex:71
+#, elixir-autogen, elixir-format
+msgid "Record not found"
+msgstr "Registro não encontrado"
+
+#: lib/pleroma/web/admin_api/controllers/fallback_controller.ex:35
+#: lib/pleroma/web/feed/user_controller.ex:79
+#: lib/pleroma/web/mastodon_api/controllers/fallback_controller.ex:42
+#: lib/pleroma/web/o_status/o_status_controller.ex:141
+#, elixir-autogen, elixir-format
+msgid "Something went wrong"
+msgstr "Algo deu errado"
+
+#: lib/pleroma/web/common_api/activity_draft.ex:156
+#, elixir-autogen, elixir-format
+msgid "The message visibility must be direct"
+msgstr "A visibilidade da mensagem deve ser direta"
+
+#: lib/pleroma/web/common_api/utils.ex:490
+#, elixir-autogen, elixir-format
+msgid "The status is over the character limit"
+msgstr "O status está acima do limite de caracteres"
+
+#: lib/pleroma/web/plugs/ensure_public_or_authenticated_plug.ex:36
+#, elixir-autogen, elixir-format
+msgid "This resource requires authentication."
+msgstr "Esse recurso requer autenticação."
+
+#: lib/pleroma/web/plugs/rate_limiter.ex:214
+#, elixir-autogen, elixir-format
+msgid "Throttled"
+msgstr "Limitado"
+
+#: lib/pleroma/web/common_api.ex:285
+#, elixir-autogen, elixir-format
+msgid "Too many choices"
+msgstr "Muitas opções"
+
+#: lib/pleroma/web/admin_api/controllers/admin_api_controller.ex:248
+#, elixir-autogen, elixir-format
+msgid "You can't revoke your own admin status."
+msgstr "Você não pode revogar seu próprio status de administrador."
+
+#: lib/pleroma/web/o_auth/o_auth_controller.ex:267
+#: lib/pleroma/web/o_auth/o_auth_controller.ex:358
+#, elixir-autogen, elixir-format
+msgid "Your account is currently disabled"
+msgstr "Sua conta está atualmente desativada"
+
+#: lib/pleroma/web/o_auth/o_auth_controller.ex:229
+#: lib/pleroma/web/o_auth/o_auth_controller.ex:381
+#, elixir-autogen, elixir-format
+msgid "Your login is missing a confirmed e-mail address"
+msgstr "Sua conta não possui uma endereço de email confirmado"
+
+#: lib/pleroma/web/activity_pub/activity_pub_controller.ex:368
+#, elixir-autogen, elixir-format
+msgid "can't read inbox of %{nickname} as %{as_nickname}"
+msgstr "não é possível ler o inbox de %{nickname} como %{as_nickname}"
+
+#: lib/pleroma/web/activity_pub/activity_pub_controller.ex:467
+#, elixir-autogen, elixir-format
+msgid "can't update outbox of %{nickname} as %{as_nickname}"
+msgstr "não é possível atualizar o inbox de %{nickname} como %{nickname}"
+
+#: lib/pleroma/web/common_api.ex:455
+#, elixir-autogen, elixir-format
+msgid "conversation is already muted"
+msgstr "a conversa já está silenciada"
+
+#: lib/pleroma/web/activity_pub/activity_pub_controller.ex:486
+#, elixir-autogen, elixir-format
+msgid "error"
+msgstr "erro"
+
+#: lib/pleroma/web/pleroma_api/controllers/mascot_controller.ex:34
+#, elixir-autogen, elixir-format
+msgid "mascots can only be images"
+msgstr "mascotes só podem ser imagens"
+
+#: lib/pleroma/web/activity_pub/activity_pub_controller.ex:62
+#, elixir-autogen, elixir-format
+msgid "not found"
+msgstr "não encontrado"
+
+#: lib/pleroma/web/o_auth/o_auth_controller.ex:462
+#, elixir-autogen, elixir-format
+msgid "Bad OAuth request."
+msgstr "Requisição de OAuth inválida."
+
+#: lib/pleroma/web/twitter_api/twitter_api.ex:113
+#, elixir-autogen, elixir-format
+msgid "CAPTCHA already used"
+msgstr "CAPTCHA já está em uso"
+
+#: lib/pleroma/web/twitter_api/twitter_api.ex:110
+#, elixir-autogen, elixir-format
+msgid "CAPTCHA expired"
+msgstr "CAPTCHA expirado"
+
+#: lib/pleroma/web/plugs/uploaded_media.ex:56
+#, elixir-autogen, elixir-format
+msgid "Failed"
+msgstr "Falhou"
+
+#: lib/pleroma/web/o_auth/o_auth_controller.ex:478
+#, elixir-autogen, elixir-format
+msgid "Failed to authenticate: %{message}."
+msgstr "Falha ao autenticar: %{message}."
+
+#: lib/pleroma/web/o_auth/o_auth_controller.ex:509
+#, elixir-autogen, elixir-format
+msgid "Failed to set up user account."
+msgstr "Falha ao definir conta de usuário."
+
+#: lib/pleroma/web/plugs/o_auth_scopes_plug.ex:37
+#, elixir-autogen, elixir-format
+msgid "Insufficient permissions: %{permissions}."
+msgstr "Permissões insuficientes: %{permissions}."
+
+#: lib/pleroma/web/plugs/uploaded_media.ex:98
+#, elixir-autogen, elixir-format
+msgid "Internal Error"
+msgstr "Erro Interno"
+
+#: lib/pleroma/web/o_auth/fallback_controller.ex:22
+#: lib/pleroma/web/o_auth/fallback_controller.ex:29
+#, elixir-autogen, elixir-format
+msgid "Invalid Username/Password"
+msgstr "Usuário/Senha Inválidos"
+
+#: lib/pleroma/web/twitter_api/twitter_api.ex:116
+#, elixir-autogen, elixir-format
+msgid "Invalid answer data"
+msgstr "dado de resposta inválido"
+
+#: lib/pleroma/web/nodeinfo/nodeinfo_controller.ex:40
+#, elixir-autogen, elixir-format
+msgid "Nodeinfo schema version not handled"
+msgstr "Esquema de versão do Nodeinfo não tratado"
+
+#: lib/pleroma/web/o_auth/fallback_controller.ex:14
+#, elixir-autogen, elixir-format
+msgid "Unknown error, please check the details and try again."
+msgstr "Erro desconhecido. Por favor, cheque os detalhes e tente novamente."
+
+#: lib/pleroma/web/o_auth/o_auth_controller.ex:158
+#: lib/pleroma/web/o_auth/o_auth_controller.ex:204
+#, elixir-autogen, elixir-format
+msgid "Unlisted redirect_uri."
+msgstr "redirect_uri Não listada."
+
+#: lib/pleroma/web/o_auth/o_auth_controller.ex:458
+#, elixir-autogen, elixir-format
+msgid "Unsupported OAuth provider: %{provider}."
+msgstr "Provedor de OAuth não suportado: %{provider}."
+
+#: lib/pleroma/uploaders/uploader.ex:74
+#, elixir-autogen, elixir-format
+msgid "Uploader callback timeout"
+msgstr "Tempo esgotado para callback do uploader"
+
+#: lib/pleroma/web/uploader_controller.ex:23
+#, elixir-autogen, elixir-format
+msgid "bad request"
+msgstr "má requisição"
+
+#: lib/pleroma/web/twitter_api/twitter_api.ex:101
+#, elixir-autogen, elixir-format
+msgid "CAPTCHA Error"
+msgstr "Erro no CAPTCHA"
+
+#: lib/pleroma/web/common_api.ex:213
+#, elixir-autogen, elixir-format
+msgid "Could not add reaction emoji"
+msgstr "Não foi possível adicionar emoji de reação"
+
+#: lib/pleroma/web/common_api.ex:224
+#, elixir-autogen, elixir-format
+msgid "Could not remove reaction emoji"
+msgstr "Não foi possível remover emoji de reação"
+
+#: lib/pleroma/web/twitter_api/twitter_api.ex:127
+#, elixir-autogen, elixir-format
+msgid "Invalid CAPTCHA (Missing parameter: %{name})"
+msgstr "CAPTCHA inválido (Parâmetro faltando: %{name})"
+
+#: lib/pleroma/web/mastodon_api/controllers/list_controller.ex:96
+#, elixir-autogen, elixir-format
+msgid "List not found"
+msgstr "Lista não encontrada"
+
+#: lib/pleroma/web/mastodon_api/controllers/account_controller.ex:150
+#, elixir-autogen, elixir-format
+msgid "Missing parameter: %{name}"
+msgstr "Parâmetro faltando: %{name}"
+
+#: lib/pleroma/web/o_auth/o_auth_controller.ex:256
+#: lib/pleroma/web/o_auth/o_auth_controller.ex:371
+#, elixir-autogen, elixir-format
+msgid "Password reset is required"
+msgstr "Redefinição de senha é necessária"
+
+#: lib/pleroma/tests/auth_test_controller.ex:9
+#: lib/pleroma/web/activity_pub/activity_pub_controller.ex:6
+#: lib/pleroma/web/admin_api/controllers/admin_api_controller.ex:6
+#: lib/pleroma/web/admin_api/controllers/announcement_controller.ex:6
+#: lib/pleroma/web/admin_api/controllers/config_controller.ex:6
+#: lib/pleroma/web/admin_api/controllers/fallback_controller.ex:6
+#: lib/pleroma/web/admin_api/controllers/frontend_controller.ex:6
+#: lib/pleroma/web/admin_api/controllers/instance_controller.ex:6
+#: lib/pleroma/web/admin_api/controllers/instance_document_controller.ex:6
+#: lib/pleroma/web/admin_api/controllers/invite_controller.ex:6
+#: lib/pleroma/web/admin_api/controllers/media_proxy_cache_controller.ex:6
+#: lib/pleroma/web/admin_api/controllers/o_auth_app_controller.ex:6
+#: lib/pleroma/web/admin_api/controllers/relay_controller.ex:6
+#: lib/pleroma/web/admin_api/controllers/report_controller.ex:6
+#: lib/pleroma/web/admin_api/controllers/status_controller.ex:6
+#: lib/pleroma/web/admin_api/controllers/user_controller.ex:6
+#: lib/pleroma/web/akkoma_api/controllers/frontend_settings_controller.ex:2
+#: lib/pleroma/web/akkoma_api/controllers/frontend_switcher.ex:2
+#: lib/pleroma/web/akkoma_api/controllers/metrics_controller.ex:2
+#: lib/pleroma/web/akkoma_api/controllers/translation_controller.ex:2
+#: lib/pleroma/web/controller_helper.ex:6
+#: lib/pleroma/web/embed_controller.ex:6
+#: lib/pleroma/web/fallback/redirect_controller.ex:6
+#: lib/pleroma/web/feed/tag_controller.ex:6
+#: lib/pleroma/web/feed/user_controller.ex:6
+#: lib/pleroma/web/mailer/subscription_controller.ex:6
+#: lib/pleroma/web/manifest_controller.ex:6
+#: lib/pleroma/web/masto_fe_controller.ex:6
+#: lib/pleroma/web/mastodon_api/controllers/account_controller.ex:6
+#: lib/pleroma/web/mastodon_api/controllers/announcement_controller.ex:6
+#: lib/pleroma/web/mastodon_api/controllers/app_controller.ex:11
+#: lib/pleroma/web/mastodon_api/controllers/auth_controller.ex:6
+#: lib/pleroma/web/mastodon_api/controllers/conversation_controller.ex:6
+#: lib/pleroma/web/mastodon_api/controllers/custom_emoji_controller.ex:6
+#: lib/pleroma/web/mastodon_api/controllers/directory_controller.ex:6
+#: lib/pleroma/web/mastodon_api/controllers/domain_block_controller.ex:6
+#: lib/pleroma/web/mastodon_api/controllers/fallback_controller.ex:6
+#: lib/pleroma/web/mastodon_api/controllers/filter_controller.ex:6
+#: lib/pleroma/web/mastodon_api/controllers/follow_request_controller.ex:6
+#: lib/pleroma/web/mastodon_api/controllers/instance_controller.ex:6
+#: lib/pleroma/web/mastodon_api/controllers/list_controller.ex:6
+#: lib/pleroma/web/mastodon_api/controllers/marker_controller.ex:6
+#: lib/pleroma/web/mastodon_api/controllers/mastodon_api_controller.ex:14
+#: lib/pleroma/web/mastodon_api/controllers/media_controller.ex:6
+#: lib/pleroma/web/mastodon_api/controllers/notification_controller.ex:6
+#: lib/pleroma/web/mastodon_api/controllers/poll_controller.ex:6
+#: lib/pleroma/web/mastodon_api/controllers/report_controller.ex:6
+#: lib/pleroma/web/mastodon_api/controllers/scheduled_activity_controller.ex:6
+#: lib/pleroma/web/mastodon_api/controllers/search_controller.ex:6
+#: lib/pleroma/web/mastodon_api/controllers/status_controller.ex:6
+#: lib/pleroma/web/mastodon_api/controllers/subscription_controller.ex:7
+#: lib/pleroma/web/mastodon_api/controllers/suggestion_controller.ex:6
+#: lib/pleroma/web/mastodon_api/controllers/tag_controller.ex:3
+#: lib/pleroma/web/mastodon_api/controllers/timeline_controller.ex:6
+#: lib/pleroma/web/media_proxy/media_proxy_controller.ex:6
+#: lib/pleroma/web/mongoose_im/mongoose_im_controller.ex:6
+#: lib/pleroma/web/nodeinfo/nodeinfo_controller.ex:6
+#: lib/pleroma/web/o_auth/fallback_controller.ex:6
+#: lib/pleroma/web/o_auth/mfa_controller.ex:10
+#: lib/pleroma/web/o_auth/o_auth_controller.ex:6
+#: lib/pleroma/web/o_status/o_status_controller.ex:6
+#: lib/pleroma/web/pleroma_api/controllers/account_controller.ex:6
+#: lib/pleroma/web/pleroma_api/controllers/app_controller.ex:6
+#: lib/pleroma/web/pleroma_api/controllers/backup_controller.ex:6
+#: lib/pleroma/web/pleroma_api/controllers/conversation_controller.ex:6
+#: lib/pleroma/web/pleroma_api/controllers/emoji_file_controller.ex:6
+#: lib/pleroma/web/pleroma_api/controllers/emoji_pack_controller.ex:6
+#: lib/pleroma/web/pleroma_api/controllers/emoji_reaction_controller.ex:6
+#: lib/pleroma/web/pleroma_api/controllers/instances_controller.ex:6
+#: lib/pleroma/web/pleroma_api/controllers/mascot_controller.ex:6
+#: lib/pleroma/web/pleroma_api/controllers/notification_controller.ex:6
+#: lib/pleroma/web/pleroma_api/controllers/report_controller.ex:6
+#: lib/pleroma/web/pleroma_api/controllers/two_factor_authentication_controller.ex:7
+#: lib/pleroma/web/pleroma_api/controllers/user_import_controller.ex:6
+#: lib/pleroma/web/static_fe/static_fe_controller.ex:6
+#: lib/pleroma/web/twitter_api/controller.ex:6
+#: lib/pleroma/web/twitter_api/controllers/password_controller.ex:10
+#: lib/pleroma/web/twitter_api/controllers/remote_follow_controller.ex:6
+#: lib/pleroma/web/twitter_api/controllers/util_controller.ex:6
+#: lib/pleroma/web/uploader_controller.ex:6
+#: lib/pleroma/web/web_finger/web_finger_controller.ex:6
+#, elixir-autogen, elixir-format
+msgid "Security violation: OAuth scopes check was neither handled nor explicitly skipped."
+msgstr ""
+"Violação de segurança: Verificação do escopo do OAuth tanto não lidou quanto "
+"não explicitamente pulou."
+
+#: lib/pleroma/web/plugs/ensure_authenticated_plug.ex:32
+#, elixir-autogen, elixir-format
+msgid "Two-factor authentication enabled, you must use a access token."
+msgstr ""
+"Autenticação de dois-fatores ativada, você deve usar um token de acesso."
+
+#: lib/pleroma/web/mastodon_api/controllers/subscription_controller.ex:61
+#, elixir-autogen, elixir-format
+msgid "Web push subscription is disabled on this Pleroma instance"
+msgstr "Inscrição de web push está desativada nessa instância do Akkoma"
+
+#: lib/pleroma/web/admin_api/controllers/admin_api_controller.ex:214
+#, elixir-autogen, elixir-format
+msgid "You can't revoke your own admin/moderator status."
+msgstr "Você não pode revogar o seu próprio status de admin/moderador."
+
+#: lib/pleroma/web/mastodon_api/controllers/timeline_controller.ex:202
+#, elixir-autogen, elixir-format
+msgid "authorization required for timeline view"
+msgstr "autorização necessária para visualização da linha do tempo"
+
+#: lib/pleroma/web/mastodon_api/controllers/fallback_controller.ex:24
+#, elixir-autogen, elixir-format
+msgid "Access denied"
+msgstr "Acesso negado"
+
+#: lib/pleroma/web/mastodon_api/controllers/account_controller.ex:332
+#, elixir-autogen, elixir-format
+msgid "This API requires an authenticated user"
+msgstr "Essa API necessita de um usuário autentica"
+
+#: lib/pleroma/web/plugs/ensure_staff_privileged_plug.ex:26
+#: lib/pleroma/web/plugs/user_is_admin_plug.ex:21
+#, elixir-autogen, elixir-format
+msgid "User is not an admin."
+msgstr "Usuário não é um administrador."
+
+#: lib/pleroma/user/backup.ex:73
+#, elixir-format
+msgid "Last export was less than a day ago"
+msgid_plural "Last export was less than %{days} days ago"
+msgstr[0] "Última exportação foi a menos de um dia atrás"
+msgstr[1] "Última exportação foi a menos de %{days} atrás"
+
+#: lib/pleroma/web/activity_pub/activity_pub_controller.ex:399
+#, elixir-autogen, elixir-format
+msgid "Character limit (%{limit} characters) exceeded, contains %{length} characters"
+msgstr ""
+"Limite de caracteres (%{limit} caracteres) excedido, pois contém %{length} "
+"caracteres"
+
+#: lib/pleroma/web/plugs/ensure_staff_privileged_plug.ex:33
+#: lib/pleroma/web/plugs/user_is_staff_plug.ex:20
+#, elixir-autogen, elixir-format
+msgid "User is not a staff member."
+msgstr "Usuário não é um membro da staff."
+
+#: lib/pleroma/web/o_auth/o_auth_controller.ex:391
+#, elixir-autogen, elixir-format
+msgid "Your account is awaiting approval."
+msgstr "Sua conta aguarda aprovação."
+
+#: lib/pleroma/web/mastodon_api/controllers/account_controller.ex:256
+#: lib/pleroma/web/mastodon_api/controllers/account_controller.ex:259
+#: lib/pleroma/web/mastodon_api/controllers/account_controller.ex:262
+#, elixir-autogen, elixir-format
+msgid "File is too large"
+msgstr "Arquivo muito grande"
+
+#: lib/pleroma/web/mastodon_api/controllers/tag_controller.ex:37
+#: lib/pleroma/web/mastodon_api/controllers/tag_controller.ex:48
+#: lib/pleroma/web/mastodon_api/controllers/tag_controller.ex:59
+#, elixir-autogen, elixir-format
+msgid "Hashtag not found"
+msgstr "Hashtag não encontrada"
+
+#: lib/pleroma/web/common_api/activity_draft.ex:144
+#, elixir-autogen, elixir-format
+msgid "Invalid language"
+msgstr "Idioma inválido"
+
+#: lib/pleroma/web/o_auth/o_auth_controller.ex:218
+#, elixir-autogen, elixir-format
+msgid "This action is outside of authorized scopes"
+msgstr "Essa ação está fora do escopo autorizado"
+
+#: lib/pleroma/web/common_api/activity_draft.ex:129
+#, elixir-autogen, elixir-format
+msgid "You can only quote public or unlisted statuses"
+msgstr "Você pode apenas citar status públicos ou não-listados"
+
+#: lib/pleroma/web/common_api/activity_draft.ex:126
+#, elixir-autogen, elixir-format
+msgid "You can't quote a status that doesn't exist"
+msgstr "Você não pode citar um status que não existe"
+
+#: lib/pleroma/web/embed_controller.ex:35
+#, elixir-autogen, elixir-format
+msgid "Federated posts cannot be embedded"
+msgstr "Publicações federadas não podem ser embutidas"
+
+#: lib/pleroma/web/embed_controller.ex:38
+#, elixir-autogen, elixir-format
+msgid "Not authorized to view this post"
+msgstr "Não autorizado a ver essa publicação"
+
+#: lib/pleroma/web/embed_controller.ex:32
+#, elixir-autogen, elixir-format
+msgid "Post not found"
+msgstr "Publicação não encontrada"

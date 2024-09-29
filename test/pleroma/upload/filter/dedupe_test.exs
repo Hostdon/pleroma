@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Upload.Filter.DedupeTest do
-  use Pleroma.DataCase, async: true
+  use Pleroma.DataCase
 
   alias Pleroma.Upload
   alias Pleroma.Upload.Filter.Dedupe

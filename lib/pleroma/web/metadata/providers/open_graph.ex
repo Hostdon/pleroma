@@ -12,14 +12,38 @@ defmodule Pleroma.Web.Metadata.Providers.OpenGraph do
   @behaviour Provider
   @media_types ["image", "audio", "video"]
 
+  defp user_avatar_tags(user) do
+    if Utils.visible?(user) do
+      [
+        {:meta, [property: "og:image", content: MediaProxy.preview_url(User.avatar_url(user))],
+         []},
+        {:meta, [property: "og:image:width", content: 150], []},
+        {:meta, [property: "og:image:height", content: 150], []}
+      ]
+    else
+      []
+    end
+  end
+
   @impl Provider
   def build_tags(%{
         object: object,
         url: url,
         user: user
       }) do
-    attachments = build_attachments(object)
-    scrubbed_content = Utils.scrub_html_and_truncate(object)
+    attachments =
+      if Utils.visible?(object) do
+        build_attachments(object)
+      else
+        []
+      end
+
+    scrubbed_content =
+      if Utils.visible?(object) do
+        Utils.scrub_html_and_truncate(object)
+      else
+        "Content cannot be displayed."
+      end
 
     [
       {:meta,
@@ -36,12 +60,7 @@ defmodule Pleroma.Web.Metadata.Providers.OpenGraph do
       {:meta, [property: "og:type", content: "article"], []}
     ] ++
       if attachments == [] or Metadata.activity_nsfw?(object) do
-        [
-          {:meta, [property: "og:image", content: MediaProxy.preview_url(User.avatar_url(user))],
-           []},
-          {:meta, [property: "og:image:width", content: 150], []},
-          {:meta, [property: "og:image:height", content: 150], []}
-        ]
+        user_avatar_tags(user)
       else
         attachments
       end
@@ -49,7 +68,9 @@ defmodule Pleroma.Web.Metadata.Providers.OpenGraph do
 
   @impl Provider
   def build_tags(%{user: user}) do
-    with truncated_bio = Utils.scrub_html_and_truncate(user.bio) do
+    if Utils.visible?(user) do
+      truncated_bio = Utils.scrub_html_and_truncate(user.bio)
+
       [
         {:meta,
          [
@@ -58,12 +79,10 @@ defmodule Pleroma.Web.Metadata.Providers.OpenGraph do
          ], []},
         {:meta, [property: "og:url", content: user.uri || user.ap_id], []},
         {:meta, [property: "og:description", content: truncated_bio], []},
-        {:meta, [property: "og:type", content: "article"], []},
-        {:meta, [property: "og:image", content: MediaProxy.preview_url(User.avatar_url(user))],
-         []},
-        {:meta, [property: "og:image:width", content: 150], []},
-        {:meta, [property: "og:image:height", content: 150], []}
-      ]
+        {:meta, [property: "og:type", content: "article"], []}
+      ] ++ user_avatar_tags(user)
+    else
+      []
     end
   end
 

@@ -22,6 +22,13 @@ defmodule Pleroma.ObjectTest do
     :ok
   end
 
+  # Only works for a single attachment but that's all we need here
+  defp get_attachment_filepath(note, uploads_dir) do
+    %{data: %{"attachment" => [%{"url" => [%{"href" => href}]}]}} = note
+    filename = href |> Path.basename()
+    "#{uploads_dir}/#{filename}"
+  end
+
   test "returns an object by it's AP id" do
     object = insert(:note)
     found_object = Object.get_by_ap_id(object.data["id"])
@@ -95,14 +102,13 @@ defmodule Pleroma.ObjectTest do
       {:ok, %Object{} = attachment} =
         Pleroma.Web.ActivityPub.ActivityPub.upload(file, actor: user.ap_id)
 
-      %{data: %{"attachment" => [%{"url" => [%{"href" => href}]}]}} =
-        note = insert(:note, %{user: user, data: %{"attachment" => [attachment.data]}})
+      note = insert(:note, %{user: user, data: %{"attachment" => [attachment.data]}})
 
       uploads_dir = Pleroma.Config.get!([Pleroma.Uploaders.Local, :uploads])
 
-      path = href |> Path.dirname() |> Path.basename()
+      path = get_attachment_filepath(note, uploads_dir)
 
-      assert {:ok, ["an_image.jpg"]} == File.ls("#{uploads_dir}/#{path}")
+      assert File.exists?("#{path}")
 
       Object.delete(note)
 
@@ -111,7 +117,7 @@ defmodule Pleroma.ObjectTest do
       assert Object.get_by_id(note.id).data["deleted"]
       refute Object.get_by_id(attachment.id) == nil
 
-      assert {:ok, ["an_image.jpg"]} == File.ls("#{uploads_dir}/#{path}")
+      assert File.exists?("#{path}")
     end
 
     test "in subdirectories" do
@@ -129,14 +135,13 @@ defmodule Pleroma.ObjectTest do
       {:ok, %Object{} = attachment} =
         Pleroma.Web.ActivityPub.ActivityPub.upload(file, actor: user.ap_id)
 
-      %{data: %{"attachment" => [%{"url" => [%{"href" => href}]}]}} =
-        note = insert(:note, %{user: user, data: %{"attachment" => [attachment.data]}})
+      note = insert(:note, %{user: user, data: %{"attachment" => [attachment.data]}})
 
       uploads_dir = Pleroma.Config.get!([Pleroma.Uploaders.Local, :uploads])
 
-      path = href |> Path.dirname() |> Path.basename()
+      path = get_attachment_filepath(note, uploads_dir)
 
-      assert {:ok, ["an_image.jpg"]} == File.ls("#{uploads_dir}/#{path}")
+      assert File.exists?("#{path}")
 
       Object.delete(note)
 
@@ -145,7 +150,7 @@ defmodule Pleroma.ObjectTest do
       assert Object.get_by_id(note.id).data["deleted"]
       assert Object.get_by_id(attachment.id) == nil
 
-      assert {:ok, []} == File.ls("#{uploads_dir}/#{path}")
+      refute File.exists?("#{path}")
     end
 
     test "with dedupe enabled" do
@@ -168,13 +173,11 @@ defmodule Pleroma.ObjectTest do
       {:ok, %Object{} = attachment} =
         Pleroma.Web.ActivityPub.ActivityPub.upload(file, actor: user.ap_id)
 
-      %{data: %{"attachment" => [%{"url" => [%{"href" => href}]}]}} =
-        note = insert(:note, %{user: user, data: %{"attachment" => [attachment.data]}})
+      note = insert(:note, %{user: user, data: %{"attachment" => [attachment.data]}})
 
-      filename = Path.basename(href)
+      path = get_attachment_filepath(note, uploads_dir)
 
-      assert {:ok, files} = File.ls(uploads_dir)
-      assert filename in files
+      assert File.exists?("#{path}")
 
       Object.delete(note)
 
@@ -182,8 +185,8 @@ defmodule Pleroma.ObjectTest do
 
       assert Object.get_by_id(note.id).data["deleted"]
       assert Object.get_by_id(attachment.id) == nil
-      assert {:ok, files} = File.ls(uploads_dir)
-      refute filename in files
+      # what if another test runs concurrently using the same image file?
+      refute File.exists?("#{path}")
     end
 
     test "with objects that have legacy data.url attribute" do
@@ -203,14 +206,13 @@ defmodule Pleroma.ObjectTest do
 
       {:ok, %Object{}} = Object.create(%{url: "https://google.com", actor: user.ap_id})
 
-      %{data: %{"attachment" => [%{"url" => [%{"href" => href}]}]}} =
-        note = insert(:note, %{user: user, data: %{"attachment" => [attachment.data]}})
+      note = insert(:note, %{user: user, data: %{"attachment" => [attachment.data]}})
 
       uploads_dir = Pleroma.Config.get!([Pleroma.Uploaders.Local, :uploads])
 
-      path = href |> Path.dirname() |> Path.basename()
+      path = get_attachment_filepath(note, uploads_dir)
 
-      assert {:ok, ["an_image.jpg"]} == File.ls("#{uploads_dir}/#{path}")
+      assert File.exists?("#{path}")
 
       Object.delete(note)
 
@@ -219,7 +221,7 @@ defmodule Pleroma.ObjectTest do
       assert Object.get_by_id(note.id).data["deleted"]
       assert Object.get_by_id(attachment.id) == nil
 
-      assert {:ok, []} == File.ls("#{uploads_dir}/#{path}")
+      refute File.exists?("#{path}")
     end
 
     test "With custom base_url" do
@@ -238,14 +240,13 @@ defmodule Pleroma.ObjectTest do
       {:ok, %Object{} = attachment} =
         Pleroma.Web.ActivityPub.ActivityPub.upload(file, actor: user.ap_id)
 
-      %{data: %{"attachment" => [%{"url" => [%{"href" => href}]}]}} =
-        note = insert(:note, %{user: user, data: %{"attachment" => [attachment.data]}})
+      note = insert(:note, %{user: user, data: %{"attachment" => [attachment.data]}})
 
       uploads_dir = Pleroma.Config.get!([Pleroma.Uploaders.Local, :uploads])
 
-      path = href |> Path.dirname() |> Path.basename()
+      path = get_attachment_filepath(note, uploads_dir)
 
-      assert {:ok, ["an_image.jpg"]} == File.ls("#{uploads_dir}/#{path}")
+      assert File.exists?("#{path}")
 
       Object.delete(note)
 
@@ -254,7 +255,7 @@ defmodule Pleroma.ObjectTest do
       assert Object.get_by_id(note.id).data["deleted"]
       assert Object.get_by_id(attachment.id) == nil
 
-      assert {:ok, []} == File.ls("#{uploads_dir}/#{path}")
+      refute File.exists?("#{path}")
     end
   end
 

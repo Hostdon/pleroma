@@ -10,7 +10,7 @@ If you want to migrate from or OTP to docker, check out [the migration guide](./
 
 ### Prepare the system
 
-* Install docker and docker-compose
+* Install docker and docker compose
   * [Docker](https://docs.docker.com/engine/install/) 
   * [Docker-compose](https://docs.docker.com/compose/install/)
   * This will usually just be a repository installation and a package manager invocation.
@@ -26,7 +26,7 @@ echo "DOCKER_USER=$(id -u):$(id -g)" >> .env
 ```
 
 This probably won't need to be changed, it's only there to set basic environment
-variables for the docker-compose file.
+variables for the docker compose file.
 
 ### Building the container
 
@@ -65,9 +65,9 @@ cp config/generated_config.exs config/prod.secret.exs
 We need to run a few commands on the database container, this isn't too bad
 
 ```bash
-docker-compose run --rm --user akkoma -d db 
+docker compose run --rm --user akkoma -d db 
 # Note down the name it gives here, it will be something like akkoma_db_run
-docker-compose run --rm akkoma psql -h db -U akkoma -f config/setup_db.psql
+docker compose run --rm akkoma psql -h db -U akkoma -f config/setup_db.psql
 docker stop akkoma_db_run # Replace with the name you noted down
 ```
 
@@ -84,17 +84,17 @@ We're going to run it in the foreground on the first run, just to make sure
 everything start up.
 
 ```bash
-docker-compose up
+docker compose up
 ```
 
 If everything went well, you should be able to access your instance at http://localhost:4000
 
-You can `ctrl-c` out of the docker-compose now to shutdown the server.
+You can `ctrl-c` out of the docker compose now to shutdown the server.
 
 ### Running in the background
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 ### Create your first user
@@ -125,8 +125,27 @@ cp docker-resources/Caddyfile.example docker-resources/Caddyfile
 
 Then edit the TLD in your caddyfile to the domain you're serving on.
 
-Uncomment the `caddy` section in the docker-compose file,
-then run `docker-compose up -d` again.
+Copy the commented out `caddy` section in `docker-compose.yml` into a new file called `docker-compose.override.yml` like so:
+```yaml
+version: "3.7"
+
+services:
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    links:
+      - akkoma
+    ports: [
+       "443:443",
+       "80:80"
+    ]
+    volumes:
+      - ./docker-resources/Caddyfile:/etc/caddy/Caddyfile
+      - ./caddy-data:/data
+      - ./caddy-config:/config
+```
+
+then run `docker compose up -d` again.
 
 #### Running a reverse proxy on the host
 
@@ -152,8 +171,14 @@ git pull
 ./docker-resources/manage.sh mix deps.get
 ./docker-resources/manage.sh mix compile
 ./docker-resources/manage.sh mix ecto.migrate
-docker-compose restart akkoma db
+docker compose restart akkoma db
 ```
+
+### Modifying the Docker services
+If you want to modify the services defined in the docker compose file, you can
+create a new file called `docker-compose.override.yml`. There you can add any
+overrides or additional services without worrying about git conflicts when a
+new release comes out.
 
 #### Further reading
 

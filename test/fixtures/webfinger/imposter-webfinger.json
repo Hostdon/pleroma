@@ -1,0 +1,41 @@
+{
+    "subject": "acct:oopsie@notwhereitshouldbe.com",
+    "aliases": [
+        "https://bad.com/webfingertest"
+    ],
+    "links": [
+        {
+            "rel": "http://webfinger.net/rel/profile-page",
+            "type": "text/html",
+            "href": "https://bad.com/webfingertest"
+        },
+        {
+            "rel": "self",
+            "type": "application/activity+json",
+            "href": "https://bad.com/webfingertest"
+        },
+        {
+            "rel": "http://ostatus.org/schema/1.0/subscribe",
+            "template": "https://bad.com/contact/follow?url={uri}"
+        },
+        {
+            "rel": "http://schemas.google.com/g/2010#updates-from",
+            "type": "application/atom+xml",
+            "href": ""
+        },
+        {
+            "rel": "salmon",
+            "href": "https://bad.com/salmon/friendica"
+        },
+        {
+            "rel": "http://microformats.org/profile/hcard",
+            "type": "text/html",
+            "href": "https://bad.com/hcard/friendica"
+        },
+        {
+            "rel": "http://joindiaspora.com/seed_location",
+            "type": "text/html",
+            "href": "https://bad.com"
+        }
+    ]
+}

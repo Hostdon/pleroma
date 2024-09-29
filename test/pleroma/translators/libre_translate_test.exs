@@ -133,5 +133,20 @@ defmodule Pleroma.Akkoma.Translators.LibreTranslateTest do
       assert {:error, "libre_translate: request failed (code 400)"} =
                LibreTranslate.translate("ギュギュ握りつぶしちゃうぞ", nil, "zoop")
     end
+
+    test "should work when no detected language is received" do
+      Tesla.Mock.mock(fn
+        %{method: :post, url: "http://libre.translate/translate"} ->
+          %Tesla.Env{
+            status: 200,
+            body:
+              Jason.encode!(%{
+                translatedText: "I will crush you"
+              })
+          }
+      end)
+
+      assert {:ok, "", "I will crush you"} = LibreTranslate.translate("ギュギュ握りつぶしちゃうぞ", nil, "en")
+    end
   end
 end

@@ -162,7 +162,7 @@ defmodule Pleroma.Instances.Instance do
     %Instance{
       host: Pleroma.Web.Endpoint.host(),
       favicon: Pleroma.Web.Endpoint.url() <> "/favicon.png",
-      nodeinfo: Pleroma.Web.Nodeinfo.NodeinfoController.raw_nodeinfo()
+      nodeinfo: Pleroma.Web.Nodeinfo.Nodeinfo.get_nodeinfo("2.1")
     }
   end
 

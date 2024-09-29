@@ -41,7 +41,7 @@ defmodule Pleroma.Web.CommonAPI.ActivityDraft do
             preview?: false,
             changes: %{}
 
-  def new(user, params) do
+  defp new(user, params) do
     %__MODULE__{user: user}
     |> put_params(params)
   end
@@ -92,9 +92,14 @@ defmodule Pleroma.Web.CommonAPI.ActivityDraft do
     end
   end
 
-  defp attachments(%{params: params} = draft) do
-    attachments = Utils.attachments_from_ids(params)
-    %__MODULE__{draft | attachments: attachments}
+  defp attachments(%{params: params, user: user} = draft) do
+    case Utils.attachments_from_ids(user, params) do
+      attachments when is_list(attachments) ->
+        %__MODULE__{draft | attachments: attachments}
+
+      {:error, reason} ->
+        add_error(draft, reason)
+    end
   end
 
   defp in_reply_to(%{params: %{in_reply_to_status_id: ""}} = draft), do: draft

@@ -44,6 +44,8 @@ defmodule Pleroma.User do
   alias Pleroma.Web.RelMe
   alias Pleroma.Workers.BackgroundWorker
 
+  use Pleroma.Web, :verified_routes
+
   require Logger
 
   @type t :: %__MODULE__{}
@@ -158,6 +160,12 @@ defmodule Pleroma.User do
     field(:last_status_at, :naive_datetime)
     field(:language, :string)
     field(:status_ttl_days, :integer, default: nil)
+    field(:permit_followback, :boolean, default: false)
+
+    field(:accepts_direct_messages_from, Ecto.Enum,
+      values: [:everybody, :people_i_follow, :nobody],
+      default: :everybody
+    )
 
     embeds_one(
       :notification_settings,
@@ -366,21 +374,25 @@ defmodule Pleroma.User do
   def invisible?(_), do: false
 
   def avatar_url(user, options \\ []) do
-    case user.avatar do
-      %{"url" => [%{"href" => href} | _]} ->
-        href
-
-      _ ->
-        unless options[:no_default] do
-          Config.get([:assets, :default_user_avatar], "#{Endpoint.url()}/images/avi.png")
-        end
-    end
+    default = Config.get([:assets, :default_user_avatar], "#{Endpoint.url()}/images/avi.png")
+    do_optional_url(user.avatar, default, options)
   end
 
   def banner_url(user, options \\ []) do
-    case user.banner do
-      %{"url" => [%{"href" => href} | _]} -> href
-      _ -> !options[:no_default] && "#{Endpoint.url()}/images/banner.png"
+    do_optional_url(user.banner, "#{Endpoint.url()}/images/banner.png", options)
+  end
+
+  def background_url(user) do
+    do_optional_url(user.background, nil, no_default: true)
+  end
+
+  defp do_optional_url(field, default, options) do
+    case field do
+      %{"url" => [%{"href" => href} | _]} when is_binary(href) ->
+        href
+
+      _ ->
+        unless options[:no_default], do: default
     end
   end
 
@@ -458,6 +470,7 @@ defmodule Pleroma.User do
         :avatar,
         :ap_enabled,
         :banner,
+        :background,
         :is_locked,
         :last_refreshed_at,
         :uri,
@@ -536,7 +549,9 @@ defmodule Pleroma.User do
         :is_discoverable,
         :actor_type,
         :disclose_client,
-        :status_ttl_days
+        :status_ttl_days,
+        :permit_followback,
+        :accepts_direct_messages_from
       ]
     )
     |> unique_constraint(:nickname)
@@ -870,12 +885,16 @@ defmodule Pleroma.User do
     end
   end
 
-  defp send_user_approval_email(user) do
+  defp send_user_approval_email(%User{email: email} = user) when is_binary(email) do
     user
     |> Pleroma.Emails.UserEmail.approval_pending_email()
     |> Pleroma.Emails.Mailer.deliver_async()
 
     {:ok, :enqueued}
+  end
+
+  defp send_user_approval_email(_user) do
+    {:ok, :skipped}
   end
 
   defp send_admin_approval_emails(user) do
@@ -950,26 +969,32 @@ defmodule Pleroma.User do
 
   defp maybe_send_registration_email(_), do: {:ok, :noop}
 
-  def needs_update?(%User{local: true}), do: false
+  def needs_update?(user, options \\ [])
+  def needs_update?(%User{local: true}, _options), do: false
+  def needs_update?(%User{local: false, last_refreshed_at: nil}, _options), do: true
 
-  def needs_update?(%User{local: false, last_refreshed_at: nil}), do: true
-
-  def needs_update?(%User{local: false} = user) do
-    NaiveDateTime.diff(NaiveDateTime.utc_now(), user.last_refreshed_at) >= 86_400
+  def needs_update?(%User{local: false} = user, options) do
+    NaiveDateTime.diff(NaiveDateTime.utc_now(), user.last_refreshed_at) >=
+      Keyword.get(options, :maximum_age, 86_400)
   end
 
-  def needs_update?(_), do: true
+  def needs_update?(_, _options), do: true
+
+  # "Locked" (self-locked) users demand explicit authorization of follow requests
+  @spec can_direct_follow_local(User.t(), User.t()) :: true | false
+  def can_direct_follow_local(%User{} = follower, %User{local: true} = followed) do
+    !followed.is_locked || (followed.permit_followback and is_friend_of(follower, followed))
+  end
 
   @spec maybe_direct_follow(User.t(), User.t()) ::
           {:ok, User.t(), User.t()} | {:error, String.t()}
 
-  # "Locked" (self-locked) users demand explicit authorization of follow requests
-  def maybe_direct_follow(%User{} = follower, %User{local: true, is_locked: true} = followed) do
-    follow(follower, followed, :follow_pending)
-  end
-
   def maybe_direct_follow(%User{} = follower, %User{local: true} = followed) do
-    follow(follower, followed)
+    if can_direct_follow_local(follower, followed) do
+      follow(follower, followed)
+    else
+      follow(follower, followed, :follow_pending)
+    end
   end
 
   def maybe_direct_follow(%User{} = follower, %User{} = followed) do
@@ -1319,6 +1344,13 @@ defmodule Pleroma.User do
     |> Repo.all()
   end
 
+  def is_friend_of(%User{} = potential_friend, %User{local: true} = user) do
+    user
+    |> get_friends_query()
+    |> where(id: ^potential_friend.id)
+    |> Repo.exists?()
+  end
+
   def increase_note_count(%User{} = user) do
     User
     |> where(id: ^user.id)
@@ -1483,7 +1515,7 @@ defmodule Pleroma.User do
       unmute(muter, mutee)
     else
       {who, result} = error ->
-        Logger.warn(
+        Logger.warning(
           "User.unmute/2 failed. #{who}: #{result}, muter_id: #{muter_id}, mutee_id: #{mutee_id}"
         )
 
@@ -1593,9 +1625,13 @@ defmodule Pleroma.User do
   def blocks_user?(_, _), do: false
 
   def blocks_domain?(%User{} = user, %User{} = target) do
-    domain_blocks = Pleroma.Web.ActivityPub.MRF.subdomains_regex(user.domain_blocks)
     %{host: host} = URI.parse(target.ap_id)
-    Pleroma.Web.ActivityPub.MRF.subdomain_match?(domain_blocks, host)
+    Enum.member?(user.domain_blocks, host)
+    # TODO: functionality should probably be changed such that subdomains block as well,
+    # but as it stands, this just hecks up the relationships endpoint
+    # domain_blocks = Pleroma.Web.ActivityPub.MRF.subdomains_regex(user.domain_blocks)
+    # %{host: host} = URI.parse(target.ap_id)
+    # Pleroma.Web.ActivityPub.MRF.subdomain_match?(domain_blocks, host)
   end
 
   def blocks_domain?(_, _), do: false
@@ -1945,10 +1981,10 @@ defmodule Pleroma.User do
 
   def fetch_by_ap_id(ap_id), do: ActivityPub.make_user_from_ap_id(ap_id)
 
-  def get_or_fetch_by_ap_id(ap_id) do
+  def get_or_fetch_by_ap_id(ap_id, options \\ []) do
     cached_user = get_cached_by_ap_id(ap_id)
 
-    maybe_fetched_user = needs_update?(cached_user) && fetch_by_ap_id(ap_id)
+    maybe_fetched_user = needs_update?(cached_user, options) && fetch_by_ap_id(ap_id)
 
     case {cached_user, maybe_fetched_user} do
       {_, {:ok, %User{} = user}} ->
@@ -2000,7 +2036,6 @@ defmodule Pleroma.User do
     %User{
       invisible: true,
       local: true,
-      actor_type: "Application",
       ap_id: uri,
       nickname: nickname,
       follower_address: uri <> "/followers"
@@ -2438,12 +2473,7 @@ defmodule Pleroma.User do
           end
 
         if is_url(raw_value) do
-          frontend_url =
-            Pleroma.Web.Router.Helpers.redirect_url(
-              Pleroma.Web.Endpoint,
-              :redirector_with_meta,
-              nickname
-            )
+          frontend_url = url(~p[/#{nickname}])
 
           possible_urls = [ap_id, frontend_url]
 
@@ -2722,4 +2752,16 @@ defmodule Pleroma.User do
   def following_hashtag?(%User{} = user, %Hashtag{} = hashtag) do
     not is_nil(HashtagFollow.get(user, hashtag))
   end
+
+  def accepts_direct_messages?(
+        %User{accepts_direct_messages_from: :people_i_follow} = receiver,
+        %User{} = sender
+      ) do
+    User.following?(receiver, sender)
+  end
+
+  def accepts_direct_messages?(%User{accepts_direct_messages_from: :everybody}, _), do: true
+
+  def accepts_direct_messages?(%User{accepts_direct_messages_from: :nobody}, _),
+    do: false
 end

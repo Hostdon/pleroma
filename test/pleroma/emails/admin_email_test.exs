@@ -7,7 +7,6 @@ defmodule Pleroma.Emails.AdminEmailTest do
   import Pleroma.Factory
 
   alias Pleroma.Emails.AdminEmail
-  alias Pleroma.Web.Router.Helpers
 
   test "build report email" do
     config = Pleroma.Config.get(:instance)
@@ -18,7 +17,7 @@ defmodule Pleroma.Emails.AdminEmailTest do
     res =
       AdminEmail.report(to_user, reporter, account, [%{name: "Test", id: "12"}], "Test comment")
 
-    status_url = Helpers.o_status_url(Pleroma.Web.Endpoint, :notice, "12")
+    status_url = url(~p[/notice/12])
     reporter_url = reporter.ap_id
     account_url = account.ap_id
 

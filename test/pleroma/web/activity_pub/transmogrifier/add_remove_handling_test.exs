@@ -1,6 +1,6 @@
 defmodule Pleroma.Web.ActivityPub.Transmogrifier.AddRemoveHandlingTest do
   use Oban.Testing, repo: Pleroma.Repo
-  use Pleroma.DataCase, async: true
+  use Pleroma.DataCase
 
   require Pleroma.Constants
 

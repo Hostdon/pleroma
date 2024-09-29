@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <rss version="2.0">
   <channel>
-    <guid><%= Routes.user_feed_url(@conn, :feed, @user.nickname) <> ".rss" %></guid>
+    <guid><%= url(~p"/users/#{@user.nickname}/feed") <> ".rss" %></guid>
     <title><%= @user.nickname <> "'s timeline" %></title>
     <updated><%= most_recent_update(@activities, @user) %></updated>
     <image><%= logo(@user) %></image>
-    <link><%= '#{Routes.user_feed_url(@conn, :feed, @user.nickname)}.rss' %></link>
+    <link><%= '#{url(~p"/users/#{@user.nickname}/feed")}.rss' %></link>
 
     <%= render @view_module, "_author.rss", assigns %>
 
     <%= if last_activity(@activities) do %>
-      <link rel="next"><%= '#{Routes.user_feed_url(@conn, :feed, @user.nickname)}.rss?max_id=#{last_activity(@activities).id}' %></link>
+      <link rel="next"><%= '#{url(~p"/users/#{@user.nickname}/feed")}.rss?max_id=#{last_activity(@activities).id}' %></link>
     <% end %>
 
     <%= for activity <- @activities do %>

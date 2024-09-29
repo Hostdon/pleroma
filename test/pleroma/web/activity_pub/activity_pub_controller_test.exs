@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
-  use Pleroma.Web.ConnCase
+  use Pleroma.Web.ConnCase, async: false
   use Oban.Testing, repo: Pleroma.Repo
 
   alias Pleroma.Activity
@@ -31,6 +31,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
   end
 
   setup do: clear_config([:instance, :federating], true)
+  setup do: clear_config([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
 
   describe "/relay" do
     setup do: clear_config([:instance, :allow_relay], true)
@@ -38,7 +39,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
     test "with the relay active, it returns the relay user", %{conn: conn} do
       res =
         conn
-        |> get(activity_pub_path(conn, :relay))
+        |> get(~p"/relay")
         |> json_response(200)
 
       assert res["id"] =~ "/relay"
@@ -48,7 +49,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
       clear_config([:instance, :allow_relay], false)
 
       conn
-      |> get(activity_pub_path(conn, :relay))
+      |> get(~p"/relay")
       |> json_response(404)
     end
 
@@ -58,7 +59,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
 
       conn
       |> assign(:user, user)
-      |> get(activity_pub_path(conn, :relay))
+      |> get(~p"/relay")
       |> json_response(404)
     end
   end
@@ -67,7 +68,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
     test "it returns the internal fetch user", %{conn: conn} do
       res =
         conn
-        |> get(activity_pub_path(conn, :internal_fetch))
+        |> get(~p"/internal/fetch")
         |> json_response(200)
 
       assert res["id"] =~ "/fetch"
@@ -79,7 +80,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
 
       conn
       |> assign(:user, user)
-      |> get(activity_pub_path(conn, :internal_fetch))
+      |> get(~p"/internal/fetch")
       |> json_response(404)
     end
   end
@@ -660,35 +661,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
 
       :ok = Mix.Tasks.Pleroma.Relay.run(["list"])
       assert_receive {:mix_shell, :info, ["https://relay.mastodon.host/actor"]}
-    end
-
-    @tag capture_log: true
-    test "without valid signature, " <>
-           "it only accepts Create activities and requires enabled federation",
-         %{conn: conn} do
-      data = File.read!("test/fixtures/mastodon-post-activity.json") |> Jason.decode!()
-      non_create_data = File.read!("test/fixtures/mastodon-announce.json") |> Jason.decode!()
-
-      conn = put_req_header(conn, "content-type", "application/activity+json")
-
-      clear_config([:instance, :federating], false)
-
-      conn
-      |> post("/inbox", data)
-      |> json_response(403)
-
-      conn
-      |> post("/inbox", non_create_data)
-      |> json_response(403)
-
-      clear_config([:instance, :federating], true)
-
-      ret_conn = post(conn, "/inbox", data)
-      assert "ok" == json_response(ret_conn, 200)
-
-      conn
-      |> post("/inbox", non_create_data)
-      |> json_response(400)
     end
 
     test "accepts Add/Remove activities", %{conn: conn} do
@@ -1446,244 +1418,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
     end
   end
 
-  describe "POST /users/:nickname/outbox (C2S)" do
-    setup do: clear_config([:instance, :limit])
-
-    setup do
-      [
-        activity: %{
-          "@context" => "https://www.w3.org/ns/activitystreams",
-          "type" => "Create",
-          "object" => %{
-            "type" => "Note",
-            "content" => "AP C2S test",
-            "to" => "https://www.w3.org/ns/activitystreams#Public",
-            "cc" => []
-          }
-        }
-      ]
-    end
-
-    test "it rejects posts from other users / unauthenticated users", %{
-      conn: conn,
-      activity: activity
-    } do
-      user = insert(:user)
-      other_user = insert(:user)
-      conn = put_req_header(conn, "content-type", "application/activity+json")
-
-      conn
-      |> post("/users/#{user.nickname}/outbox", activity)
-      |> json_response(403)
-
-      conn
-      |> assign(:user, other_user)
-      |> post("/users/#{user.nickname}/outbox", activity)
-      |> json_response(403)
-    end
-
-    test "it inserts an incoming create activity into the database", %{
-      conn: conn,
-      activity: activity
-    } do
-      user = insert(:user)
-
-      result =
-        conn
-        |> assign(:user, user)
-        |> put_req_header("content-type", "application/activity+json")
-        |> post("/users/#{user.nickname}/outbox", activity)
-        |> json_response(201)
-
-      assert Activity.get_by_ap_id(result["id"])
-      assert result["object"]
-      assert %Object{data: object} = Object.normalize(result["object"], fetch: false)
-      assert object["content"] == activity["object"]["content"]
-    end
-
-    test "it rejects anything beyond 'Note' creations", %{conn: conn, activity: activity} do
-      user = insert(:user)
-
-      activity =
-        activity
-        |> put_in(["object", "type"], "Benis")
-
-      _result =
-        conn
-        |> assign(:user, user)
-        |> put_req_header("content-type", "application/activity+json")
-        |> post("/users/#{user.nickname}/outbox", activity)
-        |> json_response(400)
-    end
-
-    test "it inserts an incoming sensitive activity into the database", %{
-      conn: conn,
-      activity: activity
-    } do
-      user = insert(:user)
-      conn = assign(conn, :user, user)
-      object = Map.put(activity["object"], "sensitive", true)
-      activity = Map.put(activity, "object", object)
-
-      response =
-        conn
-        |> put_req_header("content-type", "application/activity+json")
-        |> post("/users/#{user.nickname}/outbox", activity)
-        |> json_response(201)
-
-      assert Activity.get_by_ap_id(response["id"])
-      assert response["object"]
-      assert %Object{data: response_object} = Object.normalize(response["object"], fetch: false)
-      assert response_object["sensitive"] == true
-      assert response_object["content"] == activity["object"]["content"]
-
-      representation =
-        conn
-        |> put_req_header("accept", "application/activity+json")
-        |> get(response["id"])
-        |> json_response(200)
-
-      assert representation["object"]["sensitive"] == true
-    end
-
-    test "it rejects an incoming activity with bogus type", %{conn: conn, activity: activity} do
-      user = insert(:user)
-      activity = Map.put(activity, "type", "BadType")
-
-      conn =
-        conn
-        |> assign(:user, user)
-        |> put_req_header("content-type", "application/activity+json")
-        |> post("/users/#{user.nickname}/outbox", activity)
-
-      assert json_response(conn, 400)
-    end
-
-    test "it erects a tombstone when receiving a delete activity", %{conn: conn} do
-      note_activity = insert(:note_activity)
-      note_object = Object.normalize(note_activity, fetch: false)
-      user = User.get_cached_by_ap_id(note_activity.data["actor"])
-
-      data = %{
-        "type" => "Delete",
-        "object" => %{
-          "id" => note_object.data["id"]
-        }
-      }
-
-      result =
-        conn
-        |> assign(:user, user)
-        |> put_req_header("content-type", "application/activity+json")
-        |> post("/users/#{user.nickname}/outbox", data)
-        |> json_response(201)
-
-      assert Activity.get_by_ap_id(result["id"])
-
-      assert object = Object.get_by_ap_id(note_object.data["id"])
-      assert object.data["type"] == "Tombstone"
-    end
-
-    test "it rejects delete activity of object from other actor", %{conn: conn} do
-      note_activity = insert(:note_activity)
-      note_object = Object.normalize(note_activity, fetch: false)
-      user = insert(:user)
-
-      data = %{
-        type: "Delete",
-        object: %{
-          id: note_object.data["id"]
-        }
-      }
-
-      conn =
-        conn
-        |> assign(:user, user)
-        |> put_req_header("content-type", "application/activity+json")
-        |> post("/users/#{user.nickname}/outbox", data)
-
-      assert json_response(conn, 403)
-    end
-
-    test "it increases like count when receiving a like action", %{conn: conn} do
-      note_activity = insert(:note_activity)
-      note_object = Object.normalize(note_activity, fetch: false)
-      user = User.get_cached_by_ap_id(note_activity.data["actor"])
-
-      data = %{
-        type: "Like",
-        object: %{
-          id: note_object.data["id"]
-        }
-      }
-
-      conn =
-        conn
-        |> assign(:user, user)
-        |> put_req_header("content-type", "application/activity+json")
-        |> post("/users/#{user.nickname}/outbox", data)
-
-      result = json_response(conn, 201)
-      assert Activity.get_by_ap_id(result["id"])
-
-      assert object = Object.get_by_ap_id(note_object.data["id"])
-      assert object.data["like_count"] == 1
-    end
-
-    test "it doesn't spreads faulty attributedTo or actor fields", %{
-      conn: conn,
-      activity: activity
-    } do
-      reimu = insert(:user, nickname: "reimu")
-      cirno = insert(:user, nickname: "cirno")
-
-      assert reimu.ap_id
-      assert cirno.ap_id
-
-      activity =
-        activity
-        |> put_in(["object", "actor"], reimu.ap_id)
-        |> put_in(["object", "attributedTo"], reimu.ap_id)
-        |> put_in(["actor"], reimu.ap_id)
-        |> put_in(["attributedTo"], reimu.ap_id)
-
-      _reimu_outbox =
-        conn
-        |> assign(:user, cirno)
-        |> put_req_header("content-type", "application/activity+json")
-        |> post("/users/#{reimu.nickname}/outbox", activity)
-        |> json_response(403)
-
-      cirno_outbox =
-        conn
-        |> assign(:user, cirno)
-        |> put_req_header("content-type", "application/activity+json")
-        |> post("/users/#{cirno.nickname}/outbox", activity)
-        |> json_response(201)
-
-      assert cirno_outbox["attributedTo"] == nil
-      assert cirno_outbox["actor"] == cirno.ap_id
-
-      assert cirno_object = Object.normalize(cirno_outbox["object"], fetch: false)
-      assert cirno_object.data["actor"] == cirno.ap_id
-      assert cirno_object.data["attributedTo"] == cirno.ap_id
-    end
-
-    test "Character limitation", %{conn: conn, activity: activity} do
-      clear_config([:instance, :limit], 5)
-      user = insert(:user)
-
-      result =
-        conn
-        |> assign(:user, user)
-        |> put_req_header("content-type", "application/activity+json")
-        |> post("/users/#{user.nickname}/outbox", activity)
-        |> json_response(400)
-
-      assert result == "Character limit (5 characters) exceeded, contains 11 characters"
-    end
-  end
-
   describe "/relay/followers" do
     test "it returns relay followers", %{conn: conn} do
       relay_actor = Relay.get_actor()
@@ -2002,95 +1736,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
 
       assert Delivery.get(object.id, user.id)
       assert Delivery.get(object.id, other_user.id)
-    end
-  end
-
-  describe "Additional ActivityPub C2S endpoints" do
-    test "GET /api/ap/whoami", %{conn: conn} do
-      user = insert(:user)
-
-      conn =
-        conn
-        |> assign(:user, user)
-        |> get("/api/ap/whoami")
-
-      user = User.get_cached_by_id(user.id)
-
-      assert UserView.render("user.json", %{user: user}) == json_response(conn, 200)
-
-      conn
-      |> get("/api/ap/whoami")
-      |> json_response(403)
-    end
-
-    setup do: clear_config([:media_proxy])
-    setup do: clear_config([Pleroma.Upload])
-
-    test "POST /api/ap/upload_media", %{conn: conn} do
-      user = insert(:user)
-
-      desc = "Description of the image"
-
-      image = %Plug.Upload{
-        content_type: "image/jpeg",
-        path: Path.absname("test/fixtures/image.jpg"),
-        filename: "an_image.jpg"
-      }
-
-      object =
-        conn
-        |> assign(:user, user)
-        |> post("/api/ap/upload_media", %{"file" => image, "description" => desc})
-        |> json_response(:created)
-
-      assert object["name"] == desc
-      assert object["type"] == "Document"
-      assert object["actor"] == user.ap_id
-      assert [%{"href" => object_href, "mediaType" => object_mediatype}] = object["url"]
-      assert is_binary(object_href)
-      assert object_mediatype == "image/jpeg"
-      assert String.ends_with?(object_href, ".jpg")
-
-      activity_request = %{
-        "@context" => "https://www.w3.org/ns/activitystreams",
-        "type" => "Create",
-        "object" => %{
-          "type" => "Note",
-          "content" => "AP C2S test, attachment",
-          "attachment" => [object],
-          "to" => "https://www.w3.org/ns/activitystreams#Public",
-          "cc" => []
-        }
-      }
-
-      activity_response =
-        conn
-        |> assign(:user, user)
-        |> post("/users/#{user.nickname}/outbox", activity_request)
-        |> json_response(:created)
-
-      assert activity_response["id"]
-      assert activity_response["object"]
-      assert activity_response["actor"] == user.ap_id
-
-      assert %Object{data: %{"attachment" => [attachment]}} =
-               Object.normalize(activity_response["object"], fetch: false)
-
-      assert attachment["type"] == "Document"
-      assert attachment["name"] == desc
-
-      assert [
-               %{
-                 "href" => ^object_href,
-                 "type" => "Link",
-                 "mediaType" => ^object_mediatype
-               }
-             ] = attachment["url"]
-
-      # Fails if unauthenticated
-      conn
-      |> post("/api/ap/upload_media", %{"file" => image, "description" => desc})
-      |> json_response(403)
     end
   end
 

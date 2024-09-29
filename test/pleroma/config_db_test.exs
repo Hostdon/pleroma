@@ -297,7 +297,7 @@ defmodule Pleroma.ConfigDBTest do
     test "proxy tuple with domain" do
       assert ConfigDB.to_elixir_types(%{
                "tuple" => [":proxy_url", %{"tuple" => [":socks5", "domain.com", 1234]}]
-             }) == {:proxy_url, {:socks5, 'domain.com', 1234}}
+             }) == {:proxy_url, {:socks5, ~c"domain.com", 1234}}
     end
 
     test "proxy tuple with ip" do
@@ -428,13 +428,13 @@ defmodule Pleroma.ConfigDBTest do
 
     test "common keyword" do
       assert ConfigDB.to_elixir_types([
-               %{"tuple" => [":level", ":warn"]},
+               %{"tuple" => [":level", ":warning"]},
                %{"tuple" => [":meta", [":all"]]},
                %{"tuple" => [":path", ""]},
                %{"tuple" => [":val", nil]},
                %{"tuple" => [":webhook_url", "https://hooks.slack.com/services/YOUR-KEY-HERE"]}
              ]) == [
-               level: :warn,
+               level: :warning,
                meta: [:all],
                path: "",
                val: nil,

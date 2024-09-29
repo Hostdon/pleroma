@@ -78,6 +78,8 @@ config :joken, default_signer: "<%= jwt_secret %>"
 
 config :pleroma, configurable_from_database: <%= db_configurable? %>
 
+config :pleroma, Pleroma.Upload,
 <%= if Kernel.length(upload_filters) > 0 do
-"config :pleroma, Pleroma.Upload, filters: #{inspect(upload_filters)}"
+"  filters: #{inspect(upload_filters)},"
 end %>
+  base_url: "<%= media_url %>"

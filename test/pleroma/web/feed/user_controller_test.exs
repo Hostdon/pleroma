@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.Feed.UserControllerTest do
-  use Pleroma.Web.ConnCase
+  use Pleroma.Web.ConnCase, async: false
 
   import Pleroma.Factory
   import SweetXml
@@ -66,7 +66,7 @@ defmodule Pleroma.Web.Feed.UserControllerTest do
       resp =
         conn
         |> put_req_header("accept", "application/atom+xml")
-        |> get(user_feed_path(conn, :feed, user.nickname))
+        |> get(~p[/users/#{user.nickname}/feed])
         |> response(200)
 
       activity_titles =
@@ -74,7 +74,7 @@ defmodule Pleroma.Web.Feed.UserControllerTest do
         |> SweetXml.parse()
         |> SweetXml.xpath(~x"//entry/title/text()"l)
 
-      assert activity_titles == ['42 &amp; Thi...', 'This &amp; t...']
+      assert activity_titles == [~c"42 &amp; Thi...", ~c"This &amp; t..."]
       assert resp =~ FeedView.escape(object.data["content"])
       assert resp =~ FeedView.escape(object.data["summary"])
       assert resp =~ FeedView.escape(object.data["context"])
@@ -90,7 +90,7 @@ defmodule Pleroma.Web.Feed.UserControllerTest do
         |> SweetXml.parse()
         |> SweetXml.xpath(~x"//entry/title/text()"l)
 
-      assert activity_titles == ['This &amp; t...']
+      assert activity_titles == [~c"This &amp; t..."]
     end
 
     test "gets a rss feed", %{conn: conn, user: user, object: object, max_id: max_id} do
@@ -105,7 +105,7 @@ defmodule Pleroma.Web.Feed.UserControllerTest do
         |> SweetXml.parse()
         |> SweetXml.xpath(~x"//item/title/text()"l)
 
-      assert activity_titles == ['42 &amp; Thi...', 'This &amp; t...']
+      assert activity_titles == [~c"42 &amp; Thi...", ~c"This &amp; t..."]
       assert resp =~ FeedView.escape(object.data["content"])
       assert resp =~ FeedView.escape(object.data["summary"])
       assert resp =~ FeedView.escape(object.data["context"])
@@ -121,14 +121,14 @@ defmodule Pleroma.Web.Feed.UserControllerTest do
         |> SweetXml.parse()
         |> SweetXml.xpath(~x"//item/title/text()"l)
 
-      assert activity_titles == ['This &amp; t...']
+      assert activity_titles == [~c"This &amp; t..."]
     end
 
     test "returns 404 for a missing feed", %{conn: conn} do
       conn =
         conn
         |> put_req_header("accept", "application/atom+xml")
-        |> get(user_feed_path(conn, :feed, "nonexisting"))
+        |> get(~p"/users/nonexisting/feed")
 
       assert response(conn, 404)
     end
@@ -144,7 +144,7 @@ defmodule Pleroma.Web.Feed.UserControllerTest do
       resp =
         conn
         |> put_req_header("accept", "application/atom+xml")
-        |> get(user_feed_path(conn, :feed, user.nickname))
+        |> get(~p[/users/#{user.nickname}/feed])
         |> response(200)
 
       activity_titles =
@@ -153,7 +153,7 @@ defmodule Pleroma.Web.Feed.UserControllerTest do
         |> SweetXml.xpath(~x"//entry/title/text()"l)
         |> Enum.sort()
 
-      assert activity_titles == ['public', 'unlisted']
+      assert activity_titles == [~c"public", ~c"unlisted"]
     end
 
     test "returns 404 when the user is remote", %{conn: conn} do
@@ -163,7 +163,7 @@ defmodule Pleroma.Web.Feed.UserControllerTest do
 
       assert conn
              |> put_req_header("accept", "application/atom+xml")
-             |> get(user_feed_path(conn, :feed, user.nickname))
+             |> get(~p[/users/#{user.nickname}/feed])
              |> response(404)
     end
 
@@ -240,7 +240,7 @@ defmodule Pleroma.Web.Feed.UserControllerTest do
       response =
         conn
         |> put_req_header("accept", "application/xml")
-        |> get(user_feed_path(conn, :feed, "jimm"))
+        |> get(~p"/users/jimm/feed")
         |> response(404)
 
       assert response == ~S({"error":"Not found"})
@@ -258,7 +258,7 @@ defmodule Pleroma.Web.Feed.UserControllerTest do
 
       assert conn
              |> put_req_header("accept", "application/atom+xml")
-             |> get(user_feed_path(conn, :feed, user.nickname))
+             |> get(~p[/users/#{user.nickname}/feed])
              |> response(404)
     end
   end

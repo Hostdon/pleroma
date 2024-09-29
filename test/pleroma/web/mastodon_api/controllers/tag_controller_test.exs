@@ -1,5 +1,5 @@
 defmodule Pleroma.Web.MastodonAPI.TagControllerTest do
-  use Pleroma.Web.ConnCase
+  use Pleroma.Web.ConnCase, async: false
 
   import Pleroma.Factory
   import Tesla.Mock

@@ -104,31 +104,60 @@ To add configuration to your config file, you can copy it from the base config. 
 ## Message rewrite facility
 
 ### :mrf
-* `policies`: Message Rewrite Policy, either one or a list. Here are the ones available by default:
-    * `Pleroma.Web.ActivityPub.MRF.NoOpPolicy`: Doesn’t modify activities (default).
-    * `Pleroma.Web.ActivityPub.MRF.DropPolicy`: Drops all activities. It generally doesn’t makes sense to use in production.
-    * `Pleroma.Web.ActivityPub.MRF.SimplePolicy`: Restrict the visibility of activities from certains instances (See [`:mrf_simple`](#mrf_simple)).
-    * `Pleroma.Web.ActivityPub.MRF.TagPolicy`: Applies policies to individual users based on tags, which can be set using pleroma-fe/admin-fe/any other app that supports Pleroma Admin API. For example it allows marking posts from individual users nsfw (sensitive).
-    * `Pleroma.Web.ActivityPub.MRF.SubchainPolicy`: Selectively runs other MRF policies when messages match (See [`:mrf_subchain`](#mrf_subchain)).
-    * `Pleroma.Web.ActivityPub.MRF.RejectNonPublic`: Drops posts with non-public visibility settings (See [`:mrf_rejectnonpublic`](#mrf_rejectnonpublic)).
-    * `Pleroma.Web.ActivityPub.MRF.EnsureRePrepended`: Rewrites posts to ensure that replies to posts with subjects do not have an identical subject and instead begin with re:.
-    * `Pleroma.Web.ActivityPub.MRF.AntiLinkSpamPolicy`: Rejects posts from likely spambots by rejecting posts from new users that contain links.
-    * `Pleroma.Web.ActivityPub.MRF.MediaProxyWarmingPolicy`: Crawls attachments using their MediaProxy URLs so that the MediaProxy cache is primed.
-    * `Pleroma.Web.ActivityPub.MRF.MentionPolicy`: Drops posts mentioning configurable users. (See [`:mrf_mention`](#mrf_mention)).
-    * `Pleroma.Web.ActivityPub.MRF.VocabularyPolicy`: Restricts activities to a configured set of vocabulary. (See [`:mrf_vocabulary`](#mrf_vocabulary)).
-    * `Pleroma.Web.ActivityPub.MRF.ObjectAgePolicy`: Rejects or delists posts based on their age when received. (See [`:mrf_object_age`](#mrf_object_age)).
-    * `Pleroma.Web.ActivityPub.MRF.ActivityExpirationPolicy`: Sets a default expiration on all posts made by users of the local instance. Requires `Pleroma.Workers.PurgeExpiredActivity` to be enabled for processing the scheduled delections.
-    * `Pleroma.Web.ActivityPub.MRF.ForceBotUnlistedPolicy`: Makes all bot posts to disappear from public timelines.
-    * `Pleroma.Web.ActivityPub.MRF.FollowBotPolicy`: Automatically follows newly discovered users from the specified bot account. Local accounts, locked accounts, and users with "#nobot" in their bio are respected and excluded from being followed.
-    * `Pleroma.Web.ActivityPub.MRF.AntiFollowbotPolicy`: Drops follow requests from followbots. Users can still allow bots to follow them by first following the bot.
-    * `Pleroma.Web.ActivityPub.MRF.KeywordPolicy`: Rejects or removes from the federated timeline or replaces keywords. (See [`:mrf_keyword`](#mrf_keyword)).
-    * `Pleroma.Web.ActivityPub.MRF.NormalizeMarkup`: Pass inbound HTML through a scrubber to make sure it doesn't have anything unusual in it. On by default, cannot be turned off.
-    * `Pleroma.Web.ActivityPub.MRF.InlineQuotePolicy`: Append a link to a post that quotes another post with the link to the quoted post, to ensure that software that does not understand quotes can have full context. On by default, cannot be turned off.
 * `transparency`: Make the content of your Message Rewrite Facility settings public (via nodeinfo).
 * `transparency_exclusions`: Exclude specific instance names from MRF transparency.  The use of the exclusions feature will be disclosed in nodeinfo as a boolean value.
 * `transparency_obfuscate_domains`: Show domains with `*` in the middle, to censor them if needed. For example, `ridingho.me` will show as `rid*****.me`
+* `policies`: Message Rewrite Policy, either one or a list. Here are the ones available by default:
+    * `Pleroma.Web.ActivityPub.MRF.NoOpPolicy`: Doesn’t modify activities (default).
+    * `Pleroma.Web.ActivityPub.MRF.DropPolicy`: Drops all activities. It generally doesn’t makes sense to use in production.
+    * `Pleroma.Web.ActivityPub.MRF.ActivityExpirationPolicy`: Sets a default expiration on all posts made by users of the local instance. Requires `Pleroma.Workers.PurgeExpiredActivity` to be enabled for processing the scheduled delections.
+      (See [`:mrf_activity_expiration`](#mrf_activity_expiration))
+    * `Pleroma.Web.ActivityPub.MRF.AntiFollowbotPolicy`: Drops follow requests from followbots. Users can still allow bots to follow them by first following the bot.
+    * `Pleroma.Web.ActivityPub.MRF.AntiLinkSpamPolicy`: Rejects posts from likely spambots by rejecting posts from new users that contain links.
+    * `Pleroma.Web.ActivityPub.MRF.EnsureRePrepended`: Rewrites posts to ensure that replies to posts with subjects do not have an identical subject and instead begin with re:.
+    * `Pleroma.Web.ActivityPub.MRF.ForceBotUnlistedPolicy`: Makes all bot posts to disappear from public timelines.
+    * `Pleroma.Web.ActivityPub.MRF.HellthreadPolicy`: Blocks messages with too many mentions.
+      (See [`mrf_hellthread`](#mrf_hellthread))
+    * `Pleroma.Web.ActivityPub.MRF.KeywordPolicy`: Rejects or removes from the federated timeline or replaces keywords. (See [`:mrf_keyword`](#mrf_keyword)).
+    * `Pleroma.Web.ActivityPub.MRF.MediaProxyWarmingPolicy`: Crawls attachments using their MediaProxy URLs so that the MediaProxy cache is primed.
+    * `Pleroma.Web.ActivityPub.MRF.MentionPolicy`: Drops posts mentioning configurable users. (See [`:mrf_mention`](#mrf_mention)).
+    * `Pleroma.Web.ActivityPub.MRF.NoEmptyPolicy`: Drops local activities which have no actual content.
+       (e.g. no attachments and only consists of mentions)
+    * `Pleroma.Web.ActivityPub.MRF.NoPlaceholderTextPolicy`: Strips content placeholders from posts
+      (such as the dot from mastodon)
+    * `Pleroma.Web.ActivityPub.MRF.ObjectAgePolicy`: Rejects or delists posts based on their age when received. (See [`:mrf_object_age`](#mrf_object_age)).
+    * `Pleroma.Web.ActivityPub.MRF.RejectNewlyCreatedAccountNotesPolicy`: Rejects posts of users the server only recently learned about for a while. Great to block spam accounts. (See [`:mrf_reject_newly_created_account_notes`](#mrf_reject_newly_created_account_notes))
+    * `Pleroma.Web.ActivityPub.MRF.RejectNonPublic`: Drops posts with non-public visibility settings (See [`:mrf_rejectnonpublic`](#mrf_rejectnonpublic)).
+    * `Pleroma.Web.ActivityPub.MRF.SimplePolicy`: Restrict the visibility of activities from certains instances (See [`:mrf_simple`](#mrf_simple)).
+    * `Pleroma.Web.ActivityPub.MRF.StealEmojiPolicy`: Steals all eligible emoji encountered in posts from remote instances
+      (See [`:mrf_steal_emoji`](#mrf_steal_emoji))
+    * `Pleroma.Web.ActivityPub.MRF.SubchainPolicy`: Selectively runs other MRF policies when messages match (See [`:mrf_subchain`](#mrf_subchain)).
+    * `Pleroma.Web.ActivityPub.MRF.TagPolicy`: Applies policies to individual users based on tags, which can be set using pleroma-fe/admin-fe/any other app that supports Pleroma Admin API. For example it allows marking posts from individual users nsfw (sensitive).
+    * `Pleroma.Web.ActivityPub.MRF.UserAllowListPolicy`: Drops all posts except from users specified in a list.
+      (See [`:mrf_user_allowlist`](#mrf_user_allowlist))
+    * `Pleroma.Web.ActivityPub.MRF.VocabularyPolicy`: Restricts activities to a configured set of vocabulary. (See [`:mrf_vocabulary`](#mrf_vocabulary)).
+
+Additionally the following MRFs will *always* be aplied and cannot be disabled:
+
+* `Pleroma.Web.ActivityPub.MRF.DirectMessageDisabledPolicy`: Strips users limiting who can send them DMs from the recipients of non-eligible DMs
+* `Pleroma.Web.ActivityPub.MRF.HashtagPolicy`: Depending on a post’s hashtags it can be rejected, get its sensitive flags force-enabled or removed from the global timeline
+    (See [`:mrf_hashtag`](#mrf_hashtag))
+* `Pleroma.Web.ActivityPub.MRF.InlineQuotePolicy`: Append a link to a post that quotes another post with the link to the quoted post, to ensure that software that does not understand quotes can have full context.
+    (See [`:mrf_inline_quote`](#mrf_inline_quote))
+* `Pleroma.Web.ActivityPub.MRF.NormalizeMarkup`: Pass inbound HTML through a scrubber to make sure it doesn't have anything unusual in it.
+    (See [`:mrf_normalize_markup`](#mrf_normalize_markup))
+
 
 ## Federation
+### :activitypub
+* `unfollow_blocked`: Whether blocks result in people getting unfollowed
+* `outgoing_blocks`: Whether to federate blocks to other instances
+* `blockers_visible`: Whether a user can see the posts of users who blocked them
+* `deny_follow_blocked`: Whether to disallow following an account that has blocked the user in question
+* `sign_object_fetches`: Sign object fetches with HTTP signatures
+* `authorized_fetch_mode`: Require HTTP signatures for AP fetches
+* `max_collection_objects`: The maximum number of objects to fetch from a remote AP collection.
+
 ### MRF policies
 
 !!! note
@@ -144,6 +173,7 @@ To add configuration to your config file, you can copy it from the base config. 
 * `report_removal`: List of instances to reject reports from and the reason for doing so.
 * `avatar_removal`: List of instances to strip avatars from and the reason for doing so.
 * `banner_removal`: List of instances to strip banners from and the reason for doing so.
+* `background_removal`: List of instances to strip user backgrounds from and the reason for doing so.
 * `reject_deletes`: List of instances to reject deletions from and the reason for doing so.
 
 #### :mrf_subchain
@@ -206,7 +236,9 @@ config :pleroma, :mrf_user_allowlist, %{
 #### :mrf_steal_emoji
 * `hosts`: List of hosts to steal emojis from
 * `rejected_shortcodes`: Regex-list of shortcodes to reject
-* `size_limit`: File size limit (in bytes), checked before an emoji is saved to the disk
+* `size_limit`: File size limit (in bytes), checked before download if possible (and remote server honest),
+   otherwise or again checked before saving emoji to the disk
+* `download_unknown_size`: whether to download an emoji when the remote server doesn’t report its size in advance
 
 #### :mrf_activity_expiration
 
@@ -222,14 +254,24 @@ Notes:
 - The hashtags in the configuration do not have a leading `#`.
 - This MRF Policy is always enabled, if you want to disable it you have to set empty lists
 
-### :activitypub
-* `unfollow_blocked`: Whether blocks result in people getting unfollowed
-* `outgoing_blocks`: Whether to federate blocks to other instances
-* `blockers_visible`: Whether a user can see the posts of users who blocked them
-* `deny_follow_blocked`: Whether to disallow following an account that has blocked the user in question
-* `sign_object_fetches`: Sign object fetches with HTTP signatures
-* `authorized_fetch_mode`: Require HTTP signatures for AP fetches
-* `max_collection_objects`: The maximum number of objects to fetch from a remote AP collection.
+#### :mrf_reject_newly_created_account_notes
+After initially encountering an user, all their posts
+will be rejected for the configured time (in seconds).
+Only drops posts. Follows, reposts, etc. are not affected.
+
+* `age`: Time below which to reject (in seconds)
+
+An example: (86400 seconds = 24 hours)
+
+```elixir
+config :pleroma, :mrf_reject_newly_created_account_notes, age: 86400
+```
+
+#### :mrf_inline_quote
+* `prefix`: what prefix to prepend to quoted URLs
+
+#### :mrf_normalize_markup
+* `scrub_policy`: the scrubbing module to use (by default a built-in HTML sanitiser)
 
 ## Pleroma.User
 
@@ -246,11 +288,11 @@ Notes:
 
 ### :frontend_configurations
 
-This can be used to configure a keyword list that keeps the configuration data for any kind of frontend. By default, settings for `pleroma_fe` and `masto_fe` are configured. You can find the documentation for `pleroma_fe` configuration into [Pleroma-FE configuration and customization for instance administrators](https://docs-fe.akkoma.dev/stable/CONFIGURATION/#options).
+This can be used to configure a keyword list that keeps the configuration data for any kind of frontend. By default, settings for `pleroma_fe` and `masto_fe` are configured. You can find the documentation for `pleroma_fe` configuration into [Akkoma-FE configuration and customization for instance administrators](https://docs-fe.akkoma.dev/stable/CONFIGURATION/#options).
 
 Frontends can access these settings at `/api/v1/pleroma/frontend_configurations`
 
-To add your own configuration for Pleroma-FE, use it like this:
+To add your own configuration for Akkoma-FE, use it like this:
 
 ```elixir
 config :pleroma, :frontend_configurations,
@@ -356,7 +398,8 @@ This section describe PWA manifest instance-specific values. Currently this opti
 ## :media_proxy
 
 * `enabled`: Enables proxying of remote media to the instance’s proxy
-* `base_url`: The base URL to access a user-uploaded file. Useful when you want to proxy the media files via another host/CDN fronts.
+* `base_url`: The base URL to access a user-uploaded file.
+  Using a (sub)domain distinct from the instance endpoint is **strongly** recommended.
 * `proxy_opts`: All options defined in `Pleroma.ReverseProxy` documentation, defaults to `[max_body_length: (25*1_048_576)]`.
 * `whitelist`: List of hosts with scheme to bypass the mediaproxy (e.g. `https://example.com`)
 * `invalidation`: options for remove media from cache after delete object:
@@ -557,12 +600,12 @@ the source code is here: [kocaptcha](https://github.com/koto-bank/kocaptcha). Th
 
 * `uploader`: Which one of the [uploaders](#uploaders) to use.
 * `filters`: List of [upload filters](#upload-filters) to use.
-* `link_name`: When enabled Akkoma will add a `name` parameter to the url of the upload, for example `https://instance.tld/media/corndog.png?name=corndog.png`. This is needed to provide the correct filename in Content-Disposition headers when using filters like `Pleroma.Upload.Filter.Dedupe`
-* `base_url`: The base URL to access a user-uploaded file. Useful when you want to host the media files via another domain or are using a 3rd party S3 provider.
+* `link_name`: When enabled Akkoma will add a `name` parameter to the url of the upload, for example `https://instance.tld/media/corndog.png?name=corndog.png`. This is needed to provide the correct filename in Content-Disposition headers
+* `base_url`: The base URL to access a user-uploaded file; MUST be configured explicitly.
+  Using a (sub)domain distinct from the instance endpoint is **strongly** recommended. A good value might be `https://media.myakkoma.instance/media/`. 
 * `proxy_remote`: If you're using a remote uploader, Akkoma will proxy media requests instead of redirecting to it.
 * `proxy_opts`: Proxy options, see `Pleroma.ReverseProxy` documentation.
 * `filename_display_max_length`: Set max length of a filename to display. 0 = no limit. Default: 30.
-* `default_description`: Sets which default description an image has if none is set explicitly. Options: nil (default) - Don't set a default, :filename - use the filename of the file, a string (e.g. "attachment") - Use this string
 
 !!! warning
     `strip_exif` has been replaced by `Pleroma.Upload.Filter.Mogrify`.
@@ -599,20 +642,35 @@ config :ex_aws, :s3,
 
 ### Upload filters
 
+#### Pleroma.Upload.Filter.Dedupe
+
+**Always** active; cannot be turned off.
+Renames files to their hash and prevents duplicate files filling up the disk.
+No specific configuration.
+
 #### Pleroma.Upload.Filter.AnonymizeFilename
 
-This filter replaces the filename (not the path) of an upload. For complete obfuscation, add
-`Pleroma.Upload.Filter.Dedupe` before AnonymizeFilename.
+This filter replaces the declared filename (not the path) of an upload.
 
 * `text`: Text to replace filenames in links. If empty, `{random}.extension` will be used. You can get the original filename extension by using `{extension}`, for example `custom-file-name.{extension}`.
 
-#### Pleroma.Upload.Filter.Dedupe
+#### Pleroma.Upload.Filter.Exiftool.StripMetadata
+
+This filter strips metadata with Exiftool leaving color profiles and orientation intact.
+
+* `purge`: List of Exiftool tag names or tag group names to purge
+* `preserve`: List of Exiftool tag names or tag group names to preserve even if they occur in the purge list
+
+
+#### Pleroma.Upload.Filter.Exiftool.ReadDescription
+
+This filter reads the ImageDescription and iptc:Caption-Abstract fields with Exiftool so clients can prefill the media description field.
 
 No specific configuration.
 
-#### Pleroma.Upload.Filter.Exiftool
+#### Pleroma.Upload.Filter.OnlyMedia
 
-This filter only strips the GPS and location metadata with Exiftool leaving color profiles and attributes intact.
+This filter rejects uploads that are not identified with Content-Type matching audio/\*, image/\*, or video/\*
 
 No specific configuration.
 
@@ -951,6 +1009,15 @@ config :ueberauth, Ueberauth,
   providers: [
     keycloak: {Ueberauth.Strategy.Keycloak, [uid_field: :email]}
   ]
+```
+
+You may also need to set up your frontend to use oauth logins. For example, for `akkoma-fe`:
+
+```elixir
+config :pleroma, :frontend_configurations,
+  pleroma_fe: %{
+    loginMethod: "token"
+  }
 ```
 
 ## Link parsing

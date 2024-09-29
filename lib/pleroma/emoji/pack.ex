@@ -26,12 +26,37 @@ defmodule Pleroma.Emoji.Pack do
   alias Pleroma.Emoji.Pack
   alias Pleroma.Utils
 
+  # Invalid/Malicious names are supposed to be filtered out before path joining,
+  # but there are many entrypoints to affected functions so as the code changes
+  # we might accidentally let an unsanitised name slip through.
+  # To make sure, use the below which crash the process otherwise.
+
+  # ALWAYS use this when constructing paths from external name!
+  # (name meaning it must be only a single path component)
+  defp path_join_name_safe(dir, name) do
+    if to_string(name) != Path.basename(name) or name in ["..", ".", ""] do
+      raise "Invalid or malicious pack name: #{name}"
+    else
+      Path.join(dir, name)
+    end
+  end
+
+  # ALWAYS use this to join external paths
+  # (which are allowed to have several components)
+  defp path_join_safe(dir, path) do
+    {:ok, safe_path} = Path.safe_relative(path)
+    Path.join(dir, safe_path)
+  end
+
   @spec create(String.t()) :: {:ok, t()} | {:error, File.posix()} | {:error, :empty_values}
   def create(name) do
     with :ok <- validate_not_empty([name]),
-         dir <- Path.join(emoji_path(), name),
+         dir <- path_join_name_safe(emoji_path(), name),
          :ok <- File.mkdir(dir) do
-      save_pack(%__MODULE__{pack_file: Path.join(dir, "pack.json")})
+      save_pack(%__MODULE__{
+        path: dir,
+        pack_file: Path.join(dir, "pack.json")
+      })
     end
   end
 
@@ -65,7 +90,7 @@ defmodule Pleroma.Emoji.Pack do
           {:ok, [binary()]} | {:error, File.posix(), binary()} | {:error, :empty_values}
   def delete(name) do
     with :ok <- validate_not_empty([name]),
-         pack_path <- Path.join(emoji_path(), name) do
+         pack_path <- path_join_name_safe(emoji_path(), name) do
       File.rm_rf(pack_path)
     end
   end
@@ -89,7 +114,7 @@ defmodule Pleroma.Emoji.Pack do
     end)
   end
 
-  @spec add_file(t(), String.t(), Path.t(), Plug.Upload.t()) ::
+  @spec add_file(t(), String.t(), Path.t(), Plug.Upload.t() | binary()) ::
           {:ok, t()}
           | {:error, File.posix() | atom()}
   def add_file(%Pack{} = pack, _, _, %Plug.Upload{content_type: "application/zip"} = file) do
@@ -107,7 +132,7 @@ defmodule Pleroma.Emoji.Pack do
           Enum.map_reduce(emojies, pack, fn item, emoji_pack ->
             emoji_file = %Plug.Upload{
               filename: item[:filename],
-              path: Path.join(tmp_dir, item[:path])
+              path: path_join_safe(tmp_dir, item[:path])
             }
 
             {:ok, updated_pack} =
@@ -137,6 +162,14 @@ defmodule Pleroma.Emoji.Pack do
   end
 
   def add_file(%Pack{} = pack, shortcode, filename, %Plug.Upload{} = file) do
+    try_add_file(pack, shortcode, filename, file)
+  end
+
+  def add_file(%Pack{} = pack, shortcode, filename, filedata) when is_binary(filedata) do
+    try_add_file(pack, shortcode, filename, filedata)
+  end
+
+  defp try_add_file(%Pack{} = pack, shortcode, filename, file) do
     with :ok <- validate_not_empty([shortcode, filename]),
          :ok <- validate_emoji_not_exists(shortcode),
          {:ok, updated_pack} <- do_add_file(pack, shortcode, filename, file) do
@@ -189,6 +222,7 @@ defmodule Pleroma.Emoji.Pack do
          {:ok, results} <- File.ls(emoji_path) do
       names =
         results
+        # items come from File.ls, thus safe
         |> Enum.map(&Path.join(emoji_path, &1))
         |> Enum.reject(fn path ->
           File.dir?(path) and File.exists?(Path.join(path, "pack.json"))
@@ -287,7 +321,8 @@ defmodule Pleroma.Emoji.Pack do
 
   @spec load_pack(String.t()) :: {:ok, t()} | {:error, :file.posix()}
   def load_pack(name) do
-    pack_file = Path.join([emoji_path(), name, "pack.json"])
+    pack_dir = path_join_name_safe(emoji_path(), name)
+    pack_file = Path.join(pack_dir, "pack.json")
 
     with {:ok, _} <- File.stat(pack_file),
          {:ok, pack_data} <- File.read(pack_file) do
@@ -411,10 +446,16 @@ defmodule Pleroma.Emoji.Pack do
   end
 
   defp create_archive_and_cache(pack, hash) do
-    files = ['pack.json' | Enum.map(pack.files, fn {_, file} -> to_charlist(file) end)]
+    files = [
+      ~c"pack.json"
+      | Enum.map(pack.files, fn {_, file} ->
+          {:ok, file} = Path.safe_relative(file)
+          to_charlist(file)
+        end)
+    ]
 
     {:ok, {_, result}} =
-      :zip.zip('#{pack.name}.zip', files, [:memory, cwd: to_charlist(pack.path)])
+      :zip.zip(~c"#{pack.name}.zip", files, [:memory, cwd: to_charlist(pack.path)])
 
     ttl_per_file = Pleroma.Config.get!([:emoji, :shared_pack_cache_seconds_per_file])
     overall_ttl = :timer.seconds(ttl_per_file * Enum.count(files))
@@ -473,12 +514,18 @@ defmodule Pleroma.Emoji.Pack do
   end
 
   defp save_file(%Plug.Upload{path: upload_path}, pack, filename) do
-    file_path = Path.join(pack.path, filename)
+    file_path = path_join_safe(pack.path, filename)
     create_subdirs(file_path)
 
     with {:ok, _} <- File.copy(upload_path, file_path) do
       :ok
     end
+  end
+
+  defp save_file(file_data, pack, filename) when is_binary(file_data) do
+    file_path = path_join_safe(pack.path, filename)
+    create_subdirs(file_path)
+    File.write(file_path, file_data, [:binary])
   end
 
   defp put_emoji(pack, shortcode, filename) do
@@ -492,8 +539,8 @@ defmodule Pleroma.Emoji.Pack do
   end
 
   defp rename_file(pack, filename, new_filename) do
-    old_path = Path.join(pack.path, filename)
-    new_path = Path.join(pack.path, new_filename)
+    old_path = path_join_safe(pack.path, filename)
+    new_path = path_join_safe(pack.path, new_filename)
     create_subdirs(new_path)
 
     with :ok <- File.rename(old_path, new_path) do
@@ -511,7 +558,7 @@ defmodule Pleroma.Emoji.Pack do
 
   defp remove_file(pack, shortcode) do
     with {:ok, filename} <- get_filename(pack, shortcode),
-         emoji <- Path.join(pack.path, filename),
+         emoji <- path_join_safe(pack.path, filename),
          :ok <- File.rm(emoji) do
       remove_dir_if_empty(emoji, filename)
     end
@@ -529,7 +576,7 @@ defmodule Pleroma.Emoji.Pack do
 
   defp get_filename(pack, shortcode) do
     with %{^shortcode => filename} when is_binary(filename) <- pack.files,
-         file_path <- Path.join(pack.path, filename),
+         file_path <- path_join_safe(pack.path, filename),
          {:ok, _} <- File.stat(file_path) do
       {:ok, filename}
     else
@@ -567,7 +614,7 @@ defmodule Pleroma.Emoji.Pack do
   end
 
   defp copy_as(remote_pack, local_name) do
-    path = Path.join(emoji_path(), local_name)
+    path = path_join_name_safe(emoji_path(), local_name)
 
     %__MODULE__{
       name: local_name,
@@ -581,7 +628,7 @@ defmodule Pleroma.Emoji.Pack do
     with :ok <- File.mkdir_p!(local_pack.path) do
       files = Enum.map(remote_pack["files"], fn {_, path} -> to_charlist(path) end)
       # Fallback cannot contain a pack.json file
-      files = if pack_info[:fallback], do: files, else: ['pack.json' | files]
+      files = if pack_info[:fallback], do: files, else: [~c"pack.json" | files]
 
       :zip.unzip(archive, cwd: to_charlist(local_pack.path), file_list: files)
     end

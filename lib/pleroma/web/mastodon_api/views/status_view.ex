@@ -21,6 +21,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
   alias Pleroma.Web.MastodonAPI.StatusView
   alias Pleroma.Web.MediaProxy
   alias Pleroma.Web.PleromaAPI.EmojiReactionController
+  require Logger
 
   import Pleroma.Web.ActivityPub.Visibility, only: [get_visibility: 1, visible_for_user?: 2]
 
@@ -87,6 +88,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
   defp reblogged?(_activity, _user), do: false
 
   def render("index.json", opts) do
+    Logger.debug("Rendering index")
     reading_user = opts[:for]
     # To do: check AdminAPIControllerTest on the reasons behind nil activities in the list
     activities = Enum.filter(opts.activities, & &1)
@@ -136,8 +138,10 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
 
   def render(
         "show.json",
-        %{activity: %{data: %{"type" => "Announce", "object" => _object}} = activity} = opts
+        %{activity: %{id: id, data: %{"type" => "Announce", "object" => _object}} = activity} =
+          opts
       ) do
+    Logger.debug("Rendering reblog #{id}")
     user = CommonAPI.get_user(activity.data["actor"])
     created_at = Utils.to_masto_date(activity.data["published"])
     object = Object.normalize(activity, fetch: false)
@@ -209,7 +213,9 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
     }
   end
 
-  def render("show.json", %{activity: %{data: %{"object" => _object}} = activity} = opts) do
+  def render("show.json", %{activity: %{id: id, data: %{"object" => _object}} = activity} = opts) do
+    Logger.debug("Rendering status #{id}")
+
     with %Object{} = object <- Object.normalize(activity, fetch: false) do
       user = CommonAPI.get_user(activity.data["actor"])
       user_follower_address = user.follower_address
@@ -316,7 +322,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
 
       url =
         if user.local do
-          Pleroma.Web.Router.Helpers.o_status_url(Pleroma.Web.Endpoint, :notice, activity)
+          url(~p[/notice/#{activity}])
         else
           object.data["url"] || object.data["external_url"] || object.data["id"]
         end
@@ -428,6 +434,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
   end
 
   def render("history.json", %{activity: %{data: %{"object" => _object}} = activity} = opts) do
+    Logger.debug("Rendering history for #{activity.id}")
     object = Object.normalize(activity, fetch: false)
 
     hashtags = Object.hashtags(object)
@@ -614,6 +621,8 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
   def render("attachment_meta.json", _), do: nil
 
   def render("context.json", %{activity: activity, activities: activities, user: user}) do
+    Logger.debug("Rendering context for #{activity.id}")
+
     %{ancestors: ancestors, descendants: descendants} =
       activities
       |> Enum.reverse()

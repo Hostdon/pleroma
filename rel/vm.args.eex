@@ -9,3 +9,9 @@
 
 ## Tweak GC to run more often
 ##-env ERL_FULLSWEEP_AFTER 10
+
+## Disable busy waits; vastly reduces CPU usage while idle
+## See https://docs.akkoma.dev/stable/configuration/optimisation/optimizing_beam/#virtual-machine-andor-few-cpu-cores
++sbwt none
++sbwtdcpu none
++sbwtdio none

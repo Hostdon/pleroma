@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.ReverseProxyTest do
-  use Pleroma.Web.ConnCase
+  use Pleroma.Web.ConnCase, async: false
   import ExUnit.CaptureLog
 
   alias Pleroma.ReverseProxy
@@ -75,13 +75,16 @@ defmodule Pleroma.ReverseProxyTest do
       Tesla.Mock.mock(fn %{method: :head, url: "/head"} ->
         %Tesla.Env{
           status: 200,
-          headers: [{"content-type", "text/html; charset=utf-8"}],
+          headers: [{"content-type", "image/png"}],
           body: ""
         }
       end)
 
       conn = ReverseProxy.call(Map.put(conn, :method, "HEAD"), "/head")
-      assert html_response(conn, 200) == ""
+
+      assert conn.status == 200
+      assert Conn.get_resp_header(conn, "content-type") == ["image/png"]
+      assert conn.resp_body == ""
     end
   end
 
@@ -250,6 +253,40 @@ defmodule Pleroma.ReverseProxyTest do
       conn = ReverseProxy.call(conn, "/disposition")
 
       assert {"content-disposition", "attachment; filename=\"filename.jpg\""} in conn.resp_headers
+    end
+  end
+
+  describe "content-type sanitisation" do
+    test "preserves video type", %{conn: conn} do
+      Tesla.Mock.mock(fn %{method: :get, url: "/content"} ->
+        %Tesla.Env{
+          status: 200,
+          headers: [{"content-type", "video/mp4"}],
+          body: "test"
+        }
+      end)
+
+      conn = ReverseProxy.call(Map.put(conn, :method, "GET"), "/content")
+
+      assert conn.status == 200
+      assert Conn.get_resp_header(conn, "content-type") == ["video/mp4"]
+      assert conn.resp_body == "test"
+    end
+
+    test "replaces application type", %{conn: conn} do
+      Tesla.Mock.mock(fn %{method: :get, url: "/content"} ->
+        %Tesla.Env{
+          status: 200,
+          headers: [{"content-type", "application/activity+json"}],
+          body: "test"
+        }
+      end)
+
+      conn = ReverseProxy.call(Map.put(conn, :method, "GET"), "/content")
+
+      assert conn.status == 200
+      assert Conn.get_resp_header(conn, "content-type") == ["application/octet-stream"]
+      assert conn.resp_body == "test"
     end
   end
 end

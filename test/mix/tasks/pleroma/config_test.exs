@@ -58,7 +58,7 @@ defmodule Mix.Tasks.Pleroma.ConfigTest do
 
       MixTask.migrate_to_db("test/fixtures/config/temp.secret.exs")
 
-      assert_received {:mix_shell, :error, [message]}
+      assert_receive {:mix_shell, :error, [message]}
 
       assert message =~
                "Migration is not allowed until all deprecation warnings have been resolved."
@@ -182,8 +182,81 @@ defmodule Mix.Tasks.Pleroma.ConfigTest do
       assert File.exists?(temp_file)
       {:ok, file} = File.read(temp_file)
 
-      assert file ==
-               "import Config\n\nconfig :pleroma, :instance,\n  name: \"Pleroma\",\n  email: \"example@example.com\",\n  notify_email: \"noreply@example.com\",\n  description: \"A Pleroma instance, an alternative fediverse server\",\n  limit: 5000,\n  remote_limit: 100_000,\n  upload_limit: 16_000_000,\n  avatar_upload_limit: 2_000_000,\n  background_upload_limit: 4_000_000,\n  banner_upload_limit: 4_000_000,\n  poll_limits: %{\n    max_expiration: 31_536_000,\n    max_option_chars: 200,\n    max_options: 20,\n    min_expiration: 0\n  },\n  registrations_open: true,\n  federating: true,\n  federation_incoming_replies_max_depth: 100,\n  federation_reachability_timeout_days: 7,\n  federation_publisher_modules: [Pleroma.Web.ActivityPub.Publisher],\n  allow_relay: true,\n  public: true,\n  quarantined_instances: [],\n  managed_config: true,\n  static_dir: \"instance/static/\",\n  allowed_post_formats: [\"text/plain\", \"text/html\", \"text/markdown\", \"text/bbcode\"],\n  autofollowed_nicknames: [],\n  max_pinned_statuses: 1,\n  attachment_links: false,\n  max_report_comment_size: 1000,\n  safe_dm_mentions: false,\n  healthcheck: false,\n  remote_post_retention_days: 90,\n  skip_thread_containment: true,\n  limit_to_local_content: :unauthenticated,\n  user_bio_length: 5000,\n  user_name_length: 100,\n  max_account_fields: 10,\n  max_remote_account_fields: 20,\n  account_field_name_length: 512,\n  account_field_value_length: 2048,\n  external_user_synchronization: true,\n  extended_nickname_format: true,\n  multi_factor_authentication: [\n    totp: [digits: 6, period: 30],\n    backup_codes: [number: 2, length: 6]\n  ]\n"
+      {:ok, file_quote} = Code.string_to_quoted(file)
+
+      {:__block__, [],
+       [
+         _,
+         {:config, _, config_quote}
+       ]} = file_quote
+
+      assert [
+               :pleroma,
+               :instance,
+               [
+                 name: "Pleroma",
+                 email: "example@example.com",
+                 notify_email: "noreply@example.com",
+                 description: "A Pleroma instance, an alternative fediverse server",
+                 limit: 5000,
+                 remote_limit: 100_000,
+                 upload_limit: 16_000_000,
+                 avatar_upload_limit: 2_000_000,
+                 background_upload_limit: 4_000_000,
+                 banner_upload_limit: 4_000_000,
+                 poll_limits: {_, _, poll_limits},
+                 registrations_open: true,
+                 federating: true,
+                 federation_incoming_replies_max_depth: 100,
+                 federation_reachability_timeout_days: 7,
+                 federation_publisher_modules: [
+                   {_, _, [:Pleroma, :Web, :ActivityPub, :Publisher]}
+                 ],
+                 allow_relay: true,
+                 public: true,
+                 quarantined_instances: [],
+                 managed_config: true,
+                 static_dir: "instance/static/",
+                 allowed_post_formats: ["text/plain", "text/html", "text/markdown", "text/bbcode"],
+                 autofollowed_nicknames: [],
+                 max_pinned_statuses: 1,
+                 attachment_links: false,
+                 max_report_comment_size: 1000,
+                 safe_dm_mentions: false,
+                 healthcheck: false,
+                 remote_post_retention_days: 90,
+                 skip_thread_containment: true,
+                 limit_to_local_content: :unauthenticated,
+                 user_bio_length: 5000,
+                 user_name_length: 100,
+                 max_account_fields: 10,
+                 max_remote_account_fields: 20,
+                 account_field_name_length: 512,
+                 account_field_value_length: 2048,
+                 external_user_synchronization: true,
+                 extended_nickname_format: true,
+                 multi_factor_authentication: [
+                   {:totp,
+                    [
+                      digits: 6,
+                      period: 30
+                    ]},
+                   {:backup_codes,
+                    [
+                      number: 2,
+                      length: 6
+                    ]}
+                 ]
+               ]
+             ] = config_quote
+
+      assert Keyword.equal?(
+               poll_limits,
+               max_options: 20,
+               max_option_chars: 200,
+               min_expiration: 0,
+               max_expiration: 31_536_000
+             )
     end
   end
 

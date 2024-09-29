@@ -6,7 +6,16 @@ With the `mediaproxy` function you can use nginx to cache this content, so users
 
 ## Activate it
 
-* Edit your nginx config and add the following location: 
+* Edit your nginx config and add the following location to your main server block:
+```
+location /proxy {
+        return 404;
+}
+```
+
+* Set up a subdomain for the proxy with its nginx config on the same machine
+  *(the latter is not strictly required, but for simplicity we’ll assume so)*
+* In this subdomain’s server block add
 ```
 location /proxy {
         proxy_cache akkoma_media_cache;
@@ -26,9 +35,9 @@ config :pleroma, :media_proxy,
       enabled: true,
       proxy_opts: [
             redirect_on_failure: true
-      ]
-      #base_url: "https://cache.akkoma.social"
+      ],
+      base_url: "https://cache.akkoma.social"
 ```
-If you want to use a subdomain to serve the files, uncomment `base_url`, change the url and add a comma after `true` in the previous line.
+You **really** should use a subdomain to serve proxied files; while we will fix bugs resulting from this, serving arbitrary remote content on your main domain namespace is a significant attack surface.
 
 * Restart nginx and Akkoma

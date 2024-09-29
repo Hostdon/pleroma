@@ -3,7 +3,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.ActivityPub.RelayTest do
-  use Pleroma.DataCase
+  use Pleroma.DataCase, async: false
+  @moduletag :mocked
 
   alias Pleroma.Activity
   alias Pleroma.User
@@ -17,12 +18,6 @@ defmodule Pleroma.Web.ActivityPub.RelayTest do
   test "gets an actor for the relay" do
     user = Relay.get_actor()
     assert user.ap_id == "#{Pleroma.Web.Endpoint.url()}/relay"
-  end
-
-  test "relay actor is an application" do
-    # See <https://www.w3.org/TR/activitystreams-vocabulary/#dfn-application>
-    user = Relay.get_actor()
-    assert user.actor_type == "Application"
   end
 
   test "relay actor is invisible" do

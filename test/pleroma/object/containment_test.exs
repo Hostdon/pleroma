@@ -17,13 +17,55 @@ defmodule Pleroma.Object.ContainmentTest do
   end
 
   describe "general origin containment" do
-    test "works for completely actorless posts" do
-      assert :error ==
-               Containment.contain_origin("https://glaceon.social/users/monorail", %{
+    test "handles completly actorless objects gracefully" do
+      assert :ok ==
+               Containment.contain_origin("https://glaceon.social/statuses/123", %{
                  "deleted" => "2019-10-30T05:48:50.249606Z",
                  "formerType" => "Note",
-                 "id" => "https://glaceon.social/users/monorail/statuses/103049757364029187",
+                 "id" => "https://glaceon.social/statuses/123",
                  "type" => "Tombstone"
+               })
+    end
+
+    test "errors for spoofed actors" do
+      assert :error ==
+               Containment.contain_origin("https://glaceon.social/statuses/123", %{
+                 "actor" => "https://otp.akkoma.dev/users/you",
+                 "id" => "https://glaceon.social/statuses/123",
+                 "type" => "Note"
+               })
+    end
+
+    test "errors for spoofed attributedTo" do
+      assert :error ==
+               Containment.contain_origin("https://glaceon.social/statuses/123", %{
+                 "attributedTo" => "https://otp.akkoma.dev/users/you",
+                 "id" => "https://glaceon.social/statuses/123",
+                 "type" => "Note"
+               })
+    end
+
+    test "accepts valid actors" do
+      assert :ok ==
+               Containment.contain_origin("https://glaceon.social/statuses/123", %{
+                 "actor" => "https://glaceon.social/users/monorail",
+                 "attributedTo" => "https://glaceon.social/users/monorail",
+                 "id" => "https://glaceon.social/statuses/123",
+                 "type" => "Note"
+               })
+
+      assert :ok ==
+               Containment.contain_origin("https://glaceon.social/statuses/123", %{
+                 "actor" => "https://glaceon.social/users/monorail",
+                 "id" => "https://glaceon.social/statuses/123",
+                 "type" => "Note"
+               })
+
+      assert :ok ==
+               Containment.contain_origin("https://glaceon.social/statuses/123", %{
+                 "attributedTo" => "https://glaceon.social/users/monorail",
+                 "id" => "https://glaceon.social/statuses/123",
+                 "type" => "Note"
                })
     end
 
@@ -59,6 +101,56 @@ defmodule Pleroma.Object.ContainmentTest do
       :ok =
         Containment.contain_origin_from_id(
           "http://example.com/~alyssa/activities/1234.json",
+          data
+        )
+    end
+
+    test "contain_id_to_fetch() refuses alternate IDs within the same origin domain" do
+      data = %{
+        "id" => "http://example.com/~alyssa/activities/1234.json",
+        "url" => "http://example.com/@alyssa/status/1234"
+      }
+
+      :error =
+        Containment.contain_id_to_fetch(
+          "http://example.com/~alyssa/activities/1234",
+          data
+        )
+    end
+
+    test "contain_id_to_fetch() allows matching IDs" do
+      data = %{
+        "id" => "http://example.com/~alyssa/activities/1234.json/"
+      }
+
+      :ok =
+        Containment.contain_id_to_fetch(
+          "http://example.com/~alyssa/activities/1234.json/",
+          data
+        )
+
+      :ok =
+        Containment.contain_id_to_fetch(
+          "http://example.com/~alyssa/activities/1234.json",
+          data
+        )
+    end
+
+    test "contain_id_to_fetch() allows display URLs" do
+      data = %{
+        "id" => "http://example.com/~alyssa/activities/1234.json",
+        "url" => "http://example.com/@alyssa/status/1234"
+      }
+
+      :ok =
+        Containment.contain_id_to_fetch(
+          "http://example.com/@alyssa/status/1234",
+          data
+        )
+
+      :ok =
+        Containment.contain_id_to_fetch(
+          "http://example.com/@alyssa/status/1234/",
           data
         )
     end

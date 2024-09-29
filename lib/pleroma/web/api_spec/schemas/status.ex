@@ -232,7 +232,7 @@ defmodule Pleroma.Web.ApiSpec.Schemas.Status do
           source: %Schema{
             nullable: true,
             oneOf: [
-              %Schema{type: :string, example: 'plaintext content'},
+              %Schema{type: :string, example: ~c"plaintext content"},
               %Schema{
                 type: :object,
                 properties: %{

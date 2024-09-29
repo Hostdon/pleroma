@@ -11,7 +11,7 @@
     "toot": "http://joinmastodon.org/ns#",
     "Emoji": "toot:Emoji"
   }],
-  "id": "http://mastodon.example.org/users/admin",
+  "id": "http://mastodon.example.org/users/relay",
   "type": "Application",
   "invisible": true,
   "following": "http://mastodon.example.org/users/admin/following",
@@ -24,8 +24,8 @@
   "url": "http://mastodon.example.org/@admin",
   "manuallyApprovesFollowers": false,
   "publicKey": {
-    "id": "http://mastodon.example.org/users/admin#main-key",
-    "owner": "http://mastodon.example.org/users/admin",
+    "id": "http://mastodon.example.org/users/relay#main-key",
+    "owner": "http://mastodon.example.org/users/relay",
     "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtc4Tir+3ADhSNF6VKrtW\nOU32T01w7V0yshmQei38YyiVwVvFu8XOP6ACchkdxbJ+C9mZud8qWaRJKVbFTMUG\nNX4+6Q+FobyuKrwN7CEwhDALZtaN2IPbaPd6uG1B7QhWorrY+yFa8f2TBM3BxnUy\nI4T+bMIZIEYG7KtljCBoQXuTQmGtuffO0UwJksidg2ffCF5Q+K//JfQagJ3UzrR+\nZXbKMJdAw4bCVJYs4Z5EhHYBwQWiXCyMGTd7BGlmMkY6Av7ZqHKC/owp3/0EWDNz\nNqF09Wcpr3y3e8nA10X40MJqp/wR+1xtxp+YGbq/Cj5hZGBG7etFOmIpVBrDOhry\nBwIDAQAB\n-----END PUBLIC KEY-----\n"
   },
   "attachment": [{

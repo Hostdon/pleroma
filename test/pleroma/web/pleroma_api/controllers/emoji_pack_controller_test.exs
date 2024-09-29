@@ -4,19 +4,23 @@
 
 defmodule Pleroma.Web.PleromaAPI.EmojiPackControllerTest do
   use Pleroma.Web.ConnCase, async: false
+  @moduletag :mocked
 
   import Mock
   import Tesla.Mock
   import Pleroma.Factory
 
+  @static_dir Pleroma.Config.get!([:instance, :static_dir])
   @emoji_path Path.join(
                 Pleroma.Config.get!([:instance, :static_dir]),
                 "emoji"
               )
 
   setup do: clear_config([:instance, :public], true)
+  setup do: clear_config([:instance, :static_dir], @static_dir)
 
   setup do
+    File.mkdir_p!(@emoji_path)
     admin = insert(:user, is_admin: true)
     token = insert(:oauth_admin_token, user: admin)
 
@@ -155,8 +159,8 @@ defmodule Pleroma.Web.PleromaAPI.EmojiPackControllerTest do
 
       {:ok, arch} = :zip.unzip(resp, [:memory])
 
-      assert Enum.find(arch, fn {n, _} -> n == 'pack.json' end)
-      assert Enum.find(arch, fn {n, _} -> n == 'blank.png' end)
+      assert Enum.find(arch, fn {n, _} -> n == ~c"pack.json" end)
+      assert Enum.find(arch, fn {n, _} -> n == ~c"blank.png" end)
     end
 
     test "non existing pack", %{conn: conn} do
@@ -460,7 +464,7 @@ defmodule Pleroma.Web.PleromaAPI.EmojiPackControllerTest do
           method: :get,
           url: "https://nonshared-pack"
         } ->
-          {:ok, {'empty.zip', empty_arch}} = :zip.zip('empty.zip', [], [:memory])
+          {:ok, {~c"empty.zip", empty_arch}} = :zip.zip(~c"empty.zip", [], [:memory])
           text(empty_arch)
       end)
 

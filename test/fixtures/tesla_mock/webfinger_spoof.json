@@ -1,0 +1,28 @@
+{
+  "aliases": [
+    "https://bad.com/users/meanie",
+    "https://anotherbad.social/users/meanie"
+  ],
+  "links": [
+    {
+      "href": "https://bad.com/users/meanie",
+      "rel": "http://webfinger.net/rel/profile-page",
+      "type": "text/html"
+    },
+    {
+      "href": "https://bad.com/users/meanie",
+      "rel": "self",
+      "type": "application/activity+json"
+    },
+    {
+      "href": "https://bad.com/users/meanie",
+      "rel": "self",
+      "type": "application/ld+json; profile=\"https://www.w3.org/ns/activitystreams\""
+    },
+    {
+      "rel": "http://ostatus.org/schema/1.0/subscribe",
+      "template": "https://bad.com/ostatus_subscribe?acct={uri}"
+    }
+  ],
+  "subject": "acct:oopsie@notwhereitshouldbe.org"
+}

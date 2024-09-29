@@ -178,6 +178,23 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
 
   defp check_banner_removal(_actor_info, object), do: {:ok, object}
 
+  defp check_background_removal(
+         %{host: actor_host} = _actor_info,
+         %{"backgroundUrl" => _bg} = object
+       ) do
+    background_removal =
+      instance_list(:background_removal)
+      |> MRF.subdomains_regex()
+
+    if MRF.subdomain_match?(background_removal, actor_host) do
+      {:ok, Map.delete(object, "backgroundUrl")}
+    else
+      {:ok, object}
+    end
+  end
+
+  defp check_background_removal(_actor_info, object), do: {:ok, object}
+
   defp extract_context_uri(%{"conversation" => "tag:" <> rest}) do
     rest
     |> String.split(",", parts: 2, trim: true)
@@ -283,7 +300,8 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
     with {:ok, _} <- check_accept(actor_info),
          {:ok, _} <- check_reject(actor_info),
          {:ok, object} <- check_avatar_removal(actor_info, object),
-         {:ok, object} <- check_banner_removal(actor_info, object) do
+         {:ok, object} <- check_banner_removal(actor_info, object),
+         {:ok, object} <- check_background_removal(actor_info, object) do
       {:ok, object}
     else
       {:reject, nil} -> {:reject, "[SimplePolicy]"}
@@ -314,6 +332,20 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
   def filter(object), do: {:ok, object}
 
   defp obfuscate(string) when is_binary(string) do
+    # Want to strip at least two neighbouring chars
+    # to ensure at least one non-dot char is in the obfuscation area
+    stripped = String.length(string) - 6
+
+    {keepstart, keepend} =
+      if stripped > 1 do
+        {3, 3}
+      else
+        {
+          2 - div(1 - stripped, 2),
+          2 + div(stripped, 2)
+        }
+      end
+
     string
     |> to_charlist()
     |> Enum.with_index()
@@ -322,7 +354,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
         ?.
 
       {char, index} ->
-        if 3 <= index && index < String.length(string) - 3, do: ?*, else: char
+        if keepstart <= index && index < String.length(string) - keepend, do: ?*, else: char
     end)
     |> to_string()
   end
@@ -432,6 +464,11 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
            %{
              key: :banner_removal,
              description: "List of instances to strip banners from and the reason for doing so"
+           },
+           %{
+             key: :background_removal,
+             description:
+               "List of instances to strip user backgrounds from and the reason for doing so"
            },
            %{
              key: :reject_deletes,

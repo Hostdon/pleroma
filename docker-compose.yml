@@ -4,6 +4,7 @@ services:
   db:
     image: akkoma-db:latest
     build: ./docker-resources/database
+    shm_size: 4gb
     restart: unless-stopped
     user: ${DOCKER_USER}
     environment: {
@@ -45,7 +46,7 @@ services:
     volumes:
       - .:/opt/akkoma
 
-  # Uncomment the following if you want to use a reverse proxy
+  # Copy this into docker-compose.override.yml and uncomment there if you want to use a reverse proxy
   #proxy:
   #  image: caddy:2-alpine
   #  restart: unless-stopped

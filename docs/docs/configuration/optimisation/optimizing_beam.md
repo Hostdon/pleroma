@@ -25,11 +25,14 @@ Tuning the BEAM requires you provide a config file normally called [vm.args](htt
 
 `ExecStart=/usr/bin/elixir --erl '-args_file /opt/akkoma/config/vm.args' -S /usr/bin/mix phx.server`
 
+If using an OTP release, set the `RELEASE_VM_ARGS` environment variable to the path to the vm.args file.
+
 Check your OS documentation to adopt a similar strategy on other platforms.
 
 ### Virtual Machine and/or few CPU cores
 
-Disable the busy-waiting. This should generally only be done if you're on a platform that does burst scheduling, like AWS.
+Disable the busy-waiting. This should generally be done if you're on a platform that does burst scheduling, like AWS, or if you're running other
+services on the same machine.
 
 **vm.args:**
 
@@ -38,6 +41,8 @@ Disable the busy-waiting. This should generally only be done if you're on a plat
 +sbwtdcpu none
 +sbwtdio none
 ```
+
+These settings are enabled by default for OTP releases
 
 ### Dedicated Hardware
 

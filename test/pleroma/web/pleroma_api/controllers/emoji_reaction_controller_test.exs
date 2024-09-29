@@ -4,7 +4,7 @@
 
 defmodule Pleroma.Web.PleromaAPI.EmojiReactionControllerTest do
   use Oban.Testing, repo: Pleroma.Repo
-  use Pleroma.Web.ConnCase
+  use Pleroma.Web.ConnCase, async: false
 
   alias Pleroma.Object
   alias Pleroma.Tests.ObanHelpers

@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.MongooseIMControllerTest do
-  use Pleroma.Web.ConnCase, async: true
+  use Pleroma.Web.ConnCase, async: false
   import Pleroma.Factory
 
   test "/user_exists", %{conn: conn} do
@@ -13,28 +13,28 @@ defmodule Pleroma.Web.MongooseIMControllerTest do
 
     res =
       conn
-      |> get(mongoose_im_path(conn, :user_exists), user: "lain")
+      |> get(~p"/user_exists", user: "lain")
       |> json_response(200)
 
     assert res == true
 
     res =
       conn
-      |> get(mongoose_im_path(conn, :user_exists), user: "alice")
+      |> get(~p"/user_exists", user: "alice")
       |> json_response(404)
 
     assert res == false
 
     res =
       conn
-      |> get(mongoose_im_path(conn, :user_exists), user: "bob")
+      |> get(~p"/user_exists", user: "bob")
       |> json_response(404)
 
     assert res == false
 
     res =
       conn
-      |> get(mongoose_im_path(conn, :user_exists), user: "konata")
+      |> get(~p"/user_exists", user: "konata")
       |> json_response(404)
 
     assert res == false
@@ -52,28 +52,28 @@ defmodule Pleroma.Web.MongooseIMControllerTest do
 
     res =
       conn
-      |> get(mongoose_im_path(conn, :check_password), user: user.nickname, pass: "cool")
+      |> get(~p"/check_password", user: user.nickname, pass: "cool")
       |> json_response(200)
 
     assert res == true
 
     res =
       conn
-      |> get(mongoose_im_path(conn, :check_password), user: user.nickname, pass: "uncool")
+      |> get(~p"/check_password", user: user.nickname, pass: "uncool")
       |> json_response(403)
 
     assert res == false
 
     res =
       conn
-      |> get(mongoose_im_path(conn, :check_password), user: "konata", pass: "cool")
+      |> get(~p"/check_password", user: "konata", pass: "cool")
       |> json_response(404)
 
     assert res == false
 
     res =
       conn
-      |> get(mongoose_im_path(conn, :check_password), user: "nobody", pass: "cool")
+      |> get(~p"/check_password", user: "nobody", pass: "cool")
       |> json_response(404)
 
     assert res == false

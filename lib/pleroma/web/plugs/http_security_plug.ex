@@ -8,6 +8,8 @@ defmodule Pleroma.Web.Plugs.HTTPSecurityPlug do
 
   require Logger
 
+  @mix_env Mix.env()
+
   def init(opts), do: opts
 
   def call(conn, _options) do
@@ -114,9 +116,14 @@ defmodule Pleroma.Web.Plugs.HTTPSecurityPlug do
     style_src = "style-src 'self' '#{nonce_tag}'"
     font_src = "font-src 'self'"
 
-    script_src = "script-src 'self' '#{nonce_tag}'"
+    script_src = "script-src 'self' '#{nonce_tag}' "
 
-    script_src = if Mix.env() == :dev, do: [script_src, " 'unsafe-eval'"], else: script_src
+    script_src =
+      if @mix_env == :dev do
+        "script-src 'self' 'unsafe-eval' 'unsafe-inline'"
+      else
+        script_src
+      end
 
     report = if report_uri, do: ["report-uri ", report_uri, ";report-to csp-endpoint"]
     insecure = if scheme == "https", do: "upgrade-insecure-requests"
@@ -193,7 +200,7 @@ defmodule Pleroma.Web.Plugs.HTTPSecurityPlug do
 
   def warn_if_disabled do
     unless Config.get([:http_security, :enabled]) do
-      Logger.warn("
+      Logger.warning("
                                  .i;;;;i.
                                iYcviii;vXY:
                              .YXi       .i1c.

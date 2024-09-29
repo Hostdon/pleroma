@@ -11,7 +11,6 @@ defmodule Pleroma.Web.StaticFE.StaticFEController do
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Web.Metadata
-  alias Pleroma.Web.Router.Helpers
 
   plug(:put_layout, :static_fe)
   plug(:assign_id)
@@ -25,7 +24,13 @@ defmodule Pleroma.Web.StaticFE.StaticFEController do
          true <- Visibility.is_public?(activity.object),
          {_, true} <- {:visible?, Visibility.visible_for_user?(activity, _reading_user = nil)},
          %User{} = user <- User.get_by_ap_id(activity.object.data["actor"]) do
-      meta = Metadata.build_tags(%{url: activity.data["id"], object: activity.object, user: user})
+      meta =
+        Metadata.build_tags(%{
+          activity_id: notice_id,
+          url: activity.data["id"],
+          object: activity.object,
+          user: user
+        })
 
       timeline =
         activity.object.data["context"]
@@ -111,11 +116,11 @@ defmodule Pleroma.Web.StaticFE.StaticFEController do
   end
 
   def show(%{assigns: %{object_id: _}} = conn, _params) do
-    url = Helpers.url(conn) <> conn.request_path
+    url = unverified_url(conn, conn.request_path)
 
     case Activity.get_create_by_object_ap_id_with_object(url) do
       %Activity{} = activity ->
-        to = Helpers.o_status_path(Pleroma.Web.Endpoint, :notice, activity)
+        to = ~p[/notice/#{activity}]
         redirect(conn, to: to)
 
       _ ->
@@ -124,11 +129,11 @@ defmodule Pleroma.Web.StaticFE.StaticFEController do
   end
 
   def show(%{assigns: %{activity_id: _}} = conn, _params) do
-    url = Helpers.url(conn) <> conn.request_path
+    url = unverified_url(conn, conn.request_path)
 
     case Activity.get_by_ap_id(url) do
       %Activity{} = activity ->
-        to = Helpers.o_status_path(Pleroma.Web.Endpoint, :notice, activity)
+        to = ~p[/notice/#{activity}]
         redirect(conn, to: to)
 
       _ ->
@@ -167,7 +172,7 @@ defmodule Pleroma.Web.StaticFE.StaticFEController do
 
     link =
       case user.local do
-        true -> Helpers.o_status_url(Pleroma.Web.Endpoint, :notice, activity)
+        true -> ~p[/notice/#{activity}]
         _ -> data["url"] || data["external_url"] || data["id"]
       end
 

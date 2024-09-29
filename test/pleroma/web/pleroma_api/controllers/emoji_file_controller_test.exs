@@ -4,6 +4,7 @@
 
 defmodule Pleroma.Web.PleromaAPI.EmojiFileControllerTest do
   use Pleroma.Web.ConnCase, async: false
+  @moduletag :mocked
 
   import Mock
   import Tesla.Mock
@@ -16,6 +17,7 @@ defmodule Pleroma.Web.PleromaAPI.EmojiFileControllerTest do
   setup do: clear_config([:instance, :public], true)
 
   setup do
+    File.mkdir_p!(@emoji_path)
     admin = insert(:user, is_admin: true)
     token = insert(:oauth_admin_token, user: admin)
 
@@ -40,7 +42,7 @@ defmodule Pleroma.Web.PleromaAPI.EmojiFileControllerTest do
       :ok
     end
 
-    test "upload zip file with emojies", %{admin_conn: admin_conn} do
+    test "upload zip file with emojis", %{admin_conn: admin_conn} do
       on_exit(fn ->
         [
           "128px/a_trusted_friend-128.png",

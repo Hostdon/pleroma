@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.StaticFE.StaticFEControllerTest do
-  use Pleroma.Web.ConnCase
+  use Pleroma.Web.ConnCase, async: false
 
   alias Pleroma.Activity
   alias Pleroma.User
@@ -15,12 +15,30 @@ defmodule Pleroma.Web.StaticFE.StaticFEControllerTest do
   import Pleroma.Factory
 
   setup_all do: clear_config([:static_fe, :enabled], true)
+  setup do: clear_config([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
 
   setup %{conn: conn} do
     conn = put_req_header(conn, "accept", "text/html")
-    user = insert(:user)
 
-    %{conn: conn, user: user}
+    user_avatar_url = "https://example.org/akko.png"
+
+    user =
+      insert(:user,
+        local: true,
+        name: "Akko",
+        nickname: "atsuko",
+        bio: "A believing heart is my magic!",
+        raw_bio: "A believing heart is my magic!",
+        avatar: %{
+          "url" => [
+            %{
+              "href" => user_avatar_url
+            }
+          ]
+        }
+      )
+
+    %{conn: conn, user: user, user_avatar_url: user_avatar_url}
   end
 
   describe "user profile html" do
@@ -288,6 +306,144 @@ defmodule Pleroma.Web.StaticFE.StaticFEControllerTest do
       conn
       |> get("/notice/#{activity.id}")
       |> html_response(404)
+    end
+  end
+
+  defp meta_content(metadata_tag) do
+    :proplists.get_value("content", metadata_tag)
+  end
+
+  defp meta_find_og(document, name) do
+    Floki.find(document, "head>meta[property=\"og:" <> name <> "\"]")
+  end
+
+  defp meta_find_twitter(document, name) do
+    Floki.find(document, "head>meta[name=\"twitter:" <> name <> "\"]")
+  end
+
+  # Detailed metadata tests are already done for each builder individually, so just
+  # one check per type of content should suffice to ensure we're calling the providers correctly
+  describe "metadata tags for" do
+    setup do
+      clear_config([Pleroma.Web.Metadata, :providers], [
+        Pleroma.Web.Metadata.Providers.OpenGraph,
+        Pleroma.Web.Metadata.Providers.TwitterCard
+      ])
+    end
+
+    test "user profile", %{conn: conn, user: user, user_avatar_url: user_avatar_url} do
+      conn = get(conn, "/users/#{user.nickname}")
+      html = html_response(conn, 200)
+
+      {:ok, document} = Floki.parse_document(html)
+
+      [{"meta", og_type, _}] = meta_find_og(document, "type")
+      [{"meta", og_title, _}] = meta_find_og(document, "title")
+      [{"meta", og_url, _}] = meta_find_og(document, "url")
+      [{"meta", og_desc, _}] = meta_find_og(document, "description")
+      [{"meta", og_img, _}] = meta_find_og(document, "image")
+      [{"meta", og_imgw, _}] = meta_find_og(document, "image:width")
+      [{"meta", og_imgh, _}] = meta_find_og(document, "image:height")
+
+      [{"meta", tw_card, _}] = meta_find_twitter(document, "card")
+      [{"meta", tw_title, _}] = meta_find_twitter(document, "title")
+      [{"meta", tw_desc, _}] = meta_find_twitter(document, "description")
+      [{"meta", tw_img, _}] = meta_find_twitter(document, "image")
+
+      assert meta_content(og_type) == "article"
+      assert meta_content(og_title) == Pleroma.Web.Metadata.Utils.user_name_string(user)
+      assert meta_content(og_url) == user.ap_id
+      assert meta_content(og_desc) == user.bio
+      assert meta_content(og_img) == user_avatar_url
+      assert meta_content(og_imgw) == "150"
+      assert meta_content(og_imgh) == "150"
+
+      assert meta_content(tw_card) == "summary"
+      assert meta_content(tw_title) == meta_content(og_title)
+      assert meta_content(tw_desc) == meta_content(og_desc)
+      assert meta_content(tw_img) == meta_content(og_img)
+    end
+
+    test "text-only post", %{conn: conn, user: user, user_avatar_url: user_avatar_url} do
+      post_text = "How are lessons about magic  t h i s  boring?!"
+      {:ok, activity} = CommonAPI.post(user, %{status: post_text})
+
+      conn = get(conn, "/notice/#{activity.id}")
+      html = html_response(conn, 200)
+
+      {:ok, document} = Floki.parse_document(html)
+
+      [{"meta", og_type, _}] = meta_find_og(document, "type")
+      [{"meta", og_title, _}] = meta_find_og(document, "title")
+      [{"meta", og_url, _}] = meta_find_og(document, "url")
+      [{"meta", og_desc, _}] = meta_find_og(document, "description")
+      [{"meta", og_img, _}] = meta_find_og(document, "image")
+      [{"meta", og_imgw, _}] = meta_find_og(document, "image:width")
+      [{"meta", og_imgh, _}] = meta_find_og(document, "image:height")
+
+      [{"meta", tw_card, _}] = meta_find_twitter(document, "card")
+      [{"meta", tw_title, _}] = meta_find_twitter(document, "title")
+      [{"meta", tw_desc, _}] = meta_find_twitter(document, "description")
+      [{"meta", tw_img, _}] = meta_find_twitter(document, "image")
+
+      assert meta_content(og_type) == "article"
+      assert meta_content(og_title) == Pleroma.Web.Metadata.Utils.user_name_string(user)
+      assert meta_content(og_url) == activity.data["id"]
+      assert meta_content(og_desc) == post_text
+      assert meta_content(og_img) == user_avatar_url
+      assert meta_content(og_imgw) == "150"
+      assert meta_content(og_imgh) == "150"
+
+      assert meta_content(tw_card) == "summary"
+      assert meta_content(tw_title) == meta_content(og_title)
+      assert meta_content(tw_desc) == meta_content(og_desc)
+      assert meta_content(tw_img) == meta_content(og_img)
+    end
+
+    test "post with attachments", %{conn: conn, user: user} do
+      file = %Plug.Upload{
+        content_type: "image/jpeg",
+        path: Path.absname("test/fixtures/image.jpg"),
+        filename: "an_image.jpg"
+      }
+
+      alt_text = "The rarest of all Shiny Chariot cards"
+      {:ok, upload_data} = ActivityPub.upload(file, actor: user.ap_id, description: alt_text)
+
+      %{id: media_id, data: %{"url" => [%{"href" => media_url}]}} = upload_data
+
+      post_text = "Look!"
+      {:ok, activity} = CommonAPI.post(user, %{status: post_text, media_ids: [media_id]})
+
+      conn = get(conn, "/notice/#{activity.id}")
+      html = html_response(conn, 200)
+
+      {:ok, document} = Floki.parse_document(html)
+
+      [{"meta", og_type, _}] = meta_find_og(document, "type")
+      [{"meta", og_title, _}] = meta_find_og(document, "title")
+      [{"meta", og_url, _}] = meta_find_og(document, "url")
+      [{"meta", og_desc, _}] = meta_find_og(document, "description")
+      [{"meta", og_img, _}] = meta_find_og(document, "image")
+      [{"meta", og_alt, _}] = meta_find_og(document, "image:alt")
+
+      [{"meta", tw_card, _}] = meta_find_twitter(document, "card")
+      [{"meta", tw_title, _}] = meta_find_twitter(document, "title")
+      [{"meta", tw_desc, _}] = meta_find_twitter(document, "description")
+      [{"meta", tw_player, _}] = meta_find_twitter(document, "player")
+
+      assert meta_content(og_type) == "article"
+      assert meta_content(og_title) == Pleroma.Web.Metadata.Utils.user_name_string(user)
+      assert meta_content(og_url) == activity.data["id"]
+      assert meta_content(og_desc) == post_text
+      assert meta_content(og_img) == media_url
+      assert meta_content(og_alt) == alt_text
+
+      # Audio and video attachments use "player" and have some more metadata
+      assert meta_content(tw_card) == "summary_large_image"
+      assert meta_content(tw_title) == meta_content(og_title)
+      assert meta_content(tw_desc) == meta_content(og_desc)
+      assert meta_content(tw_player) == meta_content(og_img)
     end
   end
 end

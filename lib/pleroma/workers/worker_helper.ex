@@ -25,12 +25,16 @@ defmodule Pleroma.Workers.WorkerHelper do
   defmacro __using__(opts) do
     caller_module = __CALLER__.module
     queue = Keyword.fetch!(opts, :queue)
+    # by default just stop unintended duplicates - this can and should be overridden
+    # if you want to have a more complex uniqueness constraint
+    uniqueness = Keyword.get(opts, :unique, period: 1)
 
     quote do
       # Note: `max_attempts` is intended to be overridden in `new/2` call
       use Oban.Worker,
         queue: unquote(queue),
-        max_attempts: 1
+        max_attempts: 1,
+        unique: unquote(uniqueness)
 
       alias Oban.Job
 

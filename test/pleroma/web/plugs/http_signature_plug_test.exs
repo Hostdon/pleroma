@@ -4,6 +4,7 @@
 
 defmodule Pleroma.Web.Plugs.HTTPSignaturePlugTest do
   use Pleroma.Web.ConnCase, async: false
+  @moduletag :mocked
   import Pleroma.Factory
   alias Pleroma.Web.Plugs.HTTPSignaturePlug
   alias Pleroma.Instances.Instance

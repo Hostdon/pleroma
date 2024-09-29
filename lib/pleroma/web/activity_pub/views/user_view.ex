@@ -12,22 +12,21 @@ defmodule Pleroma.Web.ActivityPub.UserView do
   alias Pleroma.Web.ActivityPub.ObjectView
   alias Pleroma.Web.ActivityPub.Transmogrifier
   alias Pleroma.Web.ActivityPub.Utils
-  alias Pleroma.Web.Endpoint
-  alias Pleroma.Web.Router.Helpers
+
+  require Pleroma.Web.ActivityPub.Transmogrifier
 
   import Ecto.Query
 
   def render("endpoints.json", %{user: %User{nickname: nil, local: true} = _user}) do
-    %{"sharedInbox" => Helpers.activity_pub_url(Endpoint, :inbox)}
+    %{"sharedInbox" => url(~p"/inbox")}
   end
 
   def render("endpoints.json", %{user: %User{local: true} = _user}) do
     %{
-      "oauthAuthorizationEndpoint" => Helpers.o_auth_url(Endpoint, :authorize),
-      "oauthRegistrationEndpoint" => Helpers.app_url(Endpoint, :create),
-      "oauthTokenEndpoint" => Helpers.o_auth_url(Endpoint, :token_exchange),
-      "sharedInbox" => Helpers.activity_pub_url(Endpoint, :inbox),
-      "uploadMedia" => Helpers.activity_pub_url(Endpoint, :upload_media)
+      "oauthAuthorizationEndpoint" => url(~p"/oauth/authorize"),
+      "oauthRegistrationEndpoint" => url(~p"/api/v1/apps"),
+      "oauthTokenEndpoint" => url(~p"/oauth/token"),
+      "sharedInbox" => url(~p"/inbox")
     }
   end
 
@@ -46,6 +45,7 @@ defmodule Pleroma.Web.ActivityPub.UserView do
       "following" => "#{user.ap_id}/following",
       "followers" => "#{user.ap_id}/followers",
       "inbox" => "#{user.ap_id}/inbox",
+      "outbox" => "#{user.ap_id}/outbox",
       "name" => "Pleroma",
       "summary" =>
         "An internal service actor for this Pleroma instance.  No user-serviceable parts inside.",
@@ -111,6 +111,8 @@ defmodule Pleroma.Web.ActivityPub.UserView do
     }
     |> Map.merge(maybe_make_image(&User.avatar_url/2, "icon", user))
     |> Map.merge(maybe_make_image(&User.banner_url/2, "image", user))
+    # Yes, the key is named ...Url eventhough it is a whole 'Image' object
+    |> Map.merge(maybe_insert_image("backgroundUrl", User.background_url(user)))
     |> Map.merge(Utils.make_json_ld_header())
   end
 
@@ -286,7 +288,12 @@ defmodule Pleroma.Web.ActivityPub.UserView do
   end
 
   defp maybe_make_image(func, key, user) do
-    if image = func.(user, no_default: true) do
+    image = func.(user, no_default: true)
+    maybe_insert_image(key, image)
+  end
+
+  defp maybe_insert_image(key, image) do
+    if image do
       %{
         key => %{
           "type" => "Image",

@@ -85,7 +85,7 @@ defmodule Pleroma.Web.MastoFEView do
       background_color: Config.get([:manifest, :background_color]),
       display: "standalone",
       scope: Pleroma.Web.Endpoint.url(),
-      start_url: Routes.masto_fe_path(Pleroma.Web.Endpoint, :index, ["getting-started"]),
+      start_url: ~p"/web/getting-started",
       categories: [
         "social"
       ],

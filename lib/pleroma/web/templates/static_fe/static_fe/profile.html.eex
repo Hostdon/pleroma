@@ -36,7 +36,7 @@
         </div>
       </div>
       <div class="remote-follow">
-        <form method="POST" action="<%= Helpers.util_path(@conn, :remote_subscribe) %>">
+        <form method="POST" action="<%= ~p"/main/ostatus" %>">
           <input type="hidden" name="nickname" value="<%= @user.nickname %>">
           <input type="hidden" name="profile" value="">
           <button type="submit" class="button-default"><%= Gettext.dpgettext("static_pages", "static fe profile page remote follow button", "Remote follow") %></button>

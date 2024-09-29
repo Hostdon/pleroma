@@ -88,7 +88,7 @@ defmodule Pleroma.Web.CommonAPI do
 
   def delete(activity_id, user) do
     with {_, %Activity{data: %{"object" => _, "type" => "Create"}} = activity} <-
-           {:find_activity, Activity.get_by_id(activity_id)},
+           {:find_activity, Activity.get_by_id(activity_id, filter: [])},
          {_, %Object{} = object, _} <-
            {:find_object, Object.normalize(activity, fetch: false), activity},
          true <- User.superuser?(user) || user.ap_id == object.data["actor"],
@@ -467,7 +467,7 @@ defmodule Pleroma.Web.CommonAPI do
       remove_mute(user, activity)
     else
       {what, result} = error ->
-        Logger.warn(
+        Logger.warning(
           "CommonAPI.remove_mute/2 failed. #{what}: #{result}, user_id: #{user_id}, activity_id: #{activity_id}"
         )
 

@@ -17,6 +17,8 @@ defmodule Pleroma.ReverseProxy do
   @failed_request_ttl :timer.seconds(60)
   @methods ~w(GET HEAD)
 
+  @allowed_mime_types Pleroma.Config.get([Pleroma.Upload, :allowed_mime_types], [])
+
   @cachex Pleroma.Config.get([:cachex, :provider], Cachex)
 
   def max_read_duration_default, do: @max_read_duration
@@ -61,11 +63,14 @@ defmodule Pleroma.ReverseProxy do
 
   """
   @inline_content_types [
+    "image/avif",
     "image/gif",
     "image/jpeg",
     "image/jpg",
+    "image/jxl",
     "image/png",
     "image/svg+xml",
+    "image/webp",
     "audio/mpeg",
     "audio/mp3",
     "video/webm",
@@ -250,7 +255,9 @@ defmodule Pleroma.ReverseProxy do
     headers
     |> Enum.filter(fn {k, _} -> k in @keep_resp_headers end)
     |> build_resp_cache_headers(opts)
+    |> sanitise_content_type()
     |> build_resp_content_disposition_header(opts)
+    |> build_csp_headers()
     |> Keyword.merge(Keyword.get(opts, :resp_headers, []))
   end
 
@@ -276,6 +283,21 @@ defmodule Pleroma.ReverseProxy do
           {"cache-control", @default_cache_control_header}
         )
     end
+  end
+
+  defp sanitise_content_type(headers) do
+    original_ct = get_content_type(headers)
+
+    safe_ct =
+      Pleroma.Web.Plugs.Utils.get_safe_mime_type(
+        %{allowed_mime_types: @allowed_mime_types},
+        original_ct
+      )
+
+    [
+      {"content-type", safe_ct}
+      | Enum.filter(headers, fn {k, _v} -> k != "content-type" end)
+    ]
   end
 
   defp build_resp_content_disposition_header(headers, opts) do
@@ -314,6 +336,10 @@ defmodule Pleroma.ReverseProxy do
     else
       headers
     end
+  end
+
+  defp build_csp_headers(headers) do
+    List.keystore(headers, "content-security-policy", 0, {"content-security-policy", "sandbox"})
   end
 
   defp header_length_constraint(headers, limit) when is_integer(limit) and limit > 0 do

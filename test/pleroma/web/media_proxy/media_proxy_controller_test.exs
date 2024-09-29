@@ -3,12 +3,17 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.MediaProxy.MediaProxyControllerTest do
-  use Pleroma.Web.ConnCase
+  use Pleroma.Web.ConnCase, async: false
+  @moduletag :mocked
 
   import Mock
 
   alias Pleroma.Web.MediaProxy
   alias Plug.Conn
+
+  setup do
+    clear_config([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
+  end
 
   describe "Media Proxy" do
     setup do

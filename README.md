@@ -54,6 +54,9 @@ If your platform is not supported, or you just want to be able to edit the sourc
 ### Docker
 Docker installation is supported via [this setup](https://docs.akkoma.dev/stable/installation/docker_en/)
 
+### Packages
+Akkoma is packaged for [YunoHost](https://yunohost.org) and can be found and installed from the [YunoHost app catalogue](https://yunohost.org/#/apps).
+
 ### Compilation Troubleshooting
 If you ever encounter compilation issues during the updating of Akkoma, you can try these commands and see if they fix things:
 

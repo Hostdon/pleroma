@@ -3,11 +3,12 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.WebFinger.WebFingerControllerTest do
-  use Pleroma.Web.ConnCase
+  use Pleroma.Web.ConnCase, async: false
 
   import ExUnit.CaptureLog
   import Pleroma.Factory
   import Tesla.Mock
+  import Pleroma.Test.Matchers.XML
 
   setup do
     mock(fn env -> apply(HttpRequestMock, :request, [env]) end)
@@ -23,8 +24,10 @@ defmodule Pleroma.Web.WebFinger.WebFingerControllerTest do
 
     assert response.status == 200
 
-    assert response.resp_body ==
-             ~s(<?xml version="1.0" encoding="UTF-8"?><XRD xmlns="http://docs.oasis-open.org/ns/xri/xrd-1.0"><Link rel="lrdd" template="#{Pleroma.Web.Endpoint.url()}/.well-known/webfinger?resource={uri}" type="application/xrd+xml" /></XRD>)
+    assert_xml_equals(
+      response.resp_body,
+      ~s(<?xml version="1.0" encoding="UTF-8"?><XRD xmlns="http://docs.oasis-open.org/ns/xri/xrd-1.0"><Link rel="lrdd" template="#{Pleroma.Web.Endpoint.url()}/.well-known/webfinger?resource={uri}" type="application/xrd+xml" /></XRD>)
+    )
   end
 
   test "Webfinger JRD" do
@@ -43,17 +46,11 @@ defmodule Pleroma.Web.WebFinger.WebFingerControllerTest do
     assert response["subject"] == "acct:#{user.nickname}@localhost"
 
     assert response["aliases"] == [
-             "https://hyrule.world/users/zelda",
-             "https://mushroom.kingdom/users/toad"
+             "https://hyrule.world/users/zelda"
            ]
   end
 
-  test "reach user on tld, while pleroma is runned on subdomain" do
-    Pleroma.Web.Endpoint.config_change(
-      [{Pleroma.Web.Endpoint, url: [host: "sub.example.com"]}],
-      []
-    )
-
+  test "reach user on tld, while pleroma is running on subdomain" do
     clear_config([Pleroma.Web.Endpoint, :url, :host], "sub.example.com")
 
     clear_config([Pleroma.Web.WebFinger, :domain], "example.com")
@@ -101,7 +98,6 @@ defmodule Pleroma.Web.WebFinger.WebFingerControllerTest do
       |> response(200)
 
     assert response =~ "<Alias>https://hyrule.world/users/zelda</Alias>"
-    assert response =~ "<Alias>https://mushroom.kingdom/users/toad</Alias>"
   end
 
   test "it returns 404 when user isn't found (XML)" do

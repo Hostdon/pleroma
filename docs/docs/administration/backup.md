@@ -45,3 +45,16 @@
 8. Remove the dependencies that you don't need anymore (see installation guide). Make sure you don't remove packages that are still needed for other software that you have running!
 
 [¹]: We assume the database name and user are both "akkoma". If not, you can find the correct name in your config files.  
+
+## Docker installations
+
+If running behind Docker, it is required to run the above commands inside of a running database container.  
+
+### Example
+Running `docker compose run --rm db pg_dump <...>` will fail and return:
+```
+pg_dump: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory 
+Is the server running locally and accepting connections on that socket?"
+```
+However, first starting just the database container with `docker compose up db -d`, and then running `docker compose exec db pg_dump -d akkoma --format=custom -f </your/backup/dir/akkoma.pgdump>` will successfully generate a database dump.  
+Then to make the file accessible on the host system you can run `docker compose cp db:</your/backup/dir/akkoma.pgdump> </your/target/location>` to copy if from the container.

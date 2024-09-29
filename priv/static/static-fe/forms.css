@@ -14,13 +14,13 @@ input {
     padding: 10px;
     margin-top: 5px;
     margin-bottom: 10px;
-    background-color: var(--background-color);
-    color: var(--primary-text-color);
+    background-color: transparent;
+    color: inherit;
     border: 0;
     transition-property: border-bottom;
     transition-duration: 0.35s;
-    border-bottom: 2px solid #2a384a;
-    font-size: 14px;
+    border-bottom: 2px solid var(--faint);
+    font: inherit;
     width: inherit;
     box-sizing: border-box;
 }
@@ -91,26 +91,22 @@ input {
 a.button,
 button {
     width: 100%;
-    background-color: #1c2a3a;
-    color: var(--primary-text-color);
+    background-color: var(--btn);
+    color: var(--btnText);
     border-radius: 4px;
     border: none;
     padding: 10px 16px;
     margin-top: 20px;
     margin-bottom: 20px;
     text-transform: uppercase;
-    font-size: 16px;
-    box-shadow: 0px 0px 2px 0px black,
-        0px 1px 0px 0px rgba(255, 255, 255, 0.2) inset,
-        0px -1px 0px 0px rgba(0, 0, 0, 0.2) inset;
+    box-shadow: var(--btnShadow);
+    font: inherit;
 }
 
 a.button:hover,
 button:hover {
     cursor: pointer;
-    box-shadow: 0px 0px 0px 1px var(--brand-color),
-        0px 1px 0px 0px rgba(255, 255, 255, 0.2) inset,
-        0px -1px 0px 0px rgba(0, 0, 0, 0.2) inset;
+    box-shadow: var(--btnHoverShadow);
 }
 
 .actions {
@@ -155,4 +151,21 @@ button:hover {
 .account-header__nickname {
     font-size: 14px;
     color: var(--muted-text-color);
+}
+
+.oauth {
+    /* Remote interaction /main/ostatus has such hierarchy, and its header and
+     * content do not pad themselves:
+     *   (.panel.oauth (h2)
+     *                 (form (input)
+     *                       (button))) */
+    padding: 1px 1em;
+}
+
+.oauth .container__content {
+    /* Frontend selection /oauth/authorize needs an inverse because its heading
+     * and content have their own background and padding:
+     *   (.panel.oauth (form (.container__content (.panel-heading)
+     *                                            (.panel-content)))) */
+    margin: -1px -1em;
 }

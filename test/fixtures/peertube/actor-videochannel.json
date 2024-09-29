@@ -1,0 +1,72 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    {
+      "RsaSignature2017": "https://w3id.org/security#RsaSignature2017"
+    },
+    {
+      "pt": "https://joinpeertube.org/ns#",
+      "sc": "http://schema.org/",
+      "playlists": {
+        "@id": "pt:playlists",
+        "@type": "@id"
+      },
+      "support": {
+        "@type": "sc:Text",
+        "@id": "pt:support"
+      },
+      "icons": "as:icon"
+    }
+  ],
+  "type": "Group",
+  "id": "https://spectra.video/video-channels/fediforum_demos",
+  "following": "https://spectra.video/video-channels/fediforum_demos/following",
+  "followers": "https://spectra.video/video-channels/fediforum_demos/followers",
+  "playlists": "https://spectra.video/video-channels/fediforum_demos/playlists",
+  "inbox": "https://spectra.video/video-channels/fediforum_demos/inbox",
+  "outbox": "https://spectra.video/video-channels/fediforum_demos/outbox",
+  "preferredUsername": "fediforum_demos",
+  "url": "https://spectra.video/video-channels/fediforum_demos",
+  "name": "FediForum Demos",
+  "endpoints": {
+    "sharedInbox": "https://spectra.video/inbox"
+  },
+  "publicKey": {
+    "id": "https://spectra.video/video-channels/fediforum_demos#main-key",
+    "owner": "https://spectra.video/video-channels/fediforum_demos",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxFVESAz0Z28zhXVJafzg\nKXVWS6yuZdQ4vOuA+k//ioSpNls53pI9vwQyixNa+QLdnXxm51dy//Py49wZbzAV\n2nC2FEnzcCM/EZvA4gzy7wekcjnGIz3equbdLOj3IAJJTSwCvZpW2f0poAa1CUmQ\nDRV5p3t3bjtUX5B9RnhiuDitN8qCzEeEbD9SHoyMDIACl8wXer8eyi5v98CMTHwh\nJYUJZJmS7/SSlJO2aqThEBaAYCUzVxlcXOecF1N1RWjjtwqi9xXxmlJ+teivYyST\nYfCeLmY/zZPY7OjoBxoVcVa/Yj3Wg6Nt+A5co9NATpsXmud7GWx4CvQ00uH/fa7e\nvQIDAQAB\n-----END PUBLIC KEY-----\n"
+  },
+  "published": "2024-03-26T19:34:06.073Z",
+  "icon": [
+    {
+      "type": "Image",
+      "mediaType": "image/png",
+      "height": 48,
+      "width": 48,
+      "url": "https://spectra.video/lazy-static/avatars/b13e5038-0169-420e-a6bc-4f5e0666fae6.png"
+    },
+    {
+      "type": "Image",
+      "mediaType": "image/png",
+      "height": 120,
+      "width": 120,
+      "url": "https://spectra.video/lazy-static/avatars/559b141a-96ec-4161-8889-1111b71abca0.png"
+    }
+  ],
+  "image": {
+    "type": "Image",
+    "mediaType": "image/png",
+    "height": 317,
+    "width": 1920,
+    "url": "https://spectra.video/lazy-static/banners/bbe18e2c-79ef-4640-9193-cdd743c964dd.png"
+  },
+  "summary": "Demos from the the FediForum Unconference. For the sake of simplicity, demos are [broken out into playlists](https://spectra.video/c/fediforum_demos/video-playlists) representing each FediForum Event.",
+  "support": "Check out our site: https://fediforum.org/\nFollow us on Mastodon: https://mastodon.social/@fediforum",
+  "attributedTo": [
+    {
+      "type": "Person",
+      "id": "https://spectra.video/accounts/fediforum"
+    }
+  ]
+}

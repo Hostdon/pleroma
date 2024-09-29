@@ -30,12 +30,12 @@ defmodule Mix.Tasks.Pleroma.Search.Meilisearch do
       meili_put(
         "/indexes/objects/settings/ranking-rules",
         [
-          "published:desc",
           "words",
-          "exactness",
           "proximity",
           "typo",
+          "exactness",
           "attribute",
+          "published:desc",
           "sort"
         ]
       )

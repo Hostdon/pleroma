@@ -1,0 +1,2 @@
+hehe, /emoji/hehe.png, Akkoma
+nothehe, /emoji/nothehe.png, Akkoma

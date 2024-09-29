@@ -4,10 +4,16 @@
 
 defmodule Pleroma.Web.ActivityPub.MRF.InlineQuotePolicyTest do
   alias Pleroma.Web.ActivityPub.MRF.InlineQuotePolicy
+  alias Pleroma.Object
   use Pleroma.DataCase
 
+  setup_all do
+    Tesla.Mock.mock_global(fn env -> apply(HttpRequestMock, :request, [env]) end)
+    :ok
+  end
+
   test "adds quote URL to post content" do
-    quote_url = "https://example.com/objects/1234"
+    quote_url = "https://mastodon.social/users/emelie/statuses/101849165031453009"
 
     activity = %{
       "type" => "Create",
@@ -19,10 +25,13 @@ defmodule Pleroma.Web.ActivityPub.MRF.InlineQuotePolicyTest do
       }
     }
 
+    # Prefetch the quoted post
+    %Object{} = Object.normalize(quote_url, fetch: true)
+
     {:ok, %{"object" => %{"content" => filtered}}} = InlineQuotePolicy.filter(activity)
 
     assert filtered ==
-             "<p>Nice post<span class=\"quote-inline\"><br/><br/>RE: <a href=\"https://example.com/objects/1234\">https://example.com/objects/1234</a></span></p>"
+             "<p>Nice post<span class=\"quote-inline\"><br/><br/>RE: <a href=\"https://mastodon.social/@emelie/101849165031453009\">https://mastodon.social/@emelie/101849165031453009</a></span></p>"
   end
 
   test "ignores Misskey quote posts" do

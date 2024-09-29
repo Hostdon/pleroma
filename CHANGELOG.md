@@ -4,6 +4,187 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2024.04.1 (Security)
+
+## Fixed
+- Issue allowing non-owners to use media objects in posts
+- Issue allowing use of non-media objects as attachments and crashing timeline rendering
+- Issue allowing webfinger spoofing in certain situations
+
+## 2024.04
+
+## Added
+- Support for [FEP-fffd](https://codeberg.org/fediverse/fep/src/branch/main/fep/fffd/fep-fffd.md) (proxy objects)
+- Verified support for elixir 1.16
+- Uploadfilter `Pleroma.Upload.Filter.Exiftool.ReadDescription` returns description values to the FE so they can pre fill the image description field
+  NOTE: this filter MUST be placed before `Exiftool.StripMetadata` to work
+
+## Changed
+- Inbound pipeline error handing was modified somewhat, which should lead to less incomprehensible log spam. Hopefully.
+- Uploadfilter `Pleroma.Upload.Filter.Exiftool` was replaced by `Pleroma.Upload.Filter.Exiftool.StripMetadata`;
+  the latter strips all non-essential metadata by default but can be configured.
+  To regain the old behaviour of only stripping GPS data set `purge: ["gps:all"]`.
+- Uploadfilter `Pleroma.Upload.Filter.Exiftool` has been renamed to `Pleroma.Upload.Filter.Exiftool.StripMetadata`
+- MRF.InlineQuotePolicy now prefers to insert display URLs instead of ActivityPub IDs
+- Old accounts are no longer listed in WebFinger as aliases; this was breaking spec
+
+## Fixed
+- Issue preventing fetching anything from IPv6-only instances
+- Issue allowing post content to leak via opengraph tags despite :estrict\_unauthenticated being set
+- Move activities no longer operate on stale user data
+- Missing definitions in our JSON-LD context
+- Issue mangling newlines in code blocks for RSS/Atom feeds
+- static\_fe squeezing non-square avatars and emoji
+- Issue leading to properly JSON-LD compacted emoji reactions being rejected
+- We now use a standard-compliant Accept header when fetching ActivityPub objects
+- /api/pleroma/notification\_settings was rejecting body parameters;
+  this also broke changing this setting via akkoma-fe
+- Issue leading to Mastodon bot accounts being rejected
+- Scope misdetection of remote posts resulting from not recognising
+  JSON-LD-compacted forms of public scope; affected e.g. federation with bovine
+- Ratelimits encountered when fetching objects are now respected; 429 responses will cause a backoff when we get one.
+
+## Removed
+- ActivityPub Client-To-Server write API endpoints have been disabled;
+  read endpoints are planned to be removed next release unless a clear need is demonstrated
+
+## 2024.03
+
+## Added
+- CLI tasks best-effort checking for past abuse of the recent spoofing exploit
+- new `:mrf_steal_emoji, :download_unknown_size` option; defaults to `false`
+
+## Changed
+- `Pleroma.Upload, :base_url` now MUST be configured explicitly if used;
+  use of the same domain as the instance is **strongly** discouraged
+- `:media_proxy, :base_url` now MUST be configured explicitly if used;
+  use of the same domain as the instance is **strongly** discouraged
+- StealEmoji:
+  - now uses the pack.json format;
+    existing users must migrate with an out-of-band script (check release notes)
+  - only steals shortcodes recognised as valid
+  - URLs of stolen emoji is no longer predictable
+- The `Dedupe` upload filter is now always active;
+  `AnonymizeFilenames` is again opt-in
+- received AP data is sanity checked before we attempt to parse it as a user
+- Uploads, emoji and media proxy now restrict Content-Type headers to a safe subset
+- Akkoma will no longer fetch and parse objects hosted on the same domain
+
+## Fixed
+- Critical security issue allowing Akkoma to be used as a vector for
+  (depending on configuration) impersonation of other users or creation
+  of bogus users and posts on the upload domain
+- Critical security issue letting Akkoma fall for the above impersonation
+  payloads due to lack of strict id checking
+- Critical security issue allowing domains redirect to to pose as the initial domain
+  (e.g. with media proxy's fallback redirects)
+- refetched objects can no longer attribute themselves to third-party actors
+  (this had no externally visible effect since actor info is read from the Create activity)
+- our litepub JSON-LD schema is now served with the correct content type
+- remote APNG attachments are now recognised as images
+
+## Upgrade Notes
+
+- As mentioned in "Changed", `Pleroma.Upload, :base_url` **MUST** be configured. Uploads will fail without it.
+  - Akkoma will refuse to start if this is not set.
+- Same with media proxy.
+
+## 2024.02
+
+## Added
+- Full compatibility with Erlang OTP26
+- handling of GET /api/v1/preferences
+- Akkoma API is now documented
+- ability to auto-approve follow requests from users you are already following
+- The SimplePolicy MRF can now strip user backgrounds from selected remote hosts
+
+## Changed
+- OTP builds are now built on erlang OTP26
+- The base Phoenix framework is now updated to 1.7
+- An `outbox` field has been added to actor profiles to comply with AP spec
+- User profile backgrounds do now federate with other Akkoma instances and Sharkey
+
+## Fixed
+- Documentation issue in which a non-existing nginx file was referenced
+- Issue where a bad inbox URL could break federation
+- Issue where hashtag rel values would be scrubbed
+- Issue where short domains listed in `transparency_obfuscate_domains` were not actually obfuscated
+
+## 2023.08
+
+## Added
+
+- Added a new configuration option to the MediaProxy feature that allows the blocking of specific domains from using the media proxy or being explicitly allowed by the Content-Security-Policy.
+  - Please make sure instances you wanted to block media from are not in the MediaProxy `whitelist`, and instead use `blocklist`.
+- `OnlyMedia` Upload Filter to simplify restricting uploads to audio, image, and video types
+- ARM64 OTP builds
+  - Ubuntu22 builds are available for develop and stable
+  - other distributions are stable only
+- Support for Elixir 1.15
+  - 1.14 is still supported
+  - OTP26 is currently "unsupported". It will probably work, but due to the way
+    it handles map ordering, the test suite will not pass for it as yet.
+
+## Changed
+
+- Alpine OTP builds are now from alpine 3.18, which is OpenSSLv3 compatible.
+  If you use alpine OTP builds you will have to update your local system.
+- Debian OTP builds are now from a base of bookworm, which is OpenSSLv3 compatible.
+  If you use debian OTP builds you will have to update your local system to
+  bookworm (currently: stable).
+- Ubuntu and debian builds are compatible again! (for now...)
+- Blocks/Mutes now return from max ID to min ID, in line with mastodon.
+- The AnonymizeFilename filter is now enabled by default.
+
+## Fixed
+
+- Deactivated users can no longer show up in the emoji reaction list
+- Embedded posts can no longer bypass `:restrict\_unauthenticated`
+- GET/HEAD requests will now work when requesting AWS-based instances.
+
+## Security
+
+- Add `no_new_privs` hardening to OpenRC and systemd service files
+- XML parsers cannot load any entities (thanks @Mae@is.badat.dev!)
+- Reduced permissions of config files and directories, distros requiring greater permissions like group-read need to pre-create the directories
+
+## Removed
+
+- Builds for debian oldstable (bullseye)
+  - If you are on oldstable you should NOT attempt to update OTP builds without
+    first updating your machine.
+
+## 2023.05
+
+## Added
+- Custom options for users to accept/reject private messages
+  - options: everybody, nobody, people\_i\_follow
+- MRF to reject notes from accounts newer than a given age
+  - this will have the side-effect of rejecting legitimate messages if your
+    post gets boosted outside of your local bubble and people your instance
+    does not know about reply to it.
+
+## Fixed
+- Support for `streams` public key URIs
+- Bookmarks are cleaned up on DB prune now
+
+## Security
+- Fixed mediaproxy being a bit of a silly billy
+
+## 2023.04
+
+## Added
+- Nodeinfo keys for unauthenticated timeline visibility
+- Option to disable federated timeline
+- Option to make the bubble timeline publicly accessible
+- Ability to swap between installed standard frontends
+  - *mastodon frontends are still not counted as standard frontends due to the complexity in serving them correctly*. 
+
+### Upgrade Notes
+- Elixir 1.14 is now required. If your distribution does not package this, you can
+  use [asdf](https://asdf-vm.com/). At time of writing, elixir 1.14.3 / erlang 25.3
+  is confirmed to work.
+
 ## 2023.03
 
 ## Fixed
@@ -19,6 +200,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 - Possibility of using the `style` parameter on `span` elements. This will break certain MFM parameters.
+- Option for "default" image description.
 
 ## 2023.02
 
@@ -54,7 +236,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Rich media will now hard-exit after 5 seconds, to prevent timeline hangs
 - HTTP Content Security Policy is now far more strict to prevent any potential XSS/CSS leakages
 - Follow requests are now paginated, matches mastodon API spec, so use the Link header to paginate.
-- `internal.fetch` and `relay` actors are now represented with the actor type `Application`
 
 ### Fixed 
 - /api/v1/accounts/lookup will now respect restrict\_unauthenticated

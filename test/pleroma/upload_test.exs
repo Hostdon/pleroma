@@ -54,7 +54,7 @@ defmodule Pleroma.UploadTest do
       assert result ==
                %{
                  "id" => result["id"],
-                 "name" => "image.jpg",
+                 "name" => "",
                  "type" => "Document",
                  "mediaType" => "image/jpeg",
                  "url" => [
@@ -154,19 +154,6 @@ defmodule Pleroma.UploadTest do
                  "e30397b58d226d6583ab5b8b3c5defb0c682bda5c31ef07a9f57c1c4986e3781.jpg"
     end
 
-    test "copies the file to the configured folder without deduping" do
-      File.cp!("test/fixtures/image.jpg", "test/fixtures/image_tmp.jpg")
-
-      file = %Plug.Upload{
-        content_type: "image/jpeg",
-        path: Path.absname("test/fixtures/image_tmp.jpg"),
-        filename: "an [image.jpg"
-      }
-
-      {:ok, data} = Upload.store(file)
-      assert data["name"] == "an [image.jpg"
-    end
-
     test "fixes incorrect content type when base64 is given" do
       params = %{
         img: "data:image/png;base64,#{Base.encode64(File.read!("test/fixtures/image.jpg"))}"
@@ -184,7 +171,7 @@ defmodule Pleroma.UploadTest do
       }
 
       {:ok, data} = Upload.store(params)
-      assert String.ends_with?(data["name"], ".jpg")
+      assert String.ends_with?(List.first(data["url"])["href"], ".jpg")
     end
 
     test "copies the file to the configured folder with anonymizing filename" do
@@ -201,7 +188,7 @@ defmodule Pleroma.UploadTest do
       refute data["name"] == "an [image.jpg"
     end
 
-    test "escapes invalid characters in url" do
+    test "mangles the filename" do
       File.cp!("test/fixtures/image.jpg", "test/fixtures/image_tmp.jpg")
 
       file = %Plug.Upload{
@@ -213,23 +200,8 @@ defmodule Pleroma.UploadTest do
       {:ok, data} = Upload.store(file)
       [attachment_url | _] = data["url"]
 
-      assert Path.basename(attachment_url["href"]) == "an%E2%80%A6%20image.jpg"
-    end
-
-    test "escapes reserved uri characters" do
-      File.cp!("test/fixtures/image.jpg", "test/fixtures/image_tmp.jpg")
-
-      file = %Plug.Upload{
-        content_type: "image/jpeg",
-        path: Path.absname("test/fixtures/image_tmp.jpg"),
-        filename: ":?#[]@!$&\\'()*+,;=.jpg"
-      }
-
-      {:ok, data} = Upload.store(file)
-      [attachment_url | _] = data["url"]
-
-      assert Path.basename(attachment_url["href"]) ==
-               "%3A%3F%23%5B%5D%40%21%24%26%5C%27%28%29%2A%2B%2C%3B%3D.jpg"
+      refute Path.basename(attachment_url["href"]) == "an%E2%80%A6%20image.jpg"
+      refute Path.basename(attachment_url["href"]) == "an… image.jpg"
     end
   end
 

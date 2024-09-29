@@ -8,6 +8,7 @@ defmodule Pleroma.Web.MastodonAPI.MediaController do
   alias Pleroma.Object
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
+  alias Pleroma.Web.CommonAPI.Utils
   alias Pleroma.Web.Plugs.OAuthScopesPlug
 
   action_fallback(Pleroma.Web.MastodonAPI.FallbackController)
@@ -55,12 +56,15 @@ defmodule Pleroma.Web.MastodonAPI.MediaController do
 
   @doc "PUT /api/v1/media/:id"
   def update(%{assigns: %{user: user}, body_params: %{description: description}} = conn, %{id: id}) do
-    with %Object{} = object <- Object.get_by_id(id),
+    with {_, %Object{} = object} <- {:get, Utils.get_attachment(id)},
          :ok <- Object.authorize_access(object, user),
          {:ok, %Object{data: data}} <- Object.update_data(object, %{"name" => description}) do
       attachment_data = Map.put(data, "id", object.id)
 
       render(conn, "attachment.json", %{attachment: attachment_data})
+    else
+      {:get, _} -> {:error, :not_found}
+      e -> e
     end
   end
 
@@ -68,11 +72,14 @@ defmodule Pleroma.Web.MastodonAPI.MediaController do
 
   @doc "GET /api/v1/media/:id"
   def show(%{assigns: %{user: user}} = conn, %{id: id}) do
-    with %Object{data: data, id: object_id} = object <- Object.get_by_id(id),
+    with {_, %Object{data: data, id: object_id} = object} <- {:get, Utils.get_attachment(id)},
          :ok <- Object.authorize_access(object, user) do
       attachment_data = Map.put(data, "id", object_id)
 
       render(conn, "attachment.json", %{attachment: attachment_data})
+    else
+      {:get, _} -> {:error, :not_found}
+      e -> e
     end
   end
 

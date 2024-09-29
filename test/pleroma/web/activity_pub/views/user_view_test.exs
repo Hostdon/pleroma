@@ -58,22 +58,34 @@ defmodule Pleroma.Web.ActivityPub.UserViewTest do
     result = UserView.render("user.json", %{user: user})
     refute result["icon"]
     refute result["image"]
+    refute result["backgroundUrl"]
 
     user =
       insert(:user,
         avatar: %{"url" => [%{"href" => "https://someurl"}]},
-        banner: %{"url" => [%{"href" => "https://somebanner"}]}
+        banner: %{"url" => [%{"href" => "https://somebanner"}]},
+        background: %{"url" => [%{"href" => "https://somebackground"}]}
       )
 
     result = UserView.render("user.json", %{user: user})
     assert result["icon"]["url"] == "https://someurl"
     assert result["image"]["url"] == "https://somebanner"
+    assert result["backgroundUrl"]["url"] == "https://somebackground"
   end
 
   test "renders an invisible user with the invisible property set to true" do
     user = insert(:user, invisible: true)
 
     assert %{"invisible" => true} = UserView.render("service.json", %{user: user})
+  end
+
+  test "service has a few essential fields" do
+    user = insert(:user)
+    result = UserView.render("service.json", %{user: user})
+    assert result["id"]
+    assert result["type"] == "Application"
+    assert result["inbox"]
+    assert result["outbox"]
   end
 
   test "renders AKAs" do

@@ -87,7 +87,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusController do
     %{scopes: ["write:bookmarks"]} when action in [:bookmark, :unbookmark]
   )
 
-  @rate_limited_status_actions ~w(reblog unreblog favourite unfavourite create delete)a
+  @rate_limited_status_actions ~w(reblog unreblog favourite unfavourite create delete update)a
 
   plug(
     RateLimiter,

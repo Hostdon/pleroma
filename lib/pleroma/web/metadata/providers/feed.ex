@@ -3,9 +3,9 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.Metadata.Providers.Feed do
-  alias Pleroma.Web.Endpoint
   alias Pleroma.Web.Metadata.Providers.Provider
-  alias Pleroma.Web.Router.Helpers
+
+  use Pleroma.Web, :verified_routes
 
   @behaviour Provider
 
@@ -16,7 +16,7 @@ defmodule Pleroma.Web.Metadata.Providers.Feed do
        [
          rel: "alternate",
          type: "application/atom+xml",
-         href: Helpers.user_feed_path(Endpoint, :feed, user.nickname) <> ".atom"
+         href: ~p[/users/#{user.nickname}/feed.atom]
        ], []}
     ]
   end

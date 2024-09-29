@@ -17,6 +17,16 @@ This sets the Akkoma application server to only listen to the localhost interfac
 
 This sets the `secure` flag on Akkoma’s session cookie. This makes sure, that the cookie is only accepted over encrypted HTTPs connections. This implicitly renames the cookie from `pleroma_key` to `__Host-pleroma-key` which enforces some restrictions. (see [cookie prefixes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie#Cookie_prefixes))
 
+### `Pleroma.Upload, :uploader, :base_url`
+
+> Recommended value: *anything on a different domain than the instance endpoint; e.g. https://media.myinstance.net/*
+
+Uploads are user controlled and (unless you’re running a true single-user
+instance) should therefore not be considered trusted. But the domain is used
+as a pivilege boundary e.g. by HTTP content security policy and ActivityPub.
+Having uploads on the same domain enabled several past vulnerabilities
+able to be exploited by malicious users.
+
 ### `:http_security`
 
 > Recommended value: `true`

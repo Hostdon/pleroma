@@ -50,13 +50,13 @@ defmodule Mix.Tasks.Pleroma.AppTest do
   defp assert_app(name, redirect, scopes) do
     app = Repo.get_by(Pleroma.Web.OAuth.App, client_name: name)
 
-    assert_receive {:mix_shell, :info, [message]}
+    assert_receive {:mix_shell, :info, [message]}, 1_000
     assert message == "#{name} successfully created:"
 
-    assert_receive {:mix_shell, :info, [message]}
+    assert_receive {:mix_shell, :info, [message]}, 1_000
     assert message == "App client_id: #{app.client_id}"
 
-    assert_receive {:mix_shell, :info, [message]}
+    assert_receive {:mix_shell, :info, [message]}, 1_000
     assert message == "App client_secret: #{app.client_secret}"
 
     assert app.scopes == scopes

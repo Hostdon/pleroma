@@ -3,9 +3,13 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.PleromaAPI.MascotControllerTest do
-  use Pleroma.Web.ConnCase, async: true
+  use Pleroma.Web.ConnCase, async: false
 
   alias Pleroma.User
+
+  setup do
+    clear_config([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
+  end
 
   test "mascot upload" do
     %{conn: conn} = oauth_access(["write:accounts"])
@@ -60,6 +64,10 @@ defmodule Pleroma.Web.PleromaAPI.MascotControllerTest do
 
     assert json_response_and_validate_schema(ret_conn, 200)
 
+    %{"url" => uploaded_url} = Jason.decode!(ret_conn.resp_body)
+
+    assert uploaded_url != nil and is_binary(uploaded_url)
+
     user = User.get_cached_by_id(user.id)
 
     conn =
@@ -68,6 +76,6 @@ defmodule Pleroma.Web.PleromaAPI.MascotControllerTest do
       |> get("/api/v1/pleroma/mascot")
 
     assert %{"url" => url, "type" => "image"} = json_response_and_validate_schema(conn, 200)
-    assert url =~ "an_image"
+    assert url == uploaded_url
   end
 end

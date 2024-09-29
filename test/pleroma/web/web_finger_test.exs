@@ -3,13 +3,13 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.WebFingerTest do
-  use Pleroma.DataCase, async: true
+  use Pleroma.DataCase
   alias Pleroma.Web.WebFinger
   import Pleroma.Factory
   import Tesla.Mock
 
   setup do
-    mock(fn env -> apply(HttpRequestMock, :request, [env]) end)
+    mock_global(fn env -> apply(HttpRequestMock, :request, [env]) end)
     :ok
   end
 
@@ -76,15 +76,6 @@ defmodule Pleroma.Web.WebFingerTest do
       {:ok, _data} = WebFinger.finger(user)
     end
 
-    test "returns the ActivityPub actor URI and subscribe address for an ActivityPub user with the ld+json mimetype" do
-      user = "kaniini@gerzilla.de"
-
-      {:ok, data} = WebFinger.finger(user)
-
-      assert data["ap_id"] == "https://gerzilla.de/channel/kaniini"
-      assert data["subscribe_address"] == "https://gerzilla.de/follow?f=&url={uri}"
-    end
-
     test "it work for AP-only user" do
       user = "kpherox@mstdn.jp"
 
@@ -97,12 +88,6 @@ defmodule Pleroma.Web.WebFingerTest do
       assert data["subject"] == "acct:kPherox@mstdn.jp"
       assert data["ap_id"] == "https://mstdn.jp/users/kPherox"
       assert data["subscribe_address"] == "https://mstdn.jp/authorize_interaction?acct={uri}"
-    end
-
-    test "it works for friendica" do
-      user = "lain@squeet.me"
-
-      {:ok, _data} = WebFinger.finger(user)
     end
 
     test "it gets the xrd endpoint" do
@@ -180,5 +165,44 @@ defmodule Pleroma.Web.WebFingerTest do
 
       {:ok, _data} = WebFinger.finger("pekorino@pawoo.net")
     end
+
+    test "prevents spoofing" do
+      Tesla.Mock.mock(fn
+        %{
+          url: "https://bad.com/.well-known/webfinger?resource=acct:meanie@bad.com"
+        } ->
+          {:ok,
+           %Tesla.Env{
+             status: 200,
+             body: File.read!("test/fixtures/tesla_mock/webfinger_spoof.json"),
+             headers: [{"content-type", "application/jrd+json"}]
+           }}
+
+        %{url: "https://bad.com/.well-known/host-meta"} ->
+          {:ok,
+           %Tesla.Env{
+             status: 200,
+             body: File.read!("test/fixtures/tesla_mock/bad.com_host_meta")
+           }}
+      end)
+
+      {:error, _data} = WebFinger.finger("meanie@bad.com")
+    end
+  end
+
+  @tag capture_log: true
+  test "prevents forgeries" do
+    Tesla.Mock.mock(fn
+      %{url: "https://bad.com/.well-known/webfinger?resource=acct:meanie@bad.com"} ->
+        fake_webfinger =
+          File.read!("test/fixtures/webfinger/imposter-webfinger.json") |> Jason.decode!()
+
+        Tesla.Mock.json(fake_webfinger)
+
+      %{url: "https://bad.com/.well-known/host-meta"} ->
+        {:ok, %Tesla.Env{status: 404}}
+    end)
+
+    assert {:error, {:webfinger_invalid, _, _}} = WebFinger.finger("meanie@bad.com")
   end
 end

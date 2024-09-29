@@ -6,17 +6,19 @@ defmodule Pleroma.HealthcheckTest do
   use Pleroma.DataCase, async: true
   alias Pleroma.Healthcheck
 
+  import Pleroma.Test.Matchers.List
+
   test "system_info/0" do
     result = Healthcheck.system_info() |> Map.from_struct()
 
-    assert Map.keys(result) == [
-             :active,
-             :healthy,
-             :idle,
-             :job_queue_stats,
-             :memory_used,
-             :pool_size
-           ]
+    assert_unordered_list_equal(Map.keys(result), [
+      :active,
+      :healthy,
+      :idle,
+      :job_queue_stats,
+      :memory_used,
+      :pool_size
+    ])
   end
 
   describe "check_health/1" do

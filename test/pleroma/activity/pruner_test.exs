@@ -6,22 +6,52 @@ defmodule Pleroma.Activity.PrunerTest do
 
   import Pleroma.Factory
 
-  describe "prune_deletes" do
-    test "it prunes old delete objects" do
+  describe "prune_transient_activities" do
+    test "it prunes old transient activities" do
       user = insert(:user)
+      old_time = DateTime.utc_now() |> DateTime.add(-31 * 24, :hour)
 
       new_delete = insert(:delete_activity, type: "Delete", user: user)
 
       old_delete =
         insert(:delete_activity,
-          type: "Delete",
           user: user,
-          inserted_at: DateTime.utc_now() |> DateTime.add(-31 * 24, :hour)
+          inserted_at: old_time
         )
 
+      new_update = insert(:update_activity, type: "Update", user: user)
+
+      old_update =
+        insert(:update_activity,
+          type: "Update",
+          user: user,
+          inserted_at: old_time
+        )
+
+      new_undo = insert(:undo_activity)
+
+      old_undo = insert(:undo_activity, inserted_at: old_time)
+
+      new_remove = insert(:remove_activity)
+
+      old_remove = insert(:remove_activity, inserted_at: old_time)
+
       Pruner.prune_deletes()
+      Pruner.prune_updates()
+      Pruner.prune_undos()
+      Pruner.prune_removes()
+
       assert Activity.get_by_id(new_delete.id)
       refute Activity.get_by_id(old_delete.id)
+
+      assert Activity.get_by_id(new_update.id)
+      refute Activity.get_by_id(old_update.id)
+
+      assert Activity.get_by_id(new_undo.id)
+      refute Activity.get_by_id(old_undo.id)
+
+      assert Activity.get_by_id(new_remove.id)
+      refute Activity.get_by_id(old_remove.id)
     end
   end
 

@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.MediaProxyTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: false
   use Pleroma.Tests.Helpers
 
   alias Pleroma.Config
@@ -14,6 +14,8 @@ defmodule Pleroma.Web.MediaProxyTest do
     {:ok, decoded} = MediaProxy.decode_url(encoded)
     decoded
   end
+
+  setup do: clear_config([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
 
   describe "when enabled" do
     setup do: clear_config([:media_proxy, :enabled], true)
@@ -199,6 +201,15 @@ defmodule Pleroma.Web.MediaProxyTest do
       assert unencoded == url
     end
 
+    test "mediaproxy blocklist" do
+      clear_config([:media_proxy, :whitelist], ["https://google.com"])
+      clear_config([:media_proxy, :blocklist], ["https://feld.me"])
+      url = "https://feld.me/foo.png"
+
+      unencoded = MediaProxy.url(url)
+      assert unencoded == url
+    end
+
     # TODO: delete after removing support bare domains for media proxy whitelist
     test "mediaproxy whitelist bare domains whitelist (deprecated)" do
       clear_config([:media_proxy, :whitelist], ["google.com", "feld.me"])
@@ -209,6 +220,18 @@ defmodule Pleroma.Web.MediaProxyTest do
     end
 
     test "does not change whitelisted urls" do
+      clear_config([:media_proxy, :whitelist], ["mycdn.akamai.com"])
+      clear_config([:media_proxy, :base_url], "https://cache.pleroma.social")
+
+      media_url = "https://mycdn.akamai.com"
+
+      url = "#{media_url}/static/logo.png"
+      encoded = MediaProxy.url(url)
+
+      assert String.starts_with?(encoded, media_url)
+    end
+
+    test "does not change blocked urls" do
       clear_config([:media_proxy, :whitelist], ["mycdn.akamai.com"])
       clear_config([:media_proxy, :base_url], "https://cache.pleroma.social")
 

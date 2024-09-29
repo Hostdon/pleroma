@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.Plugs.MappedSignatureToIdentityPlugTest do
-  use Pleroma.Web.ConnCase
+  use Pleroma.Web.ConnCase, async: false
   alias Pleroma.Web.Plugs.MappedSignatureToIdentityPlug
 
   import Tesla.Mock
@@ -59,6 +59,47 @@ defmodule Pleroma.Web.Plugs.MappedSignatureToIdentityPlugTest do
     on_exit(fn ->
       Pleroma.Config.put([:activitypub, :authorized_fetch_mode], false)
       Pleroma.Config.put([:mrf_simple, :reject], [])
+    end)
+
+    conn =
+      build_conn(:post, "/doesntmattter", %{"actor" => "http://mastodon.example.org/users/admin"})
+      |> set_signature("http://mastodon.example.org/users/admin")
+      |> MappedSignatureToIdentityPlug.call(%{})
+
+    assert %{valid_signature: false} == conn.assigns
+  end
+
+  test "allowlist federation: it considers a mapped identity to be valid when the associated instance is allowed" do
+    clear_config([:activitypub, :authorized_fetch_mode], true)
+
+    clear_config([:mrf_simple, :accept], [
+      {"mastodon.example.org", "anime is allowed"}
+    ])
+
+    on_exit(fn ->
+      Pleroma.Config.put([:activitypub, :authorized_fetch_mode], false)
+      Pleroma.Config.put([:mrf_simple, :accept], [])
+    end)
+
+    conn =
+      build_conn(:post, "/doesntmattter", %{"actor" => "http://mastodon.example.org/users/admin"})
+      |> set_signature("http://mastodon.example.org/users/admin")
+      |> MappedSignatureToIdentityPlug.call(%{})
+
+    assert conn.assigns[:valid_signature]
+    refute is_nil(conn.assigns.user)
+  end
+
+  test "allowlist federation: it considers a mapped identity to be invalid when the associated instance is not allowed" do
+    clear_config([:activitypub, :authorized_fetch_mode], true)
+
+    clear_config([:mrf_simple, :accept], [
+      {"misskey.example.org", "anime is allowed"}
+    ])
+
+    on_exit(fn ->
+      Pleroma.Config.put([:activitypub, :authorized_fetch_mode], false)
+      Pleroma.Config.put([:mrf_simple, :accept], [])
     end)
 
     conn =

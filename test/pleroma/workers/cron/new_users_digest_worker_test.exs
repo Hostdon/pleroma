@@ -20,7 +20,7 @@ defmodule Pleroma.Workers.Cron.NewUsersDigestWorkerTest do
     NewUsersDigestWorker.perform(%Oban.Job{})
     ObanHelpers.perform_all()
 
-    assert_received {:email, email}
+    assert_receive {:email, email}
     assert email.to == [{admin.name, admin.email}]
     assert email.subject == "#{Pleroma.Config.get([:instance, :name])} New Users"
 

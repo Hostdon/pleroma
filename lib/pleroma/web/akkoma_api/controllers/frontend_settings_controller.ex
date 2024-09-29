@@ -5,6 +5,16 @@ defmodule Pleroma.Web.AkkomaAPI.FrontendSettingsController do
   alias Pleroma.Akkoma.FrontendSettingsProfile
 
   @unauthenticated_access %{fallback: :proceed_unauthenticated, scopes: []}
+
+  plug(
+    OAuthScopesPlug,
+    @unauthenticated_access
+    when action in [
+           :available_frontends,
+           :update_preferred_frontend
+         ]
+  )
+
   plug(
     OAuthScopesPlug,
     %{@unauthenticated_access | scopes: ["read:accounts"]}
@@ -92,5 +102,23 @@ defmodule Pleroma.Web.AkkomaAPI.FrontendSettingsController do
       conn
       |> json(profile.settings)
     end
+  end
+
+  @doc "GET /api/v1/akkoma/preferred_frontend/available"
+  def available_frontends(conn, _params) do
+    available = Pleroma.Config.get([:frontends, :pickable])
+
+    conn
+    |> json(available)
+  end
+
+  @doc "PUT /api/v1/akkoma/preferred_frontend"
+  def update_preferred_frontend(
+        %{body_params: %{frontend_name: preferred_frontend}} = conn,
+        _params
+      ) do
+    conn
+    |> put_resp_cookie("preferred_frontend", preferred_frontend)
+    |> json(%{frontend_name: preferred_frontend})
   end
 end

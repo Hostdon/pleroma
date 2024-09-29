@@ -3,7 +3,11 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.Plugs.InstanceStatic do
+  import Plug.Conn
+
   require Pleroma.Constants
+
+  alias Pleroma.Web.Plugs.Utils
 
   @moduledoc """
   This is a shim to call `Plug.Static` but with runtime `from` configuration.
@@ -12,11 +16,11 @@ defmodule Pleroma.Web.Plugs.InstanceStatic do
   """
   @behaviour Plug
 
-  def file_path(path) do
+  def file_path(path, frontend_type \\ :primary) do
     instance_path =
       Path.join(Pleroma.Config.get([:instance, :static_dir], "instance/static/"), path)
 
-    frontend_path = Pleroma.Web.Plugs.FrontendStatic.file_path(path, :primary)
+    frontend_path = Pleroma.Web.Plugs.FrontendStatic.file_path(path, frontend_type)
 
     (File.exists?(instance_path) && instance_path) ||
       (frontend_path && File.exists?(frontend_path) && frontend_path) ||
@@ -43,11 +47,25 @@ defmodule Pleroma.Web.Plugs.InstanceStatic do
     conn
   end
 
-  defp call_static(conn, opts, from) do
+  defp set_static_content_type(conn, "/emoji/" <> _ = request_path) do
+    real_mime = MIME.from_path(request_path)
+    safe_mime = Utils.get_safe_mime_type(%{allowed_mime_types: ["image"]}, real_mime)
+
+    put_resp_header(conn, "content-type", safe_mime)
+  end
+
+  defp set_static_content_type(conn, request_path) do
+    put_resp_header(conn, "content-type", MIME.from_path(request_path))
+  end
+
+  defp call_static(%{request_path: request_path} = conn, opts, from) do
     opts =
       opts
       |> Map.put(:from, from)
+      |> Map.put(:set_content_type, false)
 
-    Plug.Static.call(conn, opts)
+    conn
+    |> set_static_content_type(request_path)
+    |> Pleroma.Web.Plugs.StaticNoCT.call(opts)
   end
 end

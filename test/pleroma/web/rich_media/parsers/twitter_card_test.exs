@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.RichMedia.Parsers.TwitterCardTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
   alias Pleroma.Web.RichMedia.Parsers.TwitterCard
 
   test "returns error when html not contains twitter card" do

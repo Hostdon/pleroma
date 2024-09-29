@@ -1,0 +1,96 @@
+platform: linux/amd64
+
+depends_on:
+  - lint
+
+matrix:
+  ELIXIR_VERSION:
+    - 1.14
+    - 1.15
+    - 1.16
+  OTP_VERSION:
+    - 25
+    - 26
+  include:
+    - ELIXIR_VERSION: 1.14
+      OTP_VERSION: 25
+    - ELIXIR_VERSION: 1.15
+      OTP_VERSION: 25
+    - ELIXIR_VERSION: 1.15
+      OTP_VERSION: 26
+    - ELIXIR_VERSION: 1.16
+      OTP_VERSION: 26
+
+variables:
+  - &scw-secrets
+    - SCW_ACCESS_KEY
+    - SCW_SECRET_KEY
+    - SCW_DEFAULT_ORGANIZATION_ID
+  - &setup-hex "mix local.hex --force && mix local.rebar --force"
+  - &on-release
+    when:
+      event:
+        - push
+        - tag
+      branch:
+        - develop
+        - stable
+        - refs/tags/v*
+        - refs/tags/stable-*
+  - &on-stable
+    when:
+      event:
+        - push
+        - tag
+      branch:
+        - stable
+        - refs/tags/stable-*
+  - &on-point-release
+    when:
+      event:
+        - push
+      branch:
+        - develop
+        - stable
+  - &on-pr-open
+    when:
+      event:
+        - pull_request
+
+  - &tag-build "export BUILD_TAG=$${CI_COMMIT_TAG:-\"$CI_COMMIT_BRANCH\"} && export PLEROMA_BUILD_BRANCH=$BUILD_TAG"
+
+  - &clean "(rm -rf release || true) && (rm -rf _build || true) && (rm -rf /root/.mix)"
+  - &mix-clean "mix deps.clean --all && mix clean"
+
+services:
+  postgres:
+    image: postgres:15
+    when:
+      event:
+        - pull_request
+    environment:
+      POSTGRES_DB: pleroma_test_${ELIXIR_VERSION}_${OTP_VERSION}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+pipeline:
+  test:
+    image: akkoma/ci-base:${ELIXIR_VERSION}-otp${OTP_VERSION}
+    <<: *on-pr-open
+    environment:
+      MIX_ENV: test
+      POSTGRES_DB: pleroma_test_${ELIXIR_VERSION}_${OTP_VERSION}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      DB_HOST: postgres
+    commands:
+      - mix local.hex --force
+      - mix local.rebar --force
+      - mix deps.get
+      - mix compile
+      - mix ecto.drop -f -q
+      - mix ecto.create
+      - mix ecto.migrate
+      - mkdir -p test/tmp
+      - mix test --preload-modules --exclude erratic --exclude federated --exclude mocked
+      - mix test --preload-modules --only mocked

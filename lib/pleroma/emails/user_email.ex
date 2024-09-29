@@ -6,12 +6,11 @@ defmodule Pleroma.Emails.UserEmail do
   @moduledoc "User emails"
 
   require Pleroma.Web.Gettext
+  use Pleroma.Web, :mailer
 
   alias Pleroma.Config
   alias Pleroma.User
-  alias Pleroma.Web.Endpoint
   alias Pleroma.Web.Gettext
-  alias Pleroma.Web.Router
 
   import Swoosh.Email
   import Phoenix.Swoosh, except: [render_body: 3]
@@ -75,7 +74,7 @@ defmodule Pleroma.Emails.UserEmail do
 
   def password_reset_email(user, token) when is_binary(token) do
     Gettext.with_locale_or_default user.language do
-      password_reset_url = Router.Helpers.reset_password_url(Endpoint, :reset, token)
+      password_reset_url = url(~p[/api/v1/pleroma/password_reset/#{token}])
 
       html_body =
         Gettext.dpgettext(
@@ -108,12 +107,7 @@ defmodule Pleroma.Emails.UserEmail do
         to_name \\ nil
       ) do
     Gettext.with_locale_or_default user.language do
-      registration_url =
-        Router.Helpers.redirect_url(
-          Endpoint,
-          :registration_page,
-          user_invite_token.token
-        )
+      registration_url = url(~p[/registration/#{user_invite_token.token}])
 
       html_body =
         Gettext.dpgettext(
@@ -146,13 +140,7 @@ defmodule Pleroma.Emails.UserEmail do
 
   def account_confirmation_email(user) do
     Gettext.with_locale_or_default user.language do
-      confirmation_url =
-        Router.Helpers.confirm_email_url(
-          Endpoint,
-          :confirm_email,
-          user.id,
-          to_string(user.confirmation_token)
-        )
+      confirmation_url = url(~p[/api/account/confirm_email/#{user.id}/#{user.confirmation_token}])
 
       html_body =
         Gettext.dpgettext(
@@ -342,7 +330,7 @@ defmodule Pleroma.Emails.UserEmail do
       |> Pleroma.JWT.generate_and_sign!()
       |> Base.encode64()
 
-    Router.Helpers.subscription_url(Endpoint, :unsubscribe, token)
+    url(~p[/mailer/unsubscribe/#{token}])
   end
 
   def backup_is_ready_email(backup, admin_user_id \\ nil) do

@@ -171,6 +171,21 @@ defmodule Mix.Tasks.Pleroma.Database do
     end
     |> Repo.delete_all(timeout: :infinity)
 
+    if !Keyword.get(options, :keep_threads) do
+      # Without the --keep-threads option, it's possible that bookmarked
+      # objects have been deleted. We remove the corresponding bookmarks.
+      """
+      delete from public.bookmarks
+      where id in (
+        select b.id from public.bookmarks b
+        left join public.activities a on b.activity_id = a.id
+        left join public.objects o on a."data" ->> 'object' = o.data ->> 'id'
+        where o.id is null
+      )
+      """
+      |> Repo.query([], timeout: :infinity)
+    end
+
     if Keyword.get(options, :prune_orphaned_activities) do
       # Prune activities who link to a single object
       """
@@ -344,7 +359,7 @@ defmodule Mix.Tasks.Pleroma.Database do
         )
       end
 
-      shell_info('Done.')
+      shell_info(~c"Done.")
     end
   end
 

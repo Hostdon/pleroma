@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.Plugs.EnsureStaffPrivilegedPlugTest do
-  use Pleroma.Web.ConnCase, async: true
+  use Pleroma.Web.ConnCase, async: false
 
   alias Pleroma.Web.Plugs.EnsureStaffPrivilegedPlug
   import Pleroma.Factory

@@ -201,25 +201,6 @@ Assuming you want to open your newly installed federated social network to, well
 include sites-enabled/*;
 ```
 
-* Setup your SSL cert, using your method of choice or certbot. If using certbot, install it if you haven't already:
-
-```shell
- # emerge --ask app-crypt/certbot app-crypt/certbot-nginx
-```
-
-and then set it up:
-
-```shell
- # mkdir -p /var/lib/letsencrypt/
- # certbot certonly --email <your@emailaddress> -d <yourdomain> --standalone
-```
-
-If that doesn't work the first time, add `--dry-run` to further attempts to avoid being ratelimited as you identify the issue, and do not remove it until the dry run succeeds. If that doesn’t work, make sure, that nginx is not already running. If it still doesn’t work, try setting up nginx first (change ssl “on” to “off” and try again). Often the answer to issues with certbot is to use the `--nginx` flag once you have nginx up and running.
-
-If you are using any additional subdomains, such as for a media proxy, you can re-run the same command with the subdomain in question. When it comes time to renew later, you will not need to run multiple times for each domain, one renew will handle it.
-
----
-
 * Copy the example nginx configuration and activate it:
 
 ```shell
@@ -237,8 +218,23 @@ Pay special attention to the line that begins with `ssl_ecdh_curve`. It is stong
 
 ```shell
  # rc-update add nginx default
- # /etc/init.d/nginx start
+ # rc-service nginx start
 ```
+
+* Setup your SSL cert, using your method of choice or certbot. If using certbot, install it if you haven't already:
+
+```shell
+ # emerge --ask app-crypt/certbot app-crypt/certbot-nginx
+```
+
+and then set it up:
+
+```shell
+ # mkdir -p /var/lib/letsencrypt/
+ # certbot --email <your@emailaddress> -d <yourdomain> -d <media_domain> --nginx
+```
+
+If that doesn't work the first time, add `--dry-run` to further attempts to avoid being ratelimited as you identify the issue, and do not remove it until the dry run succeeds. A common source of problems are nginx config syntax errors; this can be checked for by running `nginx -t`.
 
 If you are using certbot, it is HIGHLY recommend you set up a cron job that renews your certificate, and that you install the suggested `certbot-nginx` plugin. If you don't do these things, you only have yourself to blame when your instance breaks suddenly because you forgot about it.
 

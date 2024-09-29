@@ -23,12 +23,14 @@ defmodule Pleroma.DataCase do
   using do
     quote do
       alias Pleroma.Repo
+      @endpoint Pleroma.Web.Endpoint
 
       import Ecto
       import Ecto.Changeset
       import Ecto.Query
       import Pleroma.DataCase
       use Pleroma.Tests.Helpers
+      use Pleroma.Web, :verified_routes
 
       # Sets up OAuth access with specified scopes
       defp oauth_access(scopes, opts \\ []) do

@@ -15,8 +15,19 @@ defmodule Pleroma.JobQueueMonitor do
 
   @impl true
   def init(state) do
-    :telemetry.attach("oban-monitor-failure", [:oban, :job, :exception], &handle_event/4, nil)
-    :telemetry.attach("oban-monitor-success", [:oban, :job, :stop], &handle_event/4, nil)
+    :telemetry.attach(
+      "oban-monitor-failure",
+      [:oban, :job, :exception],
+      &Pleroma.JobQueueMonitor.handle_event/4,
+      nil
+    )
+
+    :telemetry.attach(
+      "oban-monitor-success",
+      [:oban, :job, :stop],
+      &Pleroma.JobQueueMonitor.handle_event/4,
+      nil
+    )
 
     {:ok, state}
   end

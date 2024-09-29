@@ -18,6 +18,8 @@ defmodule Pleroma.Web.ActivityPub.Builder do
   alias Pleroma.Web.CommonAPI.ActivityDraft
   alias Pleroma.Web.Endpoint
 
+  use Pleroma.Web, :verified_routes
+
   require Pleroma.Constants
 
   def accept_or_reject(actor, activity, type) do
@@ -402,6 +404,6 @@ defmodule Pleroma.Web.ActivityPub.Builder do
   end
 
   defp pinned_url(nickname) when is_binary(nickname) do
-    Pleroma.Web.Router.Helpers.activity_pub_url(Pleroma.Web.Endpoint, :pinned, nickname)
+    url(~p[/users/#{nickname}/collections/featured])
   end
 end

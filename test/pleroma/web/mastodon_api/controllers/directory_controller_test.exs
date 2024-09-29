@@ -1,5 +1,5 @@
 defmodule Pleroma.Web.MastodonAPI.DirectoryControllerTest do
-  use Pleroma.Web.ConnCase, async: true
+  use Pleroma.Web.ConnCase, async: false
   alias Pleroma.Web.CommonAPI
   import Pleroma.Factory
 

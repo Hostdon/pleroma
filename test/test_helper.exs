@@ -9,6 +9,10 @@ Ecto.Adapters.SQL.Sandbox.mode(Pleroma.Repo, :manual)
 
 {:ok, _} = Application.ensure_all_started(:ex_machina)
 
+# Prepare and later automatically cleanup upload dir
+uploads_dir = Pleroma.Config.get([Pleroma.Uploaders.Local, :uploads], "test/uploads")
+File.mkdir_p!(uploads_dir)
+
 ExUnit.after_suite(fn _results ->
   uploads = Pleroma.Config.get([Pleroma.Uploaders.Local, :uploads], "test/uploads")
   File.rm_rf!(uploads)

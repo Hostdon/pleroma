@@ -21,7 +21,7 @@ defmodule Mix.PleromaTest do
       send(self(), {:mix_shell_input, :prompt, "Yes"})
 
       answer = shell_prompt("Do you want this?")
-      assert_received {:mix_shell, :prompt, [message]}
+      assert_receive {:mix_shell, :prompt, [message]}
       assert message =~ "Do you want this?"
       assert answer == "Yes"
     end
@@ -31,7 +31,7 @@ defmodule Mix.PleromaTest do
 
       answer = shell_prompt("Do you want this?", "defval")
 
-      assert_received {:mix_shell, :prompt, [message]}
+      assert_receive {:mix_shell, :prompt, [message]}
       assert message =~ "Do you want this? [defval]"
       assert answer == "defval"
     end

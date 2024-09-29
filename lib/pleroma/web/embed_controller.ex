@@ -11,22 +11,31 @@ defmodule Pleroma.Web.EmbedController do
 
   alias Pleroma.Web.ActivityPub.Visibility
 
-  plug(:put_layout, :embed)
-
   def show(conn, %{"id" => id}) do
-    with %Activity{local: true} = activity <-
-           Activity.get_by_id_with_object(id),
-         true <- Visibility.is_public?(activity.object) do
+    with {:activity, %Activity{} = activity} <-
+           {:activity, Activity.get_by_id_with_object(id)},
+         {:local, true} <- {:local, activity.local},
+         {:visible, true} <- {:visible, Visibility.visible_for_user?(activity, nil)} do
       {:ok, author} = User.get_or_fetch(activity.object.data["actor"])
 
       conn
       |> delete_resp_header("x-frame-options")
       |> delete_resp_header("content-security-policy")
+      |> put_view(Pleroma.Web.EmbedView)
       |> render("show.html",
         activity: activity,
         author: User.sanitize_html(author),
         counts: get_counts(activity)
       )
+    else
+      {:activity, _} ->
+        render_error(conn, :not_found, "Post not found")
+
+      {:local, false} ->
+        render_error(conn, :unauthorized, "Federated posts cannot be embedded")
+
+      {:visible, false} ->
+        render_error(conn, :unauthorized, "Not authorized to view this post")
     end
   end
 

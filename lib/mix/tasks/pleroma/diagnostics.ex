@@ -82,4 +82,46 @@ defmodule Mix.Tasks.Pleroma.Diagnostics do
     Ecto.Adapters.SQL.explain(Repo, :all, query, analyze: true, timeout: :infinity)
     |> IO.puts()
   end
+
+  def run(["notifications", nickname]) do
+    start_pleroma()
+    user = Repo.get_by!(User, nickname: nickname)
+    account_ap_id = user.ap_id
+    options = %{account_ap_id: user.ap_id}
+
+    query =
+      user
+      |> Pleroma.Notification.for_user_query(options)
+      |> where([n, a], a.actor == ^account_ap_id)
+      |> limit(20)
+
+    Ecto.Adapters.SQL.explain(Repo, :all, query, analyze: true, timeout: :infinity)
+    |> IO.puts()
+  end
+
+  def run(["known_network", nickname]) do
+    start_pleroma()
+    user = Repo.get_by!(User, nickname: nickname)
+
+    params =
+      %{}
+      |> Map.put(:type, ["Create"])
+      |> Map.put(:local_only, false)
+      |> Map.put(:blocking_user, user)
+      |> Map.put(:muting_user, user)
+      |> Map.put(:reply_filtering_user, user)
+      # Restricts unfederated content to authenticated users
+      |> Map.put(:includes_local_public, not is_nil(user))
+      |> Map.put(:restrict_unlisted, true)
+
+    query =
+      Pleroma.Web.ActivityPub.ActivityPub.fetch_activities_query(
+        [Pleroma.Constants.as_public()],
+        params
+      )
+      |> limit(20)
+
+    Ecto.Adapters.SQL.explain(Repo, :all, query, analyze: true, timeout: :infinity)
+    |> IO.puts()
+  end
 end

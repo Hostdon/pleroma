@@ -135,23 +135,6 @@ If you want to open your newly installed instance to the world, you should run n
 sudo dnf install nginx
 ```
 
-* Setup your SSL cert, using your method of choice or certbot. If using certbot, first install it:
-
-```shell
-sudo dnf install certbot
-```
-
-and then set it up:
-
-```shell
-sudo mkdir -p /var/lib/letsencrypt/
-sudo certbot certonly --email <your@emailaddress> -d <yourdomain> --standalone
-```
-
-If that doesn’t work, make sure, that nginx is not already running. If it still doesn’t work, try setting up nginx first (change ssl “on” to “off” and try again).
-
----
-
 * Copy the example nginx configuration and activate it:
 
 ```shell
@@ -165,11 +148,22 @@ sudo cp /opt/akkoma/installation/nginx/akkoma.nginx /etc/nginx/conf.d/akkoma.con
 sudo systemctl enable --now nginx.service
 ```
 
-If you need to renew the certificate in the future, uncomment the relevant location block in the nginx config and run:
+* Setup your SSL cert, using your method of choice or certbot. If using certbot, first install it:
 
 ```shell
-sudo certbot certonly --email <your@emailaddress> -d <yourdomain> --webroot -w /var/lib/letsencrypt/
+sudo dnf install certbot python3-certbot-nginx
 ```
+
+and then set it up:
+
+```shell
+sudo certbot --email <your@emailaddress> -d <yourdomain> -d <media_domain> --nginx
+```
+
+If that doesn't work the first time, add `--dry-run` to further attempts to avoid being ratelimited as you identify the issue, and do not remove it until the dry run succeeds. A common source of problems are nginx config syntax errors; this can be checked for by running `nginx -t`.
+
+Certificate renewal should be handled automatically by Certbot from now on.
+
 
 #### Other webserver/proxies
 
