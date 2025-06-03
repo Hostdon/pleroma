@@ -114,7 +114,7 @@ defmodule Mix.Tasks.Pleroma.User do
          {:ok, token} <- Pleroma.PasswordResetToken.create_token(user) do
       shell_info("Generated password reset token for #{user.nickname}")
 
-      IO.puts("URL: #{~p[/api/v1/pleroma/password_reset/#{token.token}]}")
+      shell_info("URL: #{~p[/api/v1/pleroma/password_reset/#{token.token}]}")
     else
       _ ->
         shell_error("No local user #{nickname}")
@@ -301,7 +301,7 @@ defmodule Mix.Tasks.Pleroma.User do
       shell_info("Generated user invite token " <> String.replace(invite.invite_type, "_", " "))
 
       url = url(~p[/registration/#{invite.token}])
-      IO.puts(url)
+      shell_info(url)
     else
       error ->
         shell_error("Could not create invite token: #{inspect(error)}")
@@ -373,7 +373,7 @@ defmodule Mix.Tasks.Pleroma.User do
       nickname
       |> User.get_cached_by_nickname()
 
-    shell_info("#{inspect(user)}")
+    shell_info(user)
   end
 
   def run(["send_confirmation", nickname]) do
@@ -457,7 +457,7 @@ defmodule Mix.Tasks.Pleroma.User do
 
     with %User{local: true} = user <- User.get_cached_by_nickname(nickname) do
       blocks = User.following_ap_ids(user)
-      IO.puts("#{inspect(blocks)}")
+      shell_info(blocks)
     end
   end
 
@@ -516,12 +516,12 @@ defmodule Mix.Tasks.Pleroma.User do
            {:follow_data, Pleroma.Web.ActivityPub.Utils.fetch_latest_follow(local, remote)} do
       calculated_state = User.following?(local, remote)
 
-      IO.puts(
+      shell_info(
         "Request state is #{request_state}, vs calculated state of following=#{calculated_state}"
       )
 
       if calculated_state == false && request_state == "accept" do
-        IO.puts("Discrepancy found, fixing")
+        shell_info("Discrepancy found, fixing")
         Pleroma.Web.CommonAPI.reject_follow_request(local, remote)
         shell_info("Relationship fixed")
       else
@@ -551,14 +551,14 @@ defmodule Mix.Tasks.Pleroma.User do
     |> Stream.each(fn users ->
       users
       |> Enum.each(fn user ->
-        IO.puts("Re-Resolving: #{user.ap_id}")
+        shell_info("Re-Resolving: #{user.ap_id}")
 
         with {:ok, user} <- Pleroma.User.fetch_by_ap_id(user.ap_id),
              changeset <- Pleroma.User.update_changeset(user),
              {:ok, _user} <- Pleroma.User.update_and_set_cache(changeset) do
           :ok
         else
-          error -> IO.puts("Could not resolve: #{user.ap_id}, #{inspect(error)}")
+          error -> shell_info("Could not resolve: #{user.ap_id}, #{inspect(error)}")
         end
       end)
     end)

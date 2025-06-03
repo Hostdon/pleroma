@@ -3,7 +3,6 @@ defmodule Mix.Tasks.Pleroma.Diagnostics do
   alias Pleroma.Repo
   alias Pleroma.User
 
-  require Logger
   require Pleroma.Constants
 
   import Mix.Pleroma
@@ -14,13 +13,20 @@ defmodule Mix.Tasks.Pleroma.Diagnostics do
     start_pleroma()
 
     Pleroma.HTTP.get(url)
+    |> shell_info()
+  end
+
+  def run(["fetch_object", url]) do
+    start_pleroma()
+
+    Pleroma.Object.Fetcher.fetch_object_from_id(url)
     |> IO.inspect()
   end
 
   def run(["home_timeline", nickname]) do
     start_pleroma()
     user = Repo.get_by!(User, nickname: nickname)
-    Logger.info("Home timeline query #{user.nickname}")
+    shell_info("Home timeline query #{user.nickname}")
 
     followed_hashtags =
       user
@@ -49,14 +55,14 @@ defmodule Mix.Tasks.Pleroma.Diagnostics do
       |> limit(20)
 
     Ecto.Adapters.SQL.explain(Repo, :all, query, analyze: true, timeout: :infinity)
-    |> IO.puts()
+    |> shell_info()
   end
 
   def run(["user_timeline", nickname, reading_nickname]) do
     start_pleroma()
     user = Repo.get_by!(User, nickname: nickname)
     reading_user = Repo.get_by!(User, nickname: reading_nickname)
-    Logger.info("User timeline query #{user.nickname}")
+    shell_info("User timeline query #{user.nickname}")
 
     params =
       %{limit: 20}
@@ -80,7 +86,7 @@ defmodule Mix.Tasks.Pleroma.Diagnostics do
       |> limit(20)
 
     Ecto.Adapters.SQL.explain(Repo, :all, query, analyze: true, timeout: :infinity)
-    |> IO.puts()
+    |> shell_info()
   end
 
   def run(["notifications", nickname]) do
@@ -96,7 +102,7 @@ defmodule Mix.Tasks.Pleroma.Diagnostics do
       |> limit(20)
 
     Ecto.Adapters.SQL.explain(Repo, :all, query, analyze: true, timeout: :infinity)
-    |> IO.puts()
+    |> shell_info()
   end
 
   def run(["known_network", nickname]) do
@@ -122,6 +128,6 @@ defmodule Mix.Tasks.Pleroma.Diagnostics do
       |> limit(20)
 
     Ecto.Adapters.SQL.explain(Repo, :all, query, analyze: true, timeout: :infinity)
-    |> IO.puts()
+    |> shell_info()
   end
 end

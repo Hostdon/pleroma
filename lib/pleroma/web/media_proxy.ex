@@ -52,11 +52,11 @@ defmodule Pleroma.Web.MediaProxy do
 
   @spec url_proxiable?(String.t()) :: boolean()
   def url_proxiable?(url) do
-    not local?(url) and not whitelisted?(url) and not blocked?(url)
+    not local?(url) and not whitelisted?(url) and not blocked?(url) and http_scheme?(url)
   end
 
   def preview_url(url, preview_params \\ []) do
-    if preview_enabled?() do
+    if preview_enabled?() and url_proxiable?(url) do
       encode_preview_url(url, preview_params)
     else
       url(url)
@@ -70,6 +70,8 @@ defmodule Pleroma.Web.MediaProxy do
   def preview_enabled?, do: enabled?() and !!Config.get([:media_preview_proxy, :enabled])
 
   def local?(url), do: String.starts_with?(url, Endpoint.url())
+
+  def http_scheme?(url), do: String.starts_with?(url, ["http:", "https:"])
 
   def whitelisted?(url) do
     %{host: domain} = URI.parse(url)

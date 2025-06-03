@@ -61,6 +61,34 @@ defmodule Pleroma.HTML.Scrubber.Default do
   Meta.allow_tag_with_this_attribute_values(:span, "class", [
     "h-card",
     "quote-inline",
+    # "FEP-c16b: Formatting MFM functions" tags that Akkoma supports
+    # NOTE: Maybe it would be better to have something like "allow `mfm-*`,
+    #       but at moment of writing this is not a thing in the HTML parser we use
+    # The following are the non-animated MFM
+    "mfm-center",
+    "mfm-flip",
+    "mfm-font",
+    "mfm-blur",
+    "mfm-rotate",
+    "mfm-x2",
+    "mfm-x3",
+    "mfm-x4",
+    "mfm-position",
+    "mfm-scale",
+    "mfm-fg",
+    "mfm-bg",
+    # The following are the animated MFM
+    "mfm-jelly",
+    "mfm-twitch",
+    "mfm-shake",
+    "mfm-spin",
+    "mfm-jump",
+    "mfm-bounce",
+    "mfm-rainbow",
+    "mfm-tada",
+    "mfm-sparkle",
+    # MFM legacy
+    # This is for backwards compatibility with posts formatted on Akkoma before support for FEP-c16b
     "mfm",
     "mfm _mfm_tada_",
     "mfm _mfm_jelly_",
@@ -79,6 +107,26 @@ defmodule Pleroma.HTML.Scrubber.Default do
   ])
 
   Meta.allow_tag_with_these_attributes(:span, [
+    # "FEP-c16b: Formatting MFM functions" attributes that Akkoma supports
+    # NOTE: Maybe it would be better to have something like "allow `data-mfm-*`,
+    #       but at moment of writing this is not a thing in the HTML parser we use
+    "data-mfm-h",
+    "data-mfm-v",
+    "data-mfm-x",
+    "data-mfm-y",
+    "data-mfm-alternate",
+    "data-mfm-speed",
+    "data-mfm-deg",
+    "data-mfm-left",
+    "data-mfm-serif",
+    "data-mfm-monospace",
+    "data-mfm-cursive",
+    "data-mfm-fantasy",
+    "data-mfm-emoji",
+    "data-mfm-math",
+    "data-mfm-color",
+    # MFM legacy
+    # This is for backwards compatibility with posts formatted on Akkoma before support for FEP-c16b
     "data-x",
     "data-y",
     "data-h",
@@ -122,6 +170,119 @@ defmodule Pleroma.HTML.Scrubber.Default do
 
   if Pleroma.Config.get([:markup, :allow_fonts]) do
     Meta.allow_tag_with_these_attributes(:font, ["face"])
+  end
+
+  if Pleroma.Config.get!([:markup, :allow_math]) do
+    Meta.allow_tag_with_these_attributes("annotation", ["encoding"])
+    Meta.allow_tag_with_these_attributes(:"annotation-xml", ["encoding"])
+
+    Meta.allow_tag_with_these_attributes(:math, [
+      "display",
+      "displaystyle",
+      "mathvariant",
+      "scriptlevel"
+    ])
+
+    basic_math_tags = [
+      "maction",
+      "merror",
+      :mi,
+      "mmultiscripts",
+      :mn,
+      "mphantom",
+      "mprescripts",
+      "mroot",
+      "mrow",
+      "ms",
+      "msqrt",
+      "mstyle",
+      "msub",
+      "msubsup",
+      "msup",
+      "mtable",
+      "mtext",
+      "mtr",
+      "semantics"
+    ]
+
+    for tag <- basic_math_tags do
+      Meta.allow_tag_with_these_attributes(unquote(tag), [
+        "mathvariant",
+        "displaystyle",
+        "scriptlevel"
+      ])
+    end
+
+    Meta.allow_tag_with_these_attributes("mfrac", [
+      "displaystyle",
+      "linethickness",
+      "mathvariant",
+      "scriptlevel"
+    ])
+
+    Meta.allow_tag_with_these_attributes(:mo, [
+      "displaystyle",
+      "form",
+      "largeop",
+      "lspace",
+      "mathvariant",
+      "minsize",
+      "movablelimits",
+      "rspace",
+      "scriptlevel",
+      "stretchy",
+      "symmetric"
+    ])
+
+    Meta.allow_tag_with_these_attributes("mover", [
+      "accent",
+      "displaystyle",
+      "mathvariant",
+      "scriptlevel"
+    ])
+
+    Meta.allow_tag_with_these_attributes("mpadded", [
+      "depth",
+      "displaystyle",
+      "height",
+      "lspace",
+      "mathvariant",
+      "scriptlevel",
+      "voffset",
+      "width"
+    ])
+
+    Meta.allow_tag_with_these_attributes("mspace", [
+      "depth",
+      "displaystyle",
+      "height",
+      "mathvariant",
+      "scriptlevel",
+      "width"
+    ])
+
+    Meta.allow_tag_with_these_attributes("mtd", [
+      "columnspan",
+      "displaystyle",
+      "mathvariant",
+      "rowspan",
+      "scriptlevel"
+    ])
+
+    Meta.allow_tag_with_these_attributes("munder", [
+      "accentunder",
+      "displaystyle",
+      "mathvariant",
+      "scriptlevel"
+    ])
+
+    Meta.allow_tag_with_these_attributes("munderover", [
+      "accent",
+      "accentunder",
+      "displaystyle",
+      "mathvariant",
+      "scriptlevel"
+    ])
   end
 
   Meta.allow_tag_with_these_attributes(:center, [])

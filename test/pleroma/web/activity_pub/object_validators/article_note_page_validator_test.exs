@@ -157,7 +157,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidatorTest 
       assert content =~ "@oops_not_a_mention"
 
       assert content =~
-               "<span class=\"mfm _mfm_jelly_\">mfm goes here</span> </p>aaa"
+               "<span class=\"mfm-jelly\">mfm goes here</span> </p>aaa"
 
       assert content =~ "some text<br/>newline"
     end

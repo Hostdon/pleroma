@@ -10,6 +10,7 @@ defmodule Pleroma.UserTest do
   alias Pleroma.Repo
   alias Pleroma.Tests.ObanHelpers
   alias Pleroma.User
+  alias Pleroma.User.SigningKey
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.CommonAPI
 
@@ -460,12 +461,7 @@ defmodule Pleroma.UserTest do
               }
             )
 
-    setup do:
-            clear_config(:mrf,
-              policies: [
-                Pleroma.Web.ActivityPub.MRF.SimplePolicy
-              ]
-            )
+    setup do: clear_config([:mrf, :policies], [Pleroma.Web.ActivityPub.MRF.SimplePolicy])
 
     test "it sends a welcome email message if it is set" do
       welcome_user = insert(:user)
@@ -639,11 +635,12 @@ defmodule Pleroma.UserTest do
       changeset = User.register_changeset(%User{}, @full_user_data)
 
       assert changeset.valid?
-
       assert is_binary(changeset.changes[:password_hash])
-      assert is_binary(changeset.changes[:keys])
       assert changeset.changes[:ap_id] == User.ap_id(%User{nickname: @full_user_data.nickname})
-      assert is_binary(changeset.changes[:keys])
+      assert changeset.changes[:signing_key]
+      assert changeset.changes[:signing_key].valid?
+      assert is_binary(changeset.changes[:signing_key].changes.private_key)
+      assert is_binary(changeset.changes[:signing_key].changes.public_key)
       assert changeset.changes.follower_address == "#{changeset.changes.ap_id}/followers"
     end
 
@@ -814,7 +811,6 @@ defmodule Pleroma.UserTest do
       assert user == fetched_user
     end
 
-    @tag capture_log: true
     test "returns nil if no user could be fetched" do
       {:error, fetched_user} = User.get_or_fetch_by_nickname("nonexistant@social.heldscal.la")
       assert fetched_user == "not found nonexistant@social.heldscal.la"
@@ -871,7 +867,6 @@ defmodule Pleroma.UserTest do
       assert orig_user.nickname == "#{orig_user.id}.admin@mastodon.example.org"
     end
 
-    @tag capture_log: true
     test "it returns the old user if stale, but unfetchable" do
       a_week_ago = NaiveDateTime.add(NaiveDateTime.utc_now(), -604_800)
 
@@ -908,6 +903,35 @@ defmodule Pleroma.UserTest do
 
       assert {:ok, %User{also_known_as: []}} =
                User.get_or_fetch_by_ap_id("https://mbp.example.com/")
+    end
+
+    test "doesn't allow key_id poisoning" do
+      {:error, {:validate, {:error, "Problematic actor-key pairing:" <> _}}} =
+        User.fetch_by_ap_id(
+          "http://remote.example/users/with_key_id_of_admin-mastodon.example.org"
+        )
+
+      used_key_id = "http://mastodon.example.org/users/admin#main-key"
+      refute Repo.get_by(SigningKey, key_id: used_key_id)
+
+      {:ok, user} = User.fetch_by_ap_id("http://mastodon.example.org/users/admin")
+      user = SigningKey.load_key(user)
+
+      # ensure we checked for the right key before
+      assert user.signing_key.key_id == used_key_id
+    end
+
+    test "doesn't allow key_id takeovers" do
+      {:ok, user} = User.fetch_by_ap_id("http://mastodon.example.org/users/admin")
+      user = SigningKey.load_key(user)
+
+      {:error, {:validate, {:error, "Problematic actor-key pairing:" <> _}}} =
+        User.fetch_by_ap_id(
+          "http://remote.example/users/with_key_id_of_admin-mastodon.example.org"
+        )
+
+      refreshed_sk = Repo.get_by(SigningKey, key_id: user.signing_key.key_id)
+      assert refreshed_sk.user_id == user.id
     end
   end
 
@@ -966,6 +990,21 @@ defmodule Pleroma.UserTest do
       cs = User.remote_user_changeset(user, %{name: "tom from myspace"})
 
       refute cs.valid?
+    end
+
+    test "it truncates fields" do
+      clear_config([:instance, :max_remote_account_fields], 2)
+
+      fields = [
+        %{"name" => "One", "value" => "Uno"},
+        %{"name" => "Two", "value" => "Dos"},
+        %{"name" => "Three", "value" => "Tres"}
+      ]
+
+      cs = User.remote_user_changeset(@valid_remote |> Map.put(:fields, fields))
+
+      assert [%{"name" => "One", "value" => "Uno"}, %{"name" => "Two", "value" => "Dos"}] ==
+               Ecto.Changeset.get_field(cs, :fields)
     end
   end
 
@@ -1149,6 +1188,18 @@ defmodule Pleroma.UserTest do
       assert User.blocks?(user, blocked_user)
     end
 
+    test "it blocks domains" do
+      user = insert(:user)
+      blocked_user = insert(:user)
+
+      refute User.blocks_domain?(user, blocked_user)
+
+      url = URI.parse(blocked_user.ap_id)
+      {:ok, user} = User.block_domain(user, url.host)
+
+      assert User.blocks_domain?(user, blocked_user)
+    end
+
     test "it unblocks users" do
       user = insert(:user)
       blocked_user = insert(:user)
@@ -1157,6 +1208,17 @@ defmodule Pleroma.UserTest do
       {:ok, _user_block} = User.unblock(user, blocked_user)
 
       refute User.blocks?(user, blocked_user)
+    end
+
+    test "it unblocks domains" do
+      user = insert(:user)
+      blocked_user = insert(:user)
+
+      url = URI.parse(blocked_user.ap_id)
+      {:ok, user} = User.block_domain(user, url.host)
+      {:ok, user} = User.unblock_domain(user, url.host)
+
+      refute User.blocks_domain?(user, blocked_user)
     end
 
     test "blocks tear down cyclical follow relationships" do
@@ -1641,8 +1703,6 @@ defmodule Pleroma.UserTest do
         bio: "eyy lmao",
         name: "qqqqqqq",
         password_hash: "pdfk2$1b3n159001",
-        keys: "RSA begin buplic key",
-        public_key: "--PRIVATE KEYE--",
         avatar: %{"a" => "b"},
         tags: ["qqqqq"],
         banner: %{"a" => "b"},
@@ -1658,7 +1718,6 @@ defmodule Pleroma.UserTest do
         confirmation_token: "qqqq",
         domain_blocks: ["lain.com"],
         is_active: false,
-        ap_enabled: true,
         is_moderator: true,
         is_admin: true,
         mastofe_settings: %{"a" => "b"},
@@ -1681,8 +1740,6 @@ defmodule Pleroma.UserTest do
              email: nil,
              name: nil,
              password_hash: nil,
-             keys: "RSA begin buplic key",
-             public_key: "--PRIVATE KEYE--",
              avatar: %{},
              tags: [],
              last_refreshed_at: nil,
@@ -1700,7 +1757,6 @@ defmodule Pleroma.UserTest do
              confirmation_token: nil,
              domain_blocks: [],
              is_active: false,
-             ap_enabled: false,
              is_moderator: false,
              is_admin: false,
              mastofe_settings: nil,
@@ -1762,10 +1818,6 @@ defmodule Pleroma.UserTest do
       {:ok, user} = User.set_suggestion(user, false)
       refute user.is_suggested
     end
-  end
-
-  test "get_public_key_for_ap_id fetches a user that's not in the db" do
-    assert {:ok, _key} = User.get_public_key_for_ap_id("http://mastodon.example.org/users/admin")
   end
 
   describe "per-user rich-text filtering" do
@@ -2170,6 +2222,56 @@ defmodule Pleroma.UserTest do
       # is not a superuser any more
       assert [] = Notification.for_user(user)
     end
+
+    test "updates public key pem" do
+      # note: in the future key updates might be limited to announced expirations
+      user_org =
+        insert(:user, local: false)
+        |> with_signing_key()
+
+      old_pub = user_org.signing_key.public_key
+      new_pub = "BEGIN RSA public key"
+      refute old_pub == new_pub
+
+      {:ok, %User{} = user} =
+        User.update_and_set_cache(user_org, %{signing_key: %{public_key: new_pub}})
+
+      user = SigningKey.load_key(user)
+
+      assert user.signing_key.public_key == new_pub
+    end
+
+    test "updates public key id if valid" do
+      # note: in the future key updates might be limited to announced expirations
+      user_org =
+        insert(:user, local: false)
+        |> with_signing_key()
+
+      old_kid = user_org.signing_key.key_id
+      new_kid = old_kid <> "_v2"
+
+      {:ok, %User{} = user} =
+        User.update_and_set_cache(user_org, %{signing_key: %{key_id: new_kid}})
+
+      user = SigningKey.load_key(user)
+
+      assert user.signing_key.key_id == new_kid
+      refute Repo.get_by(SigningKey, key_id: old_kid)
+    end
+
+    test "refuses to sever existing key-user mappings" do
+      user1 =
+        insert(:user, local: false)
+        |> with_signing_key()
+
+      user2 =
+        insert(:user, local: false)
+        |> with_signing_key()
+
+      assert_raise Ecto.ConstraintError, fn ->
+        User.update_and_set_cache(user2, %{signing_key: %{key_id: user1.signing_key.key_id}})
+      end
+    end
   end
 
   describe "following/followers synchronization" do
@@ -2183,8 +2285,7 @@ defmodule Pleroma.UserTest do
         insert(:user,
           local: false,
           follower_address: "http://remote.org/users/masto_closed/followers",
-          following_address: "http://remote.org/users/masto_closed/following",
-          ap_enabled: true
+          following_address: "http://remote.org/users/masto_closed/following"
         )
 
       assert other_user.following_count == 0
@@ -2205,8 +2306,7 @@ defmodule Pleroma.UserTest do
         insert(:user,
           local: false,
           follower_address: "http://remote.org/users/masto_closed/followers",
-          following_address: "http://remote.org/users/masto_closed/following",
-          ap_enabled: true
+          following_address: "http://remote.org/users/masto_closed/following"
         )
 
       assert other_user.following_count == 0
@@ -2227,8 +2327,7 @@ defmodule Pleroma.UserTest do
         insert(:user,
           local: false,
           follower_address: "http://remote.org/users/masto_closed/followers",
-          following_address: "http://remote.org/users/masto_closed/following",
-          ap_enabled: true
+          following_address: "http://remote.org/users/masto_closed/following"
         )
 
       assert other_user.following_count == 0

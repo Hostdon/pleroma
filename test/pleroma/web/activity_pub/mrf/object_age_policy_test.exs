@@ -79,7 +79,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.ObjectAgePolicyTest do
 
       {:ok, data} = ObjectAgePolicy.filter(data)
 
-      assert Visibility.get_visibility(%{data: data}) == "unlisted"
+      assert Visibility.get_visibility(%{data: data}) == "direct"
     end
 
     test "it delists an old post" do

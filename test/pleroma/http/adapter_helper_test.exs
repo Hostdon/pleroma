@@ -73,4 +73,18 @@ defmodule Pleroma.HTTP.AdapterHelperTest do
       assert options[:pools][:default][:size] == 50
     end
   end
+
+  describe "pool idle time setting" do
+    test "should get set" do
+      options = AdapterHelper.add_default_pool_max_idle_time([], 50)
+      assert options[:pools][:default][:pool_max_idle_time] == 50
+    end
+  end
+
+  describe "connection timeout setting" do
+    test "should get set" do
+      options = AdapterHelper.add_default_conn_max_idle_time([], 50)
+      assert options[:pools][:default][:conn_max_idle_time] == 50
+    end
+  end
 end

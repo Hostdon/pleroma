@@ -108,7 +108,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
   end
 
   defp intersection(list1, list2) do
-    list1 -- list1 -- list2
+    list1 -- (list1 -- list2)
   end
 
   defp check_followers_only(%{host: actor_host} = _actor_info, object) do

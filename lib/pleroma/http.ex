@@ -74,7 +74,12 @@ defmodule Pleroma.HTTP do
     request = build_request(method, headers, options, url, body, params)
     client = Tesla.client([Tesla.Middleware.FollowRedirects, Tesla.Middleware.Telemetry])
 
+    Logger.debug("Outbound: #{method} #{url}")
     request(client, request)
+  rescue
+    e ->
+      Logger.error("Failed to fetch #{url}: #{inspect(e)}")
+      {:error, :fetch_error}
   end
 
   @spec request(Client.t(), keyword()) :: {:ok, Env.t()} | {:error, any()}

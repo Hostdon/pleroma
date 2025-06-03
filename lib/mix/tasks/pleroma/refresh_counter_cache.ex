@@ -11,7 +11,6 @@ defmodule Mix.Tasks.Pleroma.RefreshCounterCache do
   alias Pleroma.CounterCache
   alias Pleroma.Repo
 
-  require Logger
   import Ecto.Query
 
   def run([]) do

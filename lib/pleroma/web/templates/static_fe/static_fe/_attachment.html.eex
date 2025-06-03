@@ -1,4 +1,4 @@
-<a class="attachment" href="<%= @url %>" alt=<%= @name %>" title="<%= @name %>">
+<a class="attachment" href="<%= @url %>" alt="<%= @name %>" title="<%= @name %>">
   <%= if @nsfw do %>
   <div class="nsfw-banner">
     <div><%= gettext("Hover to show content") %></div>

@@ -66,10 +66,10 @@ defmodule Pleroma.Web.Endpoint do
     }
   )
 
-  plug(Plug.Static.IndexHtml, at: "/akkoma/swaggerui")
+  plug(Plug.Static.IndexHtml, at: "/pleroma/swaggerui/")
 
   plug(Pleroma.Web.Plugs.FrontendStatic,
-    at: "/akkoma/swaggerui",
+    at: "/pleroma/swaggerui",
     frontend_type: :swagger,
     gzip: true,
     if: &Pleroma.Web.Swagger.ui_enabled?/0,

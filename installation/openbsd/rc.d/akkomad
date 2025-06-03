@@ -11,11 +11,13 @@
 #
 
 daemon="/usr/local/bin/elixir"
-daemon_flags="--detached -S /usr/local/bin/mix phx.server"
+daemon_flags="-S /usr/local/bin/mix phx.server"
 daemon_user="_akkoma"
+daemon_execdir="/home/_akkoma/akkoma"
 
 . /etc/rc.d/rc.subr
 
+rc_bg="YES"
 rc_reload=NO
 pexp="phx.server"
 
@@ -24,7 +26,7 @@ rc_check() {
 }
 
 rc_start() {
-	${rcexec} "cd akkoma; ${daemon} ${daemon_flags}"
+	rc_exec "${daemon} ${daemon_flags}"
 }
 
 rc_stop() {

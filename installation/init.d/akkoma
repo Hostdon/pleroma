@@ -1,23 +1,43 @@
 #!/sbin/openrc-run
 supervisor=supervise-daemon
-command_user=akkoma:akkoma
-command_background=1
-# Ask process to terminate within 30 seconds, otherwise kill it
-retry="SIGTERM/30/SIGKILL/5"
-pidfile="/var/run/akkoma.pid"
-directory=/opt/akkoma
-healthcheck_delay=60
-healthcheck_timer=30
 no_new_privs="yes"
+pidfile="/var/run/akkoma.pid"
 
-: ${akkoma_port:-4000}
+# Ask process first to terminate itself within 60s, otherwise kill it
+retry="SIGTERM/60/SIGKILL/5"
 
-# Needs OpenRC >= 0.42
-#respawn_max=0
-#respawn_delay=5
+# if you really want to use start-stop-daemon instead,
+# also put the following in the config:
+#    command_background=1
 
-# put akkoma_console=YES in /etc/conf.d/akkoma if you want to be able to
-# connect to akkoma via an elixir console
+# Adjust defaults as needed in /etc/conf.d/akkoma;
+# no need to directly edit the service file
+command_user="${command_user:-akkoma:akkoma}"
+directory="${directory:-/var/lib/akkoma/akkoma}"
+akkoma_port="${akkoma_port:-4000}"
+# whether to allow connecting a remote exlixir shell to the running Akkoma instance
+akkoma_console=${akkoma_console:-NO}
+
+output_log="${output_log:-/var/log/akkoma}"
+error_log="${error_log:-/var/log/akkoma}"
+
+# 0 means unlimited restarts
+respawn_max="${respawn_max:-0}"
+respawn_delay="${respawn_delay:-5}"
+# define respawn period to only count crashes within a
+# sliding time window towards respawn_max, e.g.:
+#   respawn_period=2850
+
+healthcheck_delay="${healthcheck_delay:-60}"
+healthcheck_timer="${healthcheck_timer:-30}"
+
+MIX_ENV=prod
+ERL_EPMD_ADDRESS="${ERL_EPMD_ADDRESS:-127.0.0.1}"
+ERL_AFLAGS="${ERL_AFLAGS:-+sbwt none +sbwtdcpu none +sbwtdio none}"
+supervise_daemon_args="${supervise_daemon_args} --env MIX_ENV=${MIX_ENV}"
+supervise_daemon_args="${supervise_daemon_args} --env ERL_EPMD_ADDRESS=${ERL_EPMD_ADDRESS}"
+supervise_daemon_args="${supervise_daemon_args} --env ERL_AFLAGS='${ERL_AFLAGS}'"
+
 if yesno "${akkoma_console}"; then
 	command=elixir
 	command_args="--name akkoma@127.0.0.1 --erl '-kernel inet_dist_listen_min 9001 inet_dist_listen_max 9001 inet_dist_use_interface {127,0,0,1}' -S mix phx.server"
@@ -31,11 +51,22 @@ else
 	command_args="phx.server"
 fi
 
-export MIX_ENV=prod
-export ERL_EPMD_ADDRESS=127.0.0.1
-
 depend() {
 	need nginx postgresql
+}
+
+start_pre() {
+	# Ensure logfile ownership and perms are alright
+	checkpath --file --owner "$command_user" "$output_log" "$error_log" \
+	|| eerror "Logfile(s) not owned by $command_user, or not a file!"
+	checkpath --writable "$output_log" "$error_log" \
+	|| eerror "Logfile(s) not writable!"
+
+	# If a recompile is needed perform it with lowest prio
+	# (delaying the actual start) to avoid hogging too much
+	# CPU from other services
+	cd "$directory"
+	doas -u "${command_user%%:*}" env MIX_ENV="$MIX_ENV" nice -n 19 "$command" compile
 }
 
 healthcheck() {

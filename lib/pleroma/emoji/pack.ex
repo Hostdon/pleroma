@@ -25,6 +25,7 @@ defmodule Pleroma.Emoji.Pack do
   alias Pleroma.Emoji
   alias Pleroma.Emoji.Pack
   alias Pleroma.Utils
+  alias Pleroma.SafeZip
 
   # Invalid/Malicious names are supposed to be filtered out before path joining,
   # but there are many entrypoints to affected functions so as the code changes
@@ -95,22 +96,20 @@ defmodule Pleroma.Emoji.Pack do
     end
   end
 
-  @spec unpack_zip_emojies(list(tuple())) :: list(map())
-  defp unpack_zip_emojies(zip_files) do
-    Enum.reduce(zip_files, [], fn
-      {_, path, s, _, _, _}, acc when elem(s, 2) == :regular ->
-        with(
-          filename <- Path.basename(path),
-          shortcode <- Path.basename(filename, Path.extname(filename)),
-          false <- Emoji.exist?(shortcode)
-        ) do
-          [%{path: path, filename: path, shortcode: shortcode} | acc]
-        else
-          _ -> acc
-        end
-
-      _, acc ->
-        acc
+  @spec map_zip_emojis(list(String.t())) :: list(map())
+  defp map_zip_emojis(zip_files) do
+    Enum.reduce(zip_files, [], fn path, acc ->
+      with(
+        filename <- Path.basename(path),
+        shortcode <- Path.basename(filename, Path.extname(filename)),
+        # note: this only checks the shortcode, if an emoji already exists on the same path, but
+        #       with a different shortcode, the existing one will be degraded to an alias of the new
+        false <- Emoji.exist?(shortcode)
+      ) do
+        [%{path: path, filename: path, shortcode: shortcode} | acc]
+      else
+        _ -> acc
+      end
     end)
   end
 
@@ -118,18 +117,15 @@ defmodule Pleroma.Emoji.Pack do
           {:ok, t()}
           | {:error, File.posix() | atom()}
   def add_file(%Pack{} = pack, _, _, %Plug.Upload{content_type: "application/zip"} = file) do
-    with {:ok, zip_files} <- :zip.table(to_charlist(file.path)),
-         [_ | _] = emojies <- unpack_zip_emojies(zip_files),
+    with {:ok, zip_files} <- SafeZip.list_dir_file(file.path),
+         [_ | _] = emojis <- map_zip_emojis(zip_files),
          {:ok, tmp_dir} <- Utils.tmp_dir("emoji") do
       try do
         {:ok, _emoji_files} =
-          :zip.unzip(
-            to_charlist(file.path),
-            [{:file_list, Enum.map(emojies, & &1[:path])}, {:cwd, tmp_dir}]
-          )
+          SafeZip.unzip_file(file.path, tmp_dir, Enum.map(emojis, & &1[:path]))
 
         {_, updated_pack} =
-          Enum.map_reduce(emojies, pack, fn item, emoji_pack ->
+          Enum.map_reduce(emojis, pack, fn item, emoji_pack ->
             emoji_file = %Plug.Upload{
               filename: item[:filename],
               path: path_join_safe(tmp_dir, item[:path])
@@ -446,16 +442,9 @@ defmodule Pleroma.Emoji.Pack do
   end
 
   defp create_archive_and_cache(pack, hash) do
-    files = [
-      ~c"pack.json"
-      | Enum.map(pack.files, fn {_, file} ->
-          {:ok, file} = Path.safe_relative(file)
-          to_charlist(file)
-        end)
-    ]
-
-    {:ok, {_, result}} =
-      :zip.zip(~c"#{pack.name}.zip", files, [:memory, cwd: to_charlist(pack.path)])
+    pack_file_list = Enum.into(pack.files, [], fn {_, f} -> f end)
+    files = ["pack.json" | pack_file_list]
+    {:ok, {_, result}} = SafeZip.zip("#{pack.name}.zip", files, pack.path, true)
 
     ttl_per_file = Pleroma.Config.get!([:emoji, :shared_pack_cache_seconds_per_file])
     overall_ttl = :timer.seconds(ttl_per_file * Enum.count(files))
@@ -626,11 +615,10 @@ defmodule Pleroma.Emoji.Pack do
 
   defp unzip(archive, pack_info, remote_pack, local_pack) do
     with :ok <- File.mkdir_p!(local_pack.path) do
-      files = Enum.map(remote_pack["files"], fn {_, path} -> to_charlist(path) end)
+      files = Enum.map(remote_pack["files"], fn {_, path} -> path end)
       # Fallback cannot contain a pack.json file
-      files = if pack_info[:fallback], do: files, else: [~c"pack.json" | files]
-
-      :zip.unzip(archive, cwd: to_charlist(local_pack.path), file_list: files)
+      files = if pack_info[:fallback], do: files, else: ["pack.json" | files]
+      SafeZip.unzip_data(archive, local_pack.path, files)
     end
   end
 
@@ -693,13 +681,14 @@ defmodule Pleroma.Emoji.Pack do
   end
 
   defp validate_has_all_files(pack, zip) do
-    with {:ok, f_list} <- :zip.unzip(zip, [:memory]) do
-      # Check if all files from the pack.json are in the archive
-      pack.files
-      |> Enum.all?(fn {_, from_manifest} ->
-        List.keyfind(f_list, to_charlist(from_manifest), 0)
+    # Check if all files from the pack.json are in the archive
+    eset =
+      Enum.reduce(pack.files, MapSet.new(), fn
+        {_, file}, s -> MapSet.put(s, to_charlist(file))
       end)
-      |> if(do: :ok, else: {:error, :incomplete})
-    end
+
+    if SafeZip.contains_all_data?(zip, eset),
+      do: :ok,
+      else: {:error, :incomplete}
   end
 end

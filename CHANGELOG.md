@@ -4,6 +4,75 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## Unreleased
+
+## 2025.03
+
+## Added
+- Oban (worker) dashboard at `/akkoma/oban`
+
+## Fixed
+- fixed some holes in SigningKey verification potentially allowing they key-user mapping to be poisoned
+- frontend ZIP files can no longer traverse to paths outside their install dir
+- fixed user updates trying but failing to renew signing key information
+- fixed signing key refresh on key rotation
+
+## Changed
+- Dropped obsolete `ap_enabled` indicator from user table and associated buggy logic
+- The remote user count in prometheus metrics is now an estimate instead of an exact number
+  since the latter proved unreasonably costly to obtain for a merely nice-to-have statistic
+- Various other tweaks improving stat query performance and avoiding unecessary work on received AP documents
+- The HTML content for new posts (both Client-to-Server as well as Server-to-Server communication) will now use a different formatting to represent MFM. See [FEP-c16b](https://codeberg.org/fediverse/fep/src/branch/main/fep/c16b/fep-c16b.md) for more details.
+- HTTP signatures now test the most likely request-target alias first cutting down on overhead
+
+## 2025.01.01
+
+Hotfix: Federation could break if a null value found its way into `should_federate?\1`
+
+## 2025.01
+
+## Added
+- New config option `:instance, :cleanup_attachments_delay`
+- It is now possible to display custom source URLs in akkoma-fe;
+  the settings are part of the frontend configuration
+
+## Fixed
+- Media proxy no longer attempts to proxy embedded images
+- Fix significant uneccessary overhead of attachment cleanup;
+  it no longer attempts to cleanup attachments of deleted remote posts
+- Fix “Delete & Redraft” often losing attachments if attachment cleanup was enabled
+- ObjectAge policy no longer lets unlisted posts slip through
+- ObjectAge policy no longer leaks belated DMs and follower-only posts
+- the NodeINfo endpoint now uses the correct content type
+
+## Changed
+- Anonymous objects now federate completely without an id
+  adopting a proposed AP spec errata and restoring federation
+  with e.g. IceShrimp.NET and fedify-based implementations
+
+## 3.13.3 
+
+## BREAKING
+- Minimum PostgreSQL version is raised to 12
+- Swagger UI moved from `/akkoma/swaggerui/` to `/pleroma/swaggerui/`
+
+## Added
+- Implement [FEP-67ff](https://codeberg.org/fediverse/fep/src/branch/main/fep/67ff/fep-67ff.md) (federation documentation)
+- Meilisearch: it is now possible to use separate keys for search and admin actions
+- New standalone `prune_orphaned_activities` mix task with configurable batch limit
+- The `prune_objects` mix task now accepts a `--limit` parameter for initial object pruning
+
+## Fixed
+- Meilisearch: order of results returned from our REST API now actually matches how Meilisearch ranks results
+- Emoji are now federated as anonymous objects, fixing issues with
+  some strict servers e.g. rejecting e.g. remote emoji reactions
+- AP objects with additional JSON-LD profiles beyond ActivityStreams can now be fetched
+- Single-selection polls no longer expose the voter_count; MastoAPI demands it be null
+  and this confused some clients leading to vote distributions >100%
+
+## Changed
+- Refactored Rich Media to cache the content in the database. Fetching operations that could block status rendering have been eliminated.
+
 ## 2024.04.1 (Security)
 
 ## Fixed

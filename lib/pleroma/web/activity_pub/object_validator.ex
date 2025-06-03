@@ -15,6 +15,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidator do
   alias Pleroma.EctoType.ActivityPub.ObjectValidators
   alias Pleroma.Object
   alias Pleroma.Object.Containment
+  alias Pleroma.Object.Fetcher
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ObjectValidators.AcceptRejectValidator
   alias Pleroma.Web.ActivityPub.ObjectValidators.AddRemoveValidator
@@ -253,9 +254,28 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidator do
   end
 
   def fetch_actor_and_object(object) do
-    fetch_actor(object)
-    Object.normalize(object["object"], fetch: true)
-    :ok
+    # Fetcher.fetch_object_from_id already first does a local db lookup
+    with {:ok, %User{}} <- fetch_actor(object),
+         {:ap_id, id} when is_binary(id) <-
+           {:ap_id, Pleroma.Web.ActivityPub.Utils.get_ap_id(object["object"])},
+         {:ok, %Object{}} <- Fetcher.fetch_object_from_id(id) do
+      :ok
+    else
+      {:ap_id, id} ->
+        {:error, {:validate, "Invalid AP id: #{inspect(id)}"}}
+
+      # if actor: late post from a previously unknown, deleted profile
+      # if object: private post we're not allowed to access
+      # (other HTTP replies might just indicate a temporary network failure though!)
+      {:error, e} when e in [:not_found, :forbidden] ->
+        {:error, :ignore}
+
+      {:error, _} = e ->
+        e
+
+      e ->
+        {:error, e}
+    end
   end
 
   defp for_each_history_item(

@@ -22,17 +22,13 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
   alias Pleroma.Web.MediaProxy
   alias Pleroma.Web.PleromaAPI.EmojiReactionController
   require Logger
+  alias Pleroma.Web.RichMedia.Card
 
   import Pleroma.Web.ActivityPub.Visibility, only: [get_visibility: 1, visible_for_user?: 2]
 
-  # This is a naive way to do this, just spawning a process per activity
-  # to fetch the preview. However it should be fine considering
-  # pagination is restricted to 40 activities at a time
   defp fetch_rich_media_for_activities(activities) do
     Enum.each(activities, fn activity ->
-      spawn(fn ->
-        Pleroma.Web.RichMedia.Helpers.fetch_data_for_activity(activity)
-      end)
+      Card.get_by_activity(activity)
     end)
   end
 
@@ -93,9 +89,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
     # To do: check AdminAPIControllerTest on the reasons behind nil activities in the list
     activities = Enum.filter(opts.activities, & &1)
 
-    # Start fetching rich media before doing anything else, so that later calls to get the cards
-    # only block for timeout in the worst case, as opposed to
-    # length(activities_with_links) * timeout
+    # Start prefetching rich media before doing anything else
     fetch_rich_media_for_activities(activities)
     replied_to_activities = get_replied_to_activities(activities)
 
@@ -309,6 +303,12 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
           "mastoapi:content:#{chrono_order}"
         )
 
+      card =
+        case Card.get_by_activity(activity) do
+          %Card{} = result -> render("card.json", result)
+          _ -> nil
+        end
+
       content_plaintext =
         content
         |> Activity.HTML.get_cached_stripped_html_for_activity(
@@ -317,8 +317,6 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
         )
 
       summary = object.data["summary"] || ""
-
-      card = render("card.json", Pleroma.Web.RichMedia.Helpers.fetch_data_for_activity(activity))
 
       url =
         if user.local do
@@ -528,37 +526,30 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
     }
   end
 
-  def render("card.json", %{rich_media: rich_media, page_url: page_url}) do
-    page_url_data = URI.parse(page_url)
-
-    page_url_data =
-      if is_binary(rich_media["url"]) do
-        URI.merge(page_url_data, URI.parse(rich_media["url"]))
-      else
-        page_url_data
-      end
+  def render("card.json", %Card{fields: rich_media}) do
+    page_url_data = URI.parse(rich_media["url"])
 
     page_url = page_url_data |> to_string
 
-    image_url_data =
-      if is_binary(rich_media["image"]) do
-        URI.parse(rich_media["image"])
-      else
-        nil
-      end
-
-    image_url = build_image_url(image_url_data, page_url_data)
+    image_url = proxied_url(rich_media["image"], page_url_data)
+    audio_url = proxied_url(rich_media["audio"], page_url_data)
+    video_url = proxied_url(rich_media["video"], page_url_data)
 
     %{
       type: "link",
       provider_name: page_url_data.host,
       provider_url: page_url_data.scheme <> "://" <> page_url_data.host,
       url: page_url,
-      image: image_url |> MediaProxy.url(),
+      image: image_url,
+      image_description: rich_media["image:alt"] || "",
       title: rich_media["title"] || "",
       description: rich_media["description"] || "",
       pleroma: %{
-        opengraph: rich_media
+        opengraph:
+          rich_media
+          |> Maps.put_if_present("image", image_url)
+          |> Maps.put_if_present("audio", audio_url)
+          |> Maps.put_if_present("video", video_url)
       }
     }
   end
@@ -626,7 +617,9 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
     %{ancestors: ancestors, descendants: descendants} =
       activities
       |> Enum.reverse()
-      |> Enum.group_by(fn %{id: id} -> if id < activity.id, do: :ancestors, else: :descendants end)
+      |> Enum.group_by(fn %{id: id} ->
+        if id < activity.id, do: :ancestors, else: :descendants
+      end)
       |> Map.put_new(:ancestors, [])
       |> Map.put_new(:descendants, [])
 
@@ -634,6 +627,14 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
       ancestors: render("index.json", for: user, activities: ancestors, as: :activity),
       descendants: render("index.json", for: user, activities: descendants, as: :activity)
     }
+  end
+
+  defp proxied_url(url, page_url_data) do
+    if is_binary(url) do
+      build_image_url(URI.parse(url), page_url_data) |> MediaProxy.url()
+    else
+      nil
+    end
   end
 
   def get_reply_to(activity, %{replied_to_activities: replied_to_activities}) do
@@ -740,19 +741,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
 
   defp build_application(_), do: nil
 
-  # Workaround for Elixir issue #10771
-  # Avoid applying URI.merge unless necessary
-  # TODO: revert to always attempting URI.merge(image_url_data, page_url_data)
-  # when Elixir 1.12 is the minimum supported version
   @spec build_image_url(struct() | nil, struct()) :: String.t() | nil
-  defp build_image_url(
-         %URI{scheme: image_scheme, host: image_host} = image_url_data,
-         %URI{} = _page_url_data
-       )
-       when not is_nil(image_scheme) and not is_nil(image_host) do
-    image_url_data |> to_string
-  end
-
   defp build_image_url(%URI{} = image_url_data, %URI{} = page_url_data) do
     URI.merge(page_url_data, image_url_data) |> to_string
   end

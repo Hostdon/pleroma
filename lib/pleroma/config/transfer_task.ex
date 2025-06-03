@@ -24,7 +24,6 @@ defmodule Pleroma.Config.TransferTask do
   defp reboot_time_subkeys,
     do: [
       {:pleroma, Pleroma.Captcha, [:seconds_valid]},
-      {:pleroma, Pleroma.Upload, [:proxy_remote]},
       {:pleroma, :instance, [:upload_limit]},
       {:pleroma, :http, [:pool_size]},
       {:pleroma, :http, [:proxy_url]}

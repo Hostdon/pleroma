@@ -79,7 +79,6 @@ defmodule Pleroma.Web.MastodonAPI.SearchControllerTest do
       assert status["id"] == to_string(activity.id)
     end
 
-    @tag capture_log: true
     test "constructs hashtags from search query", %{conn: conn} do
       results =
         conn

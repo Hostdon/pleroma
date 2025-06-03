@@ -16,7 +16,7 @@ defmodule Mix.Pleroma do
     :fast_html,
     :oban
   ]
-  @cachex_children ["object", "user", "scrubber", "web_resp"]
+  @cachex_children ["object", "user", "scrubber", "web_resp", "http_backoff"]
   @doc "Common functions to be reused in mix tasks"
   def start_pleroma do
     Pleroma.Config.Holder.save_default()
@@ -112,16 +112,24 @@ defmodule Mix.Pleroma do
     end
   end
 
-  def shell_info(message) do
+  def shell_info(message) when is_binary(message) or is_list(message) do
     if mix_shell?(),
       do: Mix.shell().info(message),
       else: IO.puts(message)
   end
 
-  def shell_error(message) do
+  def shell_info(message) do
+    shell_info("#{inspect(message)}")
+  end
+
+  def shell_error(message) when is_binary(message) or is_list(message) do
     if mix_shell?(),
       do: Mix.shell().error(message),
       else: IO.puts(:stderr, message)
+  end
+
+  def shell_error(message) do
+    shell_error("#{inspect(message)}")
   end
 
   @doc "Performs a safe check whether `Mix.shell/0` is available (does not raise if Mix is not loaded)"

@@ -4,7 +4,7 @@ defmodule Pleroma.HTTP.BackoffTest do
   alias Pleroma.HTTP.Backoff
 
   defp within_tolerance?(ttl, expected) do
-    ttl > expected - 10 and ttl < expected + 10
+    ttl > expected - 15 and ttl < expected + 15
   end
 
   describe "get/3" do

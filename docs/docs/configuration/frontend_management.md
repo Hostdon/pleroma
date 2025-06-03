@@ -60,4 +60,4 @@ config :pleroma, :frontends,
 
 Then run the [pleroma.frontend cli task](../../administration/CLI_tasks/frontend) with the name of `swagger-ui` to install the distribution files.
 
-You will now be able to view documentation at `/akkoma/swaggerui`
+You will now be able to view documentation at `/pleroma/swaggerui`

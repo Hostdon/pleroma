@@ -6,7 +6,6 @@ defmodule Pleroma.Web.Federator do
   alias Pleroma.Activity
   alias Pleroma.Object.Containment
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Transmogrifier
   alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.Federator.Publisher
@@ -92,15 +91,22 @@ defmodule Pleroma.Web.Federator do
 
     # NOTE: we use the actor ID to do the containment, this is fine because an
     # actor shouldn't be acting on objects outside their own AP server.
-    with {_, {:ok, _user}} <- {:actor, ap_enabled_actor(actor)},
-         nil <- Activity.normalize(params["id"]),
+    with nil <- Activity.normalize(params["id"]),
          {_, :ok} <-
            {:correct_origin?, Containment.contain_origin_from_id(actor, params)},
+         {_, :ok, _} <- {:local, Containment.contain_local_fetch(actor), actor},
          {:ok, activity} <- Transmogrifier.handle_incoming(params) do
       {:ok, activity}
     else
       {:correct_origin?, _} ->
         Logger.debug("Origin containment failure for #{params["id"]}")
+        {:error, :origin_containment_failed}
+
+      {:local, _, actor} ->
+        Logger.alert(
+          "Received incoming AP doc with valid signature for local actor #{actor}! Likely key leak!\n#{inspect(params)}"
+        )
+
         {:error, :origin_containment_failed}
 
       %Activity{} ->
@@ -119,17 +125,11 @@ defmodule Pleroma.Web.Federator do
       e ->
         # Just drop those for now
         Logger.debug(fn -> "Unhandled activity\n" <> Jason.encode!(params, pretty: true) end)
-        {:error, e}
-    end
-  end
 
-  def ap_enabled_actor(id) do
-    user = User.get_cached_by_ap_id(id)
-
-    if User.ap_enabled?(user) do
-      {:ok, user}
-    else
-      ActivityPub.make_user_from_ap_id(id)
+        case e do
+          {:error, _} -> e
+          _ -> {:error, e}
+        end
     end
   end
 end

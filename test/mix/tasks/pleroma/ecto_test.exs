@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Mix.Tasks.Pleroma.EctoTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   test "raise on bad path" do
     assert_raise RuntimeError, ~r/Could not find migrations directory/, fn ->

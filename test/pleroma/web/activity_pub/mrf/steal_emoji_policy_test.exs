@@ -202,7 +202,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.StealEmojiPolicyTest do
 
   test "reject too large content-size before download", %{message: message} do
     clear_config([:mrf_steal_emoji, :download_unknown_size], false)
-    mock_tesla("https://example.org/emoji/firedfox.png", 200, [{"content-length", 2 ** 30}])
+    mock_tesla("https://example.org/emoji/firedfox.png", 200, [{"content-length", "#{2 ** 30}"}])
 
     refute "firedfox" in installed()
 
@@ -216,7 +216,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.StealEmojiPolicyTest do
 
   test "accepts content-size below limit", %{message: message} do
     clear_config([:mrf_steal_emoji, :download_unknown_size], false)
-    mock_tesla("https://example.org/emoji/firedfox.png", 200, [{"content-length", 2}])
+    mock_tesla("https://example.org/emoji/firedfox.png", 200, [{"content-length", "2"}])
 
     refute "firedfox" in installed()
 

@@ -19,7 +19,7 @@ defmodule Pleroma.Web.MastodonAPI.PollView do
       expired: expired,
       multiple: multiple,
       votes_count: votes_count,
-      voters_count: voters_count(object),
+      voters_count: voters_count(multiple, object),
       options: options,
       emojis: Pleroma.Web.MastodonAPI.StatusView.build_emojis(object.data["emoji"])
     }
@@ -68,11 +68,19 @@ defmodule Pleroma.Web.MastodonAPI.PollView do
     end)
   end
 
-  defp voters_count(%{data: %{"voters" => voters}}) when is_list(voters) do
+  defp voters_count(false, _poll_data) do
+    # Mastodon always sets voter count to "null" unless multiple options were selectable
+    # Some clients may rely on this to detect multiple selection polls and it can mess
+    # up percentages for some clients if we never got a correct remote voter count and
+    # only count local voters here; see https://akkoma.dev/AkkomaGang/akkoma/issues/190
+    nil
+  end
+
+  defp voters_count(_multiple, %{data: %{"voters" => voters}}) when is_list(voters) do
     length(voters)
   end
 
-  defp voters_count(_), do: 0
+  defp voters_count(_, _), do: 0
 
   defp voted_and_own_votes(%{object: object} = params, options) do
     if params[:for] do

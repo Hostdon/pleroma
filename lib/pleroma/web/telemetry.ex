@@ -208,8 +208,10 @@ defmodule Pleroma.Web.Telemetry do
     dist_metrics ++ vm_metrics
   end
 
-  defp common_metrics do
+  defp common_metrics(byte_unit \\ :byte) do
     [
+      last_value("vm.portio.in.total", unit: {:byte, byte_unit}),
+      last_value("vm.portio.out.total", unit: {:byte, byte_unit}),
       last_value("pleroma.local_users.total"),
       last_value("pleroma.domains.total"),
       last_value("pleroma.local_statuses.total"),
@@ -220,12 +222,20 @@ defmodule Pleroma.Web.Telemetry do
   def prometheus_metrics,
     do: common_metrics() ++ distribution_metrics() ++ summary_fallback_metrics()
 
-  def live_dashboard_metrics, do: common_metrics() ++ summary_metrics(:megabyte)
+  def live_dashboard_metrics, do: common_metrics(:megabyte) ++ summary_metrics(:megabyte)
 
   defp periodic_measurements do
     [
+      {__MODULE__, :io_stats, []},
       {__MODULE__, :instance_stats, []}
     ]
+  end
+
+  def io_stats do
+    # All IO done via erlang ports, i.e. mostly network but also e.g. fasthtml_workers. NOT disk IO!
+    {{:input, input}, {:output, output}} = :erlang.statistics(:io)
+    :telemetry.execute([:vm, :portio, :in], %{total: input}, %{})
+    :telemetry.execute([:vm, :portio, :out], %{total: output}, %{})
   end
 
   def instance_stats do

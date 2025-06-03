@@ -190,7 +190,6 @@ defmodule Pleroma.Web.WebFingerTest do
     end
   end
 
-  @tag capture_log: true
   test "prevents forgeries" do
     Tesla.Mock.mock(fn
       %{url: "https://bad.com/.well-known/webfinger?resource=acct:meanie@bad.com"} ->

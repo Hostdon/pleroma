@@ -57,7 +57,6 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier.NoteHandlingTest do
       assert activity == returned_activity
     end
 
-    @tag capture_log: true
     test "it fetches reply-to activities if we don't have them" do
       data =
         File.read!("test/fixtures/mastodon-post-activity.json")
@@ -537,7 +536,6 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier.NoteHandlingTest do
       assert modified_object["inReplyTo"] == []
     end
 
-    @tag capture_log: true
     test "returns modified object when allowed incoming reply", %{data: data} do
       object_with_reply =
         Map.put(
@@ -700,7 +698,6 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier.NoteHandlingTest do
     assert Transmogrifier.take_emoji_tags(user) == [
              %{
                "icon" => %{"type" => "Image", "url" => "https://example.org/firefox.png"},
-               "id" => "https://example.org/firefox.png",
                "name" => ":firefox:",
                "type" => "Emoji",
                "updated" => "1970-01-01T00:00:00Z"

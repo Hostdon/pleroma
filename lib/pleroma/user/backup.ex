@@ -119,7 +119,7 @@ defmodule Pleroma.User.Backup do
     end
   end
 
-  @files [~c"actor.json", ~c"outbox.json", ~c"likes.json", ~c"bookmarks.json"]
+  @files ["actor.json", "outbox.json", "likes.json", "bookmarks.json"]
   def export(%__MODULE__{} = backup) do
     backup = Repo.preload(backup, :user)
     name = String.trim_trailing(backup.file_name, ".zip")
@@ -130,10 +130,9 @@ defmodule Pleroma.User.Backup do
          :ok <- statuses(dir, backup.user),
          :ok <- likes(dir, backup.user),
          :ok <- bookmarks(dir, backup.user),
-         {:ok, zip_path} <-
-           :zip.create(String.to_charlist(dir <> ".zip"), @files, cwd: String.to_charlist(dir)),
+         {:ok, zip_path} <- Pleroma.SafeZip.zip(dir <> ".zip", @files, dir),
          {:ok, _} <- File.rm_rf(dir) do
-      {:ok, to_string(zip_path)}
+      {:ok, zip_path}
     end
   end
 

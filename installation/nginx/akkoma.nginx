@@ -3,7 +3,7 @@
 # See the documentation at docs.akkoma.dev for your particular distro/OS for
 # installation instructions.
 
-proxy_cache_path /tmp/akkoma-media-cache levels=1:2 keys_zone=akkoma_media_cache:10m max_size=1g
+proxy_cache_path /var/tmp/akkoma-media-cache levels=1:2 keys_zone=akkoma_media_cache:10m max_size=1g
                  inactive=720m use_temp_path=off;
 
 # this is explicitly IPv4 since Pleroma.Web.Endpoint binds on IPv4 only

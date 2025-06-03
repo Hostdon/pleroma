@@ -88,12 +88,12 @@ defmodule Pleroma.Web.Plugs.UploadedMedia do
       Map.get(opts, :static_plug_opts)
       |> Map.put(:at, [@path])
       |> Map.put(:from, directory)
-      |> Map.put(:set_content_type, false)
+      |> Map.put(:content_types, false)
 
     conn =
       conn
       |> set_content_type(opts, conn.request_path)
-      |> Pleroma.Web.Plugs.StaticNoCT.call(static_opts)
+      |> Plug.Static.call(static_opts)
 
     if conn.halted do
       conn

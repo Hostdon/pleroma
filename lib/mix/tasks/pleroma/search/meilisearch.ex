@@ -48,7 +48,7 @@ defmodule Mix.Tasks.Pleroma.Search.Meilisearch do
         ]
       )
 
-    IO.puts("Created indices. Starting to insert posts.")
+    shell_info("Created indices. Starting to insert posts.")
 
     chunk_size = Pleroma.Config.get([Pleroma.Search.Meilisearch, :initial_indexing_chunk_size])
 
@@ -65,7 +65,7 @@ defmodule Mix.Tasks.Pleroma.Search.Meilisearch do
           )
 
         count = query |> Pleroma.Repo.aggregate(:count, :data)
-        IO.puts("Entries to index: #{count}")
+        shell_info("Entries to index: #{count}")
 
         Pleroma.Repo.stream(
           query,
@@ -92,10 +92,10 @@ defmodule Mix.Tasks.Pleroma.Search.Meilisearch do
 
           with {:ok, res} <- result do
             if not Map.has_key?(res, "indexUid") do
-              IO.puts("\nFailed to index: #{inspect(result)}")
+              shell_info("\nFailed to index: #{inspect(result)}")
             end
           else
-            e -> IO.puts("\nFailed to index due to network error: #{inspect(e)}")
+            e -> shell_error("\nFailed to index due to network error: #{inspect(e)}")
           end
         end)
         |> Stream.run()
@@ -126,11 +126,15 @@ defmodule Mix.Tasks.Pleroma.Search.Meilisearch do
     decoded = Jason.decode!(result.body)
 
     if decoded["results"] do
-      Enum.each(decoded["results"], fn %{"description" => desc, "key" => key} ->
-        IO.puts("#{desc}: #{key}")
+      Enum.each(decoded["results"], fn
+        %{"name" => name, "key" => key} ->
+          shell_info("#{name}: #{key}")
+
+        %{"description" => desc, "key" => key} ->
+          shell_info("#{desc}: #{key}")
       end)
     else
-      IO.puts("Error fetching the keys, check the master key is correct: #{inspect(decoded)}")
+      shell_error("Error fetching the keys, check the master key is correct: #{inspect(decoded)}")
     end
   end
 
@@ -138,7 +142,7 @@ defmodule Mix.Tasks.Pleroma.Search.Meilisearch do
     start_pleroma()
 
     {:ok, result} = meili_get("/indexes/objects/stats")
-    IO.puts("Number of entries: #{result["numberOfDocuments"]}")
-    IO.puts("Indexing? #{result["isIndexing"]}")
+    shell_info("Number of entries: #{result["numberOfDocuments"]}")
+    shell_info("Indexing? #{result["isIndexing"]}")
   end
 end

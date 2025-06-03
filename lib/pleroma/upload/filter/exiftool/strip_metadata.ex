@@ -18,6 +18,7 @@ defmodule Pleroma.Upload.Filter.Exiftool.StripMetadata do
 
   # Formats not compatible with exiftool at this time
   def filter(%Pleroma.Upload{content_type: "image/webp"}), do: {:ok, :noop}
+  def filter(%Pleroma.Upload{content_type: "image/bmp"}), do: {:ok, :noop}
   def filter(%Pleroma.Upload{content_type: "image/svg+xml"}), do: {:ok, :noop}
 
   def filter(%Pleroma.Upload{tempfile: file, content_type: "image" <> _}) do

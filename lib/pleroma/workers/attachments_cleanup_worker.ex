@@ -5,28 +5,63 @@
 defmodule Pleroma.Workers.AttachmentsCleanupWorker do
   import Ecto.Query
 
+  alias Pleroma.Config
   alias Pleroma.Object
   alias Pleroma.Repo
 
   use Pleroma.Workers.WorkerHelper, queue: "attachments_cleanup"
 
+  @doc """
+  Takes object data and if necessary enqueues a job,
+  deleting all attachments of the post eligible for cleanup
+  """
+  @spec enqueue_if_needed(map()) :: {:ok, Oban.Job.t()} | {:ok, :skip} | {:error, any()}
+  def enqueue_if_needed(%{
+        "actor" => actor,
+        "attachment" => [_ | _] = attachments
+      }) do
+    with true <- Config.get([:instance, :cleanup_attachments]),
+         true <- URI.parse(actor).host == Pleroma.Web.Endpoint.host(),
+         [_ | _] <- attachments do
+      enqueue(
+        "cleanup_attachments",
+        %{"actor" => actor, "attachments" => attachments},
+        schedule_in: Config.get!([:instance, :cleanup_attachments_delay])
+      )
+    else
+      _ -> {:ok, :skip}
+    end
+  end
+
+  def enqueue_if_needed(_), do: {:ok, :skip}
+
   @impl Oban.Worker
   def perform(%Job{
         args: %{
           "op" => "cleanup_attachments",
-          "object" => %{"data" => %{"attachment" => [_ | _] = attachments, "actor" => actor}}
+          "attachments" => [_ | _] = attachments,
+          "actor" => actor
         }
       }) do
-    if Pleroma.Config.get([:instance, :cleanup_attachments], false) do
-      attachments
-      |> Enum.flat_map(fn item -> Enum.map(item["url"], & &1["href"]) end)
-      |> fetch_objects
-      |> prepare_objects(actor, Enum.map(attachments, & &1["name"]))
-      |> filter_objects
-      |> do_clean
-    end
+    attachments
+    |> Enum.flat_map(fn item -> Enum.map(item["url"], & &1["href"]) end)
+    |> fetch_objects
+    |> prepare_objects(actor, Enum.map(attachments, & &1["name"]))
+    |> filter_objects
+    |> do_clean
 
     {:ok, :success}
+  end
+
+  # Left over already enqueued jobs in the old format
+  # This function clause can be deleted once sufficient time passed after 3.14
+  def perform(%Job{
+        args: %{
+          "op" => "cleanup_attachments",
+          "object" => %{"data" => data}
+        }
+      }) do
+    enqueue_if_needed(data)
   end
 
   def perform(%Job{args: %{"op" => "cleanup_attachments", "object" => _object}}), do: {:ok, :skip}

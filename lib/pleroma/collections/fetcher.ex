@@ -14,7 +14,7 @@ defmodule Akkoma.Collections.Fetcher do
   @spec fetch_collection(String.t() | map()) :: {:ok, [Pleroma.Object.t()]} | {:error, any()}
   def fetch_collection(ap_id) when is_binary(ap_id) do
     with {:ok, page} <- Fetcher.fetch_and_contain_remote_object_from_id(ap_id) do
-      {:ok, objects_from_collection(page)}
+      partial_as_success(objects_from_collection(page))
     else
       e ->
         Logger.error("Could not fetch collection #{ap_id} - #{inspect(e)}")
@@ -24,8 +24,11 @@ defmodule Akkoma.Collections.Fetcher do
 
   def fetch_collection(%{"type" => type} = page)
       when type in ["Collection", "OrderedCollection", "CollectionPage", "OrderedCollectionPage"] do
-    {:ok, objects_from_collection(page)}
+    partial_as_success(objects_from_collection(page))
   end
+
+  defp partial_as_success({:partial, items}), do: {:ok, items}
+  defp partial_as_success(res), do: res
 
   defp items_in_page(%{"type" => type, "orderedItems" => items})
        when is_list(items) and type in ["OrderedCollection", "OrderedCollectionPage"],
@@ -53,11 +56,11 @@ defmodule Akkoma.Collections.Fetcher do
     fetch_page_items(id)
   end
 
-  defp objects_from_collection(_page), do: []
+  defp objects_from_collection(_page), do: {:ok, []}
 
   defp fetch_page_items(id, items \\ []) do
     if Enum.count(items) >= Config.get([:activitypub, :max_collection_objects]) do
-      items
+      {:ok, items}
     else
       with {:ok, page} <- Fetcher.fetch_and_contain_remote_object_from_id(id) do
         objects = items_in_page(page)
@@ -65,18 +68,22 @@ defmodule Akkoma.Collections.Fetcher do
         if Enum.count(objects) > 0 do
           maybe_next_page(page, items ++ objects)
         else
-          items
+          {:ok, items}
         end
       else
         {:error, :not_found} ->
-          items
+          {:ok, items}
 
         {:error, :forbidden} ->
-          items
+          {:ok, items}
 
         {:error, error} ->
           Logger.error("Could not fetch page #{id} - #{inspect(error)}")
-          {:error, error}
+
+          case items do
+            [] -> {:error, error}
+            _ -> {:partial, items}
+          end
       end
     end
   end
@@ -85,5 +92,5 @@ defmodule Akkoma.Collections.Fetcher do
     fetch_page_items(id, items)
   end
 
-  defp maybe_next_page(_, items), do: items
+  defp maybe_next_page(_, items), do: {:ok, items}
 end

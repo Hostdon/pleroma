@@ -71,7 +71,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
 
   defp fix_replies(%{"replies" => replies} = data) when is_list(replies), do: data
 
-  defp fix_replies(%{"replies" => %{"first" => first}} = data) do
+  defp fix_replies(%{"replies" => %{"first" => first}} = data) when is_binary(first) do
     with {:ok, replies} <- Akkoma.Collections.Fetcher.fetch_collection(first) do
       Map.put(data, "replies", replies)
     else
@@ -80,6 +80,10 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
         Map.put(data, "replies", [])
     end
   end
+
+  defp fix_replies(%{"replies" => %{"first" => %{"items" => replies}}} = data)
+       when is_list(replies),
+       do: Map.put(data, "replies", replies)
 
   defp fix_replies(%{"replies" => %{"items" => replies}} = data) when is_list(replies),
     do: Map.put(data, "replies", replies)

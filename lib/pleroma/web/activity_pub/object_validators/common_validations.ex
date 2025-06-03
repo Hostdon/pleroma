@@ -54,10 +54,14 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.CommonValidations do
   def validate_object_presence(cng, options \\ []) do
     field_name = Keyword.get(options, :field_name, :object)
     allowed_types = Keyword.get(options, :allowed_types, false)
+    allowed_categories = Keyword.get(options, :allowed_object_categores, [:object, :activity])
 
     cng
     |> validate_change(field_name, fn field_name, object_id ->
-      object = Object.get_cached_by_ap_id(object_id) || Activity.get_by_ap_id(object_id)
+      object =
+        (:object in allowed_categories && Object.get_cached_by_ap_id(object_id)) ||
+          (:activity in allowed_categories && Activity.get_by_ap_id(object_id)) ||
+          nil
 
       cond do
         !object ->

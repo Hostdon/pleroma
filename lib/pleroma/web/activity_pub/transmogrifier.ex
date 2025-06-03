@@ -21,7 +21,6 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Web.ActivityPub.ObjectValidators.CommonFixes
   alias Pleroma.Web.Federator
-  alias Pleroma.Workers.TransmogrifierWorker
 
   import Ecto.Query
 
@@ -30,6 +29,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
 
   @doc """
   Modifies an incoming AP object (mastodon format) to our internal format.
+  (This only deals with non-activity AP objects)
   """
   def fix_object(object, options \\ []) do
     object
@@ -45,6 +45,38 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     |> fix_content_map()
     |> fix_addressing()
     |> fix_summary()
+    |> fix_history(&fix_object/1)
+  end
+
+  defp maybe_fix_object(%{"attributedTo" => _} = object), do: fix_object(object)
+  defp maybe_fix_object(object), do: object
+
+  defp fix_history(%{"formerRepresentations" => %{"orderedItems" => list}} = obj, fix_fun)
+       when is_list(list) do
+    update_in(obj["formerRepresentations"]["orderedItems"], fn h -> Enum.map(h, fix_fun) end)
+  end
+
+  defp fix_history(obj, _), do: obj
+
+  defp fix_recursive(obj, fun) do
+    # unlike Erlang, Elixir does not support recursive inline functions
+    # which would allow us to avoid reconstructing this on every recursion
+    rec_fun = fn
+      obj when is_map(obj) -> fix_recursive(obj, fun)
+      # there may be simple AP IDs in history (or object field)
+      obj -> obj
+    end
+
+    obj
+    |> fun.()
+    |> fix_history(rec_fun)
+    |> then(fn
+      %{"object" => object} = doc when is_map(object) ->
+        update_in(doc["object"], rec_fun)
+
+      apdoc ->
+        apdoc
+    end)
   end
 
   def fix_summary(%{"summary" => nil} = object) do
@@ -415,17 +447,10 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   end
 
   def handle_incoming(data, options \\ []) do
-    data = normalise_addressing_public(data)
-
-    data =
-      if data["object"] != nil do
-        object = normalise_addressing_public(data["object"])
-        Map.put(data, "object", object)
-      else
-        data
-      end
-
-    handle_incoming_normalised(data, options)
+    data
+    |> fix_recursive(&normalise_addressing_public/1)
+    |> fix_recursive(&strip_internal_fields/1)
+    |> handle_incoming_normalised(options)
   end
 
   defp handle_incoming_normalised(data, options)
@@ -491,7 +516,6 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
 
     object =
       data["object"]
-      |> strip_internal_fields()
       |> fix_type(fetch_options)
       |> fix_in_reply_to(fetch_options)
       |> fix_quote_url(fetch_options)
@@ -520,10 +544,22 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
 
   defp handle_incoming_normalised(%{"type" => type} = data, _options)
        when type in ~w{Like EmojiReact Announce Add Remove} do
-    with :ok <- ObjectValidator.fetch_actor_and_object(data),
+    with {_, :ok} <- {:link, ObjectValidator.fetch_actor_and_object(data)},
          {:ok, activity, _meta} <- Pipeline.common_pipeline(data, local: false) do
       {:ok, activity}
     else
+      {:link, {:error, :ignore}} ->
+        {:error, :ignore}
+
+      {:link, {:error, {:validate, _}} = e} ->
+        e
+
+      {:link, {:error, {:reject, _}} = e} ->
+        e
+
+      {:link, _} ->
+        {:error, :link_resolve_failed}
+
       e ->
         {:error, e}
     end
@@ -534,6 +570,9 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
          _options
        )
        when type in ~w{Update Block Follow Accept Reject} do
+    fixed_obj = maybe_fix_object(data["object"])
+    data = if fixed_obj != nil, do: %{data | "object" => fixed_obj}, else: data
+
     with {:ok, %User{}} <- ObjectValidator.fetch_actor(data),
          {:ok, activity, _} <-
            Pipeline.common_pipeline(data, local: false) do
@@ -545,22 +584,45 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
          %{"type" => "Delete"} = data,
          _options
        ) do
-    with {:ok, activity, _} <-
-           Pipeline.common_pipeline(data, local: false) do
+    oid_result = ObjectValidators.ObjectID.cast(data["object"])
+
+    with {_, {:ok, object_id}} <- {:object_id, oid_result},
+         object <- Object.get_cached_by_ap_id(object_id),
+         {_, false} <- {:tombstone, Object.tombstone_object?(object) && !data["actor"]},
+         {:ok, activity, _} <- Pipeline.common_pipeline(data, local: false) do
       {:ok, activity}
     else
-      {:error, {:validate, _}} = e ->
-        # Check if we have a create activity for this
-        with {:ok, object_id} <- ObjectValidators.ObjectID.cast(data["object"]),
-             %Activity{data: %{"actor" => actor}} <-
-               Activity.create_by_object_ap_id(object_id) |> Repo.one(),
-             # We have one, insert a tombstone and retry
-             {:ok, tombstone_data, _} <- Builder.tombstone(actor, object_id),
-             {:ok, _tombstone} <- Object.create(tombstone_data) do
-          handle_incoming(data)
+      {:object_id, _} ->
+        {:error, {:validate, "Invalid object id: #{data["object"]}"}}
+
+      {:tombstone, true} ->
+        {:error, :ignore}
+
+      {:error, {:validate, {:error, %Ecto.Changeset{errors: errors}}}} = e ->
+        if errors[:object] == {"can't find object", []} do
+          # Check if we have a create activity for this
+          # (e.g. from a db prune without --prune-activities)
+          # We'd still like to process side effects so insert a fake tombstone and retry
+          # (real tombstones from Object.delete do not have an actor field)
+          with {:ok, object_id} <- ObjectValidators.ObjectID.cast(data["object"]),
+               {_, %Activity{data: %{"actor" => actor}}} <-
+                 {:create, Activity.create_by_object_ap_id(object_id) |> Repo.one()},
+               {:ok, tombstone_data, _} <- Builder.tombstone(actor, object_id),
+               {:ok, _tombstone} <- Object.create(tombstone_data) do
+            handle_incoming(data)
+          else
+            {:create, _} -> {:error, :ignore}
+            _ -> e
+          end
         else
-          _ -> e
+          e
         end
+
+      {:error, _} = e ->
+        e
+
+      e ->
+        {:error, e}
     end
   end
 
@@ -593,6 +655,20 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
        when type in ["Like", "EmojiReact", "Announce", "Block"] do
     with {:ok, activity, _} <- Pipeline.common_pipeline(data, local: false) do
       {:ok, activity}
+    else
+      {:error, {:validate, {:error, %Ecto.Changeset{errors: errors}}}} = e ->
+        # If we never saw the activity being undone, no need to do anything.
+        # Inspectinging the validation error content is a bit akward, but looking up the Activity
+        # ahead of time here would be too costly since Activity queries are not cached
+        # and there's no way atm to pass the retrieved result along along
+        if errors[:object] == {"can't find object", []} do
+          {:error, :ignore}
+        else
+          e
+        end
+
+      e ->
+        e
     end
   end
 
@@ -950,8 +1026,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
       "icon" => %{"url" => "#{URI.encode(url)}", "type" => "Image"},
       "name" => ":" <> name <> ":",
       "type" => "Emoji",
-      "updated" => "1970-01-01T00:00:00Z",
-      "id" => url
+      "updated" => "1970-01-01T00:00:00Z"
     }
   end
 
@@ -996,6 +1071,8 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     Map.put(object, "attachment", attachments)
   end
 
+  # for outgoing docs immediately stripping internal fields recursively breaks later emoji transformations
+  # (XXX: it would be better to reorder operations so we can always use recursive stripping)
   def strip_internal_fields(object) do
     Map.drop(object, Pleroma.Constants.object_internal_fields())
   end
@@ -1007,47 +1084,6 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   end
 
   defp strip_internal_tags(object), do: object
-
-  def perform(:user_upgrade, user) do
-    # we pass a fake user so that the followers collection is stripped away
-    old_follower_address = User.ap_followers(%User{nickname: user.nickname})
-
-    from(
-      a in Activity,
-      where: ^old_follower_address in a.recipients,
-      update: [
-        set: [
-          recipients:
-            fragment(
-              "array_replace(?,?,?)",
-              a.recipients,
-              ^old_follower_address,
-              ^user.follower_address
-            )
-        ]
-      ]
-    )
-    |> Repo.update_all([])
-  end
-
-  def upgrade_user_from_ap_id(ap_id) do
-    with %User{local: false} = user <- User.get_cached_by_ap_id(ap_id),
-         {:ok, data} <- ActivityPub.fetch_and_prepare_user_from_ap_id(ap_id),
-         {:ok, user} <- update_user(user, data) do
-      {:ok, _pid} = Task.start(fn -> ActivityPub.pinned_fetch_task(user) end)
-      TransmogrifierWorker.enqueue("user_upgrade", %{"user_id" => user.id})
-      {:ok, user}
-    else
-      %User{} = user -> {:ok, user}
-      e -> e
-    end
-  end
-
-  defp update_user(user, data) do
-    user
-    |> User.remote_user_changeset(data)
-    |> User.update_and_set_cache()
-  end
 
   def maybe_fix_user_url(%{"url" => url} = data) when is_map(url) do
     Map.put(data, "url", url["href"])

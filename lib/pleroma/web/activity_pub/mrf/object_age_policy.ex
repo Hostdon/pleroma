@@ -34,16 +34,34 @@ defmodule Pleroma.Web.ActivityPub.MRF.ObjectAgePolicy do
     end
   end
 
+  @spec delete_and_count(list(), term()) :: {integer(), list()}
+  defp delete_and_count(list, element), do: delete_and_count(list, element, {0, [], list})
+
+  defp delete_and_count([], _element, {0, _nlist, olist}), do: {0, olist}
+  defp delete_and_count([], _element, {count, nlist, _olist}), do: {count, Enum.reverse(nlist)}
+
+  defp delete_and_count([h | r], h, {count, nlist, olist}),
+    do: delete_and_count(r, h, {count + 1, nlist, olist})
+
+  defp delete_and_count([h | r], element, {count, nlist, olist}),
+    do: delete_and_count(r, element, {count, [h | nlist], olist})
+
+  defp insert_if_needed(list, oldcount, element) do
+    if oldcount <= 0 || Enum.member?(list, element) do
+      list
+    else
+      [element | list]
+    end
+  end
+
   defp check_delist(message, actions) do
     if :delist in actions do
       with %User{} = user <- User.get_cached_by_ap_id(message["actor"]) do
-        to =
-          List.delete(message["to"] || [], Pleroma.Constants.as_public()) ++
-            [user.follower_address]
+        {pubcnt, to} = delete_and_count(message["to"] || [], Pleroma.Constants.as_public())
+        {flwcnt, cc} = delete_and_count(message["cc"] || [], user.follower_address)
 
-        cc =
-          List.delete(message["cc"] || [], user.follower_address) ++
-            [Pleroma.Constants.as_public()]
+        cc = insert_if_needed(cc, pubcnt, Pleroma.Constants.as_public())
+        to = insert_if_needed(to, flwcnt, user.follower_address)
 
         message =
           message
@@ -65,8 +83,8 @@ defmodule Pleroma.Web.ActivityPub.MRF.ObjectAgePolicy do
   defp check_strip_followers(message, actions) do
     if :strip_followers in actions do
       with %User{} = user <- User.get_cached_by_ap_id(message["actor"]) do
-        to = List.delete(message["to"] || [], user.follower_address)
-        cc = List.delete(message["cc"] || [], user.follower_address)
+        {_, to} = delete_and_count(message["to"] || [], user.follower_address)
+        {_, cc} = delete_and_count(message["cc"] || [], user.follower_address)
 
         message =
           message

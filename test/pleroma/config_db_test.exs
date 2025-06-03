@@ -389,7 +389,6 @@ defmodule Pleroma.ConfigDBTest do
                %{"tuple" => [":uploader", "Pleroma.Uploaders.Local"]},
                %{"tuple" => [":filters", ["Pleroma.Upload.Filter.Dedupe"]]},
                %{"tuple" => [":link_name", true]},
-               %{"tuple" => [":proxy_remote", false]},
                %{"tuple" => [":common_map", %{":key" => "value"}]},
                %{
                  "tuple" => [
@@ -413,7 +412,6 @@ defmodule Pleroma.ConfigDBTest do
                uploader: Pleroma.Uploaders.Local,
                filters: [Pleroma.Upload.Filter.Dedupe],
                link_name: true,
-               proxy_remote: false,
                common_map: %{key: "value"},
                proxy_opts: [
                  redirect_on_failure: false,

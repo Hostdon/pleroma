@@ -9,7 +9,6 @@ defmodule Pleroma.Object.ContainmentTest do
   alias Pleroma.User
 
   import Pleroma.Factory
-  import ExUnit.CaptureLog
 
   setup_all do
     Tesla.Mock.mock_global(fn env -> apply(HttpRequestMock, :request, [env]) end)
@@ -136,23 +135,17 @@ defmodule Pleroma.Object.ContainmentTest do
         )
     end
 
-    test "contain_id_to_fetch() allows display URLs" do
+    test "contain_id_to_fetch() allows fragments and normalises domain casing" do
       data = %{
-        "id" => "http://example.com/~alyssa/activities/1234.json",
-        "url" => "http://example.com/@alyssa/status/1234"
+        "id" => "http://example.com/users/capybara",
+        "url" => "http://example.com/@capybara"
       }
 
-      :ok =
-        Containment.contain_id_to_fetch(
-          "http://example.com/@alyssa/status/1234",
-          data
-        )
-
-      :ok =
-        Containment.contain_id_to_fetch(
-          "http://example.com/@alyssa/status/1234/",
-          data
-        )
+      assert :ok ==
+               Containment.contain_id_to_fetch(
+                 "http://EXAMPLE.com/users/capybara#key",
+                 data
+               )
     end
 
     test "users cannot be collided through fake direction spoofing attempts" do
@@ -164,10 +157,14 @@ defmodule Pleroma.Object.ContainmentTest do
           follower_address: User.ap_followers(%User{nickname: "rye@niu.moe"})
         })
 
-      assert capture_log(fn ->
-               {:error, _} = User.get_or_fetch_by_ap_id("https://n1u.moe/users/rye")
-             end) =~
-               "[error] Could not decode user at fetch https://n1u.moe/users/rye"
+      # Fetch from an attempted spoof id will suceed, but automatically retrieve
+      # the real data from the homeserver instead of naïvely using the spoof
+      {:ok, fetched_user} = User.get_or_fetch_by_ap_id("https://n1u.moe/users/rye")
+
+      refute fetched_user.name == "evil rye"
+      refute fetched_user.raw_bio == "boooo!"
+      assert fetched_user.name == "♡ rye ♡"
+      assert fetched_user.nickname == "rye@niu.moe"
     end
 
     test "contain_origin_from_id() gracefully handles cases where no ID is present" do

@@ -43,7 +43,7 @@ defmodule Pleroma.Web.MastodonAPI.PollViewTest do
         %{title: "why are you even asking?", votes_count: 0}
       ],
       votes_count: 0,
-      voters_count: 0
+      voters_count: nil
     }
 
     result = PollView.render("show.json", %{object: object})

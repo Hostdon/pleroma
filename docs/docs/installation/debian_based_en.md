@@ -35,32 +35,24 @@ sudo useradd -r -s /bin/false -m -d /var/lib/akkoma -U akkoma
 
 ### Install Elixir and Erlang
 
+#### Using `apt`
 If your distribution packages a recent enough version of Elixir, you can install it directly from the distro repositories and skip to the next section of the guide:
 
 ```shell
 sudo apt install elixir erlang-dev erlang-nox
 ```
 
-Otherwise use [asdf](https://github.com/asdf-vm/asdf) to install the latest versions of Elixir and Erlang.
+#### Using `asdf`
+If your distribution does not have a recent version of Elxir in their repositories, you can use [asdf](https://asdf-vm.com/) to install a newer version of Elixir and Erlang.
 
 First, install some dependencies needed to build Elixir and Erlang:
 ```shell
 sudo apt install curl unzip build-essential autoconf m4 libncurses5-dev libssh-dev unixodbc-dev xsltproc libxml2-utils libncurses-dev
 ```
 
-Then login to the `akkoma` user and install asdf:
-```shell
-git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.11.3
-```
+Then login to the `akkoma` user.
 
-Add the following lines to `~/.bashrc`:
-```shell
-. "$HOME/.asdf/asdf.sh"
-# asdf completions
-. "$HOME/.asdf/completions/asdf.bash"
-```
-
-Restart the shell:
+Install asdf by following steps 1 to 3 on [their website](https://asdf-vm.com/guide/getting-started.html), then restart the shell to load asdf:
 ```shell
 exec $SHELL
 ```
@@ -69,15 +61,15 @@ Next install Erlang:
 ```shell
 asdf plugin add erlang https://github.com/asdf-vm/asdf-erlang.git
 export KERL_CONFIGURE_OPTIONS="--disable-debug --without-javac"
-asdf install erlang 25.3.2.5
-asdf global erlang 25.3.2.5
+asdf install erlang 27.2.4
+asdf set erlang 27.2.4
 ```
 
 Now install Elixir:
 ```shell
-asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git
-asdf install elixir 1.15.4-otp-25
-asdf global elixir 1.15.4-otp-25
+asdf plugin add elixir https://github.com/asdf-vm/asdf-elixir.git
+asdf install elixir 1.18.2-otp-27
+asdf set elixir 1.18.2-otp-27
 ```
 
 Confirm that Elixir is installed correctly by checking the version:

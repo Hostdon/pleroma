@@ -263,7 +263,12 @@ defmodule HttpRequestMock do
     {:ok,
      %Tesla.Env{
        status: 200,
-       body: File.read!("test/fixtures/tesla_mock/rye.json"),
+       body:
+         File.read!("test/fixtures/tesla_mock/rye.json")
+         |> Jason.decode!()
+         |> Map.put("name", "evil rye")
+         |> Map.put("bio", "boooo!")
+         |> Jason.encode!(),
        headers: activitypub_object_headers()
      }}
   end
@@ -415,6 +420,28 @@ defmodule HttpRequestMock do
      %Tesla.Env{
        status: 200,
        body: File.read!("test/fixtures/tesla_mock/admin@mastdon.example.org.json"),
+       headers: activitypub_object_headers()
+     }}
+  end
+
+  def get("http://mastodon.example.org/users/admin#main-key", _, _, _) do
+    {:ok,
+     %Tesla.Env{
+       status: 200,
+       body: File.read!("test/fixtures/tesla_mock/admin@mastdon.example.org.json"),
+       headers: activitypub_object_headers()
+     }}
+  end
+
+  def get("http://remote.example/users/with_key_id_of_admin-mastodon.example.org" = url, _, _, _) do
+    {:ok,
+     %Tesla.Env{
+       status: 200,
+       url: url,
+       body:
+         File.read!(
+           "test/fixtures/tesla_mock/evil@remote.example_with_keyid_from_admin@mastdon.example.org.json"
+         ),
        headers: activitypub_object_headers()
      }}
   end
@@ -953,6 +980,15 @@ defmodule HttpRequestMock do
      }}
   end
 
+  def get("https://mastodon.social/users/lambadalambda#main-key", _, _, _) do
+    {:ok,
+     %Tesla.Env{
+       status: 200,
+       body: File.read!("test/fixtures/lambadalambda.json"),
+       headers: activitypub_object_headers()
+     }}
+  end
+
   def get("https://mastodon.social/users/lambadalambda/collections/featured", _, _, _) do
     {:ok,
      %Tesla.Env{
@@ -1398,6 +1434,15 @@ defmodule HttpRequestMock do
      }}
   end
 
+  def get("https://relay.mastodon.host/actor#main-key", _, _, _) do
+    {:ok,
+     %Tesla.Env{
+       status: 200,
+       body: File.read!("test/fixtures/relay/relay.json"),
+       headers: activitypub_object_headers()
+     }}
+  end
+
   def get("http://localhost:4001/", _, "", [{"accept", "text/html"}]) do
     {:ok, %Tesla.Env{status: 200, body: File.read!("test/fixtures/tesla_mock/7369654.html")}}
   end
@@ -1708,12 +1753,39 @@ defmodule HttpRequestMock do
 
   # Most of the rich media mocks are missing HEAD requests, so we just return 404.
   @rich_media_mocks [
+    "https://example.com/empty",
+    "https://example.com/error",
+    "https://example.com/malformed",
+    "https://example.com/non-ogp",
+    "https://example.com/oembed",
+    "https://example.com/oembed.json",
     "https://example.com/ogp",
     "https://example.com/ogp-missing-data",
-    "https://example.com/twitter-card"
+    "https://example.com/ogp-missing-title",
+    "https://example.com/twitter-card",
+    "https://google.com/",
+    "https://pleroma.local/notice/9kCP7V",
+    "https://yahoo.com/"
   ]
+
   def head(url, _query, _body, _headers) when url in @rich_media_mocks do
     {:ok, %Tesla.Env{status: 404, body: ""}}
+  end
+
+  def head("https://example.com/pdf-file", _, _, _) do
+    {:ok,
+     %Tesla.Env{
+       status: 200,
+       headers: [{"content-length", "1000000"}, {"content-type", "application/pdf"}]
+     }}
+  end
+
+  def head("https://example.com/huge-page", _, _, _) do
+    {:ok,
+     %Tesla.Env{
+       status: 200,
+       headers: [{"content-length", "2000001"}, {"content-type", "text/html"}]
+     }}
   end
 
   def head(url, query, body, headers) do

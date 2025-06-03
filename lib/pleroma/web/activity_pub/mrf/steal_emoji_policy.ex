@@ -101,10 +101,19 @@ defmodule Pleroma.Web.ActivityPub.MRF.StealEmojiPolicy do
     end
   end
 
+  defp get_int_header(headers, header_name, default \\ nil) do
+    with rawval when rawval != :undefined <- :proplists.get_value(header_name, headers),
+         {int, ""} <- Integer.parse(rawval) do
+      int
+    else
+      _ -> default
+    end
+  end
+
   defp is_remote_size_within_limit?(url) do
     with {:ok, %{status: status, headers: headers} = _response} when status in 200..299 <-
            Pleroma.HTTP.request(:head, url, nil, [], []) do
-      content_length = :proplists.get_value("content-length", headers, nil)
+      content_length = get_int_header(headers, "content-length")
       size_limit = Config.get([:mrf_steal_emoji, :size_limit], @size_limit)
 
       accept_unknown =
@@ -172,7 +181,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.StealEmojiPolicy do
               description: <<_::272, _::_*256>>,
               key: :hosts | :rejected_shortcodes | :size_limit,
               suggestions: [any(), ...],
-              type: {:list, :string} | {:list, :string} | :integer
+              type: {:list, :string} | {:list, :string} | :integer | :boolean
             },
             ...
           ],
@@ -209,6 +218,12 @@ defmodule Pleroma.Web.ActivityPub.MRF.StealEmojiPolicy do
           type: :integer,
           description: "File size limit (in bytes), checked before an emoji is saved to the disk",
           suggestions: ["100000"]
+        },
+        %{
+          key: :download_unknown_size,
+          type: :boolean,
+          description: "Whether to download emoji if size can't be determined ahead of time",
+          suggestions: [false, true]
         }
       ]
     }

@@ -4,8 +4,8 @@ defmodule Pleroma.Mixfile do
   def project do
     [
       app: :pleroma,
-      version: version("3.13.2"),
-      elixir: "~> 1.14",
+      version: version("3.15.2"),
+      elixir: "~> 1.14.1 or ~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: Mix.compilers(),
       elixirc_options: [warnings_as_errors: warnings_as_errors()],
@@ -14,7 +14,7 @@ defmodule Pleroma.Mixfile do
       aliases: aliases(),
       deps: deps(),
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: ["coveralls.html": :test],
+      preferred_cli_env: ["coveralls.html": :test, "mneme.test": :test, "mneme.watch": :test],
       # Docs
       name: "Akkoma",
       homepage_url: "https://akkoma.dev/",
@@ -78,7 +78,8 @@ defmodule Pleroma.Mixfile do
         :comeonin,
         :fast_sanitize,
         :os_mon,
-        :ssl
+        :ssl,
+        :recon
       ],
       included_applications: [:ex_syslogger]
     ]
@@ -116,16 +117,17 @@ defmodule Pleroma.Mixfile do
     [
       {:phoenix, "~> 1.7.0"},
       {:phoenix_view, "~> 2.0"},
-      {:phoenix_live_dashboard, "~> 0.7.2"},
+      {:phoenix_live_dashboard, "~> 0.8.6"},
       {:tzdata, "~> 1.1.1"},
       {:plug_cowboy, "~> 2.6"},
       {:phoenix_pubsub, "~> 2.1"},
-      {:phoenix_ecto, "~> 4.4"},
+      {:phoenix_ecto, "~> 4.6"},
       {:inet_cidr, "~> 1.0.0"},
       {:ecto_enum, "~> 1.4"},
-      {:ecto_sql, "~> 3.10.0"},
-      {:postgrex, "~> 0.17.2"},
-      {:oban, "~> 2.17.8"},
+      {:ecto_sql, "~> 3.12.0"},
+      {:postgrex, "~> 0.20.0"},
+      {:oban, "~> 2.19.0"},
+      {:oban_web, "~> 2.11.0"},
       {:gettext, "~> 0.22.3"},
       {:bcrypt_elixir, "~> 3.0.1"},
       {:fast_sanitize, "~> 0.2.3"},
@@ -136,14 +138,14 @@ defmodule Pleroma.Mixfile do
       {:tesla, "~> 1.7"},
       {:castore, "~> 1.0"},
       {:cowlib, "~> 2.12"},
-      {:finch, "~> 0.16.0"},
+      {:finch, "~> 0.18.0"},
       {:jason, "~> 1.4"},
       {:trailing_format_plug, "~> 0.0.7"},
       {:mogrify, "~> 0.9"},
       {:ex_aws, "~> 2.4"},
       {:ex_aws_s3, "~> 2.4"},
       {:sweet_xml, "~> 0.7"},
-      {:earmark, "~> 1.4"},
+      {:earmark, "1.4.46"},
       {:bbcode_pleroma, "~> 0.2.0"},
       {:argon2_elixir, "~> 3.1"},
       {:cors_plug, "~> 3.0"},
@@ -157,10 +159,10 @@ defmodule Pleroma.Mixfile do
       {:floki, "~> 0.34"},
       {:timex, "~> 3.7"},
       {:ueberauth, "== 0.10.5"},
-      {:linkify, git: "https://akkoma.dev/AkkomaGang/linkify.git"},
+      {:linkify, "~> 0.5.3"},
       {:http_signatures,
        git: "https://akkoma.dev/AkkomaGang/http_signatures.git",
-       ref: "6640ce7d24c783ac2ef56e27d00d12e8dc85f396"},
+       ref: "d44c43d66758c6a73eaa4da9cffdbee0c5da44ae"},
       {:telemetry, "~> 1.2"},
       {:telemetry_poller, "~> 1.0"},
       {:telemetry_metrics, "~> 0.6"},
@@ -179,7 +181,7 @@ defmodule Pleroma.Mixfile do
       {:remote_ip, "~> 1.1.0"},
       {:captcha,
        git: "https://git.pleroma.social/pleroma/elixir-libraries/elixir-captcha.git",
-       ref: "90f6ce7672f70f56708792a98d98bd05176c9176"},
+       ref: "6630c42aaaab124e697b4e513190c89d8b64e410"},
       {:restarter, path: "./restarter"},
       {:majic,
        git: "https://akkoma.dev/AkkomaGang/majic.git",
@@ -190,16 +192,16 @@ defmodule Pleroma.Mixfile do
        git: "https://github.com/FloatingGhost/pleroma-contrib-search-parser.git",
        ref: "08971a81e68686f9ac465cfb6661d51c5e4e1e7f"},
       {:nimble_parsec, "~> 1.3", override: true},
-      {:ecto_psql_extras, "~> 0.7"},
+      {:ecto_psql_extras, "~> 0.8"},
       {:elasticsearch,
        git: "https://akkoma.dev/AkkomaGang/elasticsearch-elixir.git", ref: "main"},
       {:mfm_parser,
        git: "https://akkoma.dev/AkkomaGang/mfm-parser.git",
-       ref: "b21ab7754024af096f2d14247574f55f0063295b"},
+       ref: "360a30267a847810a63ab48f606ba227b2ca05f0"},
 
       ## dev & test
       {:ex_doc, "~> 0.30", only: :dev, runtime: false},
-      {:ex_machina, "~> 2.7", only: :test},
+      {:ex_machina, "~> 2.8", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:mock, "~> 0.3.8", only: :test},
       {:excoveralls, "0.16.1", only: :test},
@@ -208,7 +210,8 @@ defmodule Pleroma.Mixfile do
       {:dialyxir, "~> 1.3", only: [:dev], runtime: false},
       {:elixir_xml_to_map, "~> 3.0", only: :test},
       {:mint, "~> 1.5.1", override: true},
-      {:nimble_pool, "~> 1.0", override: true}
+      {:nimble_pool, "~> 1.0", override: true},
+      {:mneme, "~> 0.10.2", only: [:dev, :test]}
     ] ++ oauth_deps()
   end
 

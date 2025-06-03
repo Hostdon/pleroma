@@ -62,10 +62,10 @@ defmodule Pleroma.Web.Plugs.InstanceStatic do
     opts =
       opts
       |> Map.put(:from, from)
-      |> Map.put(:set_content_type, false)
+      |> Map.put(:content_types, false)
 
     conn
     |> set_static_content_type(request_path)
-    |> Pleroma.Web.Plugs.StaticNoCT.call(opts)
+    |> Plug.Static.call(opts)
   end
 end

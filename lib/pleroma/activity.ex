@@ -259,6 +259,27 @@ defmodule Pleroma.Activity do
   def get_create_by_object_ap_id(_), do: nil
 
   @doc """
+  Accepts a list of `ap__id`.
+  Returns a query yielding Create activities for the given objects,
+  in the same order as they were specified in the input list.
+  """
+  @spec get_presorted_create_by_object_ap_id([String.t()]) :: Ecto.Queryable.t()
+  def get_presorted_create_by_object_ap_id(ap_ids) do
+    from(
+      a in Activity,
+      join:
+        ids in fragment(
+          "SELECT * FROM UNNEST(?::text[]) WITH ORDINALITY AS ids(ap_id, ord)",
+          ^ap_ids
+        ),
+      on:
+        ids.ap_id == fragment("?->>'object'", a.data) and
+          fragment("?->>'type'", a.data) == "Create",
+      order_by: [asc: ids.ord]
+    )
+  end
+
+  @doc """
   Accepts `ap_id` or list of `ap_id`.
   Returns a query.
   """

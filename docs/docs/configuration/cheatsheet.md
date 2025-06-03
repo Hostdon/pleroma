@@ -58,11 +58,14 @@ To add configuration to your config file, you can copy it from the base config. 
 * `registration_reason_length`: Maximum registration reason length (default: `500`).
 * `external_user_synchronization`: Enabling following/followers counters synchronization for external users.
 * `cleanup_attachments`: Remove attachments along with statuses. Does not affect duplicate files and attachments without status. Enabling this will increase load to database when deleting statuses on larger instances.
+* `cleanup_attachments_delay`: How many seconds to wait after post deletion before attempting to deletion; useful for “delete & redraft” functionality (default: `1800`)
 * `show_reactions`: Let favourites and emoji reactions be viewed through the API (default: `true`).
 * `password_reset_token_validity`: The time after which reset tokens aren't accepted anymore, in seconds (default: one day).
 * `local_bubble`: Array of domains representing instances closely related to yours. Used to populate the `bubble` timeline. e.g `["example.com"]`, (default: `[]`)
 * `languages`: List of Language Codes used by the instance. This is used to try and set a default language from the frontend. It will try and find the first match between the languages set here and the user's browser languages. It will default to the first language in this setting if there is no match.. (default `["en"]`)
 * `export_prometheus_metrics`: Enable prometheus metrics, served at `/api/v1/akkoma/metrics`, requiring the `admin:metrics` oauth scope.
+* `privileged_staff`: Set to `true` to give moderators access to a few higher responsibility actions.
+* `federated_timeline_available`: Set to `false` to remove access to the federated timeline for all users.
 
 ## :database
 * `improved_hashtag_timeline`: Setting to force toggle / force disable improved hashtags timeline. `:enabled` forces hashtags to be fetched from `hashtags` table for hashtags timeline. `:disabled` forces object-embedded hashtags to be used (slower). Keep it `:auto` for automatic behaviour (it is auto-set to `:enabled` [unless overridden] when HashtagsTableMigrator completes).
@@ -336,7 +339,7 @@ config :pleroma, :frontends,
 
 * `:primary` - The frontend that will be served at `/`
 * `:admin` - The frontend that will be served at `/pleroma/admin`
-* `:swagger` - Config for developers to act as an API reference to be served at `/akkoma/swaggerui/` (trailing slash _needed_). Disabled by default.
+* `:swagger` - Config for developers to act as an API reference to be served at `/pleroma/swaggerui/` (trailing slash _needed_). Disabled by default.
 * `:mastodon` - The mastodon-fe configuration. This shouldn't need to be changed. This is served at `/web` when installed.
 
 ### :static\_fe
@@ -603,7 +606,6 @@ the source code is here: [kocaptcha](https://github.com/koto-bank/kocaptcha). Th
 * `link_name`: When enabled Akkoma will add a `name` parameter to the url of the upload, for example `https://instance.tld/media/corndog.png?name=corndog.png`. This is needed to provide the correct filename in Content-Disposition headers
 * `base_url`: The base URL to access a user-uploaded file; MUST be configured explicitly.
   Using a (sub)domain distinct from the instance endpoint is **strongly** recommended. A good value might be `https://media.myakkoma.instance/media/`. 
-* `proxy_remote`: If you're using a remote uploader, Akkoma will proxy media requests instead of redirecting to it.
 * `proxy_opts`: Proxy options, see `Pleroma.ReverseProxy` documentation.
 * `filename_display_max_length`: Set max length of a filename to display. 0 = no limit. Default: 30.
 

@@ -14,11 +14,24 @@ defmodule Pleroma.Web.Plugs.HTTPSignaturePlugTest do
   import Phoenix.Controller, only: [put_format: 2]
   import Mock
 
+  setup do
+    user =
+      :user
+      |> insert(%{ap_id: "http://mastodon.example.org/users/admin"})
+      |> with_signing_key(%{key_id: "http://mastodon.example.org/users/admin#main-key"})
+
+    {:ok, %{user: user}}
+  end
+
   setup_with_mocks([
     {HTTPSignatures, [],
      [
        signature_for_conn: fn _ ->
-         %{"keyId" => "http://mastodon.example.org/users/admin#main-key"}
+         %{
+           "keyId" => "http://mastodon.example.org/users/admin#main-key",
+           "created" => "1234567890",
+           "expires" => "1234567890"
+         }
        end,
        validate_conn: fn conn ->
          Map.get(conn.assigns, :valid_signature, true)
@@ -42,15 +55,15 @@ defmodule Pleroma.Web.Plugs.HTTPSignaturePlugTest do
     |> HTTPSignaturePlug.call(%{})
   end
 
-  test "it call HTTPSignatures to check validity if the actor signed it" do
-    params = %{"actor" => "http://mastodon.example.org/users/admin"}
+  test "it call HTTPSignatures to check validity if the actor signed it", %{user: user} do
+    params = %{"actor" => user.ap_id}
     conn = build_conn(:get, "/doesntmattter", params)
 
     conn =
       conn
       |> put_req_header(
         "signature",
-        "keyId=\"http://mastodon.example.org/users/admin#main-key"
+        "keyId=\"#{user.signing_key.key_id}\""
       )
       |> put_format("activity+json")
       |> HTTPSignaturePlug.call(%{})
@@ -140,5 +153,19 @@ defmodule Pleroma.Web.Plugs.HTTPSignaturePlugTest do
 
     assert ["/notice/#{act.id}", "/notice/#{act.id}?actor=someparam"] ==
              HTTPSignaturePlug.route_aliases(conn)
+  end
+
+  test "(created) psudoheader", _ do
+    conn = build_conn(:get, "/doesntmattter")
+    conn = HTTPSignaturePlug.maybe_put_created_psudoheader(conn)
+    created_header = List.keyfind(conn.req_headers, "(created)", 0)
+    assert {_, "1234567890"} = created_header
+  end
+
+  test "(expires) psudoheader", _ do
+    conn = build_conn(:get, "/doesntmattter")
+    conn = HTTPSignaturePlug.maybe_put_expires_psudoheader(conn)
+    expires_header = List.keyfind(conn.req_headers, "(expires)", 0)
+    assert {_, "1234567890"} = expires_header
   end
 end

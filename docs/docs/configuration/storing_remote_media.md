@@ -6,7 +6,7 @@ as soon as the post is received by your instance.
 
 ## Nginx
 
-The following are excerpts from the [suggested nginx config](../../../installation/nginx/akkoma.nginx) that demonstrates the necessary config for the media proxy to work.
+The following are excerpts from the [suggested nginx config](https://akkoma.dev/AkkomaGang/akkoma/src/branch/develop/installation/nginx/akkoma.nginx) that demonstrates the necessary config for the media proxy to work.
 
 A `proxy_cache_path` must be defined, for example:
 

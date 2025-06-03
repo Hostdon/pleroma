@@ -84,8 +84,14 @@ defmodule Pleroma.Emails.Mailer do
       cacerts: os_cacerts,
       versions: [:"tlsv1.2", :"tlsv1.3"],
       verify: :verify_peer,
-      # some versions have supposedly issues verifying wildcard certs without this
       server_name_indication: relay,
+      # This allows wildcard ceritifcates to be verified properly.
+      # The :https parameter simply means to use the HTTPS wildcard format
+      # (as opposed to say LDAP). SMTP servers tend to use the same type of
+      # certs as HTTPS ones so this should work for most.
+      customize_hostname_check: [
+        match_fun: :public_key.pkix_verify_hostname_match_fun(:https)
+      ],
       # the default of 10 is too restrictive
       depth: 32
     ]

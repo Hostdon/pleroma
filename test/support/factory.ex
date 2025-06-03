@@ -47,7 +47,6 @@ defmodule Pleroma.Factory do
   end
 
   def user_factory(attrs \\ %{}) do
-    pem = Enum.random(@rsa_keys)
     # Argon2.hash_pwd_salt("test")
     # it really eats CPU time, so we use a precomputed hash
     password_hash =
@@ -63,9 +62,7 @@ defmodule Pleroma.Factory do
       last_digest_emailed_at: NaiveDateTime.utc_now(),
       last_refreshed_at: NaiveDateTime.utc_now(),
       notification_settings: %Pleroma.User.NotificationSetting{},
-      multi_factor_authentication_settings: %Pleroma.MFA.Settings{},
-      ap_enabled: true,
-      keys: pem
+      multi_factor_authentication_settings: %Pleroma.MFA.Settings{}
     }
 
     urls =
@@ -95,6 +92,28 @@ defmodule Pleroma.Factory do
     |> Map.put(:raw_bio, user.bio)
     |> Map.merge(urls)
     |> merge_attributes(attrs)
+  end
+
+  def with_signing_key(%User{} = user, attrs \\ %{}) do
+    signing_key =
+      build(:signing_key, %{user: user, key_id: "#{user.ap_id}#main-key"})
+      |> merge_attributes(attrs)
+
+    insert(signing_key)
+    %{user | signing_key: signing_key}
+  end
+
+  def signing_key_factory(attrs \\ %{}) do
+    pem = Enum.random(@rsa_keys)
+    user = attrs[:user] || insert(:user)
+    {:ok, public_key} = Pleroma.User.SigningKey.private_pem_to_public_pem(pem)
+
+    %Pleroma.User.SigningKey{
+      user_id: user.id,
+      public_key: attrs[:public_key] || public_key,
+      private_key: attrs[:private_key] || pem,
+      key_id: attrs[:key_id]
+    }
   end
 
   def user_relationship_factory(attrs \\ %{}) do

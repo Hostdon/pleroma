@@ -9,6 +9,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.AddRemoveValidator do
   import Pleroma.Web.ActivityPub.ObjectValidators.CommonValidations
 
   require Pleroma.Constants
+  require Logger
 
   alias Pleroma.User
 
@@ -27,14 +28,21 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.AddRemoveValidator do
   end
 
   def cast_and_validate(data) do
-    {:ok, actor} = User.get_or_fetch_by_ap_id(data["actor"])
+    with {_, {:ok, actor}} <- {:user, User.get_or_fetch_by_ap_id(data["actor"])},
+         {_, {:ok, actor}} <- {:feataddr, maybe_refetch_user(actor)} do
+      data
+      |> maybe_fix_data_for_mastodon(actor)
+      |> cast_data()
+      |> validate_data(actor)
+    else
+      {:feataddr, _} ->
+        {:error,
+         {:validate,
+          "Actor doesn't provide featured collection address to verify against: #{data["id"]}"}}
 
-    {:ok, actor} = maybe_refetch_user(actor)
-
-    data
-    |> maybe_fix_data_for_mastodon(actor)
-    |> cast_data()
-    |> validate_data(actor)
+      {:user, _} ->
+        {:error, :link_resolve_failed}
+    end
   end
 
   defp maybe_fix_data_for_mastodon(data, actor) do
@@ -73,6 +81,9 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.AddRemoveValidator do
   end
 
   defp maybe_refetch_user(%User{ap_id: ap_id}) do
-    Pleroma.Web.ActivityPub.Transmogrifier.upgrade_user_from_ap_id(ap_id)
+    # If the user didn't expose a featured collection before,
+    # recheck now so we can verify perms for add/remove.
+    # But wait at least 5s to avoid rapid refetches in edge cases
+    User.get_or_fetch_by_ap_id(ap_id, maximum_age: 5)
   end
 end

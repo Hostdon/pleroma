@@ -46,7 +46,7 @@ defmodule Pleroma.Web.ActivityPub.SideEffectsTest do
 
       assert_enqueued(
         worker: Pleroma.Workers.NodeInfoFetcherWorker,
-        args: %{"op" => "process", "source_url" => "https://wowee.example.com/users/1"}
+        args: %{"op" => "process", "source_url" => "https://wowee.example.com/"}
       )
     end
   end

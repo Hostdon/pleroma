@@ -112,7 +112,7 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
     Config.get([:mrf_simple, :accept])
   end
 
-  def should_federate?(url) do
+  def should_federate?(url) when is_binary(url) do
     %{host: host} = URI.parse(url)
 
     with {nil, false} <- {nil, is_nil(host)},
@@ -136,6 +136,8 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
         not Pleroma.Web.ActivityPub.MRF.subdomain_match?(quarantined_instances, host)
     end
   end
+
+  def should_federate?(_), do: false
 
   @spec recipients(User.t(), Activity.t()) :: list(User.t()) | []
   defp recipients(actor, activity) do
@@ -217,7 +219,6 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
 
     inboxes =
       recipients
-      |> Enum.filter(&User.ap_enabled?/1)
       |> Enum.map(fn actor -> actor.inbox end)
       |> Enum.filter(fn inbox -> should_federate?(inbox) end)
       |> Instances.filter_reachable()
@@ -259,7 +260,6 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
     json = Jason.encode!(data)
 
     recipients(actor, activity)
-    |> Enum.filter(fn user -> User.ap_enabled?(user) end)
     |> Enum.map(fn %User{} = user ->
       determine_inbox(activity, user)
     end)

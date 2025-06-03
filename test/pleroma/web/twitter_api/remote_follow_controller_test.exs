@@ -132,7 +132,7 @@ defmodule Pleroma.Web.TwitterAPI.RemoteFollowControllerTest do
                  |> html_response(200)
 
                assert response =~ "Error fetching user"
-             end) =~ ":not_found"
+             end) =~ "User doesn't exist (anymore): https://mastodon.social/users/not_found"
     end
   end
 

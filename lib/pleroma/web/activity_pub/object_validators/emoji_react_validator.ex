@@ -129,7 +129,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.EmojiReactValidator do
     |> validate_inclusion(:type, ["EmojiReact"])
     |> validate_required([:id, :type, :object, :actor, :context, :to, :cc, :content])
     |> validate_actor_presence()
-    |> validate_object_presence()
+    |> validate_object_presence(allowed_object_categories: [:object])
     |> validate_emoji()
     |> maybe_validate_tag_presence()
   end

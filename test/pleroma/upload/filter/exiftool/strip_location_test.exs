@@ -115,6 +115,15 @@ defmodule Pleroma.Upload.Filter.Exiftool.StripMetadataTest do
     assert Filter.Exiftool.StripMetadata.filter(upload) == {:ok, :noop}
   end
 
+  test "verify bmp files are skipped" do
+    upload = %Pleroma.Upload{
+      name: "sample.bmp",
+      content_type: "image/bmp"
+    }
+
+    assert Filter.Exiftool.StripMetadata.filter(upload) == {:ok, :noop}
+  end
+
   test "verify svg files are skipped" do
     upload = %Pleroma.Upload{
       name: "sample.svg",

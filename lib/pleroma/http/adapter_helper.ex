@@ -116,6 +116,20 @@ defmodule Pleroma.HTTP.AdapterHelper do
     put_in(opts, [:pools, :default, :conn_opts, :transport_opts, :inet6], true)
   end
 
+  def add_default_pool_max_idle_time(opts, pool_timeout) do
+    opts
+    |> maybe_add_pools()
+    |> maybe_add_default_pool()
+    |> put_in([:pools, :default, :pool_max_idle_time], pool_timeout)
+  end
+
+  def add_default_conn_max_idle_time(opts, connection_timeout) do
+    opts
+    |> maybe_add_pools()
+    |> maybe_add_default_pool()
+    |> put_in([:pools, :default, :conn_max_idle_time], connection_timeout)
+  end
+
   @doc """
   Merge default connection & adapter options with received ones.
   """

@@ -52,6 +52,14 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionController do
     end)
   end
 
+  defp filter_allowed_users_by_domain(ap_ids, %User{} = for_user) do
+    Enum.reject(ap_ids, fn ap_id ->
+      User.blocks_domain?(for_user, ap_id)
+    end)
+  end
+
+  defp filter_allowed_users_by_domain(ap_ids, nil), do: ap_ids
+
   def filter_allowed_users(reactions, user, with_muted) do
     exclude_ap_ids =
       if is_nil(user) do
@@ -62,7 +70,10 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionController do
       end
 
     filter_emoji = fn emoji, users, url ->
-      case filter_allowed_user_by_ap_id(users, exclude_ap_ids) do
+      users
+      |> filter_allowed_user_by_ap_id(exclude_ap_ids)
+      |> filter_allowed_users_by_domain(user)
+      |> case do
         [] -> nil
         users -> {emoji, users, url}
       end

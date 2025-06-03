@@ -130,59 +130,26 @@ config :pleroma, :http_security,
   enabled: false
 ```
 
-Use this as the Nginx config:
-```
-proxy_cache_path /tmp/akkoma-media-cache levels=1:2 keys_zone=akkoma_media_cache:10m max_size=10g inactive=720m use_temp_path=off;
-# The above already exists in a clearnet instance's config.
-# If not, add it.
-
-server {
-    listen 127.0.0.1:14447;
-    server_name youri2paddress;
-
-    # Comment to enable logs
-    access_log /dev/null;
-    error_log /dev/null;
-
-    gzip_vary on;
-    gzip_proxied any;
-    gzip_comp_level 6;
-    gzip_buffers 16 8k;
-    gzip_http_version 1.1;
-    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript application/activity+json application/atom+xml;
-
-    client_max_body_size 16m;
-
-    location / {
-
+In the Nginx config, add the following into the `location /` block:
+```nginx
         add_header X-XSS-Protection "0";
         add_header X-Permitted-Cross-Domain-Policies none;
         add_header X-Frame-Options DENY;
         add_header X-Content-Type-Options nosniff;
         add_header Referrer-Policy same-origin;
-
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $http_host;
-
-        proxy_pass http://localhost:4000;
-
-        client_max_body_size 16m;
-    }
-
-    location /proxy {
-        proxy_cache akkoma_media_cache;
-        proxy_cache_lock on;
-        proxy_ignore_client_abort on;
-        proxy_pass http://localhost:4000;
-    }
-}
 ```
-reload Nginx:
+
+Change the `listen` directive to the following:
+```nginx
+listen 127.0.0.1:14447;
 ```
-systemctl stop i2pd.service --no-block
-systemctl start i2pd.service
+
+Set `server_name` to your i2p address.
+
+Reload Nginx:
+```
+systemctl restart i2pd.service --no-block
+systemctl reload nginx.service
 ```
 *Notice:* The stop command initiates a graceful shutdown process, i2pd stops after finishing to route transit tunnels (maximum 10 minutes).
 

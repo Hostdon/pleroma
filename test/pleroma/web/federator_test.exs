@@ -79,16 +79,14 @@ defmodule Pleroma.Web.FederatorTest do
         local: false,
         nickname: "nick1@domain.com",
         ap_id: "https://domain.com/users/nick1",
-        inbox: inbox1,
-        ap_enabled: true
+        inbox: inbox1
       })
 
       insert(:user, %{
         local: false,
         nickname: "nick2@domain2.com",
         ap_id: "https://domain2.com/users/nick2",
-        inbox: inbox2,
-        ap_enabled: true
+        inbox: inbox2
       })
 
       dt = NaiveDateTime.utc_now()
@@ -134,7 +132,7 @@ defmodule Pleroma.Web.FederatorTest do
       assert {:ok, _activity} = ObanHelpers.perform(job)
 
       assert {:ok, job} = Federator.incoming_ap_doc(params)
-      assert {:error, :already_present} = ObanHelpers.perform(job)
+      assert {:discard, :already_present} = ObanHelpers.perform(job)
     end
 
     test "successfully normalises public scope descriptors" do

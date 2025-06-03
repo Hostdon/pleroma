@@ -11,4 +11,4 @@ echo "-- Running migrations..."
 mix ecto.migrate
 
 echo "-- Starting!"
-mix phx.server
+elixir --erl "+sbwt none +sbwtdcpu none +sbwtdio none" -S mix phx.server

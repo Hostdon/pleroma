@@ -31,7 +31,7 @@ defmodule Pleroma.Web.Nodeinfo.NodeinfoController do
     conn
     |> put_resp_header(
       "content-type",
-      "application/json; profile=http://nodeinfo.diaspora.software/ns/schema/2.0#; charset=utf-8"
+      "application/json; profile=\"http://nodeinfo.diaspora.software/ns/schema/#{version}#\"; charset=utf-8"
     )
     |> json(Nodeinfo.get_nodeinfo(version))
   end

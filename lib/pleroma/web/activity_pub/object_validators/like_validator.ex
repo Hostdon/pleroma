@@ -66,7 +66,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.LikeValidator do
     |> validate_inclusion(:type, ["Like"])
     |> validate_required([:id, :type, :object, :actor, :context, :to, :cc])
     |> validate_actor_presence()
-    |> validate_object_presence()
+    |> validate_object_presence(allowed_object_categories: [:object])
     |> validate_existing_like()
   end
 

@@ -100,7 +100,7 @@ defmodule Pleroma.Repo.Migrations.FixBlockedFollows do
 
       "users"
       |> where(id: ^user_id)
-      |> join(:inner, [u], s in subquery(follower_count_query))
+      |> join(:inner, [u], s in subquery(follower_count_query), on: true)
       |> update([u, s],
         set: [follower_count: s.count]
       )

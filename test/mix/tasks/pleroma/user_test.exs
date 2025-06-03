@@ -280,12 +280,13 @@ defmodule Mix.Tasks.Pleroma.UserTest do
     test "password reset token is generated" do
       user = insert(:user)
 
-      assert capture_io(fn ->
-               Mix.Tasks.Pleroma.User.run(["reset_password", user.nickname])
-             end) =~ "URL:"
+      Mix.Tasks.Pleroma.User.run(["reset_password", user.nickname])
 
       assert_receive {:mix_shell, :info, [message]}
       assert message =~ "Generated"
+
+      assert_receive {:mix_shell, :info, [url]}
+      assert url =~ "URL:"
     end
 
     test "no user to reset password" do
@@ -327,12 +328,13 @@ defmodule Mix.Tasks.Pleroma.UserTest do
 
   describe "running invite" do
     test "invite token is generated" do
-      assert capture_io(fn ->
-               Mix.Tasks.Pleroma.User.run(["invite"])
-             end) =~ "http"
+      Mix.Tasks.Pleroma.User.run(["invite"])
 
       assert_receive {:mix_shell, :info, [message]}
       assert message =~ "Generated user invite token one time"
+
+      assert_receive {:mix_shell, :info, [invite_token]}
+      assert invite_token =~ "http"
     end
 
     test "token is generated with expires_at" do

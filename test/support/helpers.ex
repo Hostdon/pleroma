@@ -66,6 +66,8 @@ defmodule Pleroma.Tests.Helpers do
           clear_config: 2
         ]
 
+      import Pleroma.Test.MatchingHelpers
+
       def time_travel(entity, seconds) do
         new_time = NaiveDateTime.add(entity.inserted_at, seconds)
 

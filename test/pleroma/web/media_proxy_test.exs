@@ -37,6 +37,10 @@ defmodule Pleroma.Web.MediaProxyTest do
       assert MediaProxy.url(local_root) == local_root
     end
 
+    test "ignores data url" do
+      assert MediaProxy.url("data:image/png;base64,") == "data:image/png;base64,"
+    end
+
     test "encodes and decodes URL" do
       url = "https://pleroma.soykaf.com/static/logo.png"
       encoded = MediaProxy.url(url)

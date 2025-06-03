@@ -16,7 +16,7 @@
 SCRIPTNAME=${0##*/}
 
 # mod_disk_cache directory
-CACHE_DIRECTORY="/tmp/akkoma-media-cache"
+CACHE_DIRECTORY="/var/tmp/akkoma-media-cache"
 
 ## Removes an item via the htcacheclean utility
 ## $1 - the filename, can be a pattern .

@@ -33,8 +33,7 @@ defmodule Pleroma.Upload.Filter.Exiftool.ReadDescription do
   defp read_when_empty(_, file, tag) do
     try do
       {tag_content, 0} =
-        System.cmd("exiftool", ["-b", "-s3", tag, file],
-          stderr_to_stdout: true,
+        System.cmd("exiftool", ["-b", "-s3", "-ignoreMinorErrors", "-q", "-q", tag, file],
           parallelism: true
         )
 

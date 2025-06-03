@@ -102,6 +102,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier.AddRemoveHandlingTest do
     user =
       user
       |> Ecto.Changeset.change(featured_address: nil)
+      |> Ecto.Changeset.change(last_refreshed_at: ~N[2013-03-14 11:50:00.000000])
       |> Repo.update!()
 
     %{host: host} = URI.parse(user.ap_id)

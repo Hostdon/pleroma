@@ -38,7 +38,7 @@ defmodule Mix.Tasks.Pleroma.Security do
     Logger.put_process_level(self(), :notice)
     start_pleroma()
 
-    IO.puts("""
+    shell_info("""
     +------------------------+
     |  SPOOF SEARCH UPLOADS  |
     +------------------------+
@@ -55,7 +55,7 @@ defmodule Mix.Tasks.Pleroma.Security do
     Logger.put_process_level(self(), :notice)
     start_pleroma()
 
-    IO.puts("""
+    shell_info("""
     +----------------------+
     |  SPOOF SEARCH NOTES  |
     +----------------------+
@@ -77,7 +77,7 @@ defmodule Mix.Tasks.Pleroma.Security do
           uploads_search_spoofs_local_dir(Config.get!([Pleroma.Uploaders.Local, :uploads]))
 
         _ ->
-          IO.puts("""
+          shell_info("""
           NOTE:
             Not using local uploader; thus not affected by this exploit.
             It's impossible to check for files, but in case local uploader was used before
@@ -98,13 +98,13 @@ defmodule Mix.Tasks.Pleroma.Security do
 
     orphaned_attachs = upload_search_orphaned_attachments(not_orphaned_urls)
 
-    IO.puts("\nSearch concluded; here are the results:")
+    shell_info("\nSearch concluded; here are the results:")
     pretty_print_list_with_title(emoji, "Emoji")
     pretty_print_list_with_title(files, "Uploaded Files")
     pretty_print_list_with_title(post_attachs, "(Not Deleted) Post Attachments")
     pretty_print_list_with_title(orphaned_attachs, "Orphaned Uploads")
 
-    IO.puts("""
+    shell_info("""
     In total found
       #{length(emoji)} emoji
       #{length(files)} uploads
@@ -116,7 +116,7 @@ defmodule Mix.Tasks.Pleroma.Security do
   defp uploads_search_spoofs_local_dir(dir) do
     local_dir = String.replace_suffix(dir, "/", "")
 
-    IO.puts("Searching for suspicious files in #{local_dir}...")
+    shell_info("Searching for suspicious files in #{local_dir}...")
 
     glob_ext = "{" <> Enum.join(@activity_exts, ",") <> "}"
 
@@ -128,7 +128,7 @@ defmodule Mix.Tasks.Pleroma.Security do
   end
 
   defp uploads_search_spoofs_notes() do
-    IO.puts("Now querying DB for posts with spoofing attachments. This might take a while...")
+    shell_info("Now querying DB for posts with spoofing attachments. This might take a while...")
 
     patterns = [local_id_pattern() | activity_ext_url_patterns()]
 
@@ -153,7 +153,7 @@ defmodule Mix.Tasks.Pleroma.Security do
   end
 
   defp upload_search_orphaned_attachments(not_orphaned_urls) do
-    IO.puts("""
+    shell_info("""
     Now querying DB for orphaned spoofing attachment (i.e. their post was deleted,
     but if :cleanup_attachments was not enabled traces remain in the database)
     This might take a bit...
@@ -184,7 +184,7 @@ defmodule Mix.Tasks.Pleroma.Security do
   # | S P O O F - I N S E R T E D |
   # +-----------------------------+
   defp do_spoof_inserted() do
-    IO.puts("""
+    shell_info("""
     Searching for local posts whose Create activity has no ActivityPub id...
       This is a pretty good indicator, but only for spoofs of local actors
       and only if the spoofing happened after around late 2021.
@@ -194,9 +194,9 @@ defmodule Mix.Tasks.Pleroma.Security do
       search_local_notes_without_create_id()
       |> Enum.sort()
 
-    IO.puts("Done.\n")
+    shell_info("Done.\n")
 
-    IO.puts("""
+    shell_info("""
     Now trying to weed out other poorly hidden spoofs.
     This can't detect all and may have some false positives.
     """)
@@ -207,9 +207,9 @@ defmodule Mix.Tasks.Pleroma.Security do
       search_sus_notes_by_id_patterns()
       |> Enum.filter(fn r -> !(r in likely_spoofed_posts_set) end)
 
-    IO.puts("Done.\n")
+    shell_info("Done.\n")
 
-    IO.puts("""
+    shell_info("""
     Finally, searching for spoofed, local user accounts.
     (It's impossible to detect spoofed remote users)
     """)
@@ -220,7 +220,7 @@ defmodule Mix.Tasks.Pleroma.Security do
     pretty_print_list_with_title(idless_create, "Likely Spoofed Posts")
     pretty_print_list_with_title(spoofed_users, "Spoofed local user accounts")
 
-    IO.puts("""
+    shell_info("""
     In total found:
       #{length(spoofed_users)} bogus users
       #{length(idless_create)} likely spoofed posts
@@ -289,27 +289,27 @@ defmodule Mix.Tasks.Pleroma.Security do
   defp pretty_print_list_with_title(list, title) do
     title_len = String.length(title)
     title_underline = String.duplicate("=", title_len)
-    IO.puts(title)
-    IO.puts(title_underline)
+    shell_info(title)
+    shell_info(title_underline)
     pretty_print_list(list)
   end
 
-  defp pretty_print_list([]), do: IO.puts("")
+  defp pretty_print_list([]), do: shell_info("")
 
   defp pretty_print_list([{a, o} | rest])
        when (is_binary(a) or is_number(a)) and is_binary(o) do
-    IO.puts("  {#{a}, #{o}}")
+    shell_info("  {#{a}, #{o}}")
     pretty_print_list(rest)
   end
 
   defp pretty_print_list([{u, a, o} | rest])
        when is_binary(a) and is_binary(u) and is_binary(o) do
-    IO.puts("  {#{u}, #{a}, #{o}}")
+    shell_info("  {#{u}, #{a}, #{o}}")
     pretty_print_list(rest)
   end
 
   defp pretty_print_list([e | rest]) when is_binary(e) do
-    IO.puts("  #{e}")
+    shell_info("  #{e}")
     pretty_print_list(rest)
   end
 
