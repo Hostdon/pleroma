@@ -3,10 +3,11 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Mix.Tasks.Pleroma.DatabaseTest do
-  use Pleroma.DataCase, async: true
+  use Pleroma.DataCase, async: false
   use Oban.Testing, repo: Pleroma.Repo
 
   alias Pleroma.Activity
+  alias Pleroma.Bookmark
   alias Pleroma.Object
   alias Pleroma.Repo
   alias Pleroma.User
@@ -45,21 +46,25 @@ defmodule Mix.Tasks.Pleroma.DatabaseTest do
   end
 
   describe "prune_objects" do
-    test "it prunes old objects from the database" do
+    setup do
       deadline = Pleroma.Config.get([:instance, :remote_post_retention_days]) + 1
 
-      date =
+      old_insert_date =
         Timex.now()
         |> Timex.shift(days: -deadline)
         |> Timex.to_naive_datetime()
         |> NaiveDateTime.truncate(:second)
 
+      %{old_insert_date: old_insert_date}
+    end
+
+    test "it prunes old objects from the database", %{old_insert_date: old_insert_date} do
       insert(:note)
 
       %{id: note_remote_public_id} =
         :note
         |> insert()
-        |> Ecto.Changeset.change(%{updated_at: date})
+        |> Ecto.Changeset.change(%{updated_at: old_insert_date})
         |> Repo.update!()
 
       note_remote_non_public =
@@ -69,7 +74,7 @@ defmodule Mix.Tasks.Pleroma.DatabaseTest do
 
       note_remote_non_public
       |> Ecto.Changeset.change(%{
-        updated_at: date,
+        updated_at: old_insert_date,
         data: note_remote_non_public_data |> update_in(["to"], fn _ -> [] end)
       })
       |> Repo.update!()
@@ -83,21 +88,37 @@ defmodule Mix.Tasks.Pleroma.DatabaseTest do
       refute Object.get_by_id(note_remote_non_public_id)
     end
 
-    test "with the --keep-non-public option it still keeps non-public posts even if they are not local" do
-      deadline = Pleroma.Config.get([:instance, :remote_post_retention_days]) + 1
+    test "it cleans up bookmarks", %{old_insert_date: old_insert_date} do
+      user = insert(:user)
+      {:ok, old_object_activity} = CommonAPI.post(user, %{status: "yadayada"})
 
-      date =
-        Timex.now()
-        |> Timex.shift(days: -deadline)
-        |> Timex.to_naive_datetime()
-        |> NaiveDateTime.truncate(:second)
+      Repo.one(Object)
+      |> Ecto.Changeset.change(%{updated_at: old_insert_date})
+      |> Repo.update!()
 
+      {:ok, new_object_activity} = CommonAPI.post(user, %{status: "yadayada"})
+
+      {:ok, _} = Bookmark.create(user.id, old_object_activity.id)
+      {:ok, _} = Bookmark.create(user.id, new_object_activity.id)
+
+      assert length(Repo.all(Object)) == 2
+      assert length(Repo.all(Bookmark)) == 2
+
+      Mix.Tasks.Pleroma.Database.run(["prune_objects"])
+
+      assert length(Repo.all(Object)) == 1
+      assert length(Repo.all(Bookmark)) == 1
+      refute Bookmark.get(user.id, old_object_activity.id)
+    end
+
+    test "with the --keep-non-public option it still keeps non-public posts even if they are not local",
+         %{old_insert_date: old_insert_date} do
       insert(:note)
 
       %{id: note_remote_id} =
         :note
         |> insert()
-        |> Ecto.Changeset.change(%{updated_at: date})
+        |> Ecto.Changeset.change(%{updated_at: old_insert_date})
         |> Repo.update!()
 
       note_remote_non_public =
@@ -107,7 +128,7 @@ defmodule Mix.Tasks.Pleroma.DatabaseTest do
 
       note_remote_non_public
       |> Ecto.Changeset.change(%{
-        updated_at: date,
+        updated_at: old_insert_date,
         data: note_remote_non_public_data |> update_in(["to"], fn _ -> [] end)
       })
       |> Repo.update!()
@@ -120,16 +141,10 @@ defmodule Mix.Tasks.Pleroma.DatabaseTest do
       refute Object.get_by_id(note_remote_id)
     end
 
-    test "with the --keep-threads and --keep-non-public option it keeps old threads with non-public replies even if the interaction is not local" do
+    test "with the --keep-threads and --keep-non-public option it keeps old threads with non-public replies even if the interaction is not local",
+         %{old_insert_date: old_insert_date} do
       # For non-public we only check Create Activities because only these are relevant for threads
       # Flags are always non-public, Announces from relays can be non-public...
-      deadline = Pleroma.Config.get([:instance, :remote_post_retention_days]) + 1
-
-      old_insert_date =
-        Timex.now()
-        |> Timex.shift(days: -deadline)
-        |> Timex.to_naive_datetime()
-        |> NaiveDateTime.truncate(:second)
 
       remote_user1 = insert(:user, local: false)
       remote_user2 = insert(:user, local: false)
@@ -212,15 +227,9 @@ defmodule Mix.Tasks.Pleroma.DatabaseTest do
       assert length(Repo.all(Object)) == 2
     end
 
-    test "with the --keep-threads option it deletes old threads with no local interaction" do
-      deadline = Pleroma.Config.get([:instance, :remote_post_retention_days]) + 1
-
-      old_insert_date =
-        Timex.now()
-        |> Timex.shift(days: -deadline)
-        |> Timex.to_naive_datetime()
-        |> NaiveDateTime.truncate(:second)
-
+    test "with the --keep-threads option it deletes old threads with no local interaction", %{
+      old_insert_date: old_insert_date
+    } do
       remote_user = insert(:user, local: false)
       remote_user2 = insert(:user, local: false)
 
@@ -261,15 +270,9 @@ defmodule Mix.Tasks.Pleroma.DatabaseTest do
       assert length(Repo.all(Object)) == 0
     end
 
-    test "with the --keep-threads option it keeps old threads with local interaction" do
-      deadline = Pleroma.Config.get([:instance, :remote_post_retention_days]) + 1
-
-      old_insert_date =
-        Timex.now()
-        |> Timex.shift(days: -deadline)
-        |> Timex.to_naive_datetime()
-        |> NaiveDateTime.truncate(:second)
-
+    test "with the --keep-threads option it keeps old threads with local interaction", %{
+      old_insert_date: old_insert_date
+    } do
       remote_user = insert(:user, local: false)
       local_user = insert(:user, local: true)
 
@@ -326,15 +329,9 @@ defmodule Mix.Tasks.Pleroma.DatabaseTest do
       assert length(Repo.all(Object)) == 4
     end
 
-    test "with the --keep-threads option it keeps old threads with bookmarked posts" do
-      deadline = Pleroma.Config.get([:instance, :remote_post_retention_days]) + 1
-
-      old_insert_date =
-        Timex.now()
-        |> Timex.shift(days: -deadline)
-        |> Timex.to_naive_datetime()
-        |> NaiveDateTime.truncate(:second)
-
+    test "with the --keep-threads option it keeps old threads with bookmarked posts", %{
+      old_insert_date: old_insert_date
+    } do
       remote_user = insert(:user, local: false)
       local_user = insert(:user, local: true)
 
@@ -356,7 +353,7 @@ defmodule Mix.Tasks.Pleroma.DatabaseTest do
 
     test "We don't have unexpected tables which may contain objects that are referenced by activities" do
       # We can delete orphaned activities. For that we look for the objects they reference in the 'objects', 'activities', and 'users' table.
-      # If someone adds another table with objects (idk, maybe with separate relations, or collections or w/e), then we need to make sure we 
+      # If someone adds another table with objects (idk, maybe with separate relations, or collections or w/e), then we need to make sure we
       # add logic for that in the 'prune_objects' task so that we don't wrongly delete their corresponding activities.
       # So when someone adds (or removes) a table, this test will fail.
       # Either the table contains objects which can be referenced from the activities table
@@ -374,8 +371,6 @@ defmodule Mix.Tasks.Pleroma.DatabaseTest do
                ["apps"],
                ["backups"],
                ["bookmarks"],
-               ["chat_message_references"],
-               ["chats"],
                ["config"],
                ["conversation_participation_recipient_ships"],
                ["conversation_participations"],
@@ -403,8 +398,10 @@ defmodule Mix.Tasks.Pleroma.DatabaseTest do
                ["push_subscriptions"],
                ["registrations"],
                ["report_notes"],
+               ["rich_media_card"],
                ["scheduled_activities"],
                ["schema_migrations"],
+               ["signing_keys"],
                ["thread_mutes"],
                ["user_follows_hashtag"],
                ["user_frontend_setting_profiles"],
@@ -475,7 +472,7 @@ defmodule Mix.Tasks.Pleroma.DatabaseTest do
       assert length(activities) == 4
     end
 
-    test "it prunes orphaned activities with the --prune-orphaned-activities when the objects are referenced from an array" do
+    test "it prunes orphaned activities with prune_orphaned_activities when the objects are referenced from an array" do
       %Object{} |> Map.merge(%{data: %{"id" => "existing_object"}}) |> Repo.insert()
       %User{} |> Map.merge(%{ap_id: "existing_actor"}) |> Repo.insert()
 
@@ -483,6 +480,7 @@ defmodule Mix.Tasks.Pleroma.DatabaseTest do
       |> Map.merge(%{
         local: false,
         data: %{
+          "type" => "Flag",
           "id" => "remote_activity_existing_object",
           "object" => ["non_ existing_object", "existing_object"]
         }
@@ -493,6 +491,7 @@ defmodule Mix.Tasks.Pleroma.DatabaseTest do
       |> Map.merge(%{
         local: false,
         data: %{
+          "type" => "Flag",
           "id" => "remote_activity_existing_actor",
           "object" => ["non_ existing_object", "existing_actor"]
         }
@@ -503,6 +502,7 @@ defmodule Mix.Tasks.Pleroma.DatabaseTest do
       |> Map.merge(%{
         local: false,
         data: %{
+          "type" => "Flag",
           "id" => "remote_activity_existing_activity",
           "object" => ["non_ existing_object", "remote_activity_existing_actor"]
         }
@@ -513,6 +513,7 @@ defmodule Mix.Tasks.Pleroma.DatabaseTest do
       |> Map.merge(%{
         local: false,
         data: %{
+          "type" => "Flag",
           "id" => "remote_activity_without_existing_referenced_object",
           "object" => ["owo", "whats_this"]
         }
@@ -522,7 +523,7 @@ defmodule Mix.Tasks.Pleroma.DatabaseTest do
       assert length(Repo.all(Activity)) == 4
       Mix.Tasks.Pleroma.Database.run(["prune_objects"])
       assert length(Repo.all(Activity)) == 4
-      Mix.Tasks.Pleroma.Database.run(["prune_objects", "--prune-orphaned-activities"])
+      Mix.Tasks.Pleroma.Database.run(["prune_orphaned_activities"])
       activities = Repo.all(Activity)
       assert length(activities) == 3
 

@@ -37,7 +37,7 @@
         "sharedInbox": "https://osada.macgirvin.com/inbox"
     },
     "publicKey": {
-        "id": "https://osada.macgirvin.com/channel/mike/public_key_pem",
+        "id": "https://osada.macgirvin.com/channel/mike",
         "owner": "https://osada.macgirvin.com/channel/mike",
         "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAskSyK2VwBNKbzZl9XNJk\nvxU5AAilmRArMmmKSzphdHaVBHakeafUfixvqNrQ/oX2srJvJKcghNmEMrJ6MJ7r\npeEndVOo7pcP4PwVjtnC06p3J711q5tBehqM25BfCLCrB2YqWF6c8zk3CPN3Na21\n8k5s4cO95N/rGN+Po0XFAX/HjKjlpgNpKRDrpxmXxTU8NZfAqeQGJ5oiMBZI9vVB\n+eU7t1L6F5/XWuUCeP4OMrG8oZX822AREba8rknS6DpkWGES0Rx2eNOyYTf6ue75\nI6Ek6rlO+da5wMWr+3BvYMq4JMIwTHzAO+ZqqJPFpzKSiVuAWb2DOX/MDFecVWJE\ntF/R60lONxe4e/00MPCoDdqkLKdwROsk1yGL7z4Zk6jOWFEhIcWy/d2Ya5CpPvS3\nu4wNN4jkYAjra+8TiloRELhV4gpcEk8nkyNwLXOhYm7zQ5sIc5rfXoIrFzALB86W\nG05Nnqg+77zZIaTZpD9qekYlaEt+0OVtt9TTIeTiudQ983l6mfKwZYymrzymH1dL\nVgxBRYo+Z53QOSLiSKELfTBZxEoP1pBw6RiOHXydmJ/39hGgc2YAY/5ADwW2F2yb\nJ7+gxG6bPJ3ikDLYcD4CB5iJQdnTcDsFt3jyHAT6wOCzFAYPbHUqtzHfUM30dZBn\nnJhQF8udPLcXLaj6GW75JacCAwEAAQ==\n-----END PUBLIC KEY-----\n"
     },

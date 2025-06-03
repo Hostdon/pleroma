@@ -8,7 +8,6 @@ defmodule Mix.Tasks.Pleroma.Activity do
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Pagination
-  require Logger
   import Mix.Pleroma
   import Ecto.Query
 
@@ -17,7 +16,7 @@ defmodule Mix.Tasks.Pleroma.Activity do
 
     id
     |> Activity.get_by_id()
-    |> IO.inspect()
+    |> shell_info()
   end
 
   def run(["delete_by_keyword", user, keyword | _rest]) do
@@ -35,7 +34,7 @@ defmodule Mix.Tasks.Pleroma.Activity do
     )
     |> Enum.map(fn x -> CommonAPI.delete(x.id, u) end)
     |> Enum.count()
-    |> IO.puts()
+    |> shell_info()
   end
 
   defp query_with(q, search_query) do

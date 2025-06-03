@@ -31,7 +31,7 @@ defmodule Pleroma.UserNote do
            UserNote
            |> where(source_id: ^source.id, target_id: ^target.id)
            |> Repo.one() do
-      note.comment
+      note.comment || ""
     else
       _ -> ""
     end

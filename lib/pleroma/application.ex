@@ -53,6 +53,7 @@ defmodule Pleroma.Application do
     Config.DeprecationWarnings.warn()
     Pleroma.Web.Plugs.HTTPSecurityPlug.warn_if_disabled()
     Pleroma.ApplicationRequirements.verify!()
+    load_all_pleroma_modules()
     load_custom_modules()
     Pleroma.Docs.JSON.compile()
     limiters_setup()
@@ -87,39 +88,22 @@ defmodule Pleroma.Application do
     # Go for the default 3 unless we're in test
     max_restarts =
       if @mix_env == :test do
-        100
+        1000
       else
         3
       end
 
     opts = [strategy: :one_for_one, name: Pleroma.Supervisor, max_restarts: max_restarts]
 
-    with {:ok, data} <- Supervisor.start_link(children, opts) do
-      set_postgres_server_version()
-      {:ok, data}
-    else
+    case Supervisor.start_link(children, opts) do
+      {:ok, data} ->
+        {:ok, data}
+
       e ->
-        Logger.error("Failed to start!")
-        Logger.error("#{inspect(e)}")
+        Logger.critical("Failed to start!")
+        Logger.critical("#{inspect(e)}")
         e
     end
-  end
-
-  defp set_postgres_server_version do
-    version =
-      with %{rows: [[version]]} <- Ecto.Adapters.SQL.query!(Pleroma.Repo, "show server_version"),
-           {num, _} <- Float.parse(version) do
-        num
-      else
-        e ->
-          Logger.warn(
-            "Could not get the postgres version: #{inspect(e)}.\nSetting the default value of 9.6"
-          )
-
-          9.6
-      end
-
-    :persistent_term.put({Pleroma.Repo, :postgres_version}, version)
   end
 
   def load_custom_modules do
@@ -144,6 +128,24 @@ defmodule Pleroma.Application do
     end
   end
 
+  def load_all_pleroma_modules do
+    :code.all_available()
+    |> Enum.filter(fn {mod, _, _} ->
+      mod
+      |> to_string()
+      |> String.starts_with?("Elixir.Pleroma.")
+    end)
+    |> Enum.map(fn {mod, _, _} ->
+      mod
+      |> to_string()
+      |> String.to_existing_atom()
+      |> Code.ensure_loaded!()
+    end)
+
+    # Use this when 1.15 is standard
+    # |> Code.ensure_all_loaded!()
+  end
+
   defp cachex_children do
     [
       build_cachex("used_captcha", ttl_interval: seconds_valid_interval()),
@@ -160,7 +162,9 @@ defmodule Pleroma.Application do
       build_cachex("translations", default_ttl: :timer.hours(24 * 30), limit: 2500),
       build_cachex("instances", default_ttl: :timer.hours(24), ttl_interval: 1000, limit: 2500),
       build_cachex("request_signatures", default_ttl: :timer.hours(24 * 30), limit: 3000),
-      build_cachex("rel_me", default_ttl: :timer.hours(24 * 30), limit: 300)
+      build_cachex("rel_me", default_ttl: :timer.hours(24 * 30), limit: 300),
+      build_cachex("host_meta", default_ttl: :timer.minutes(120), limit: 5000),
+      build_cachex("http_backoff", default_ttl: :timer.hours(24 * 30), limit: 10000)
     ]
   end
 
@@ -260,13 +264,20 @@ defmodule Pleroma.Application do
   defp http_children do
     proxy_url = Config.get([:http, :proxy_url])
     proxy = Pleroma.HTTP.AdapterHelper.format_proxy(proxy_url)
-    pool_size = Config.get([:http, :pool_size])
+    pool_size = Config.get([:http, :pool_size], 10)
+    pool_timeout = Config.get([:http, :pool_timeout], 60_000)
+    connection_timeout = Config.get([:http, :conn_max_idle_time], 10_000)
+
+    :public_key.cacerts_load()
 
     config =
       [:http, :adapter]
       |> Config.get([])
       |> Pleroma.HTTP.AdapterHelper.add_pool_size(pool_size)
       |> Pleroma.HTTP.AdapterHelper.maybe_add_proxy_pool(proxy)
+      |> Pleroma.HTTP.AdapterHelper.ensure_ipv6()
+      |> Pleroma.HTTP.AdapterHelper.add_default_conn_max_idle_time(connection_timeout)
+      |> Pleroma.HTTP.AdapterHelper.add_default_pool_max_idle_time(pool_timeout)
       |> Keyword.put(:name, MyFinch)
 
     [{Finch, config}]

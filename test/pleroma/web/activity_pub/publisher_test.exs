@@ -3,7 +3,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.ActivityPub.PublisherTest do
-  use Pleroma.Web.ConnCase
+  use Pleroma.Web.ConnCase, async: false
+  @moduletag :mocked
 
   import ExUnit.CaptureLog
   import Pleroma.Factory
@@ -139,7 +140,9 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
           {:ok, %Tesla.Env{status: 200, body: "port 80"}}
       end)
 
-      actor = insert(:user)
+      actor =
+        insert(:user)
+        |> with_signing_key()
 
       assert {:ok, %{body: "port 42"}} =
                Publisher.publish_one(%{
@@ -164,7 +167,10 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
                    Instances,
                    [:passthrough],
                    [] do
-      actor = insert(:user)
+      actor =
+        insert(:user)
+        |> with_signing_key()
+
       inbox = "http://200.site/users/nick1/inbox"
 
       assert {:ok, _} = Publisher.publish_one(%{inbox: inbox, json: "{}", actor: actor, id: 1})
@@ -175,7 +181,10 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
                    Instances,
                    [:passthrough],
                    [] do
-      actor = insert(:user)
+      actor =
+        insert(:user)
+        |> with_signing_key()
+
       inbox = "http://200.site/users/nick1/inbox"
 
       assert {:ok, _} =
@@ -194,7 +203,10 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
                    Instances,
                    [:passthrough],
                    [] do
-      actor = insert(:user)
+      actor =
+        insert(:user)
+        |> with_signing_key()
+
       inbox = "http://200.site/users/nick1/inbox"
 
       assert {:ok, _} =
@@ -213,7 +225,10 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
                    Instances,
                    [:passthrough],
                    [] do
-      actor = insert(:user)
+      actor =
+        insert(:user)
+        |> with_signing_key()
+
       inbox = "http://404.site/users/nick1/inbox"
 
       assert {:error, _} = Publisher.publish_one(%{inbox: inbox, json: "{}", actor: actor, id: 1})
@@ -225,7 +240,10 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
                    Instances,
                    [:passthrough],
                    [] do
-      actor = insert(:user)
+      actor =
+        insert(:user)
+        |> with_signing_key()
+
       inbox = "http://connrefused.site/users/nick1/inbox"
 
       assert capture_log(fn ->
@@ -240,7 +258,10 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
                    Instances,
                    [:passthrough],
                    [] do
-      actor = insert(:user)
+      actor =
+        insert(:user)
+        |> with_signing_key()
+
       inbox = "http://200.site/users/nick1/inbox"
 
       assert {:ok, _} = Publisher.publish_one(%{inbox: inbox, json: "{}", actor: actor, id: 1})
@@ -252,7 +273,10 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
                    Instances,
                    [:passthrough],
                    [] do
-      actor = insert(:user)
+      actor =
+        insert(:user)
+        |> with_signing_key()
+
       inbox = "http://connrefused.site/users/nick1/inbox"
 
       assert capture_log(fn ->
@@ -282,18 +306,18 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
       follower =
         insert(:user, %{
           local: false,
-          inbox: "https://domain.com/users/nick1/inbox",
-          ap_enabled: true
+          inbox: "https://domain.com/users/nick1/inbox"
         })
 
       another_follower =
         insert(:user, %{
           local: false,
-          inbox: "https://rejected.com/users/nick2/inbox",
-          ap_enabled: true
+          inbox: "https://rejected.com/users/nick2/inbox"
         })
 
-      actor = insert(:user, follower_address: follower.ap_id)
+      actor =
+        insert(:user, follower_address: follower.ap_id)
+        |> with_signing_key()
 
       {:ok, follower, actor} = Pleroma.User.follow(follower, actor)
       {:ok, _another_follower, actor} = Pleroma.User.follow(another_follower, actor)
@@ -360,11 +384,12 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
       follower =
         insert(:user, %{
           local: false,
-          inbox: "https://domain.com/users/nick1/inbox",
-          ap_enabled: true
+          inbox: "https://domain.com/users/nick1/inbox"
         })
 
-      actor = insert(:user, follower_address: follower.ap_id)
+      actor =
+        insert(:user, follower_address: follower.ap_id)
+        |> with_signing_key()
 
       {:ok, follower, actor} = Pleroma.User.follow(follower, actor)
       actor = refresh_record(actor)
@@ -397,8 +422,7 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
       follower =
         insert(:user, %{
           local: false,
-          inbox: "https://domain.com/users/nick1/inbox",
-          ap_enabled: true
+          inbox: "https://domain.com/users/nick1/inbox"
         })
 
       actor = insert(:user, follower_address: follower.ap_id)
@@ -433,15 +457,13 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
       fetcher =
         insert(:user,
           local: false,
-          inbox: "https://domain.com/users/nick1/inbox",
-          ap_enabled: true
+          inbox: "https://domain.com/users/nick1/inbox"
         )
 
       another_fetcher =
         insert(:user,
           local: false,
-          inbox: "https://domain2.com/users/nick1/inbox",
-          ap_enabled: true
+          inbox: "https://domain2.com/users/nick1/inbox"
         )
 
       actor = insert(:user)
@@ -484,6 +506,16 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
                  id: delete.data["id"]
                })
              )
+    end
+  end
+
+  describe "should_federate/1" do
+    test "should not obliterate itself if the inbox URL is bad" do
+      url = "/inbox"
+      refute Pleroma.Web.ActivityPub.Publisher.should_federate?(url)
+
+      url = nil
+      refute Pleroma.Web.ActivityPub.Publisher.should_federate?(url)
     end
   end
 end

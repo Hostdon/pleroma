@@ -5,38 +5,34 @@
 defmodule Pleroma.Web.ActivityPub.UserView do
   use Pleroma.Web, :view
 
-  alias Pleroma.Keys
   alias Pleroma.Object
   alias Pleroma.Repo
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ObjectView
   alias Pleroma.Web.ActivityPub.Transmogrifier
   alias Pleroma.Web.ActivityPub.Utils
-  alias Pleroma.Web.Endpoint
-  alias Pleroma.Web.Router.Helpers
+
+  require Pleroma.Web.ActivityPub.Transmogrifier
 
   import Ecto.Query
 
   def render("endpoints.json", %{user: %User{nickname: nil, local: true} = _user}) do
-    %{"sharedInbox" => Helpers.activity_pub_url(Endpoint, :inbox)}
+    %{"sharedInbox" => url(~p"/inbox")}
   end
 
   def render("endpoints.json", %{user: %User{local: true} = _user}) do
     %{
-      "oauthAuthorizationEndpoint" => Helpers.o_auth_url(Endpoint, :authorize),
-      "oauthRegistrationEndpoint" => Helpers.app_url(Endpoint, :create),
-      "oauthTokenEndpoint" => Helpers.o_auth_url(Endpoint, :token_exchange),
-      "sharedInbox" => Helpers.activity_pub_url(Endpoint, :inbox),
-      "uploadMedia" => Helpers.activity_pub_url(Endpoint, :upload_media)
+      "oauthAuthorizationEndpoint" => url(~p"/oauth/authorize"),
+      "oauthRegistrationEndpoint" => url(~p"/api/v1/apps"),
+      "oauthTokenEndpoint" => url(~p"/oauth/token"),
+      "sharedInbox" => url(~p"/inbox")
     }
   end
 
   def render("endpoints.json", _), do: %{}
 
   def render("service.json", %{user: user}) do
-    {:ok, _, public_key} = Keys.keys_from_pem(user.keys)
-    public_key = :public_key.pem_entry_encode(:SubjectPublicKeyInfo, public_key)
-    public_key = :public_key.pem_encode([public_key])
+    {:ok, public_key} = User.SigningKey.public_key_pem(user)
 
     endpoints = render("endpoints.json", %{user: user})
 
@@ -46,13 +42,14 @@ defmodule Pleroma.Web.ActivityPub.UserView do
       "following" => "#{user.ap_id}/following",
       "followers" => "#{user.ap_id}/followers",
       "inbox" => "#{user.ap_id}/inbox",
+      "outbox" => "#{user.ap_id}/outbox",
       "name" => "Pleroma",
       "summary" =>
         "An internal service actor for this Pleroma instance.  No user-serviceable parts inside.",
       "url" => user.ap_id,
       "manuallyApprovesFollowers" => false,
       "publicKey" => %{
-        "id" => "#{user.ap_id}#main-key",
+        "id" => User.SigningKey.local_key_id(user.ap_id),
         "owner" => user.ap_id,
         "publicKeyPem" => public_key
       },
@@ -70,9 +67,12 @@ defmodule Pleroma.Web.ActivityPub.UserView do
     do: render("service.json", %{user: user}) |> Map.put("preferredUsername", user.nickname)
 
   def render("user.json", %{user: user}) do
-    {:ok, _, public_key} = Keys.keys_from_pem(user.keys)
-    public_key = :public_key.pem_entry_encode(:SubjectPublicKeyInfo, public_key)
-    public_key = :public_key.pem_encode([public_key])
+    public_key =
+      case User.SigningKey.public_key_pem(user) do
+        {:ok, public_key} -> public_key
+        _ -> nil
+      end
+
     user = User.sanitize_html(user)
 
     endpoints = render("endpoints.json", %{user: user})
@@ -97,7 +97,7 @@ defmodule Pleroma.Web.ActivityPub.UserView do
       "url" => user.ap_id,
       "manuallyApprovesFollowers" => user.is_locked,
       "publicKey" => %{
-        "id" => "#{user.ap_id}#main-key",
+        "id" => User.SigningKey.local_key_id(user.ap_id),
         "owner" => user.ap_id,
         "publicKeyPem" => public_key
       },
@@ -111,6 +111,22 @@ defmodule Pleroma.Web.ActivityPub.UserView do
     }
     |> Map.merge(maybe_make_image(&User.avatar_url/2, "icon", user))
     |> Map.merge(maybe_make_image(&User.banner_url/2, "image", user))
+    # Yes, the key is named ...Url eventhough it is a whole 'Image' object
+    |> Map.merge(maybe_insert_image("backgroundUrl", User.background_url(user)))
+    |> Map.merge(Utils.make_json_ld_header())
+  end
+
+  def render("keys.json", %{user: user}) do
+    {:ok, public_key} = User.SigningKey.public_key_pem(user)
+
+    %{
+      "id" => user.ap_id,
+      "publicKey" => %{
+        "id" => User.SigningKey.key_id_of_local_user(user),
+        "owner" => user.ap_id,
+        "publicKeyPem" => public_key
+      }
+    }
     |> Map.merge(Utils.make_json_ld_header())
   end
 
@@ -286,7 +302,12 @@ defmodule Pleroma.Web.ActivityPub.UserView do
   end
 
   defp maybe_make_image(func, key, user) do
-    if image = func.(user, no_default: true) do
+    image = func.(user, no_default: true)
+    maybe_insert_image(key, image)
+  end
+
+  defp maybe_insert_image(key, image) do
+    if image do
       %{
         key => %{
           "type" => "Image",

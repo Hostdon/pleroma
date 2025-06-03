@@ -6,7 +6,9 @@ probably install frontends.
 These are no longer bundled with the distribution and need an extra
 command to install.
 
-For most installations, the following will suffice:
+You **must** run frontend management tasks as the akkoma user,
+the same way you downloaded the build or cloned the git repo before.
+But otherwise, for most installations, the following will suffice:
 
 === "OTP" 
     ```sh
@@ -28,4 +30,3 @@ For most installations, the following will suffice:
     ```
 
 For more customised installations, refer to [Frontend Management](../../configuration/frontend_management)
-

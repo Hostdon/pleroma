@@ -3,7 +3,8 @@ defmodule Pleroma.Akkoma.Translators.ArgosTranslateTest do
 
   import Mock
 
-  use Pleroma.DataCase, async: true
+  use Pleroma.DataCase, async: false
+  @moduletag :mocked
 
   setup do
     clear_config([:argos_translate, :command_argos_translate], "argos-translate_test")

@@ -6,9 +6,53 @@ defmodule Pleroma.Web.ActivityPub.MRF.StealEmojiPolicy do
   require Logger
 
   alias Pleroma.Config
+  alias Pleroma.Emoji.Pack
 
   @moduledoc "Detect new emojis by their shortcode and steals them"
   @behaviour Pleroma.Web.ActivityPub.MRF.Policy
+
+  @pack_name "stolen"
+
+  # Config defaults
+  @size_limit 50_000
+  @download_unknown_size false
+
+  defp create_pack() do
+    with {:ok, pack} = Pack.create(@pack_name) do
+      Pack.save_metadata(
+        %{
+          "description" => "Collection of emoji auto-stolen from other instances",
+          "homepage" => Pleroma.Web.Endpoint.url(),
+          "can-download" => false,
+          "share-files" => false
+        },
+        pack
+      )
+    end
+  end
+
+  defp load_or_create_pack() do
+    case Pack.load_pack(@pack_name) do
+      {:ok, pack} -> {:ok, pack}
+      {:error, :enoent} -> create_pack()
+      e -> e
+    end
+  end
+
+  defp add_emoji(shortcode, extension, filedata) do
+    {:ok, pack} = load_or_create_pack()
+    # Make final path infeasible to predict to thwart certain kinds of attacks
+    # (48 bits is slighty more than 8 base62 chars, thus 9 chars)
+    salt =
+      :crypto.strong_rand_bytes(6)
+      |> :crypto.bytes_to_integer()
+      |> Base62.encode()
+      |> String.pad_leading(9, "0")
+
+    filename = shortcode <> "-" <> salt <> "." <> extension
+
+    Pack.add_file(pack, shortcode, filename, filedata)
+  end
 
   defp accept_host?(host), do: host in Config.get([:mrf_steal_emoji, :hosts], [])
 
@@ -20,30 +64,78 @@ defmodule Pleroma.Web.ActivityPub.MRF.StealEmojiPolicy do
     String.match?(shortcode, pattern)
   end
 
-  defp steal_emoji({shortcode, url}, emoji_dir_path) do
+  defp reject_emoji?({shortcode, _url}, installed_emoji) do
+    valid_shortcode? = String.match?(shortcode, ~r/^[a-zA-Z0-9_-]+$/)
+
+    rejected_shortcode? =
+      [:mrf_steal_emoji, :rejected_shortcodes]
+      |> Config.get([])
+      |> Enum.any?(fn pattern -> shortcode_matches?(shortcode, pattern) end)
+
+    emoji_installed? = Enum.member?(installed_emoji, shortcode)
+
+    !valid_shortcode? or rejected_shortcode? or emoji_installed?
+  end
+
+  defp steal_emoji(%{} = response, {shortcode, extension}) do
+    case add_emoji(shortcode, extension, response.body) do
+      {:ok, _} ->
+        shortcode
+
+      e ->
+        Logger.warning(
+          "MRF.StealEmojiPolicy: Failed to add #{shortcode} as #{extension}: #{inspect(e)}"
+        )
+
+        nil
+    end
+  end
+
+  defp get_extension_if_safe(response) do
+    content_type =
+      :proplists.get_value("content-type", response.headers, MIME.from_path(response.url))
+
+    case content_type do
+      "image/" <> _ -> List.first(MIME.extensions(content_type))
+      _ -> nil
+    end
+  end
+
+  defp get_int_header(headers, header_name, default \\ nil) do
+    with rawval when rawval != :undefined <- :proplists.get_value(header_name, headers),
+         {int, ""} <- Integer.parse(rawval) do
+      int
+    else
+      _ -> default
+    end
+  end
+
+  defp is_remote_size_within_limit?(url) do
+    with {:ok, %{status: status, headers: headers} = _response} when status in 200..299 <-
+           Pleroma.HTTP.request(:head, url, nil, [], []) do
+      content_length = get_int_header(headers, "content-length")
+      size_limit = Config.get([:mrf_steal_emoji, :size_limit], @size_limit)
+
+      accept_unknown =
+        Config.get([:mrf_steal_emoji, :download_unknown_size], @download_unknown_size)
+
+      content_length <= size_limit or
+        (content_length == nil and accept_unknown)
+    else
+      _ -> false
+    end
+  end
+
+  defp maybe_steal_emoji({shortcode, url}) do
     url = Pleroma.Web.MediaProxy.url(url)
 
-    with {:ok, %{status: status} = response} when status in 200..299 <- Pleroma.HTTP.get(url) do
-      size_limit = Config.get([:mrf_steal_emoji, :size_limit], 50_000)
+    with {:remote_size, true} <- {:remote_size, is_remote_size_within_limit?(url)},
+         {:ok, %{status: status} = response} when status in 200..299 <- Pleroma.HTTP.get(url) do
+      size_limit = Config.get([:mrf_steal_emoji, :size_limit], @size_limit)
+      extension = get_extension_if_safe(response)
 
-      if byte_size(response.body) <= size_limit do
-        extension =
-          url
-          |> URI.parse()
-          |> Map.get(:path)
-          |> Path.basename()
-          |> Path.extname()
-
-        file_path = Path.join(emoji_dir_path, shortcode <> (extension || ".png"))
-
-        case File.write(file_path, response.body) do
-          :ok ->
-            shortcode
-
-          e ->
-            Logger.warn("MRF.StealEmojiPolicy: Failed to write to #{file_path}: #{inspect(e)}")
-            nil
-        end
+      if byte_size(response.body) <= size_limit and extension do
+        steal_emoji(response, {shortcode, extension})
       else
         Logger.debug(
           "MRF.StealEmojiPolicy: :#{shortcode}: at #{url} (#{byte_size(response.body)} B) over size limit (#{size_limit} B)"
@@ -53,7 +145,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.StealEmojiPolicy do
       end
     else
       e ->
-        Logger.warn("MRF.StealEmojiPolicy: Failed to fetch #{url}: #{inspect(e)}")
+        Logger.warning("MRF.StealEmojiPolicy: Failed to fetch #{url}: #{inspect(e)}")
         nil
     end
   end
@@ -65,26 +157,10 @@ defmodule Pleroma.Web.ActivityPub.MRF.StealEmojiPolicy do
     if host != Pleroma.Web.Endpoint.host() and accept_host?(host) do
       installed_emoji = Pleroma.Emoji.get_all() |> Enum.map(fn {k, _} -> k end)
 
-      emoji_dir_path =
-        Config.get(
-          [:mrf_steal_emoji, :path],
-          Path.join(Config.get([:instance, :static_dir]), "emoji/stolen")
-        )
-
-      File.mkdir_p(emoji_dir_path)
-
       new_emojis =
         foreign_emojis
-        |> Enum.reject(fn {shortcode, _url} -> shortcode in installed_emoji end)
-        |> Enum.filter(fn {shortcode, _url} ->
-          reject_emoji? =
-            [:mrf_steal_emoji, :rejected_shortcodes]
-            |> Config.get([])
-            |> Enum.find(false, fn pattern -> shortcode_matches?(shortcode, pattern) end)
-
-          !reject_emoji?
-        end)
-        |> Enum.map(&steal_emoji(&1, emoji_dir_path))
+        |> Enum.reject(&reject_emoji?(&1, installed_emoji))
+        |> Enum.map(&maybe_steal_emoji(&1))
         |> Enum.filter(& &1)
 
       if !Enum.empty?(new_emojis) do
@@ -105,7 +181,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.StealEmojiPolicy do
               description: <<_::272, _::_*256>>,
               key: :hosts | :rejected_shortcodes | :size_limit,
               suggestions: [any(), ...],
-              type: {:list, :string} | {:list, :string} | :integer
+              type: {:list, :string} | {:list, :string} | :integer | :boolean
             },
             ...
           ],
@@ -142,6 +218,12 @@ defmodule Pleroma.Web.ActivityPub.MRF.StealEmojiPolicy do
           type: :integer,
           description: "File size limit (in bytes), checked before an emoji is saved to the disk",
           suggestions: ["100000"]
+        },
+        %{
+          key: :download_unknown_size,
+          type: :boolean,
+          description: "Whether to download emoji if size can't be determined ahead of time",
+          suggestions: [false, true]
         }
       ]
     }

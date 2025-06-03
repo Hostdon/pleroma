@@ -70,7 +70,7 @@
   "preferredUsername": "jk.nipponalba.scot",
   "summary": "",
   "publicKey": {
-    "id": "jk.nipponalba.scot",
+    "id": "https://fed.brid.gy/jk.nipponalba.scot#key",
     "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDdarxwzxnNbJ2hneWOYHkYJowk\npyigQtxlUd0VjgSQHwxU9kWqfbrHBVADyTtcqi/4dAzQd3UnCI1TPNnn4LPZY9PW\noiWd3Zl1/EfLFxO7LU9GS7fcSLQkyj5JNhSlN3I8QPudZbybrgRDVZYooDe1D+52\n5KLGqC2ajrIVOiDRTQIDAQAB\n-----END PUBLIC KEY-----"
   },
   "inbox": "https://fed.brid.gy/jk.nipponalba.scot/inbox",

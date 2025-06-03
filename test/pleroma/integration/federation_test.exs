@@ -31,10 +31,9 @@ defmodule Pleroma.Integration.FederationTest do
     test "runs webserver on customized port" do
       {nickname, url, url_404} =
         within @federated1 do
-          import Pleroma.Web.Router.Helpers
           user = Pleroma.Factory.insert(:user)
-          user_url = account_url(Pleroma.Web.Endpoint, :show, user)
-          url_404 = account_url(Pleroma.Web.Endpoint, :show, "not-exists")
+          user_url = ~p[/api/v1/accounts/#{user}]
+          url_404 = ~p"/api/v1/accounts/not-exists"
 
           {user.nickname, user_url, url_404}
         end

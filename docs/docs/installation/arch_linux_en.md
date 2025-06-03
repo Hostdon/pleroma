@@ -136,16 +136,17 @@ If you want to open your newly installed instance to the world, you should run n
 sudo pacman -S nginx
 ```
 
-* Create directories for available and enabled sites:
+* Copy the example nginx configuration:
 
 ```shell
-sudo mkdir -p /etc/nginx/sites-{available,enabled}
+sudo cp /opt/akkoma/installation/nginx/akkoma.nginx /etc/nginx/conf.d/akkoma.conf
 ```
 
-* Append the following line at the end of the `http` block in `/etc/nginx/nginx.conf`:
+* Before starting nginx edit the configuration and change it to your needs (e.g. change servername, change cert paths)
+* Enable and start nginx:
 
-```Nginx
-include sites-enabled/*;
+```shell
+sudo systemctl enable --now nginx.service
 ```
 
 * Setup your SSL cert, using your method of choice or certbot. If using certbot, first install it:
@@ -158,32 +159,18 @@ and then set it up:
 
 ```shell
 sudo mkdir -p /var/lib/letsencrypt/
-sudo certbot certonly --email <your@emailaddress> -d <yourdomain> --standalone
+sudo certbot --email <your@emailaddress> -d <yourdomain> -d <media_domain> --nginx
 ```
 
-If that doesn’t work, make sure, that nginx is not already running. If it still doesn’t work, try setting up nginx first (change ssl “on” to “off” and try again).
+If that doesn't work the first time, add `--dry-run` to further attempts to avoid being ratelimited as you identify the issue, and do not remove it until the dry run succeeds. A common source of problems are nginx config syntax errors; this can be checked for by running `nginx -t`.
 
----
-
-* Copy the example nginx configuration and activate it:
+To make sure renewals work, enable the appropriate systemd timer:
 
 ```shell
-sudo cp /opt/akkoma/installation/nginx/akkoma.nginx /etc/nginx/sites-available/akkoma.nginx
-sudo ln -s /etc/nginx/sites-available/akkoma.nginx /etc/nginx/sites-enabled/akkoma.nginx
+sudo systemctl enable --now certbot-renew.timer
 ```
 
-* Before starting nginx edit the configuration and change it to your needs (e.g. change servername, change cert paths)
-* Enable and start nginx:
-
-```shell
-sudo systemctl enable --now nginx.service
-```
-
-If you need to renew the certificate in the future, uncomment the relevant location block in the nginx config and run:
-
-```shell
-sudo certbot certonly --email <your@emailaddress> -d <yourdomain> --webroot -w /var/lib/letsencrypt/
-```
+Certificate renewal should be handled automatically by Certbot from now on.
 
 #### Other webserver/proxies
 

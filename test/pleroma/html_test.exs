@@ -176,7 +176,7 @@ defmodule Pleroma.HTMLTest do
         })
 
       object = Object.normalize(activity, fetch: false)
-      {:ok, url} = HTML.extract_first_external_url_from_object(object)
+      url = HTML.extract_first_external_url_from_object(object)
       assert url == "https://github.com/komeiji-satori/Dress"
     end
 
@@ -191,7 +191,7 @@ defmodule Pleroma.HTMLTest do
         })
 
       object = Object.normalize(activity, fetch: false)
-      {:ok, url} = HTML.extract_first_external_url_from_object(object)
+      url = HTML.extract_first_external_url_from_object(object)
 
       assert url == "https://github.com/syuilo/misskey/blob/develop/docs/setup.en.md"
 
@@ -207,7 +207,7 @@ defmodule Pleroma.HTMLTest do
         })
 
       object = Object.normalize(activity, fetch: false)
-      {:ok, url} = HTML.extract_first_external_url_from_object(object)
+      url = HTML.extract_first_external_url_from_object(object)
 
       assert url == "https://www.pixiv.net/member_illust.php?mode=medium&illust_id=72255140"
     end
@@ -223,7 +223,7 @@ defmodule Pleroma.HTMLTest do
         })
 
       object = Object.normalize(activity, fetch: false)
-      {:ok, url} = HTML.extract_first_external_url_from_object(object)
+      url = HTML.extract_first_external_url_from_object(object)
 
       assert url == "https://www.pixiv.net/member_illust.php?mode=medium&illust_id=72255140"
     end
@@ -235,7 +235,7 @@ defmodule Pleroma.HTMLTest do
 
       object = Object.normalize(activity, fetch: false)
 
-      assert {:ok, nil} = HTML.extract_first_external_url_from_object(object)
+      assert nil == HTML.extract_first_external_url_from_object(object)
     end
 
     test "skips attachment links" do
@@ -249,7 +249,7 @@ defmodule Pleroma.HTMLTest do
 
       object = Object.normalize(activity, fetch: false)
 
-      assert {:ok, nil} = HTML.extract_first_external_url_from_object(object)
+      assert nil == HTML.extract_first_external_url_from_object(object)
     end
   end
 end

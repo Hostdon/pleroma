@@ -13,6 +13,8 @@ defmodule Pleroma.Config.ReleaseRuntimeProviderTest do
     end
 
     test "merged runtime config" do
+      assert :ok == File.chmod!("test/fixtures/config/temp.secret.exs", 0o640)
+
       merged =
         ReleaseRuntimeProvider.load([], config_path: "test/fixtures/config/temp.secret.exs")
 
@@ -21,6 +23,8 @@ defmodule Pleroma.Config.ReleaseRuntimeProviderTest do
     end
 
     test "merged exported config" do
+      assert :ok == File.chmod!("test/fixtures/config/temp.exported_from_db.secret.exs", 0o640)
+
       ExUnit.CaptureIO.capture_io(fn ->
         merged =
           ReleaseRuntimeProvider.load([],
@@ -33,6 +37,9 @@ defmodule Pleroma.Config.ReleaseRuntimeProviderTest do
     end
 
     test "runtime config is merged with exported config" do
+      assert :ok == File.chmod!("test/fixtures/config/temp.secret.exs", 0o640)
+      assert :ok == File.chmod!("test/fixtures/config/temp.exported_from_db.secret.exs", 0o640)
+
       merged =
         ReleaseRuntimeProvider.load([],
           config_path: "test/fixtures/config/temp.secret.exs",

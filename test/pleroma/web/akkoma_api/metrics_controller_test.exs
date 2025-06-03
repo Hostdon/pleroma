@@ -1,5 +1,5 @@
 defmodule Pleroma.Web.AkkomaAPI.MetricsControllerTest do
-  use Pleroma.Web.ConnCase, async: true
+  use Pleroma.Web.ConnCase, async: false
 
   describe "GET /api/v1/akkoma/metrics" do
     test "should return metrics when the user has admin:metrics" do

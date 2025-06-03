@@ -41,6 +41,26 @@ defmodule Pleroma.ActivityTest do
     assert activity == found_activity
   end
 
+  test "returns activities by object's AP id in requested presorted order" do
+    a1 = insert(:note_activity)
+    o1 = Object.normalize(a1, fetch: false).data["id"]
+
+    a2 = insert(:note_activity)
+    o2 = Object.normalize(a2, fetch: false).data["id"]
+
+    a3 = insert(:note_activity)
+    o3 = Object.normalize(a3, fetch: false).data["id"]
+
+    a4 = insert(:note_activity)
+    o4 = Object.normalize(a4, fetch: false).data["id"]
+
+    found_activities =
+      Activity.get_presorted_create_by_object_ap_id([o3, o2, o4, o1])
+      |> Repo.all()
+
+    assert found_activities == [a3, a2, a4, a1]
+  end
+
   test "preloading a bookmark" do
     user = insert(:user)
     user2 = insert(:user)

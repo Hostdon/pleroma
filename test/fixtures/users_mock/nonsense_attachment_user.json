@@ -1,0 +1,51 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    {
+      "blurhash": "toot:blurhash",
+      "Emoji": "toot:Emoji",
+      "focalPoint": {
+        "@container": "@list",
+        "@id": "toot:focalPoint"
+      },
+      "Hashtag": "as:Hashtag",
+      "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+      "sensitive": "as:sensitive",
+      "toot": "http://joinmastodon.org/ns#",
+      "votersCount": "toot:votersCount",
+      "featured": {
+        "@id": "toot:featured",
+        "@type": "@id"
+      }
+    },
+    "https://w3id.org/security/v1"
+  ],
+  "id": "https://fedi.vision/@vote@fedi.vision/",
+  "type": "Person",
+  "toot:discoverable": true,
+  "inbox": "https://fedi.vision/@vote@fedi.vision/inbox/",
+  "publicKey": {
+    "id": "https://fedi.vision/@vote@fedi.vision/#main-key",
+    "owner": "https://fedi.vision/@vote@fedi.vision/",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAj2f+uQtdoBO9X/u2Qso4\nxHYdfy8zB24m9Gg982/ts88DAMLxZUzX0JsBWT7coL0Ipf4NSbVaqS6nKrr2P8Qs\nf97wMhowyuYxK22BMPcbpfZkFj3tVT/JkDx2iujBJJ5ZBO5KRlupjDTqV4rOAY7F\n58ad0jK9PsJNJMsJ/b8+0t3Q/K+RqCGVmtK+iPSigOYoiKoquyRzHLTfP+mpOlDa\n3f+uyAbFya7CpcgBx1zz0PALWA+oh/zhZK4yT6719Esa8SDcoJ0ws70zMxWekq1A\n3ia88/Io6SY2qFNBpzzXGO3JK8OFRFtmPV8ZfAh5Pv6y52iuTJ21kxjAG7ZTP/fY\nBQIDAQAB\n-----END PUBLIC KEY-----\n"
+  },
+  "attachment": {
+	"haha": "you expected a proper object, but it was me, random nonsense"
+  },
+  "endpoints": {
+    "sharedInbox": "https://fedi.vision/inbox/"
+  },
+  "followers": "https://fedi.vision/@vote@fedi.vision/followers/",
+  "following": "https://fedi.vision/@vote@fedi.vision/following/",
+  "icon": {
+    "type": "Image",
+    "mediaType": "image/webp",
+    "url": "https://eu-central-1.linodeobjects.com:443/st4/profile_images/2024/5/9/RwqTbeYx16gauXPXvt-CaysOnGw.webp"
+  },
+  "name": "FediVision Vote Bot",
+  "outbox": "https://fedi.vision/@vote@fedi.vision/outbox/",
+  "preferredUsername": "vote",
+  "published": "2024-05-09T09:04:04Z",
+  "summary": "<p>New in 2024, this is the bot that will count your #Fedivision vote! Accept no substitutes!</p><p>Send this account a toot in the form<br>  vote ABCD EFGH IJKL<br>substituting the (up to) three codes for the songs you want to win. Punctuation ignored, case insensitive, order is unimportant. Only your latest toot counts, so change your vote with a new toot.</p>",
+  "url": "https://fedi.vision/@vote/"
+}

@@ -1,11 +1,11 @@
-<%= if get_flash(@conn, :info) do %>
-<p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>
+<%= if Flash.get(@flash, :info) do %>
+<p class="alert alert-info" role="alert"><%= Flash.get(@flash, :info) %></p>
 <% end %>
-<%= if get_flash(@conn, :error) do %>
-<p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p>
+<%= if Flash.get(@flash, :error) do %>
+<p class="alert alert-danger" role="alert"><%= Flash.get(@flash, :error) %></p>
 <% end %>
 
-<%= form_for @conn, Routes.o_auth_path(@conn, :authorize), [as: "authorization"], fn f -> %>
+<%= form_for @conn, ~p"/oauth/authorize", [as: "authorization"], fn f -> %>
 
 <%= if @user do %>
   <div class="account-header">

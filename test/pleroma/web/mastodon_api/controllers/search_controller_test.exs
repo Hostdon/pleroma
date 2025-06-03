@@ -3,7 +3,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.MastodonAPI.SearchControllerTest do
-  use Pleroma.Web.ConnCase
+  use Pleroma.Web.ConnCase, async: false
+  @moduletag :mocked
 
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.Endpoint
@@ -78,7 +79,6 @@ defmodule Pleroma.Web.MastodonAPI.SearchControllerTest do
       assert status["id"] == to_string(activity.id)
     end
 
-    @tag capture_log: true
     test "constructs hashtags from search query", %{conn: conn} do
       results =
         conn

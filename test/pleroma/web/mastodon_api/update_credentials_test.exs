@@ -6,10 +6,13 @@ defmodule Pleroma.Web.MastodonAPI.UpdateCredentialsTest do
   alias Pleroma.Repo
   alias Pleroma.User
 
-  use Pleroma.Web.ConnCase
+  use Pleroma.Web.ConnCase, async: false
+  @moduletag :mocked
 
   import Mock
   import Pleroma.Factory
+
+  setup do: clear_config([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
 
   describe "updating credentials" do
     setup do: oauth_access(["write:accounts"])
@@ -88,7 +91,7 @@ defmodule Pleroma.Web.MastodonAPI.UpdateCredentialsTest do
       assert user_data = json_response_and_validate_schema(conn, 200)
 
       assert user_data["note"] ==
-               ~s(I drink <a class="hashtag" data-tag="cofe" href="http://localhost:4001/tag/cofe">#cofe</a> with <span class="h-card"><a class="u-url mention" data-user="#{user2.id}" href="#{user2.ap_id}" rel="ugc">@<span>#{user2.nickname}</span></a></span><br/><br/>suya..)
+               ~s(I drink <a class="hashtag" data-tag="cofe" href="http://localhost:4001/tag/cofe" rel=\"tag ugc\">#cofe</a> with <span class="h-card"><a class="u-url mention" data-user="#{user2.id}" href="#{user2.ap_id}" rel="ugc">@<span>#{user2.nickname}</span></a></span><br/><br/>suya..)
 
       assert user_data["source"]["note"] == raw_bio
 
@@ -396,6 +399,34 @@ defmodule Pleroma.Web.MastodonAPI.UpdateCredentialsTest do
       assert :ok == File.rm(Path.absname("test/tmp/large_binary.data"))
     end
 
+    test "Strip / from upload files", %{user: user, conn: conn} do
+      new_image = %Plug.Upload{
+        content_type: "image/jpeg",
+        path: Path.absname("test/fixtures/image.jpg"),
+        filename: "../../../../nested/an_image.jpg"
+      }
+
+      assert user.avatar == %{}
+
+      res =
+        patch(conn, "/api/v1/accounts/update_credentials", %{
+          "avatar" => new_image,
+          "header" => new_image,
+          "pleroma_background_image" => new_image
+        })
+
+      assert user_response = json_response_and_validate_schema(res, 200)
+      assert user_response["avatar"]
+      assert user_response["header"]
+      assert user_response["pleroma"]["background_image"]
+      refute Regex.match?(~r"/nested/", user_response["avatar"])
+      refute Regex.match?(~r"/nested/", user_response["header"])
+      refute Regex.match?(~r"/nested/", user_response["pleroma"]["background_image"])
+
+      user = User.get_by_id(user.id)
+      refute user.avatar == %{}
+    end
+
     test "requires 'write:accounts' permission" do
       token1 = insert(:oauth_token, scopes: ["read"])
       token2 = insert(:oauth_token, scopes: ["write", "follow"])
@@ -498,7 +529,7 @@ defmodule Pleroma.Web.MastodonAPI.UpdateCredentialsTest do
       user: user,
       conn: conn
     } do
-      fe_url = "#{Pleroma.Web.Endpoint.url()}/#{user.nickname}"
+      fe_url = url(~p[/#{user.nickname}])
 
       Tesla.Mock.mock(fn
         %{url: "http://example.com/rel_me/fe_path"} ->
@@ -697,6 +728,58 @@ defmodule Pleroma.Web.MastodonAPI.UpdateCredentialsTest do
 
       refute account["bot"]
       assert account["source"]["pleroma"]["actor_type"] == "Person"
+    end
+  end
+
+  describe "Updating direct message settings" do
+    setup do: oauth_access(["write:accounts"])
+    setup :request_content_type
+
+    test "changing to :everybody", %{conn: conn} do
+      account =
+        conn
+        |> patch("/api/v1/accounts/update_credentials", %{
+          accepts_direct_messages_from: "everybody"
+        })
+        |> json_response_and_validate_schema(200)
+
+      assert account["accepts_direct_messages_from"]
+      assert account["accepts_direct_messages_from"] == "everybody"
+      assert Pleroma.User.get_by_ap_id(account["url"]).accepts_direct_messages_from == :everybody
+    end
+
+    test "changing to :nobody", %{conn: conn} do
+      account =
+        conn
+        |> patch("/api/v1/accounts/update_credentials", %{accepts_direct_messages_from: "nobody"})
+        |> json_response_and_validate_schema(200)
+
+      assert account["accepts_direct_messages_from"]
+      assert account["accepts_direct_messages_from"] == "nobody"
+      assert Pleroma.User.get_by_ap_id(account["url"]).accepts_direct_messages_from == :nobody
+    end
+
+    test "changing to :people_i_follow", %{conn: conn} do
+      account =
+        conn
+        |> patch("/api/v1/accounts/update_credentials", %{
+          accepts_direct_messages_from: "people_i_follow"
+        })
+        |> json_response_and_validate_schema(200)
+
+      assert account["accepts_direct_messages_from"]
+      assert account["accepts_direct_messages_from"] == "people_i_follow"
+
+      assert Pleroma.User.get_by_ap_id(account["url"]).accepts_direct_messages_from ==
+               :people_i_follow
+    end
+
+    test "changing to an unsupported value", %{conn: conn} do
+      conn
+      |> patch("/api/v1/accounts/update_credentials", %{
+        accepts_direct_messages_from: "unsupported"
+      })
+      |> json_response(400)
     end
   end
 end

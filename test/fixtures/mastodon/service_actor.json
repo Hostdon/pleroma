@@ -1,0 +1,117 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    {
+      "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+      "toot": "http://joinmastodon.org/ns#",
+      "featured": {
+        "@id": "toot:featured",
+        "@type": "@id"
+      },
+      "featuredTags": {
+        "@id": "toot:featuredTags",
+        "@type": "@id"
+      },
+      "alsoKnownAs": {
+        "@id": "as:alsoKnownAs",
+        "@type": "@id"
+      },
+      "movedTo": {
+        "@id": "as:movedTo",
+        "@type": "@id"
+      },
+      "schema": "http://schema.org#",
+      "PropertyValue": "schema:PropertyValue",
+      "value": "schema:value",
+      "discoverable": "toot:discoverable",
+      "Device": "toot:Device",
+      "Ed25519Signature": "toot:Ed25519Signature",
+      "Ed25519Key": "toot:Ed25519Key",
+      "Curve25519Key": "toot:Curve25519Key",
+      "EncryptedMessage": "toot:EncryptedMessage",
+      "publicKeyBase64": "toot:publicKeyBase64",
+      "deviceId": "toot:deviceId",
+      "claim": {
+        "@type": "@id",
+        "@id": "toot:claim"
+      },
+      "fingerprintKey": {
+        "@type": "@id",
+        "@id": "toot:fingerprintKey"
+      },
+      "identityKey": {
+        "@type": "@id",
+        "@id": "toot:identityKey"
+      },
+      "devices": {
+        "@type": "@id",
+        "@id": "toot:devices"
+      },
+      "messageFranking": "toot:messageFranking",
+      "messageType": "toot:messageType",
+      "cipherText": "toot:cipherText",
+      "suspended": "toot:suspended",
+      "memorial": "toot:memorial",
+      "indexable": "toot:indexable",
+      "focalPoint": {
+        "@container": "@list",
+        "@id": "toot:focalPoint"
+      }
+    }
+  ],
+  "id": "https://mastodont.cat/users/fediverse",
+  "type": "Service",
+  "following": "https://mastodont.cat/users/fediverse/following",
+  "followers": "https://mastodont.cat/users/fediverse/followers",
+  "inbox": "https://mastodont.cat/users/fediverse/inbox",
+  "outbox": "https://mastodont.cat/users/fediverse/outbox",
+  "featured": "https://mastodont.cat/users/fediverse/collections/featured",
+  "featuredTags": "https://mastodont.cat/users/fediverse/collections/tags",
+  "preferredUsername": "fediverse",
+  "name": "fediverse's stats",
+  "summary": "<p>All fediverse alive servers stats. New refactored code!</p><p>Ask server info:</p><p><span class=\"h-card\" translate=\"no\"><a href=\"https://mastodont.cat/@fediverse\" class=\"u-url mention\">@<span>fediverse</span></a></span> server example.server</p><p>Ask software info:</p><p><span class=\"h-card\" translate=\"no\"><a href=\"https://mastodont.cat/@fediverse\" class=\"u-url mention\">@<span>fediverse</span></a></span> soft mastodon</p>",
+  "url": "https://mastodont.cat/@fediverse",
+  "manuallyApprovesFollowers": false,
+  "discoverable": true,
+  "indexable": false,
+  "published": "2020-05-13T00:00:00Z",
+  "memorial": false,
+  "devices": "https://mastodont.cat/users/fediverse/collections/devices",
+  "publicKey": {
+    "id": "https://mastodont.cat/users/fediverse#main-key",
+    "owner": "https://mastodont.cat/users/fediverse",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAu2X8LqAR/6j95UUTG02T\nWG+PmNRWnfOl+zjDts3OctyJK7at5AwA+T0be1faHpf+oLREl/dkWXc8VQY2UJzY\n8QTuXXnIkwHAeA7WADB6kPvQhVpfGPgKD0dpAgBz9WHFquMSXcnuyt7q1CDn5wId\nRoUtkCAcg1rOX+lIAoeic5hT0O0sXLJdtaSCTZmGqkF2Cf+/16q8XhRevMRh73vP\nX2PefCr63Iy/Zh5rnVhPluQMyQ6FGxXgd5dEKJRa2kxrhIsrm0TzMX892Ev45AwI\ndppYQOQ+nLOgMYrpFNYdOmizJsn635l18K1r/tyDDAegPp6Kfa8v+BaZdOmNTFKr\n/wIDAQAB\n-----END PUBLIC KEY-----\n"
+  },
+  "tag": [],
+  "attachment": [
+    {
+      "type": "PropertyValue",
+      "name": "code",
+      "value": "<a href=\"https://codeberg.org/spla/stats\" target=\"_blank\" rel=\"nofollow noopener noreferrer me\" translate=\"no\"><span class=\"invisible\">https://</span><span class=\"\">codeberg.org/spla/stats</span><span class=\"invisible\"></span></a>"
+    },
+    {
+      "type": "PropertyValue",
+      "name": "my user-agent",
+      "value": "&quot;fediverse&#39;s stats (fediverse@mastodont.cat)&quot;"
+    },
+    {
+      "type": "PropertyValue",
+      "name": "coded by",
+      "value": "<span class=\"h-card\" translate=\"no\"><a href=\"https://mastodont.cat/@spla\" class=\"u-url mention\">@<span>spla</span></a></span>"
+    }
+  ],
+  "endpoints": {
+    "sharedInbox": "https://mastodont.cat/inbox"
+  },
+  "icon": {
+    "type": "Image",
+    "mediaType": "image/png",
+    "url": "https://mastodont.cat/system/accounts/avatars/000/149/323/original/33201dbeb139a24a.png"
+  },
+  "image": {
+    "type": "Image",
+    "mediaType": "image/jpeg",
+    "url": "https://mastodont.cat/system/accounts/headers/000/149/323/original/75c861d59e5a8860.jpeg"
+  }
+}

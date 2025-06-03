@@ -70,6 +70,8 @@ defmodule Pleroma.Web.ActivityPub.MRF do
   end
 
   def filter_one(policy, message) do
+    Code.ensure_loaded!(policy)
+
     should_plug_history? =
       if function_exported?(policy, :history_awareness, 0) do
         policy.history_awareness()
@@ -147,7 +149,8 @@ defmodule Pleroma.Web.ActivityPub.MRF do
     |> Enum.concat([
       Pleroma.Web.ActivityPub.MRF.HashtagPolicy,
       Pleroma.Web.ActivityPub.MRF.InlineQuotePolicy,
-      Pleroma.Web.ActivityPub.MRF.NormalizeMarkup
+      Pleroma.Web.ActivityPub.MRF.NormalizeMarkup,
+      Pleroma.Web.ActivityPub.MRF.DirectMessageDisabledPolicy
     ])
     |> Enum.uniq()
   end
@@ -230,7 +233,7 @@ defmodule Pleroma.Web.ActivityPub.MRF do
       if function_exported?(policy, :config_description, 0) do
         description =
           @default_description
-          |> Map.merge(policy.config_description)
+          |> Map.merge(policy.config_description())
           |> Map.put(:group, :pleroma)
           |> Map.put(:tab, :mrf)
           |> Map.put(:type, :group)
@@ -238,7 +241,7 @@ defmodule Pleroma.Web.ActivityPub.MRF do
         if Enum.all?(@required_description_keys, &Map.has_key?(description, &1)) do
           [description | acc]
         else
-          Logger.warn(
+          Logger.warning(
             "#{policy} config description doesn't have one or all required keys #{inspect(@required_description_keys)}"
           )
 

@@ -69,4 +69,14 @@ defmodule Pleroma.HTTPTest do
              }
     end
   end
+
+  describe "Catching errors" do
+    test "rescues when adapter throws an error" do
+      mock(fn
+        %{method: :get, url: "http://example.com/hello"} -> raise ArgumentError
+      end)
+
+      assert HTTP.get("http://example.com/hello") == {:error, :fetch_error}
+    end
+  end
 end

@@ -6,6 +6,7 @@ defmodule Pleroma.UserRelationshipTest do
   alias Pleroma.UserRelationship
 
   use Pleroma.DataCase, async: false
+  @moduletag :mocked
 
   import Mock
   import Pleroma.Factory

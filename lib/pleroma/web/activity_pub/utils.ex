@@ -16,9 +16,10 @@ defmodule Pleroma.Web.ActivityPub.Utils do
   alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Web.AdminAPI.AccountView
   alias Pleroma.Web.Endpoint
-  alias Pleroma.Web.Router.Helpers
 
   import Ecto.Query
+
+  use Pleroma.Web, :verified_routes
 
   require Logger
   require Pleroma.Constants
@@ -124,19 +125,15 @@ defmodule Pleroma.Web.ActivityPub.Utils do
   end
 
   def generate_activity_id do
-    generate_id("activities")
+    url(~p[/activities/#{UUID.generate()}])
   end
 
   def generate_context_id do
-    generate_id("contexts")
+    url(~p[/contexts/#{UUID.generate()}])
   end
 
   def generate_object_id do
-    Helpers.o_status_url(Endpoint, :object, UUID.generate())
-  end
-
-  def generate_id(type) do
-    "#{Endpoint.url()}/#{type}/#{UUID.generate()}"
+    url(~p[/objects/#{UUID.generate()}])
   end
 
   def get_notified_from_object(%{"type" => type} = object) when type in @supported_object_types do
@@ -154,7 +151,7 @@ defmodule Pleroma.Web.ActivityPub.Utils do
     Notification.get_notified_from_activity(%Activity{data: object}, false)
   end
 
-  def maybe_create_context(context), do: context || generate_id("contexts")
+  def maybe_create_context(context), do: context || generate_context_id()
 
   @doc """
   Enqueues an activity for federation if it's local

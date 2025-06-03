@@ -24,7 +24,6 @@ defmodule Pleroma.Config.TransferTask do
   defp reboot_time_subkeys,
     do: [
       {:pleroma, Pleroma.Captcha, [:seconds_valid]},
-      {:pleroma, Pleroma.Upload, [:proxy_remote]},
       {:pleroma, :instance, [:upload_limit]},
       {:pleroma, :http, [:pool_size]},
       {:pleroma, :http, [:proxy_url]}
@@ -110,7 +109,7 @@ defmodule Pleroma.Config.TransferTask do
 
   defp configure({_, :backends, _, merged}) do
     # removing current backends
-    Enum.each(Application.get_env(:logger, :backends), &Logger.remove_backend/1)
+    Enum.each(Application.get_env(:logger, :backends, []), &Logger.remove_backend/1)
 
     Enum.each(merged, &Logger.add_backend/1)
 
@@ -149,7 +148,7 @@ defmodule Pleroma.Config.TransferTask do
         error_msg =
           "updating env causes error, group: #{inspect(group)}, key: #{inspect(key)}, value: #{inspect(value)} error: #{inspect(error)}"
 
-        Logger.warn(error_msg)
+        Logger.warning(error_msg)
 
         nil
     end
@@ -183,12 +182,12 @@ defmodule Pleroma.Config.TransferTask do
       :ok = Application.start(app)
     else
       nil ->
-        Logger.warn("#{app} is not started.")
+        Logger.warning("#{app} is not started.")
 
       error ->
         error
         |> inspect()
-        |> Logger.warn()
+        |> Logger.warning()
     end
   end
 

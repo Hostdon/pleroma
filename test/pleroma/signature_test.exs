@@ -3,9 +3,9 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.SignatureTest do
-  use Pleroma.DataCase
+  use Pleroma.DataCase, async: false
+  @moduletag :mocked
 
-  import ExUnit.CaptureLog
   import Pleroma.Factory
   import Tesla.Mock
   import Mock
@@ -34,39 +34,71 @@ defmodule Pleroma.SignatureTest do
     do: %Plug.Conn{req_headers: %{"signature" => make_fake_signature(key_id <> "#main-key")}}
 
   describe "fetch_public_key/1" do
-    test "it returns key" do
+    test "it returns the key" do
       expected_result = {:ok, @rsa_public_key}
 
-      user = insert(:user, public_key: @public_key)
+      user =
+        insert(:user)
+        |> with_signing_key(public_key: @public_key)
 
       assert Signature.fetch_public_key(make_fake_conn(user.ap_id)) == expected_result
     end
 
-    test "it returns error when not found user" do
-      assert capture_log(fn ->
-               assert Signature.fetch_public_key(make_fake_conn("https://test-ap-id")) ==
-                        {:error, :error}
-             end) =~ "[error] Could not decode user"
-    end
-
     test "it returns error if public key is nil" do
-      user = insert(:user, public_key: nil)
+      # this actually needs the URL to be valid
+      user = insert(:user)
+      key_id = user.ap_id <> "#main-key"
+      Tesla.Mock.mock(fn %{url: ^key_id} -> {:ok, %{status: 404}} end)
 
-      assert Signature.fetch_public_key(make_fake_conn(user.ap_id)) == {:error, :error}
+      assert {:error, _} = Signature.fetch_public_key(make_fake_conn(user.ap_id))
     end
   end
 
   describe "refetch_public_key/1" do
     test "it returns key" do
+      clear_config([:activitypub, :min_key_refetch_interval], 0)
       ap_id = "https://mastodon.social/users/lambadalambda"
+
+      %Pleroma.User{signing_key: sk} =
+        Pleroma.User.get_or_fetch_by_ap_id(ap_id)
+        |> then(fn {:ok, u} -> u end)
+        |> Pleroma.User.SigningKey.load_key()
+
+      {:ok, _} =
+        %{sk | public_key: "-----BEGIN PUBLIC KEY-----\nasdfghjkl"}
+        |> Ecto.Changeset.change()
+        |> Pleroma.Repo.update()
 
       assert Signature.refetch_public_key(make_fake_conn(ap_id)) == {:ok, @rsa_public_key}
     end
+  end
 
-    test "it returns error when not found user" do
-      assert capture_log(fn ->
-               {:error, _} = Signature.refetch_public_key(make_fake_conn("https://test-ap_id"))
-             end) =~ "[error] Could not decode user"
+  defp split_signature(sig) do
+    sig
+    |> String.split(",")
+    |> Enum.map(fn part ->
+      [key, value] = String.split(part, "=", parts: 2)
+      [key, String.trim(value, ~s|"|)]
+    end)
+    |> Enum.sort_by(fn [k, _] -> k end)
+  end
+
+  # Break up a signature and check by parts
+  defp assert_signature_equal(sig_a, sig_b) when is_binary(sig_a) and is_binary(sig_b) do
+    parts_a = split_signature(sig_a)
+    parts_b = split_signature(sig_b)
+
+    parts_a
+    |> Enum.with_index()
+    |> Enum.each(fn {part_a, index} ->
+      part_b = Enum.at(parts_b, index)
+      assert_part_equal(part_a, part_b)
+    end)
+  end
+
+  defp assert_part_equal(part_a, part_b) do
+    if part_a != part_b do
+      flunk("Signature check failed - expected #{part_a} to equal #{part_b}")
     end
   end
 
@@ -74,53 +106,22 @@ defmodule Pleroma.SignatureTest do
     test "it returns signature headers" do
       user =
         insert(:user, %{
-          ap_id: "https://mastodon.social/users/lambadalambda",
-          keys: @private_key
+          ap_id: "https://mastodon.social/users/lambadalambda"
         })
+        |> with_signing_key(private_key: @private_key)
 
-      assert Signature.sign(
-               user,
-               %{
-                 host: "test.test",
-                 "content-length": 100
-               }
-             ) ==
-               "keyId=\"https://mastodon.social/users/lambadalambda#main-key\",algorithm=\"rsa-sha256\",headers=\"content-length host\",signature=\"sibUOoqsFfTDerquAkyprxzDjmJm6erYc42W5w1IyyxusWngSinq5ILTjaBxFvfarvc7ci1xAi+5gkBwtshRMWm7S+Uqix24Yg5EYafXRun9P25XVnYBEIH4XQ+wlnnzNIXQkU3PU9e6D8aajDZVp3hPJNeYt1gIPOA81bROI8/glzb1SAwQVGRbqUHHHKcwR8keiR/W2h7BwG3pVRy4JgnIZRSW7fQogKedDg02gzRXwUDFDk0pr2p3q6bUWHUXNV8cZIzlMK+v9NlyFbVYBTHctAR26GIAN6Hz0eV0mAQAePHDY1mXppbA8Gpp6hqaMuYfwifcXmcc+QFm4e+n3A==\""
-    end
+      headers = %{
+        host: "test.test",
+        "content-length": "100"
+      }
 
-    test "it returns error" do
-      user = insert(:user, %{ap_id: "https://mastodon.social/users/lambadalambda", keys: ""})
-
-      assert Signature.sign(
-               user,
-               %{host: "test.test", "content-length": 100}
-             ) == {:error, []}
-    end
-  end
-
-  describe "key_id_to_actor_id/1" do
-    test "it properly deduces the actor id for misskey" do
-      assert Signature.key_id_to_actor_id("https://example.com/users/1234/publickey") ==
-               {:ok, "https://example.com/users/1234"}
-    end
-
-    test "it properly deduces the actor id for mastodon and pleroma" do
-      assert Signature.key_id_to_actor_id("https://example.com/users/1234#main-key") ==
-               {:ok, "https://example.com/users/1234"}
-    end
-
-    test "it deduces the actor id for gotoSocial" do
-      assert Signature.key_id_to_actor_id("https://example.com/users/1234/main-key") ==
-               {:ok, "https://example.com/users/1234"}
-    end
-
-    test "it calls webfinger for 'acct:' accounts" do
-      with_mock(Pleroma.Web.WebFinger,
-        finger: fn _ -> {:ok, %{"ap_id" => "https://gensokyo.2hu/users/raymoo"}} end
-      ) do
-        assert Signature.key_id_to_actor_id("acct:raymoo@gensokyo.2hu") ==
-                 {:ok, "https://gensokyo.2hu/users/raymoo"}
-      end
+      assert_signature_equal(
+        Signature.sign(
+          user,
+          headers
+        ),
+        "keyId=\"https://mastodon.social/users/lambadalambda#main-key\",algorithm=\"rsa-sha256\",headers=\"content-length host\",signature=\"sibUOoqsFfTDerquAkyprxzDjmJm6erYc42W5w1IyyxusWngSinq5ILTjaBxFvfarvc7ci1xAi+5gkBwtshRMWm7S+Uqix24Yg5EYafXRun9P25XVnYBEIH4XQ+wlnnzNIXQkU3PU9e6D8aajDZVp3hPJNeYt1gIPOA81bROI8/glzb1SAwQVGRbqUHHHKcwR8keiR/W2h7BwG3pVRy4JgnIZRSW7fQogKedDg02gzRXwUDFDk0pr2p3q6bUWHUXNV8cZIzlMK+v9NlyFbVYBTHctAR26GIAN6Hz0eV0mAQAePHDY1mXppbA8Gpp6hqaMuYfwifcXmcc+QFm4e+n3A==\""
+      )
     end
   end
 

@@ -14,7 +14,6 @@ defmodule Pleroma.Web.OStatus.OStatusController do
   alias Pleroma.Web.Fallback.RedirectController
   alias Pleroma.Web.Metadata.PlayerView
   alias Pleroma.Web.Plugs.RateLimiter
-  alias Pleroma.Web.Router
 
   plug(
     RateLimiter,
@@ -36,7 +35,7 @@ defmodule Pleroma.Web.OStatus.OStatusController do
   def object(conn, _params) do
     with id <- Endpoint.url() <> conn.request_path,
          {_, %Activity{} = activity} <-
-           {:activity, Activity.get_create_by_object_ap_id_with_object(id)},
+           {:activity, Activity.get_local_create_by_object_ap_id(id)},
          {_, true} <- {:public?, Visibility.is_public?(activity)},
          {_, false} <- {:local_public?, Visibility.is_local_public?(activity)} do
       redirect(conn, to: "/notice/#{activity.id}")
@@ -87,7 +86,7 @@ defmodule Pleroma.Web.OStatus.OStatusController do
             %{
               activity_id: activity.id,
               object: object,
-              url: Router.Helpers.o_status_url(Endpoint, :notice, activity.id),
+              url: url(~p[/notice/#{activity.id}]),
               user: user
             }
           )

@@ -13,7 +13,10 @@ defmodule Pleroma.Web.ApiSpec.Schemas.AccountRelationship do
     description: "Relationship between current account and requested account",
     type: :object,
     properties: %{
-      blocked_by: %Schema{type: :boolean},
+      blocked_by: %Schema{
+        type: :boolean,
+        description: "Represents being blocked by this user. Always false."
+      },
       blocking: %Schema{type: :boolean},
       domain_blocking: %Schema{type: :boolean},
       endorsed: %Schema{type: :boolean},

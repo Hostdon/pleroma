@@ -12,7 +12,7 @@ defmodule Pleroma.Web.ApiSpec.FrontendSettingsOperation do
   @spec list_profiles_operation() :: Operation.t()
   def list_profiles_operation() do
     %Operation{
-      tags: ["Retrieve frontend setting profiles"],
+      tags: ["Frontends"],
       summary: "Frontend Settings Profiles",
       description: "List frontend setting profiles",
       operationId: "AkkomaAPI.FrontendSettingsController.list_profiles",
@@ -37,7 +37,7 @@ defmodule Pleroma.Web.ApiSpec.FrontendSettingsOperation do
   @spec get_profile_operation() :: Operation.t()
   def get_profile_operation() do
     %Operation{
-      tags: ["Retrieve frontend setting profile"],
+      tags: ["Frontends"],
       summary: "Frontend Settings Profile",
       description: "Get frontend setting profile",
       operationId: "AkkomaAPI.FrontendSettingsController.get_profile",
@@ -60,7 +60,7 @@ defmodule Pleroma.Web.ApiSpec.FrontendSettingsOperation do
   @spec delete_profile_operation() :: Operation.t()
   def delete_profile_operation() do
     %Operation{
-      tags: ["Delete frontend setting profile"],
+      tags: ["Frontends"],
       summary: "Delete frontend Settings Profile",
       description: "Delete  frontend setting profile",
       operationId: "AkkomaAPI.FrontendSettingsController.delete_profile",
@@ -76,7 +76,7 @@ defmodule Pleroma.Web.ApiSpec.FrontendSettingsOperation do
   @spec update_profile_operation() :: Operation.t()
   def update_profile_operation() do
     %Operation{
-      tags: ["Update frontend setting profile"],
+      tags: ["Frontends"],
       summary: "Frontend Settings Profile",
       description: "Update frontend setting profile",
       operationId: "AkkomaAPI.FrontendSettingsController.update_profile_operation",
@@ -86,6 +86,59 @@ defmodule Pleroma.Web.ApiSpec.FrontendSettingsOperation do
       responses: %{
         200 => Operation.response("Settings", "application/json", %Schema{type: :object}),
         422 => Operation.response("Invalid", "application/json", %Schema{type: :object})
+      }
+    }
+  end
+
+  def available_frontends_operation() do
+    %Operation{
+      tags: ["Frontends"],
+      summary: "Frontend Settings Profiles",
+      description: "List frontend setting profiles",
+      operationId: "AkkomaAPI.FrontendSettingsController.available_frontends",
+      responses: %{
+        200 =>
+          Operation.response("Frontends", "application/json", %Schema{
+            type: :array,
+            items: %Schema{
+              type: :string
+            }
+          })
+      }
+    }
+  end
+
+  def update_preferred_frontend_operation() do
+    %Operation{
+      tags: ["Frontends"],
+      summary: "Update preferred frontend setting",
+      description: "Store preferred frontend in cookies",
+      operationId: "AkkomaAPI.FrontendSettingsController.update_preferred_frontend",
+      requestBody:
+        request_body(
+          "Frontend",
+          %Schema{
+            type: :object,
+            required: [:frontend_name],
+            properties: %{
+              frontend_name: %Schema{
+                type: :string,
+                description: "Frontend name"
+              }
+            }
+          },
+          required: true
+        ),
+      responses: %{
+        200 =>
+          Operation.response("Frontends", "application/json", %Schema{
+            type: :object,
+            properties: %{
+              frontend_name: %Schema{
+                type: :string
+              }
+            }
+          })
       }
     }
   end

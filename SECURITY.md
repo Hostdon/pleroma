@@ -1,16 +1,21 @@
-# Pleroma backend security policy
-
-## Supported versions
-
-Currently, Pleroma offers bugfixes and security patches only for the latest minor release.
-
-| Version | Support 
-|---------| --------
-| 2.2     | Bugfixes and security patches
+# Akkoma backend security handling
 
 ## Reporting a vulnerability
 
-Please use confidential issues (tick the "This issue is confidential and should only be visible to team members with at least Reporter access." box when submitting) at our [bugtracker](https://git.pleroma.social/pleroma/pleroma/-/issues/new) for reporting vulnerabilities.
+Please send an email (preferably encrypted) or
+a DM via our IRC to one of the following people:
+
+| Forgejo nick | IRC nick      | Email         | GPG                                     |
+| ------------ | ------------- | ------------- | --------------------------------------- |
+| floatinghost | FloatingGhost | *see GPG key* | https://coffee-and-dreams.uk/pubkey.asc |
+
 ## Announcements
 
-New releases are announced at [pleroma.social](https://pleroma.social/announcements/). All security releases are tagged with ["Security"](https://pleroma.social/announcements/tags/security/). You can be notified of them by subscribing to an Atom feed at <https://pleroma.social/announcements/tags/security/feed.xml>. 
+New releases and security issues are announced at
+[meta.akkoma.dev](https://meta.akkoma.dev/c/releases) and
+[@akkoma@ihatebeinga.live](https://ihatebeinga.live/akkoma).
+
+Both also offer RSS feeds
+([meta](https://meta.akkoma.dev/c/releases/7.rss),
+[fedi](https://ihatebeinga.live/users/akkoma.rss))
+so you can keep an eye on it without any accounts.

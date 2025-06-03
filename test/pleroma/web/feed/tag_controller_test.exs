@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.Feed.TagControllerTest do
-  use Pleroma.Web.ConnCase
+  use Pleroma.Web.ConnCase, async: false
 
   import Pleroma.Factory
   import SweetXml
@@ -50,16 +50,16 @@ defmodule Pleroma.Web.Feed.TagControllerTest do
     response =
       conn
       |> put_req_header("accept", "application/atom+xml")
-      |> get(tag_feed_path(conn, :feed, "pleromaart.atom"))
+      |> get(~p"/tags/pleromaart.atom")
       |> response(200)
 
     xml = parse(response)
 
-    assert xpath(xml, ~x"//feed/title/text()") == '#pleromaart'
+    assert xpath(xml, ~x"//feed/title/text()") == ~c"#pleromaart"
 
     assert xpath(xml, ~x"//feed/entry/title/text()"l) == [
-             '42 This is :moominmamm...',
-             'yeah #PleromaArt'
+             ~c"42 This is :moominmamm...",
+             ~c"yeah #PleromaArt"
            ]
 
     assert xpath(xml, ~x"//feed/entry/author/name/text()"ls) == [user.nickname, user.nickname]
@@ -74,10 +74,10 @@ defmodule Pleroma.Web.Feed.TagControllerTest do
     resp = response(conn, 200)
     xml = parse(resp)
 
-    assert xpath(xml, ~x"//feed/title/text()") == '#pleromaart'
+    assert xpath(xml, ~x"//feed/title/text()") == ~c"#pleromaart"
 
     assert xpath(xml, ~x"//feed/entry/title/text()"l) == [
-             'yeah #PleromaArt'
+             ~c"yeah #PleromaArt"
            ]
   end
 
@@ -117,24 +117,24 @@ defmodule Pleroma.Web.Feed.TagControllerTest do
     response =
       conn
       |> put_req_header("accept", "application/rss+xml")
-      |> get(tag_feed_path(conn, :feed, "pleromaart.rss"))
+      |> get(~p"/tags/pleromaart.rss")
       |> response(200)
 
     xml = parse(response)
-    assert xpath(xml, ~x"//channel/title/text()") == '#pleromaart'
+    assert xpath(xml, ~x"//channel/title/text()") == ~c"#pleromaart"
 
     assert xpath(xml, ~x"//channel/description/text()"s) ==
              "These are public toots tagged with #pleromaart. You can interact with them if you have an account anywhere in the fediverse."
 
     assert xpath(xml, ~x"//channel/link/text()") ==
-             '#{Pleroma.Web.Endpoint.url()}/tags/pleromaart.rss'
+             ~c"#{Pleroma.Web.Endpoint.url()}/tags/pleromaart.rss"
 
     assert xpath(xml, ~x"//channel/webfeeds:logo/text()") ==
-             '#{Pleroma.Web.Endpoint.url()}/static/logo.svg'
+             ~c"#{Pleroma.Web.Endpoint.url()}/static/logo.svg"
 
     assert xpath(xml, ~x"//channel/item/title/text()"l) == [
-             '42 This is :moominmamm...',
-             'yeah #PleromaArt'
+             ~c"42 This is :moominmamm...",
+             ~c"yeah #PleromaArt"
            ]
 
     assert xpath(xml, ~x"//channel/item/pubDate/text()"sl) == [
@@ -157,11 +157,11 @@ defmodule Pleroma.Web.Feed.TagControllerTest do
     response =
       conn
       |> put_req_header("accept", "application/rss+xml")
-      |> get(tag_feed_path(conn, :feed, "pleromaart.rss"))
+      |> get(~p"/tags/pleromaart.rss")
       |> response(200)
 
     xml = parse(response)
-    assert xpath(xml, ~x"//channel/title/text()") == '#pleromaart'
+    assert xpath(xml, ~x"//channel/title/text()") == ~c"#pleromaart"
 
     assert xpath(xml, ~x"//channel/description/text()"s) ==
              "These are public toots tagged with #pleromaart. You can interact with them if you have an account anywhere in the fediverse."
@@ -175,10 +175,10 @@ defmodule Pleroma.Web.Feed.TagControllerTest do
     resp = response(conn, 200)
     xml = parse(resp)
 
-    assert xpath(xml, ~x"//channel/title/text()") == '#pleromaart'
+    assert xpath(xml, ~x"//channel/title/text()") == ~c"#pleromaart"
 
     assert xpath(xml, ~x"//channel/item/title/text()"l) == [
-             'yeah #PleromaArt'
+             ~c"yeah #PleromaArt"
            ]
   end
 
@@ -188,7 +188,7 @@ defmodule Pleroma.Web.Feed.TagControllerTest do
     test "returns 404 for tags feed", %{conn: conn} do
       conn
       |> put_req_header("accept", "application/rss+xml")
-      |> get(tag_feed_path(conn, :feed, "pleromaart.rss"))
+      |> get(~p"/tags/pleromaart.rss")
       |> response(404)
     end
   end

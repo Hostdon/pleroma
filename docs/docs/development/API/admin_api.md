@@ -1033,7 +1033,6 @@ Most of the settings will be applied in `runtime`, this means that you don't nee
   - `:pools`
 - partially settings inside these keys:
   - `:seconds_valid` in `Pleroma.Captcha`
-  - `:proxy_remote` in `Pleroma.Upload`
   - `:upload_limit` in `:instance`
 
 - Params:
@@ -1094,7 +1093,6 @@ List of settings which support only full update by subkey:
         {"tuple": [":uploader", "Pleroma.Uploaders.Local"]},
         {"tuple": [":filters", ["Pleroma.Upload.Filter.Dedupe"]]},
         {"tuple": [":link_name", true]},
-        {"tuple": [":proxy_remote", false]},
         {"tuple": [":proxy_opts", [
           {"tuple": [":redirect_on_failure", false]},
           {"tuple": [":max_body_length", 1048576]},

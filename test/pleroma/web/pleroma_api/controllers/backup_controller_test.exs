@@ -3,13 +3,13 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.PleromaAPI.BackupControllerTest do
-  use Pleroma.Web.ConnCase
+  use Pleroma.Web.ConnCase, async: false
 
   alias Pleroma.User.Backup
   alias Pleroma.Web.PleromaAPI.BackupView
 
   setup do
-    clear_config([Pleroma.Upload, :uploader])
+    clear_config([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
     clear_config([Backup, :limit_days])
     oauth_access(["read:backups"])
   end

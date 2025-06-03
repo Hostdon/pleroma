@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.NodeInfoTest do
-  use Pleroma.Web.ConnCase
+  use Pleroma.Web.ConnCase, async: false
 
   import Pleroma.Factory
 
@@ -290,6 +290,40 @@ defmodule Pleroma.Web.NodeInfoTest do
         |> json_response(:ok)
 
       assert response["metadata"]["federation"]["mrf_simple_info"] == expected_config
+    end
+  end
+
+  describe "public timeline visibility" do
+    test "shows public timeline visibility", %{conn: conn} do
+      clear_config([:restrict_unauthenticated, :timelines], %{local: false, federated: false})
+
+      response =
+        conn
+        |> get("/nodeinfo/2.1.json")
+        |> json_response(:ok)
+
+      assert response["metadata"]["publicTimelineVisibility"]["local"] == true
+      assert response["metadata"]["publicTimelineVisibility"]["federated"] == true
+
+      clear_config([:restrict_unauthenticated, :timelines], %{local: true, federated: false})
+
+      response =
+        conn
+        |> get("/nodeinfo/2.1.json")
+        |> json_response(:ok)
+
+      assert response["metadata"]["publicTimelineVisibility"]["local"] == false
+      assert response["metadata"]["publicTimelineVisibility"]["federated"] == true
+
+      clear_config([:restrict_unauthenticated, :timelines], %{local: false, federated: true})
+
+      response =
+        conn
+        |> get("/nodeinfo/2.1.json")
+        |> json_response(:ok)
+
+      assert response["metadata"]["publicTimelineVisibility"]["local"] == true
+      assert response["metadata"]["publicTimelineVisibility"]["federated"] == false
     end
   end
 end

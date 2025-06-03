@@ -3,7 +3,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.ActivityPub.RelayTest do
-  use Pleroma.DataCase
+  use Pleroma.DataCase, async: false
+  @moduletag :mocked
 
   alias Pleroma.Activity
   alias Pleroma.User
@@ -19,12 +20,6 @@ defmodule Pleroma.Web.ActivityPub.RelayTest do
     assert user.ap_id == "#{Pleroma.Web.Endpoint.url()}/relay"
   end
 
-  test "relay actor is an application" do
-    # See <https://www.w3.org/TR/activitystreams-vocabulary/#dfn-application>
-    user = Relay.get_actor()
-    assert user.actor_type == "Application"
-  end
-
   test "relay actor is invisible" do
     user = Relay.get_actor()
     assert User.invisible?(user)
@@ -34,7 +29,7 @@ defmodule Pleroma.Web.ActivityPub.RelayTest do
     test "returns errors when user not found" do
       assert capture_log(fn ->
                {:error, _} = Relay.follow("test-ap-id")
-             end) =~ "Could not decode user at fetch"
+             end) =~ "Could not fetch user test-ap-id,"
     end
 
     test "returns activity" do
@@ -53,7 +48,7 @@ defmodule Pleroma.Web.ActivityPub.RelayTest do
     test "returns errors when user not found" do
       assert capture_log(fn ->
                {:error, _} = Relay.unfollow("test-ap-id")
-             end) =~ "Could not decode user at fetch"
+             end) =~ "Could not fetch user test-ap-id,"
     end
 
     test "returns activity" do
@@ -119,7 +114,6 @@ defmodule Pleroma.Web.ActivityPub.RelayTest do
       assert Relay.publish(activity) == {:error, "Not implemented"}
     end
 
-    @tag capture_log: true
     test "returns error when activity not public" do
       activity = insert(:direct_note_activity)
       assert Relay.publish(activity) == {:error, false}

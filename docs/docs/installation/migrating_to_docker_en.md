@@ -10,7 +10,7 @@ You probably should, in the first instance.
 
 ### Prepare the system
 
-* Install docker and docker-compose
+* Install docker and docker compose
     * [Docker](https://docs.docker.com/engine/install/)
     * [Docker-compose](https://docs.docker.com/compose/install/)
     * This will usually just be a repository installation and a package manager invocation.
@@ -46,7 +46,7 @@ For *most* from-source installs it'll already be there.
 And the same with `uploads`, make sure your uploads (if you have them on disk) are
 located at `uploads/` in the akkoma source directory.
 
-If you have them on a different disk, you will need to mount that disk into the docker-compose file,
+If you have them on a different disk, you will need to mount that disk into the docker compose file,
 with an entry that looks like this:
 
 ```yaml
@@ -66,7 +66,7 @@ echo "DOCKER_USER=$(id -u):$(id -g)" >> .env
 ```
 
 This probably won't need to be changed, it's only there to set basic environment
-variables for the docker-compose file.
+variables for the docker compose file.
 
 === "From source"
 
@@ -126,21 +126,21 @@ mkdir pgdata
 Now we can import our database to the container.
 
 ```bash
-docker-compose run --rm --user akkoma -d db 
-docker-compose run --rm akkoma pg_restore -v -U akkoma -j $(grep -c ^processor /proc/cpuinfo) -d akkoma -h db akkoma_backup.sql
+docker compose run --rm --user akkoma -d db 
+docker compose run --rm akkoma pg_restore -v -U akkoma -j $(grep -c ^processor /proc/cpuinfo) -d akkoma -h db akkoma_backup.sql
 ```
 
 ### Reverse proxies
 
 If you're just reusing your old proxy, you may have to uncomment the line in
-the docker-compose file under `ports`. You'll find it.
+the docker compose file under `ports`. You'll find it.
 
 Otherwise, you can use the same setup as the [docker installation guide](./docker_en.md#reverse-proxies).
 
 ### Let's go
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 You should now be at the same point as you were before, but with a docker install.

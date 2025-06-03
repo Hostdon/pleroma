@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.MastodonAPI.NotificationViewTest do
-  use Pleroma.DataCase
+  use Pleroma.DataCase, async: false
 
   alias Pleroma.Activity
   alias Pleroma.Notification
@@ -35,6 +35,10 @@ defmodule Pleroma.Web.MastodonAPI.NotificationViewTest do
       })
 
     assert expected_result == result
+  end
+
+  setup do
+    clear_config([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
   end
 
   test "Mention notification" do

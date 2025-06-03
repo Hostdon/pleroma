@@ -3,9 +3,10 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.ApplicationRequirementsTest do
-  use Pleroma.DataCase
+  use Pleroma.DataCase, async: false
 
   import ExUnit.CaptureLog
+  @moduletag :mocked
   import Mock
 
   alias Pleroma.ApplicationRequirements

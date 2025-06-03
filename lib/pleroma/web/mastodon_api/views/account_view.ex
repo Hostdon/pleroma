@@ -124,14 +124,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
           target,
           &User.blocks_user?(&1, &2)
         ),
-      blocked_by:
-        UserRelationship.exists?(
-          user_relationships,
-          :block,
-          target,
-          reading_user,
-          &User.blocks_user?(&1, &2)
-        ),
+      blocked_by: false,
       muting:
         UserRelationship.exists?(
           user_relationships,
@@ -197,6 +190,17 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
 
   def render("instance.json", _), do: nil
 
+  def render("preferences.json", %{user: user} = _opts) do
+    # TODO: Do we expose more settings that make sense to plug in here?
+    %{
+      "posting:default:visibility": user.default_scope,
+      "posting:default:sensitive": false,
+      "posting:default:language": nil,
+      "reading:expand:media": "default",
+      "reading:expand:spoilers": false
+    }
+  end
+
   defp do_render("show.json", %{user: user} = opts) do
     user = User.sanitize_html(user, User.html_filter_policy(opts[:for]))
     display_name = user.name || user.nickname
@@ -257,6 +261,9 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
         |> MediaProxy.url()
       end
 
+    last_status_at =
+      if is_nil(user.last_status_at), do: nil, else: NaiveDateTime.to_date(user.last_status_at)
+
     %{
       id: to_string(user.id),
       username: username_from_nickname(user.nickname),
@@ -285,10 +292,11 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
           actor_type: user.actor_type
         }
       },
-      last_status_at: user.last_status_at,
+      last_status_at: last_status_at,
       akkoma: %{
         instance: render("instance.json", %{instance: instance}),
-        status_ttl_days: user.status_ttl_days
+        status_ttl_days: user.status_ttl_days,
+        permit_followback: user.permit_followback
       },
       # Pleroma extensions
       # Note: it's insecure to output :email but fully-qualified nickname may serve as safe stub
@@ -354,6 +362,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
     |> Kernel.put_in([:source, :privacy], user.default_scope)
     |> Kernel.put_in([:source, :pleroma, :show_role], user.show_role)
     |> Kernel.put_in([:source, :pleroma, :no_rich_text], user.no_rich_text)
+    |> Kernel.put_in([:accepts_direct_messages_from], user.accepts_direct_messages_from)
   end
 
   defp maybe_put_settings(data, _, _, _), do: data

@@ -26,7 +26,7 @@ config :pleroma, :frontends,
   }
 ```
 
-This would serve the frontend from the the folder at `$instance_static/frontends/pleroma/stable`. You have to copy the frontend into this folder yourself. You can choose the name and ref any way you like, but they will be used by mix tasks to automate installation in the future, the name referring to the project and the ref referring to a commit.
+This would serve the frontend from the folder at `$instance_static/frontends/pleroma/stable`. You have to copy the frontend into this folder yourself. You can choose the name and ref any way you like, but they will be used by mix tasks to automate installation in the future, the name referring to the project and the ref referring to a commit.
 
 Refer to [the frontend CLI task](../../administration/CLI_tasks/frontend) for how to install the frontend's files
 
@@ -60,4 +60,4 @@ config :pleroma, :frontends,
 
 Then run the [pleroma.frontend cli task](../../administration/CLI_tasks/frontend) with the name of `swagger-ui` to install the distribution files.
 
-You will now be able to view documentation at `/akkoma/swaggerui`
+You will now be able to view documentation at `/pleroma/swaggerui`

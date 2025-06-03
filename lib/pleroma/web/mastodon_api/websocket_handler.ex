@@ -18,6 +18,8 @@ defmodule Pleroma.Web.MastodonAPI.WebsocketHandler do
   @timeout :timer.seconds(60)
   # Hibernate every X messages
   @hibernate_every 100
+  # Tune garabge collect for long-lived websocket process
+  @fullsweep_after 20
 
   def init(%{qs: qs} = req, state) do
     with params <- Enum.into(:cow_qs.parse_qs(qs), %{}),
@@ -58,6 +60,10 @@ defmodule Pleroma.Web.MastodonAPI.WebsocketHandler do
     Logger.debug(
       "#{__MODULE__} accepted websocket connection for user #{(state.user || %{id: "anonymous"}).id}, topic #{state.topic}"
     )
+
+    # process is long-lived and can sometimes accumulate stale data in such a way it's
+    # not freed by young garbage cycles, thus make full collection sweeps more frequent
+    :erlang.process_flag(:fullsweep_after, @fullsweep_after)
 
     Streamer.add_socket(state.topic, state.oauth_token)
     {:ok, %{state | timer: timer()}}

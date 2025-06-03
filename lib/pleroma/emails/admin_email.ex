@@ -6,10 +6,13 @@ defmodule Pleroma.Emails.AdminEmail do
   @moduledoc "Admin emails"
 
   import Swoosh.Email
-
+  use Pleroma.Web, :mailer
   alias Pleroma.Config
   alias Pleroma.HTML
-  alias Pleroma.Web.Router.Helpers
+
+  use Phoenix.VerifiedRoutes,
+    endpoint: Pleroma.Web.Endpoint,
+    router: Pleroma.Web.Router
 
   defp instance_config, do: Config.get(:instance)
   defp instance_name, do: instance_config()[:name]
@@ -45,7 +48,7 @@ defmodule Pleroma.Emails.AdminEmail do
           statuses
           |> Enum.map(fn
             %{id: id} ->
-              status_url = Helpers.o_status_url(Pleroma.Web.Endpoint, :notice, id)
+              status_url = url(~p[/notice/#{id}])
               "<li><a href=\"#{status_url}\">#{status_url}</li>"
 
             %{"id" => id} when is_binary(id) ->

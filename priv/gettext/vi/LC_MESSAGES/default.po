@@ -1,0 +1,276 @@
+## "msgid"s in this file come from POT (.pot) files.
+###
+### Do not add, change, or remove "msgid"s manually here as
+### they're tied to the ones in the corresponding POT file
+### (with the same domain).
+###
+### Use "mix gettext.extract --merge" or "mix gettext.merge"
+### to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: vi\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: lib/pleroma/web/api_spec/render_error.ex:122
+#, elixir-autogen, elixir-format
+msgid "%{name} - %{count} is not a multiple of %{multiple}."
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:131
+#, elixir-autogen, elixir-format
+msgid "%{name} - %{value} is larger than exclusive maximum %{max}."
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:140
+#, elixir-autogen, elixir-format
+msgid "%{name} - %{value} is larger than inclusive maximum %{max}."
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:149
+#, elixir-autogen, elixir-format
+msgid "%{name} - %{value} is smaller than exclusive minimum %{min}."
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:158
+#, elixir-autogen, elixir-format
+msgid "%{name} - %{value} is smaller than inclusive minimum %{min}."
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:102
+#, elixir-autogen, elixir-format
+msgid "%{name} - Array items must be unique."
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:114
+#, elixir-autogen, elixir-format
+msgid "%{name} - Array length %{length} is larger than maxItems: %{}."
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:106
+#, elixir-autogen, elixir-format
+msgid "%{name} - Array length %{length} is smaller than minItems: %{min}."
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:166
+#, elixir-autogen, elixir-format
+msgid "%{name} - Invalid %{type}. Got: %{value}."
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:174
+#, elixir-autogen, elixir-format
+msgid "%{name} - Invalid format. Expected %{format}."
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:51
+#, elixir-autogen, elixir-format
+msgid "%{name} - Invalid schema.type. Got: %{type}."
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:178
+#, elixir-autogen, elixir-format
+msgid "%{name} - Invalid value for enum."
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:95
+#, elixir-autogen, elixir-format
+msgid "%{name} - String length is larger than maxLength: %{length}."
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:88
+#, elixir-autogen, elixir-format
+msgid "%{name} - String length is smaller than minLength: %{length}."
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:63
+#, elixir-autogen, elixir-format
+msgid "%{name} - null value where %{type} expected."
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:60
+#, elixir-autogen, elixir-format
+msgid "%{name} - null value."
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:182
+#, elixir-autogen, elixir-format
+msgid "Failed to cast to any schema in %{polymorphic_type}"
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:71
+#, elixir-autogen, elixir-format
+msgid "Failed to cast value as %{invalid_schema}. Value must be castable using `allOf` schemas listed."
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:84
+#, elixir-autogen, elixir-format
+msgid "Failed to cast value to one of: %{failed_schemas}."
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:78
+#, elixir-autogen, elixir-format
+msgid "Failed to cast value using any of: %{failed_schemas}."
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:212
+#, elixir-autogen, elixir-format
+msgid "Invalid value for header: %{name}."
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:204
+#, elixir-autogen, elixir-format
+msgid "Missing field: %{name}."
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:208
+#, elixir-autogen, elixir-format
+msgid "Missing header: %{name}."
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:196
+#, elixir-autogen, elixir-format
+msgid "No value provided for required discriminator `%{field}`."
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:216
+#, elixir-autogen, elixir-format
+msgid "Object property count %{property_count} is greater than maxProperties: %{max_properties}."
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:224
+#, elixir-autogen, elixir-format
+msgid "Object property count %{property_count} is less than minProperties: %{min_properties}"
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:188
+#, elixir-autogen, elixir-format
+msgid "Unexpected field: %{name}."
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:200
+#, elixir-autogen, elixir-format
+msgid "Unknown schema: %{name}."
+msgstr ""
+
+#: lib/pleroma/web/api_spec/render_error.ex:192
+#, elixir-autogen, elixir-format
+msgid "Value used as discriminator for `%{field}` matches no schemas."
+msgstr ""
+
+#: lib/pleroma/web/templates/embed/show.html.eex:43
+#, elixir-autogen, elixir-format
+msgid "announces"
+msgstr ""
+
+#: lib/pleroma/web/templates/embed/show.html.eex:44
+#, elixir-autogen, elixir-format
+msgid "likes"
+msgstr ""
+
+#: lib/pleroma/web/templates/embed/show.html.eex:42
+#, elixir-autogen, elixir-format
+msgid "replies"
+msgstr ""
+
+#: lib/pleroma/web/templates/embed/show.html.eex:27
+#, elixir-autogen, elixir-format
+msgid "sensitive media"
+msgstr ""
+
+#: lib/pleroma/web/templates/layout/static_fe.html.eex:29
+#, elixir-autogen, elixir-format
+msgid "About %{instance}"
+msgstr ""
+
+#: lib/pleroma/web/templates/static_fe/static_fe/profile.html.eex:24
+#, elixir-autogen, elixir-format
+msgid "Admin"
+msgstr ""
+
+#: lib/pleroma/web/templates/static_fe/static_fe/profile.html.eex:30
+#, elixir-autogen, elixir-format
+msgid "Bot"
+msgstr ""
+
+#: lib/pleroma/web/templates/static_fe/static_fe/conversation.html.eex:3
+#, elixir-autogen, elixir-format
+msgid "Conversation"
+msgstr ""
+
+#: lib/pleroma/web/templates/static_fe/static_fe/_notice.html.eex:59
+#, elixir-autogen, elixir-format
+msgid "Edited %{timeago}"
+msgstr ""
+
+#: lib/pleroma/web/templates/static_fe/static_fe/error.html.eex:3
+#, elixir-autogen, elixir-format
+msgid "Error"
+msgstr ""
+
+#: lib/pleroma/web/templates/static_fe/static_fe/profile.html.eex:56
+#: lib/pleroma/web/templates/static_fe/static_fe/profile.html.eex:91
+#, elixir-autogen, elixir-format
+msgid "Followers"
+msgstr ""
+
+#: lib/pleroma/web/templates/static_fe/static_fe/profile.html.eex:52
+#: lib/pleroma/web/templates/static_fe/static_fe/profile.html.eex:84
+#, elixir-autogen, elixir-format
+msgid "Following"
+msgstr ""
+
+#: lib/pleroma/web/templates/static_fe/static_fe/profile.html.eex:53
+#: lib/pleroma/web/templates/static_fe/static_fe/profile.html.eex:57
+#, elixir-autogen, elixir-format
+msgid "Hidden"
+msgstr ""
+
+#: lib/pleroma/web/templates/static_fe/static_fe/_attachment.html.eex:4
+#, elixir-autogen, elixir-format
+msgid "Hover to show content"
+msgstr ""
+
+#: lib/pleroma/web/templates/static_fe/static_fe/profile.html.eex:97
+#, elixir-autogen, elixir-format
+msgid "Media"
+msgstr ""
+
+#: lib/pleroma/web/templates/static_fe/static_fe/profile.html.eex:27
+#, elixir-autogen, elixir-format
+msgid "Moderator"
+msgstr ""
+
+#: lib/pleroma/web/templates/static_fe/static_fe/profile.html.eex:48
+#: lib/pleroma/web/templates/static_fe/static_fe/profile.html.eex:73
+#, elixir-autogen, elixir-format
+msgid "Posts"
+msgstr ""
+
+#: lib/pleroma/web/templates/static_fe/static_fe/_notice.html.eex:46
+#, elixir-autogen, elixir-format
+msgid "Reply to"
+msgstr ""
+
+#: lib/pleroma/web/templates/static_fe/static_fe/_notice.html.eex:67
+#, elixir-autogen, elixir-format
+msgid "Show content"
+msgstr ""
+
+#: lib/pleroma/web/templates/static_fe/static_fe/profile.html.eex:102
+#, elixir-autogen, elixir-format
+msgid "Show newer"
+msgstr ""
+
+#: lib/pleroma/web/templates/static_fe/static_fe/profile.html.eex:140
+#, elixir-autogen, elixir-format
+msgid "Show older"
+msgstr ""
+
+#: lib/pleroma/web/templates/static_fe/static_fe/profile.html.eex:78
+#, elixir-autogen, elixir-format
+msgid "With Replies"
+msgstr ""
+
+#: lib/pleroma/web/templates/static_fe/static_fe/profile.html.eex:127
+#, elixir-autogen, elixir-format
+msgid "repeated"
+msgstr ""

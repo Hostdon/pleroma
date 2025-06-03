@@ -137,7 +137,7 @@ defmodule Pleroma.Web.ApiSpec.InstanceOperation do
         "background_upload_limit" => 4_000_000,
         "background_image" => "/static/image.png",
         "banner_upload_limit" => 4_000_000,
-        "description" => "Pleroma: An efficient and flexible fediverse server",
+        "description" => "Akkoma: The cooler fediverse server",
         "email" => "lain@lain.com",
         "languages" => ["en"],
         "max_toot_chars" => 5000,
@@ -160,7 +160,7 @@ defmodule Pleroma.Web.ApiSpec.InstanceOperation do
         "urls" => %{
           "streaming_api" => "wss://lain.com"
         },
-        "version" => "2.7.2 (compatible; Pleroma 2.0.50-536-g25eec6d7-develop)"
+        "version" => "2.7.2 (compatible; Akkoma 3.9.3-232-g6fde75e1-develop)"
       }
     }
   end

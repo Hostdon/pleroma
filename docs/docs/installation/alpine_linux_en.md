@@ -145,47 +145,13 @@ If you want to open your newly installed instance to the world, you should run n
 doas apk add nginx
 ```
 
-* Setup your SSL cert, using your method of choice or certbot. If using certbot, first install it:
-
-```shell
-doas apk add certbot
-```
-
-and then set it up:
-
-```shell
-doas mkdir -p /var/lib/letsencrypt/
-doas certbot certonly --email <your@emailaddress> -d <yourdomain> --standalone
-```
-
-If that doesn’t work, make sure, that nginx is not already running. If it still doesn’t work, try setting up nginx first (change ssl “on” to “off” and try again).
-
 * Copy the example nginx configuration to the nginx folder
 
 ```shell
 doas cp /opt/akkoma/installation/nginx/akkoma.nginx /etc/nginx/conf.d/akkoma.conf
 ```
 
-* Before starting nginx edit the configuration and change it to your needs. You must change change `server_name` and the paths to the certificates. You can use `nano` (install with `apk add nano` if missing).
-
-```
-server {
-    server_name    your.domain;
-    listen         80;
-    ...
-}
-
-server {
-    server_name your.domain;
-    listen 443 ssl http2;
-    ...
-    ssl_trusted_certificate   /etc/letsencrypt/live/your.domain/chain.pem;
-    ssl_certificate           /etc/letsencrypt/live/your.domain/fullchain.pem;
-    ssl_certificate_key       /etc/letsencrypt/live/your.domain/privkey.pem;
-    ...
-}
-```
-
+* Before starting nginx edit the configuration and change it to your needs. You must change change `server_name`. You can use `nano` (install with `apk add nano` if missing).
 * Enable and start nginx:
 
 ```shell
@@ -193,10 +159,37 @@ doas rc-update add nginx
 doas rc-service nginx start
 ```
 
-If you need to renew the certificate in the future, uncomment the relevant location block in the nginx config and run:
+* Setup your SSL cert, using your method of choice or certbot. If using certbot, first install it:
 
 ```shell
-doas certbot certonly --email <your@emailaddress> -d <yourdomain> --webroot -w /var/lib/letsencrypt/
+doas apk add certbot certbot-nginx
+```
+
+and then set it up:
+
+```shell
+doas mkdir -p /var/lib/letsencrypt/
+doas certbot --email <your@emailaddress> -d <yourdomain> -d <media_domain> --nginx
+```
+
+If that doesn't work the first time, add `--dry-run` to further attempts to avoid being ratelimited as you identify the issue, and do not remove it until the dry run succeeds. A common source of problems are nginx config syntax errors; this can be checked for by running `nginx -t`.
+
+To automatically renew, set up a cron job like so:
+
+```shell
+# Enable the crond service
+doas rc-update add crond
+doas rc-service crond start
+
+# Test that renewals work
+doas certbot renew --cert-name yourinstance.tld --nginx --dry-run
+
+# Add the renewal task to cron
+echo '#!/bin/sh
+certbot renew --cert-name yourinstance.tld --nginx
+' | doas tee /etc/periodic/daily/renew-akkoma-cert
+doas chmod +x /etc/periodic/daily/renew-akkoma-cert
+
 ```
 
 #### OpenRC service

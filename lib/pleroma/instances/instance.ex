@@ -158,11 +158,19 @@ defmodule Pleroma.Instances.Instance do
     NaiveDateTime.diff(now, metadata_updated_at) > 86_400
   end
 
+  def needs_update(%URI{host: host}) do
+    with %Instance{} = instance <- Repo.get_by(Instance, %{host: host}) do
+      needs_update(instance)
+    else
+      _ -> true
+    end
+  end
+
   def local do
     %Instance{
       host: Pleroma.Web.Endpoint.host(),
       favicon: Pleroma.Web.Endpoint.url() <> "/favicon.png",
-      nodeinfo: Pleroma.Web.Nodeinfo.NodeinfoController.raw_nodeinfo()
+      nodeinfo: Pleroma.Web.Nodeinfo.Nodeinfo.get_nodeinfo("2.1")
     }
   end
 
@@ -180,7 +188,7 @@ defmodule Pleroma.Instances.Instance do
   defp do_update_metadata(%URI{host: host} = uri, existing_record) do
     if existing_record do
       if needs_update(existing_record) do
-        Logger.info("Updating metadata for #{host}")
+        Logger.debug("Updating metadata for #{host}")
         favicon = scrape_favicon(uri)
         nodeinfo = scrape_nodeinfo(uri)
 
@@ -199,7 +207,7 @@ defmodule Pleroma.Instances.Instance do
       favicon = scrape_favicon(uri)
       nodeinfo = scrape_nodeinfo(uri)
 
-      Logger.info("Creating metadata for #{host}")
+      Logger.debug("Creating metadata for #{host}")
 
       %Instance{}
       |> changeset(%{

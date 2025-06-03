@@ -26,6 +26,15 @@ defmodule Pleroma.Activity.Pruner do
     |> Repo.delete_all(timeout: :infinity)
   end
 
+  def prune_updates do
+    before_time = cutoff()
+
+    from(a in Activity,
+      where: fragment("?->>'type' = ?", a.data, "Update") and a.inserted_at < ^before_time
+    )
+    |> Repo.delete_all(timeout: :infinity)
+  end
+
   def prune_removes do
     before_time = cutoff()
 

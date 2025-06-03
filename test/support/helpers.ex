@@ -41,7 +41,7 @@ defmodule Pleroma.Tests.Helpers do
     # NOTE: `clear_config([section, key], value)` != `clear_config([section], key: value)` (!)
     # Displaying a warning to prevent unintentional clearing of all but one keys in section
     if Keyword.keyword?(temp_setting) and length(temp_setting) == 1 do
-      Logger.warn(
+      Logger.warning(
         "Please change `clear_config([section], key: value)` to `clear_config([section, key], value) (#{inspect(config_path)} = #{inspect(temp_setting)})`"
       )
     end
@@ -65,6 +65,8 @@ defmodule Pleroma.Tests.Helpers do
           clear_config: 1,
           clear_config: 2
         ]
+
+      import Pleroma.Test.MatchingHelpers
 
       def time_travel(entity, seconds) do
         new_time = NaiveDateTime.add(entity.inserted_at, seconds)

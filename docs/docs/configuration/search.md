@@ -33,6 +33,7 @@ indexes faster when it can process many posts in a single batch.
 > config :pleroma, Pleroma.Search.Meilisearch,
 >    url: "http://127.0.0.1:7700/",
 >    private_key: "private key",
+>    search_key: "search key",
 >    initial_indexing_chunk_size: 100_000
 
 Information about setting up meilisearch can be found in the
@@ -45,7 +46,7 @@ is hardly usable on a somewhat big instance.
 ### Private key authentication (optional)
 
 To set the private key, use the `MEILI_MASTER_KEY` environment variable when starting. After setting the _master key_,
-you have to get the _private key_, which is actually used for authentication.
+you have to get the _private key_ and possibly _search key_, which are actually used for authentication.
 
 === "OTP"
     ```sh
@@ -57,7 +58,11 @@ you have to get the _private key_, which is actually used for authentication.
     mix pleroma.search.meilisearch show-keys <your master key here>
     ```
 
-You will see a "Default Admin API Key", this is the key you actually put into your configuration file.
+You will see a "Default Admin API Key", this is the key you actually put into
+your configuration file as `private_key`. You should also see a
+"Default Search API key", put this into your config as `search_key`.
+If your version of Meilisearch only showed the former,
+just leave `search_key` completely unset in Akkoma's config.
 
 ### Initial indexing
 

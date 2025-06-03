@@ -21,15 +21,15 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Web.ActivityPub.ObjectValidators.CommonFixes
   alias Pleroma.Web.Federator
-  alias Pleroma.Workers.TransmogrifierWorker
 
   import Ecto.Query
 
-  require Logger
   require Pleroma.Constants
+  require Logger
 
   @doc """
   Modifies an incoming AP object (mastodon format) to our internal format.
+  (This only deals with non-activity AP objects)
   """
   def fix_object(object, options \\ []) do
     object
@@ -45,6 +45,38 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     |> fix_content_map()
     |> fix_addressing()
     |> fix_summary()
+    |> fix_history(&fix_object/1)
+  end
+
+  defp maybe_fix_object(%{"attributedTo" => _} = object), do: fix_object(object)
+  defp maybe_fix_object(object), do: object
+
+  defp fix_history(%{"formerRepresentations" => %{"orderedItems" => list}} = obj, fix_fun)
+       when is_list(list) do
+    update_in(obj["formerRepresentations"]["orderedItems"], fn h -> Enum.map(h, fix_fun) end)
+  end
+
+  defp fix_history(obj, _), do: obj
+
+  defp fix_recursive(obj, fun) do
+    # unlike Erlang, Elixir does not support recursive inline functions
+    # which would allow us to avoid reconstructing this on every recursion
+    rec_fun = fn
+      obj when is_map(obj) -> fix_recursive(obj, fun)
+      # there may be simple AP IDs in history (or object field)
+      obj -> obj
+    end
+
+    obj
+    |> fun.()
+    |> fix_history(rec_fun)
+    |> then(fn
+      %{"object" => object} = doc when is_map(object) ->
+        update_in(doc["object"], rec_fun)
+
+      apdoc ->
+        apdoc
+    end)
   end
 
   def fix_summary(%{"summary" => nil} = object) do
@@ -58,19 +90,46 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
 
   def fix_summary(object), do: Map.put(object, "summary", "")
 
-  def fix_addressing_list(map, field) do
-    addrs = map[field]
-
+  defp fix_addressing_list(addrs) do
     cond do
-      is_list(addrs) ->
-        Map.put(map, field, Enum.filter(addrs, &is_binary/1))
-
-      is_binary(addrs) ->
-        Map.put(map, field, [addrs])
-
-      true ->
-        Map.put(map, field, [])
+      is_list(addrs) -> Enum.filter(addrs, &is_binary/1)
+      is_binary(addrs) -> [addrs]
+      true -> []
     end
+  end
+
+  # Due to JSON-LD simply "Public" and "as:Public" are equivalent to the full URI
+  # but to simplify later checks we only want to deal with one reperesentation internally
+  defp normalise_addressing_public_list(map, all_fields)
+
+  defp normalise_addressing_public_list(%{} = map, [field | fields]) do
+    full_uri = Pleroma.Constants.as_public()
+
+    map =
+      if map[field] != nil do
+        new_fval =
+          map[field]
+          |> fix_addressing_list()
+          |> Enum.map(fn
+            "Public" -> full_uri
+            "as:Public" -> full_uri
+            x -> x
+          end)
+
+        Map.put(map, field, new_fval)
+      else
+        map
+      end
+
+    normalise_addressing_public_list(map, fields)
+  end
+
+  defp normalise_addressing_public_list(map, _) do
+    map
+  end
+
+  defp normalise_addressing_public(map) do
+    normalise_addressing_public_list(map, ["to", "cc", "bto", "bcc"])
   end
 
   # if directMessage flag is set to true, leave the addressing alone
@@ -96,6 +155,10 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     |> Map.put("cc", final_cc)
   end
 
+  def fix_addressing_list_key(map, field) do
+    Map.put(map, field, fix_addressing_list(map[field]))
+  end
+
   def fix_addressing(object) do
     {:ok, %User{follower_address: follower_collection}} =
       object
@@ -103,10 +166,10 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
       |> User.get_or_fetch_by_ap_id()
 
     object
-    |> fix_addressing_list("to")
-    |> fix_addressing_list("cc")
-    |> fix_addressing_list("bto")
-    |> fix_addressing_list("bcc")
+    |> fix_addressing_list_key("to")
+    |> fix_addressing_list_key("cc")
+    |> fix_addressing_list_key("bto")
+    |> fix_addressing_list_key("bcc")
     |> fix_explicit_addressing(follower_collection)
     |> CommonFixes.fix_implicit_addressing(follower_collection)
   end
@@ -135,8 +198,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
         |> Map.put("context", replied_object.data["context"] || object["conversation"])
         |> Map.drop(["conversation", "inReplyToAtomUri"])
       else
-        e ->
-          Logger.warn("Couldn't fetch reply@#{inspect(in_reply_to_id)}, error: #{inspect(e)}")
+        _ ->
           object
       end
     else
@@ -159,7 +221,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
         |> Map.put("quoteUri", quoted_object.data["id"])
       else
         e ->
-          Logger.warn("Couldn't fetch quote@#{inspect(quote_url)}, error: #{inspect(e)}")
+          Logger.warning("Couldn't fetch quote@#{inspect(quote_url)}, error: #{inspect(e)}")
           object
       end
     else
@@ -384,11 +446,21 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     end)
   end
 
-  def handle_incoming(data, options \\ [])
+  def handle_incoming(data, options \\ []) do
+    data
+    |> fix_recursive(&normalise_addressing_public/1)
+    |> fix_recursive(&strip_internal_fields/1)
+    |> handle_incoming_normalised(options)
+  end
+
+  defp handle_incoming_normalised(data, options)
 
   # Flag objects are placed ahead of the ID check because Mastodon 2.8 and earlier send them
   # with nil ID.
-  def handle_incoming(%{"type" => "Flag", "object" => objects, "actor" => actor} = data, _options) do
+  defp handle_incoming_normalised(
+         %{"type" => "Flag", "object" => objects, "actor" => actor} = data,
+         _options
+       ) do
     with context <- data["context"] || Utils.generate_context_id(),
          content <- data["content"] || "",
          %User{} = actor <- User.get_cached_by_ap_id(actor),
@@ -409,20 +481,21 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   end
 
   # disallow objects with bogus IDs
-  def handle_incoming(%{"id" => nil}, _options), do: :error
-  def handle_incoming(%{"id" => ""}, _options), do: :error
+  defp handle_incoming_normalised(%{"id" => nil}, _options), do: :error
+  defp handle_incoming_normalised(%{"id" => ""}, _options), do: :error
   # length of https:// = 8, should validate better, but good enough for now.
-  def handle_incoming(%{"id" => id}, _options) when is_binary(id) and byte_size(id) < 8,
-    do: :error
+  defp handle_incoming_normalised(%{"id" => id}, _options)
+       when is_binary(id) and byte_size(id) < 8,
+       do: :error
 
-  @doc "Rewrite misskey likes into EmojiReacts"
-  def handle_incoming(
-        %{
-          "type" => "Like",
-          "content" => reaction
-        } = data,
-        options
-      ) do
+  # Rewrite misskey likes into EmojiReacts
+  defp handle_incoming_normalised(
+         %{
+           "type" => "Like",
+           "content" => reaction
+         } = data,
+         options
+       ) do
     if Pleroma.Emoji.is_unicode_emoji?(reaction) || Pleroma.Emoji.matches_shortcode?(reaction) do
       data
       |> Map.put("type", "EmojiReact")
@@ -434,16 +507,15 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     end
   end
 
-  def handle_incoming(
-        %{"type" => "Create", "object" => %{"type" => objtype, "id" => obj_id}} = data,
-        options
-      )
-      when objtype in ~w{Question Answer Audio Video Event Article Note Page} do
+  defp handle_incoming_normalised(
+         %{"type" => "Create", "object" => %{"type" => objtype, "id" => obj_id}} = data,
+         options
+       )
+       when objtype in ~w{Question Answer Audio Video Event Article Note Page} do
     fetch_options = Keyword.put(options, :depth, (options[:depth] || 0) + 1)
 
     object =
       data["object"]
-      |> strip_internal_fields()
       |> fix_type(fetch_options)
       |> fix_in_reply_to(fetch_options)
       |> fix_quote_url(fetch_options)
@@ -470,22 +542,37 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     end
   end
 
-  def handle_incoming(%{"type" => type} = data, _options)
-      when type in ~w{Like EmojiReact Announce Add Remove} do
-    with :ok <- ObjectValidator.fetch_actor_and_object(data),
+  defp handle_incoming_normalised(%{"type" => type} = data, _options)
+       when type in ~w{Like EmojiReact Announce Add Remove} do
+    with {_, :ok} <- {:link, ObjectValidator.fetch_actor_and_object(data)},
          {:ok, activity, _meta} <- Pipeline.common_pipeline(data, local: false) do
       {:ok, activity}
     else
+      {:link, {:error, :ignore}} ->
+        {:error, :ignore}
+
+      {:link, {:error, {:validate, _}} = e} ->
+        e
+
+      {:link, {:error, {:reject, _}} = e} ->
+        e
+
+      {:link, _} ->
+        {:error, :link_resolve_failed}
+
       e ->
         {:error, e}
     end
   end
 
-  def handle_incoming(
-        %{"type" => type} = data,
-        _options
-      )
-      when type in ~w{Update Block Follow Accept Reject} do
+  defp handle_incoming_normalised(
+         %{"type" => type} = data,
+         _options
+       )
+       when type in ~w{Update Block Follow Accept Reject} do
+    fixed_obj = maybe_fix_object(data["object"])
+    data = if fixed_obj != nil, do: %{data | "object" => fixed_obj}, else: data
+
     with {:ok, %User{}} <- ObjectValidator.fetch_actor(data),
          {:ok, activity, _} <-
            Pipeline.common_pipeline(data, local: false) do
@@ -493,38 +580,61 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     end
   end
 
-  def handle_incoming(
-        %{"type" => "Delete"} = data,
-        _options
-      ) do
-    with {:ok, activity, _} <-
-           Pipeline.common_pipeline(data, local: false) do
+  defp handle_incoming_normalised(
+         %{"type" => "Delete"} = data,
+         _options
+       ) do
+    oid_result = ObjectValidators.ObjectID.cast(data["object"])
+
+    with {_, {:ok, object_id}} <- {:object_id, oid_result},
+         object <- Object.get_cached_by_ap_id(object_id),
+         {_, false} <- {:tombstone, Object.tombstone_object?(object) && !data["actor"]},
+         {:ok, activity, _} <- Pipeline.common_pipeline(data, local: false) do
       {:ok, activity}
     else
-      {:error, {:validate, _}} = e ->
-        # Check if we have a create activity for this
-        with {:ok, object_id} <- ObjectValidators.ObjectID.cast(data["object"]),
-             %Activity{data: %{"actor" => actor}} <-
-               Activity.create_by_object_ap_id(object_id) |> Repo.one(),
-             # We have one, insert a tombstone and retry
-             {:ok, tombstone_data, _} <- Builder.tombstone(actor, object_id),
-             {:ok, _tombstone} <- Object.create(tombstone_data) do
-          handle_incoming(data)
+      {:object_id, _} ->
+        {:error, {:validate, "Invalid object id: #{data["object"]}"}}
+
+      {:tombstone, true} ->
+        {:error, :ignore}
+
+      {:error, {:validate, {:error, %Ecto.Changeset{errors: errors}}}} = e ->
+        if errors[:object] == {"can't find object", []} do
+          # Check if we have a create activity for this
+          # (e.g. from a db prune without --prune-activities)
+          # We'd still like to process side effects so insert a fake tombstone and retry
+          # (real tombstones from Object.delete do not have an actor field)
+          with {:ok, object_id} <- ObjectValidators.ObjectID.cast(data["object"]),
+               {_, %Activity{data: %{"actor" => actor}}} <-
+                 {:create, Activity.create_by_object_ap_id(object_id) |> Repo.one()},
+               {:ok, tombstone_data, _} <- Builder.tombstone(actor, object_id),
+               {:ok, _tombstone} <- Object.create(tombstone_data) do
+            handle_incoming(data)
+          else
+            {:create, _} -> {:error, :ignore}
+            _ -> e
+          end
         else
-          _ -> e
+          e
         end
+
+      {:error, _} = e ->
+        e
+
+      e ->
+        {:error, e}
     end
   end
 
-  def handle_incoming(
-        %{
-          "type" => "Undo",
-          "object" => %{"type" => "Follow", "object" => followed},
-          "actor" => follower,
-          "id" => id
-        } = _data,
-        _options
-      ) do
+  defp handle_incoming_normalised(
+         %{
+           "type" => "Undo",
+           "object" => %{"type" => "Follow", "object" => followed},
+           "actor" => follower,
+           "id" => id
+         } = _data,
+         _options
+       ) do
     with %User{local: true} = followed <- User.get_cached_by_ap_id(followed),
          {:ok, %User{} = follower} <- User.get_or_fetch_by_ap_id(follower),
          {:ok, activity} <- ActivityPub.unfollow(follower, followed, id, false) do
@@ -535,28 +645,42 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     end
   end
 
-  def handle_incoming(
-        %{
-          "type" => "Undo",
-          "object" => %{"type" => type}
-        } = data,
-        _options
-      )
-      when type in ["Like", "EmojiReact", "Announce", "Block"] do
+  defp handle_incoming_normalised(
+         %{
+           "type" => "Undo",
+           "object" => %{"type" => type}
+         } = data,
+         _options
+       )
+       when type in ["Like", "EmojiReact", "Announce", "Block"] do
     with {:ok, activity, _} <- Pipeline.common_pipeline(data, local: false) do
       {:ok, activity}
+    else
+      {:error, {:validate, {:error, %Ecto.Changeset{errors: errors}}}} = e ->
+        # If we never saw the activity being undone, no need to do anything.
+        # Inspectinging the validation error content is a bit akward, but looking up the Activity
+        # ahead of time here would be too costly since Activity queries are not cached
+        # and there's no way atm to pass the retrieved result along along
+        if errors[:object] == {"can't find object", []} do
+          {:error, :ignore}
+        else
+          e
+        end
+
+      e ->
+        e
     end
   end
 
   # For Undos that don't have the complete object attached, try to find it in our database.
-  def handle_incoming(
-        %{
-          "type" => "Undo",
-          "object" => object
-        } = activity,
-        options
-      )
-      when is_binary(object) do
+  defp handle_incoming_normalised(
+         %{
+           "type" => "Undo",
+           "object" => object
+         } = activity,
+         options
+       )
+       when is_binary(object) do
     with %Activity{data: data} <- Activity.get_by_ap_id(object) do
       activity
       |> Map.put("object", data)
@@ -566,17 +690,22 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     end
   end
 
-  def handle_incoming(
-        %{
-          "type" => "Move",
-          "actor" => origin_actor,
-          "object" => origin_actor,
-          "target" => target_actor
-        },
-        _options
-      ) do
+  defp handle_incoming_normalised(
+         %{
+           "type" => "Move",
+           "actor" => origin_actor,
+           "object" => origin_actor,
+           "target" => target_actor
+         },
+         _options
+       ) do
     with %User{} = origin_user <- User.get_cached_by_ap_id(origin_actor),
-         {:ok, %User{} = target_user} <- User.get_or_fetch_by_ap_id(target_actor),
+         # Use a dramatically shortened maximum age before refresh here because it is reasonable
+         # for a user to
+         # 1. Add the alias to their new account and then
+         # 2. Press the button on their new account
+         # within a very short period of time and expect it to work
+         {:ok, %User{} = target_user} <- User.get_or_fetch_by_ap_id(target_actor, maximum_age: 5),
          true <- origin_actor in target_user.also_known_as do
       ActivityPub.move(origin_user, target_user, false)
     else
@@ -584,7 +713,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     end
   end
 
-  def handle_incoming(_, _), do: :error
+  defp handle_incoming_normalised(_, _), do: :error
 
   @spec get_obj_helper(String.t(), Keyword.t()) :: {:ok, Object.t()} | nil
   def get_obj_helper(id, options \\ []) do
@@ -828,8 +957,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
            relative_object do
       Map.put(data, "object", external_url)
     else
-      {:fetch, e} ->
-        Logger.error("Couldn't fetch fixed_object@#{object} #{inspect(e)}")
+      {:fetch, _} ->
         data
 
       _ ->
@@ -898,8 +1026,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
       "icon" => %{"url" => "#{URI.encode(url)}", "type" => "Image"},
       "name" => ":" <> name <> ":",
       "type" => "Emoji",
-      "updated" => "1970-01-01T00:00:00Z",
-      "id" => url
+      "updated" => "1970-01-01T00:00:00Z"
     }
   end
 
@@ -920,8 +1047,13 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
 
   def prepare_attachments(object) do
     attachments =
-      object
-      |> Map.get("attachment", [])
+      case Map.get(object, "attachment", []) do
+        [_ | _] = list -> list
+        _ -> []
+      end
+
+    attachments =
+      attachments
       |> Enum.map(fn data ->
         [%{"mediaType" => media_type, "href" => href} = url | _] = data["url"]
 
@@ -939,6 +1071,8 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     Map.put(object, "attachment", attachments)
   end
 
+  # for outgoing docs immediately stripping internal fields recursively breaks later emoji transformations
+  # (XXX: it would be better to reorder operations so we can always use recursive stripping)
   def strip_internal_fields(object) do
     Map.drop(object, Pleroma.Constants.object_internal_fields())
   end
@@ -950,47 +1084,6 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   end
 
   defp strip_internal_tags(object), do: object
-
-  def perform(:user_upgrade, user) do
-    # we pass a fake user so that the followers collection is stripped away
-    old_follower_address = User.ap_followers(%User{nickname: user.nickname})
-
-    from(
-      a in Activity,
-      where: ^old_follower_address in a.recipients,
-      update: [
-        set: [
-          recipients:
-            fragment(
-              "array_replace(?,?,?)",
-              a.recipients,
-              ^old_follower_address,
-              ^user.follower_address
-            )
-        ]
-      ]
-    )
-    |> Repo.update_all([])
-  end
-
-  def upgrade_user_from_ap_id(ap_id) do
-    with %User{local: false} = user <- User.get_cached_by_ap_id(ap_id),
-         {:ok, data} <- ActivityPub.fetch_and_prepare_user_from_ap_id(ap_id),
-         {:ok, user} <- update_user(user, data) do
-      {:ok, _pid} = Task.start(fn -> ActivityPub.pinned_fetch_task(user) end)
-      TransmogrifierWorker.enqueue("user_upgrade", %{"user_id" => user.id})
-      {:ok, user}
-    else
-      %User{} = user -> {:ok, user}
-      e -> e
-    end
-  end
-
-  defp update_user(user, data) do
-    user
-    |> User.remote_user_changeset(data)
-    |> User.update_and_set_cache()
-  end
 
   def maybe_fix_user_url(%{"url" => url} = data) when is_map(url) do
     Map.put(data, "url", url["href"])

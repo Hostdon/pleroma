@@ -1,5 +1,5 @@
 defmodule Pleroma.Web.MastoFEControllerTest do
-  use Pleroma.Web.ConnCase, async: true
+  use Pleroma.Web.ConnCase, async: false
   alias Pleroma.Web.MastodonAPI.AuthController
 
   describe "index/2 (main page)" do

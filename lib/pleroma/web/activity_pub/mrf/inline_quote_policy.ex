@@ -6,14 +6,29 @@ defmodule Pleroma.Web.ActivityPub.MRF.InlineQuotePolicy do
   @moduledoc "Force a quote line into the message content."
   @behaviour Pleroma.Web.ActivityPub.MRF.Policy
 
+  alias Pleroma.Object
+
   defp build_inline_quote(prefix, url) do
     "<span class=\"quote-inline\"><br/><br/>#{prefix}: <a href=\"#{url}\">#{url}</a></span>"
   end
 
-  defp has_inline_quote?(content, quote_url) do
+  defp resolve_urls(quote_url) do
+    # Fetching here can cause infinite recursion as we run this logic on inbound objects too
+    # This is probably not a problem - its an exceptional corner case for a local user to quote
+    # a post which doesn't exist
+    with %Object{} = obj <- Object.normalize(quote_url, fetch: false) do
+      id = obj.data["id"]
+      url = Map.get(obj.data, "url", id)
+      {id, url, [id, url, quote_url]}
+    else
+      _ -> {quote_url, quote_url, [quote_url]}
+    end
+  end
+
+  defp has_inline_quote?(content, urls) do
     cond do
       # Does the quote URL exist in the content?
-      content =~ quote_url -> true
+      Enum.any?(urls, fn url -> content =~ url end) -> true
       # Does the content already have a .quote-inline span?
       content =~ "<span class=\"quote-inline\">" -> true
       # No inline quote found
@@ -22,18 +37,22 @@ defmodule Pleroma.Web.ActivityPub.MRF.InlineQuotePolicy do
   end
 
   defp filter_object(%{"quoteUri" => quote_url} = object) do
+    {id, preferred_url, all_urls} = resolve_urls(quote_url)
+    object = Map.put(object, "quoteUri", id)
+
     content = object["content"] || ""
 
-    if has_inline_quote?(content, quote_url) do
+    if has_inline_quote?(content, all_urls) do
       object
     else
       prefix = Pleroma.Config.get([:mrf_inline_quote, :prefix])
 
       content =
         if String.ends_with?(content, "</p>") do
-          String.trim_trailing(content, "</p>") <> build_inline_quote(prefix, quote_url) <> "</p>"
+          String.trim_trailing(content, "</p>") <>
+            build_inline_quote(prefix, preferred_url) <> "</p>"
         else
-          content <> build_inline_quote(prefix, quote_url)
+          content <> build_inline_quote(prefix, preferred_url)
         end
 
       Map.put(object, "content", content)

@@ -5,6 +5,7 @@
 defmodule Pleroma.Web.Router do
   use Pleroma.Web, :router
   import Phoenix.LiveDashboard.Router
+  import Oban.Web.Router
 
   pipeline :accepts_html do
     plug(:accepts, ["html"])
@@ -144,7 +145,14 @@ defmodule Pleroma.Web.Router do
     })
   end
 
+  pipeline :optional_http_signature do
+    plug(Pleroma.Web.Plugs.EnsureUserPublicKeyPlug)
+    plug(Pleroma.Web.Plugs.HTTPSignaturePlug)
+    plug(Pleroma.Web.Plugs.MappedSignatureToIdentityPlug)
+  end
+
   pipeline :http_signature do
+    plug(Pleroma.Web.Plugs.EnsureUserPublicKeyPlug)
     plug(Pleroma.Web.Plugs.HTTPSignaturePlug)
     plug(Pleroma.Web.Plugs.MappedSignatureToIdentityPlug)
     plug(Pleroma.Web.Plugs.EnsureHTTPSignaturePlug)
@@ -466,6 +474,29 @@ defmodule Pleroma.Web.Router do
     put("/statuses/:id/emoji_reactions/:emoji", EmojiReactionController, :create)
   end
 
+  scope "/akkoma/", Pleroma.Web.AkkomaAPI do
+    pipe_through(:browser)
+
+    get("/frontend", FrontendSwitcherController, :switch)
+    post("/frontend", FrontendSwitcherController, :do_switch)
+  end
+
+  scope "/api/v1/akkoma", Pleroma.Web.AkkomaAPI do
+    pipe_through(:api)
+
+    get(
+      "/preferred_frontend/available",
+      FrontendSettingsController,
+      :available_frontends
+    )
+
+    put(
+      "/preferred_frontend",
+      FrontendSettingsController,
+      :update_preferred_frontend
+    )
+  end
+
   scope "/api/v1/akkoma", Pleroma.Web.AkkomaAPI do
     pipe_through(:authenticated_api)
     get("/metrics", MetricsController, :show)
@@ -598,7 +629,6 @@ defmodule Pleroma.Web.Router do
     get("/timelines/home", TimelineController, :home)
     get("/timelines/direct", TimelineController, :direct)
     get("/timelines/list/:list_id", TimelineController, :list)
-    get("/timelines/bubble", TimelineController, :bubble)
 
     get("/announcements", AnnouncementController, :index)
     post("/announcements/:id/dismiss", AnnouncementController, :mark_read)
@@ -607,6 +637,8 @@ defmodule Pleroma.Web.Router do
     post("/tags/:id/follow", TagController, :follow)
     post("/tags/:id/unfollow", TagController, :unfollow)
     get("/followed_tags", TagController, :show_followed)
+
+    get("/preferences", AccountController, :preferences)
   end
 
   scope "/api/web", Pleroma.Web do
@@ -653,6 +685,7 @@ defmodule Pleroma.Web.Router do
 
     get("/timelines/public", TimelineController, :public)
     get("/timelines/tag/:tag", TimelineController, :hashtag)
+    get("/timelines/bubble", TimelineController, :bubble)
 
     get("/polls/:id", PollController, :show)
 
@@ -720,7 +753,7 @@ defmodule Pleroma.Web.Router do
   scope "/", Pleroma.Web do
     # Note: html format is supported only if static FE is enabled
     # Note: http signature is only considered for json requests (no auth for non-json requests)
-    pipe_through([:accepts_html_xml_json, :http_signature, :static_fe])
+    pipe_through([:accepts_html_xml_json, :optional_http_signature, :static_fe])
 
     # Note: returns user _profile_ for json requests, redirects to user _feed_ for non-json ones
     get("/users/:nickname", Feed.UserController, :feed_redirect, as: :user_feed)
@@ -775,14 +808,7 @@ defmodule Pleroma.Web.Router do
   scope "/", Pleroma.Web.ActivityPub do
     pipe_through([:activitypub_client])
 
-    get("/api/ap/whoami", ActivityPubController, :whoami)
     get("/users/:nickname/inbox", ActivityPubController, :read_inbox)
-
-    get("/users/:nickname/outbox", ActivityPubController, :outbox)
-    post("/users/:nickname/outbox", ActivityPubController, :update_outbox)
-    post("/api/ap/upload_media", ActivityPubController, :upload_media)
-
-    get("/users/:nickname/collections/featured", ActivityPubController, :pinned)
   end
 
   scope "/", Pleroma.Web.ActivityPub do
@@ -797,7 +823,9 @@ defmodule Pleroma.Web.Router do
   scope "/", Pleroma.Web.ActivityPub do
     pipe_through(:activitypub)
     post("/inbox", ActivityPubController, :inbox)
+    get("/users/:nickname/outbox", ActivityPubController, :outbox)
     post("/users/:nickname/inbox", ActivityPubController, :inbox)
+    get("/users/:nickname/collections/featured", ActivityPubController, :pinned)
   end
 
   scope "/relay", Pleroma.Web.ActivityPub do
@@ -875,6 +903,8 @@ defmodule Pleroma.Web.Router do
       metrics: {Pleroma.Web.Telemetry, :live_dashboard_metrics},
       csp_nonce_assign_key: :csp_nonce
     )
+
+    oban_dashboard("/akkoma/oban", csp_nonce_assign_key: :csp_nonce)
   end
 
   # Test-only routes needed to test action dispatching and plug chain execution

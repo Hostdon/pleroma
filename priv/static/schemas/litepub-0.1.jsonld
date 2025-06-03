@@ -19,6 +19,7 @@
             "toot": "http://joinmastodon.org/ns#",
             "misskey": "https://misskey-hub.net/ns#",
             "fedibird": "http://fedibird.com/ns#",
+            "sharkey": "https://joinsharkey.org/ns#",
             "value": "schema:value",
             "sensitive": "as:sensitive",
             "litepub": "http://litepub.social/ns#",
@@ -45,6 +46,14 @@
             "contentMap": {
                 "@id": "as:content",
                 "@container": "@language"
+            },
+            "featured": {
+                "@id": "toot:featured",
+                "@type": "@id"
+            },
+            "backgroundUrl": {
+                "@id": "sharkey:backgroundUrl",
+                "@type": "@id"
             }
         }
     ]

@@ -5,26 +5,26 @@
 This guide covers a installation using an OTP release. To install Akkoma from source, please check out the corresponding guide for your distro.
 
 ## Pre-requisites
-* A machine running Linux with GNU (e.g. Debian, Ubuntu) or musl (e.g. Alpine) libc and an `x86_64` CPU you have root access to. If you are not sure if it's compatible see [Detecting flavour section](#detecting-flavour) below
+* A machine running Linux with GNU (e.g. Debian, Ubuntu) or musl (e.g. Alpine) libc and an `x86_64` or `arm64` CPU you have root access to. If you are not sure if it's compatible see [Detecting flavour section](#detecting-flavour) below
 * For installing OTP releases on RedHat-based distros like Fedora and Centos Stream, please follow [this guide](./otp_redhat_en.md) instead.
 * A (sub)domain pointed to the machine
 
-You will be running commands as root. If you aren't root already, please elevate your priviledges by executing `sudo su`/`su`.
+You will be running commands as root. If you aren't root already, please elevate your priviledges by executing `sudo -i`/`su`.
 
 While in theory OTP releases are possbile to install on any compatible machine, for the sake of simplicity this guide focuses only on Debian/Ubuntu and Alpine.
 
 ### Detecting flavour
 
-This is a little more complex than it used to be (thanks ubuntu)
-
 Use the following mapping to figure out your flavour:
 
-| distribution  | flavour            | available branches  |
-| ------------- | ------------------ | ------------------- |
-| debian stable | amd64              | develop, stable     |
-| ubuntu focal  | amd64              | develop, stable     |
-| ubuntu jammy  | amd64-ubuntu-jammy | develop, stable     |
-| alpine        | amd64-musl         | stable              |
+| distribution    | architecture       | flavour             | available branches  |
+| --------------- | ------------------ | ------------------- | ------------------- |
+| debian bookworm | amd64              | amd64               | develop, stable     |
+| debian bookworm | arm64              | arm64               | stable              |
+| ubuntu jammy    | amd64              | amd64               | develop, stable     |
+| ubuntu jammy    | arm64              | arm64               | develop, stable     |
+| alpine          | amd64              | amd64-musl          | stable              |
+| alpine          | arm64              | arm64-musl          | stable              |
 
 Other similar distributions will _probably_ work, but if it is not listed above, there is no official
 support.
@@ -118,8 +118,12 @@ Restart PostgreSQL to apply configuration changes:
 adduser --system --shell  /bin/false --home /opt/akkoma akkoma
 
 # Set the flavour environment variable to the string you got in Detecting flavour section.
-# For example if the flavour is `amd64` the command will be
-export FLAVOUR="amd64"
+# For example if the flavour is `amd64-musl` the command will be
+#     export FLAVOUR="amd64-musl"
+export FLAVOUR="<replace-this-with-the-correct-flavour-string>"
+
+# Make sure the SHELL variable is set
+export SHELL="${SHELL:-/bin/sh}"
 
 # Clone the release build into a temporary directory and unpack it
 su akkoma -s $SHELL -lc "
@@ -172,29 +176,24 @@ su akkoma -s $SHELL -lc "./bin/pleroma stop"
 
 ### Setting up nginx and getting Let's Encrypt SSL certificaties
 
-#### Get a Let's Encrypt certificate
-```sh
-certbot certonly --standalone --preferred-challenges http -d yourinstance.tld
-```
-
 #### Copy Akkoma nginx configuration to the nginx folder
 
 The location of nginx configs is dependent on the distro
 
 === "Alpine"
     ```
-    cp /opt/akkoma/installation/nginx/akkoma.nginx /etc/nginx/conf.d/akkoma.conf
+    cp /opt/akkoma/installation/akkoma.nginx /etc/nginx/conf.d/akkoma.conf
     ```
 
 === "Debian/Ubuntu"
     ```
-    cp /opt/akkoma/installation/nginx/akkoma.nginx /etc/nginx/sites-available/akkoma.conf
+    cp /opt/akkoma/installation/akkoma.nginx /etc/nginx/sites-available/akkoma.conf
     ln -s /etc/nginx/sites-available/akkoma.conf /etc/nginx/sites-enabled/akkoma.conf
     ```
 
 If your distro does not have either of those you can append `include /etc/nginx/akkoma.conf` to the end of the http section in /etc/nginx/nginx.conf and
 ```sh
-cp /opt/akkoma/installation/nginx/akkoma.nginx /etc/nginx/akkoma.conf
+cp /opt/akkoma/installation/akkoma.nginx /etc/nginx/akkoma.conf
 ```
 
 #### Edit the nginx config
@@ -205,6 +204,14 @@ $EDITOR path-to-nginx-config
 # Verify that the config is valid
 nginx -t
 ```
+
+#### Get a Let's Encrypt certificate
+```sh
+certbot --nginx -d yourinstance.tld -d media.yourinstance.tld
+```
+
+If that doesn't work the first time, add `--dry-run` to further attempts to avoid being ratelimited as you identify the issue, and do not remove it until the dry run succeeds. A common source of problems are nginx config syntax errors; this can be checked for by running `nginx -t`.
+
 #### Start nginx
 
 === "Alpine"
@@ -248,32 +255,19 @@ If everything worked, you should see Akkoma-FE when visiting your domain. If tha
 ## Post installation
 
 ### Setting up auto-renew of the Let's Encrypt certificate
-```sh
-# Create the directory for webroot challenges
-mkdir -p /var/lib/letsencrypt
-
-# Uncomment the webroot method
-$EDITOR path-to-nginx-config
-
-# Verify that the config is valid
-nginx -t
-```
 
 === "Alpine"
     ```
-    # Restart nginx
-    rc-service nginx restart
-
     # Start the cron daemon and make it start on boot
     rc-service crond start
     rc-update add crond
 
     # Ensure the webroot menthod and post hook is working
-    certbot renew --cert-name yourinstance.tld --webroot -w /var/lib/letsencrypt/ --dry-run --post-hook 'rc-service nginx reload'
+    certbot renew --cert-name yourinstance.tld --nginx --dry-run
 
     # Add it to the daily cron
     echo '#!/bin/sh
-    certbot renew --cert-name yourinstance.tld --webroot -w /var/lib/letsencrypt/ --post-hook "rc-service nginx reload"
+    certbot renew --cert-name yourinstance.tld --nginx
     ' > /etc/periodic/daily/renew-akkoma-cert
     chmod +x /etc/periodic/daily/renew-akkoma-cert
 
@@ -282,22 +276,7 @@ nginx -t
     ```
 
 === "Debian/Ubuntu"
-    ```
-    # Restart nginx
-    systemctl restart nginx
-
-    # Ensure the webroot menthod and post hook is working
-    certbot renew --cert-name yourinstance.tld --webroot -w /var/lib/letsencrypt/ --dry-run --post-hook 'systemctl reload nginx'
-
-    # Add it to the daily cron
-    echo '#!/bin/sh
-    certbot renew --cert-name yourinstance.tld --webroot -w /var/lib/letsencrypt/ --post-hook "systemctl reload nginx"
-    ' > /etc/cron.daily/renew-akkoma-cert
-    chmod +x /etc/cron.daily/renew-akkoma-cert
-
-    # If everything worked the output should contain /etc/cron.daily/renew-akkoma-cert
-    run-parts --test /etc/cron.daily
-    ```
+    This should be automatically enabled with the `certbot-renew.timer` systemd unit.
 
 ## Create your first user and set as admin
 ```sh

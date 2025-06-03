@@ -4,7 +4,7 @@
 
 defmodule Pleroma.Web.MastodonAPI.InstanceControllerTest do
   # TODO: Should not need Cachex
-  use Pleroma.Web.ConnCase
+  use Pleroma.Web.ConnCase, async: false
 
   alias Pleroma.User
   import Pleroma.Factory
@@ -61,7 +61,9 @@ defmodule Pleroma.Web.MastodonAPI.InstanceControllerTest do
     {:ok, _user2} = User.set_activation(user2, false)
 
     insert(:user, %{local: false, nickname: "u@peer1.com"})
+    insert(:instance, %{domain: "peer1.com"})
     insert(:user, %{local: false, nickname: "u@peer2.com"})
+    insert(:instance, %{domain: "peer2.com"})
 
     {:ok, _} = Pleroma.Web.CommonAPI.post(user, %{status: "cofe"})
 
@@ -81,7 +83,9 @@ defmodule Pleroma.Web.MastodonAPI.InstanceControllerTest do
 
   test "get peers", %{conn: conn} do
     insert(:user, %{local: false, nickname: "u@peer1.com"})
+    insert(:instance, %{domain: "peer1.com"})
     insert(:user, %{local: false, nickname: "u@peer2.com"})
+    insert(:instance, %{domain: "peer2.com"})
 
     Pleroma.Stats.force_update()
 

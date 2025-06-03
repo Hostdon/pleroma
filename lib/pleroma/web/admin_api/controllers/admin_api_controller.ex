@@ -17,9 +17,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   alias Pleroma.Web.AdminAPI
   alias Pleroma.Web.AdminAPI.AccountView
   alias Pleroma.Web.AdminAPI.ModerationLogView
-  alias Pleroma.Web.Endpoint
   alias Pleroma.Web.Plugs.OAuthScopesPlug
-  alias Pleroma.Web.Router
 
   @users_page_size 50
 
@@ -256,7 +254,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     conn
     |> json(%{
       token: token.token,
-      link: Router.Helpers.reset_password_url(Endpoint, :reset, token.token)
+      link: url(~p[/api/v1/pleroma/password_reset/#{token.token}])
     })
   end
 

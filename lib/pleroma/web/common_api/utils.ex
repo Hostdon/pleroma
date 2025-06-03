@@ -22,43 +22,31 @@ defmodule Pleroma.Web.CommonAPI.Utils do
   require Logger
   require Pleroma.Constants
 
-  def attachments_from_ids(%{media_ids: ids, descriptions: desc}) do
-    attachments_from_ids_descs(ids, desc)
+  def attachments_from_ids(user, %{media_ids: ids}) do
+    attachments_from_ids(user, ids, [])
   end
 
-  def attachments_from_ids(%{media_ids: ids}) do
-    attachments_from_ids_no_descs(ids)
+  def attachments_from_ids(_, _), do: []
+
+  defp attachments_from_ids(_user, [], acc), do: Enum.reverse(acc)
+
+  defp attachments_from_ids(user, [media_id | ids], acc) do
+    with {_, %Object{} = object} <- {:get, get_attachment(media_id)},
+         :ok <- Object.authorize_access(object, user) do
+      attachments_from_ids(user, ids, [object.data | acc])
+    else
+      {:get, _} -> attachments_from_ids(user, ids, acc)
+      {:error, reason} -> {:error, reason}
+    end
   end
 
-  def attachments_from_ids(_), do: []
-
-  def attachments_from_ids_no_descs([]), do: []
-
-  def attachments_from_ids_no_descs(ids) do
-    Enum.map(ids, fn media_id ->
-      case get_attachment(media_id) do
-        %Object{data: data} -> data
-        _ -> nil
-      end
-    end)
-    |> Enum.reject(&is_nil/1)
-  end
-
-  def attachments_from_ids_descs([], _), do: []
-
-  def attachments_from_ids_descs(ids, descs_str) do
-    {_, descs} = Jason.decode(descs_str)
-
-    Enum.map(ids, fn media_id ->
-      with %Object{data: data} <- get_attachment(media_id) do
-        Map.put(data, "name", descs[media_id])
-      end
-    end)
-    |> Enum.reject(&is_nil/1)
-  end
-
-  defp get_attachment(media_id) do
-    Repo.get(Object, media_id)
+  def get_attachment(media_id) do
+    with %Object{} = object <- Repo.get(Object, media_id),
+         true <- object.data["type"] in Pleroma.Constants.attachment_types() do
+      object
+    else
+      _ -> nil
+    end
   end
 
   @spec get_to_and_cc(ActivityDraft.t()) :: {list(String.t()), list(String.t())}
@@ -144,6 +132,8 @@ defmodule Pleroma.Web.CommonAPI.Utils do
       when is_list(options) do
     limits = Config.get([:instance, :poll_limits])
 
+    options = options |> Enum.uniq()
+
     with :ok <- validate_poll_expiration(expires_in, limits),
          :ok <- validate_poll_options_amount(options, limits),
          :ok <- validate_poll_options_length(options, limits) do
@@ -179,10 +169,15 @@ defmodule Pleroma.Web.CommonAPI.Utils do
   end
 
   defp validate_poll_options_amount(options, %{max_options: max_options}) do
-    if Enum.count(options) > max_options do
-      {:error, "Poll can't contain more than #{max_options} options"}
-    else
-      :ok
+    cond do
+      Enum.count(options) < 2 ->
+        {:error, "Poll must contain at least 2 options"}
+
+      Enum.count(options) > max_options ->
+        {:error, "Poll can't contain more than #{max_options} options"}
+
+      true ->
+        :ok
     end
   end
 
@@ -317,13 +312,13 @@ defmodule Pleroma.Web.CommonAPI.Utils do
       format_asctime(date)
     else
       _e ->
-        Logger.warn("Date #{date} in wrong format, must be ISO 8601")
+        Logger.warning("Date #{date} in wrong format, must be ISO 8601")
         ""
     end
   end
 
   def date_to_asctime(date) do
-    Logger.warn("Date #{date} in wrong format, must be ISO 8601")
+    Logger.warning("Date #{date} in wrong format, must be ISO 8601")
     ""
   end
 

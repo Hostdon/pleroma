@@ -3,7 +3,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
-  use Pleroma.Web.ConnCase
+  use Pleroma.Web.ConnCase, async: false
+  @moduletag :mocked
   use Oban.Testing, repo: Pleroma.Repo
 
   alias Pleroma.Tests.ObanHelpers
@@ -23,10 +24,61 @@ defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
   describe "PUT /api/pleroma/notification_settings" do
     setup do: oauth_access(["write:accounts"])
 
-    test "it updates notification settings", %{user: user, conn: conn} do
+    test "it updates notification settings via url paramters", %{user: user, conn: conn} do
       conn
       |> put(
         "/api/pleroma/notification_settings?#{URI.encode_query(%{block_from_strangers: true})}"
+      )
+      |> json_response_and_validate_schema(:ok)
+
+      user = refresh_record(user)
+
+      assert %Pleroma.User.NotificationSetting{
+               block_from_strangers: true,
+               hide_notification_contents: false
+             } == user.notification_settings
+    end
+
+    test "it updates notification settings via JSON body params", %{user: user, conn: conn} do
+      conn
+      |> put_req_header("content-type", "application/json")
+      |> put(
+        "/api/pleroma/notification_settings",
+        %{"block_from_strangers" => true}
+      )
+      |> json_response_and_validate_schema(:ok)
+
+      user = refresh_record(user)
+
+      assert %Pleroma.User.NotificationSetting{
+               block_from_strangers: true,
+               hide_notification_contents: false
+             } == user.notification_settings
+    end
+
+    test "it updates notification settings via form data", %{user: user, conn: conn} do
+      conn
+      |> put_req_header("content-type", "multipart/form-data")
+      |> put(
+        "/api/pleroma/notification_settings",
+        %{:block_from_strangers => true}
+      )
+      |> json_response_and_validate_schema(:ok)
+
+      user = refresh_record(user)
+
+      assert %Pleroma.User.NotificationSetting{
+               block_from_strangers: true,
+               hide_notification_contents: false
+             } == user.notification_settings
+    end
+
+    test "it updates notification settings via urlencoded body", %{user: user, conn: conn} do
+      conn
+      |> put_req_header("content-type", "application/x-www-form-urlencoded")
+      |> put(
+        "/api/pleroma/notification_settings",
+        "block_from_strangers=true"
       )
       |> json_response_and_validate_schema(:ok)
 
@@ -42,6 +94,27 @@ defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
       conn
       |> put(
         "/api/pleroma/notification_settings?#{URI.encode_query(%{hide_notification_contents: 1})}"
+      )
+      |> json_response_and_validate_schema(:ok)
+
+      user = refresh_record(user)
+
+      assert %Pleroma.User.NotificationSetting{
+               block_from_strangers: false,
+               hide_notification_contents: true
+             } == user.notification_settings
+    end
+
+    # we already test all body variants for block_from_strangers, so just one should suffice here
+    test "it updates notification settings to enable hiding contents via JSON body params", %{
+      user: user,
+      conn: conn
+    } do
+      conn
+      |> put_req_header("content-type", "application/json")
+      |> put(
+        "/api/pleroma/notification_settings",
+        %{"hide_notification_contents" => true}
       )
       |> json_response_and_validate_schema(:ok)
 

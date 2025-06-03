@@ -1,12 +1,9 @@
 # default nginx site config for Akkoma
 #
-# Simple installation instructions:
-# 1. Install your TLS certificate, possibly using Let's Encrypt.
-# 2. Replace 'example.tld' with your instance's domain wherever it appears.
-# 3. Copy this file to /etc/nginx/sites-available/ and then add a symlink to it
-#    in /etc/nginx/sites-enabled/ and run 'nginx -s reload' or restart nginx.
+# See the documentation at docs.akkoma.dev for your particular distro/OS for
+# installation instructions.
 
-proxy_cache_path /tmp/akkoma-media-cache levels=1:2 keys_zone=akkoma_media_cache:10m max_size=10g
+proxy_cache_path /var/tmp/akkoma-media-cache levels=1:2 keys_zone=akkoma_media_cache:10m max_size=1g
                  inactive=720m use_temp_path=off;
 
 # this is explicitly IPv4 since Pleroma.Web.Endpoint binds on IPv4 only
@@ -15,25 +12,19 @@ upstream phoenix {
     server 127.0.0.1:4000 max_fails=5 fail_timeout=60s;
 }
 
-server {
-    server_name    example.tld;
-
-    listen         80;
-    listen         [::]:80;
-
-    # Uncomment this if you need to use the 'webroot' method with certbot. Make sure
-    # that the directory exists and that it is accessible by the webserver. If you followed
-    # the guide, you already ran 'mkdir -p /var/lib/letsencrypt' to create the folder.
-    # You may need to load this file with the ssl server block commented out, run certbot
-    # to get the certificate, and then uncomment it.
-    #
-    # location ~ /\.well-known/acme-challenge {
-    #     root /var/lib/letsencrypt/;
-    # }
-    location / {
-      return         301 https://$server_name$request_uri;
-    }
-}
+# If you are setting up TLS certificates without certbot, uncomment the
+# following to enable HTTP -> HTTPS redirects. Certbot users don't need to do
+# this as it will automatically do this for you.
+# server {
+#     server_name    example.tld media.example.tld;
+#
+#     listen         80;
+#     listen         [::]:80;
+#
+#     location / {
+#         return         301 https://$server_name$request_uri;
+#     }
+# }
 
 # Enable SSL session caching for improved performance
 ssl_session_cache shared:ssl_session_cache:10m;
@@ -41,22 +32,29 @@ ssl_session_cache shared:ssl_session_cache:10m;
 server {
     server_name example.tld;
 
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
-    ssl_session_timeout 1d;
-    ssl_session_cache shared:MozSSL:10m;  # about 40000 sessions
-    ssl_session_tickets off;
+    # Once certbot is set up, this will automatically be updated to listen to
+    # port 443 with TLS alongside a redirect from plaintext HTTP.
+    listen 80;
+    listen [::]:80;
 
-    ssl_trusted_certificate   /etc/letsencrypt/live/example.tld/chain.pem;
-    ssl_certificate           /etc/letsencrypt/live/example.tld/fullchain.pem;
-    ssl_certificate_key       /etc/letsencrypt/live/example.tld/privkey.pem;
+    # If you are not using Certbot, comment out the above and uncomment/edit the following
+#     listen 443 ssl http2;
+#     listen [::]:443 ssl http2;
+#     ssl_session_timeout 1d;
+#     ssl_session_cache shared:MozSSL:10m;  # about 40000 sessions
+#     ssl_session_tickets off;
+#
+#     ssl_trusted_certificate   /etc/letsencrypt/live/example.tld/chain.pem;
+#     ssl_certificate           /etc/letsencrypt/live/example.tld/fullchain.pem;
+#     ssl_certificate_key       /etc/letsencrypt/live/example.tld/privkey.pem;
+#
+#     ssl_protocols TLSv1.2 TLSv1.3;
+#     ssl_ciphers "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:!aNULL:!eNULL:!EXPORT:!DES:!MD5:!PSK:!RC4";
+#     ssl_prefer_server_ciphers off;
+#     ssl_ecdh_curve X25519:prime256v1:secp384r1:secp521r1;
+#     ssl_stapling on;
+#     ssl_stapling_verify on;
 
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:!aNULL:!eNULL:!EXPORT:!DES:!MD5:!PSK:!RC4";
-    ssl_prefer_server_ciphers off;
-    ssl_ecdh_curve X25519:prime256v1:secp384r1:secp521r1;
-    ssl_stapling on;
-    ssl_stapling_verify on;
 
     gzip_vary on;
     gzip_proxied any;
@@ -75,9 +73,43 @@ server {
     proxy_set_header Host $http_host;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 
+    location ~ ^/(media|proxy) {
+        return 404;
+    }
+
     location / {
         proxy_pass http://phoenix;
     }
+}
+
+# Upload and MediaProxy Subdomain
+# (see main domain setup for more details)
+server {
+    server_name media.example.tld;
+
+    # Same as above, will be updated to HTTPS once certbot is set up.
+    listen 80;
+    listen [::]:80;
+
+    # If you are not using certbot, comment the above and copy all the ssl
+    # stuff from above into here.
+
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_buffers 16 8k;
+    gzip_http_version 1.1;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript application/activity+json application/atom+xml;
+
+    # the nginx default is 1m, not enough for large media uploads
+    client_max_body_size 16m;
+    ignore_invalid_headers off;
+
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 
     location ~ ^/(media|proxy) {
         proxy_cache        akkoma_media_cache;
@@ -90,5 +122,9 @@ server {
         proxy_buffering    on;
         chunked_transfer_encoding on;
         proxy_pass         http://phoenix;
+    }
+
+    location / {
+        return 404;
     }
 }

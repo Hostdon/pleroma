@@ -67,6 +67,9 @@ defmodule Pleroma.Web.MastodonAPI.InstanceView do
       "pleroma:api/v1/notifications:include_types_filter",
       "quote_posting",
       "editing",
+      if !Enum.empty?(Config.get([:instance, :local_bubble], [])) do
+        "bubble_timeline"
+      end,
       if Config.get([:media_proxy, :enabled]) do
         "media_proxy"
       end,

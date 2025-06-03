@@ -259,6 +259,27 @@ defmodule Pleroma.Activity do
   def get_create_by_object_ap_id(_), do: nil
 
   @doc """
+  Accepts a list of `ap__id`.
+  Returns a query yielding Create activities for the given objects,
+  in the same order as they were specified in the input list.
+  """
+  @spec get_presorted_create_by_object_ap_id([String.t()]) :: Ecto.Queryable.t()
+  def get_presorted_create_by_object_ap_id(ap_ids) do
+    from(
+      a in Activity,
+      join:
+        ids in fragment(
+          "SELECT * FROM UNNEST(?::text[]) WITH ORDINALITY AS ids(ap_id, ord)",
+          ^ap_ids
+        ),
+      on:
+        ids.ap_id == fragment("?->>'object'", a.data) and
+          fragment("?->>'type'", a.data) == "Create",
+      order_by: [asc: ids.ord]
+    )
+  end
+
+  @doc """
   Accepts `ap_id` or list of `ap_id`.
   Returns a query.
   """
@@ -276,6 +297,13 @@ defmodule Pleroma.Activity do
   end
 
   def get_create_by_object_ap_id_with_object(_), do: nil
+
+  def get_local_create_by_object_ap_id(ap_id) when is_binary(ap_id) do
+    ap_id
+    |> create_by_object_ap_id()
+    |> where(local: true)
+    |> Repo.one()
+  end
 
   @spec create_by_id_with_object(String.t()) :: t() | nil
   def create_by_id_with_object(id) do
@@ -383,7 +411,8 @@ defmodule Pleroma.Activity do
       active in fragment(
         "SELECT is_active from users WHERE ap_id = ? AND is_active = TRUE",
         activity.actor
-      )
+      ),
+      on: true
     )
   end
 

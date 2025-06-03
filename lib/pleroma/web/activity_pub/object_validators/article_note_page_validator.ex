@@ -14,6 +14,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
   import Ecto.Changeset
 
   require Logger
+  require Pleroma.Web.ActivityPub.Transmogrifier
 
   @primary_key false
   @derive Jason.Encoder
@@ -52,6 +53,13 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
 
   defp fix_url(%{"url" => url} = data) when is_bitstring(url), do: data
   defp fix_url(%{"url" => url} = data) when is_map(url), do: Map.put(data, "url", url["href"])
+
+  defp fix_url(%{"url" => url} = data) when is_list(url) do
+    data
+    |> Map.put("url", List.first(url))
+    |> fix_url()
+  end
+
   defp fix_url(data), do: data
 
   defp fix_tag(%{"tag" => tag} = data) when is_list(tag) do
@@ -63,7 +71,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
 
   defp fix_replies(%{"replies" => replies} = data) when is_list(replies), do: data
 
-  defp fix_replies(%{"replies" => %{"first" => first}} = data) do
+  defp fix_replies(%{"replies" => %{"first" => first}} = data) when is_binary(first) do
     with {:ok, replies} <- Akkoma.Collections.Fetcher.fetch_collection(first) do
       Map.put(data, "replies", replies)
     else
@@ -72,6 +80,10 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
         Map.put(data, "replies", [])
     end
   end
+
+  defp fix_replies(%{"replies" => %{"first" => %{"items" => replies}}} = data)
+       when is_list(replies),
+       do: Map.put(data, "replies", replies)
 
   defp fix_replies(%{"replies" => %{"items" => replies}} = data) when is_list(replies),
     do: Map.put(data, "replies", replies)

@@ -1,6 +1,5 @@
 defmodule Pleroma.Repo.Migrations.AddCorrectDMIndex do
   use Ecto.Migration
-  @disable_ddl_transaction true
 
   def up do
     drop_if_exists(
@@ -12,7 +11,6 @@ defmodule Pleroma.Repo.Migrations.AddCorrectDMIndex do
     create(
       index(:activities, ["activity_visibility(actor, recipients, data)", "id DESC NULLS LAST"],
         name: :activities_visibility_index,
-        concurrently: true,
         where: "data->>'type' = 'Create'"
       )
     )
@@ -22,7 +20,6 @@ defmodule Pleroma.Repo.Migrations.AddCorrectDMIndex do
     drop_if_exists(
       index(:activities, ["activity_visibility(actor, recipients, data)", "id DESC"],
         name: :activities_visibility_index,
-        concurrently: true,
         where: "data->>'type' = 'Create'"
       )
     )

@@ -6,7 +6,9 @@ defmodule Pleroma.Workers.MailerWorker do
   use Pleroma.Workers.WorkerHelper, queue: "mailer"
 
   @impl Oban.Worker
-  def perform(%Job{args: %{"op" => "email", "encoded_email" => encoded_email, "config" => config}}) do
+  def perform(%Job{
+        args: %{"op" => "email", "encoded_email" => encoded_email, "config" => config}
+      }) do
     encoded_email
     |> Base.decode64!()
     |> :erlang.binary_to_term()

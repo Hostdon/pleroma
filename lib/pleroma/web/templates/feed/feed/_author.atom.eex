@@ -11,7 +11,4 @@
   <%= if User.banner_url(@user) do %>
     <link rel="header" href="<%= User.banner_url(@user) %>"/>
   <% end %>
-  <%= if @user.local do %>
-    <ap_enabled>true</ap_enabled>
-  <% end %>
 </author>

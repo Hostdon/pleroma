@@ -12,9 +12,10 @@ defmodule Pleroma.Web.Metadata.Providers.TwitterCardTest do
   alias Pleroma.Web.MediaProxy
   alias Pleroma.Web.Metadata.Providers.TwitterCard
   alias Pleroma.Web.Metadata.Utils
-  alias Pleroma.Web.Router
 
   setup do: clear_config([Pleroma.Web.Metadata, :unfurl_nsfw])
+  setup do: clear_config([:restrict_unauthenticated, :profiles, :local])
+  setup do: clear_config([:restrict_unauthenticated, :activities, :local])
 
   test "it renders twitter card for user info" do
     user = insert(:user, name: "Jimmy Hendriks", bio: "born 19 March 1994")
@@ -22,11 +23,19 @@ defmodule Pleroma.Web.Metadata.Providers.TwitterCardTest do
     res = TwitterCard.build_tags(%{user: user})
 
     assert res == [
-             {:meta, [property: "twitter:title", content: Utils.user_name_string(user)], []},
-             {:meta, [property: "twitter:description", content: "born 19 March 1994"], []},
-             {:meta, [property: "twitter:image", content: avatar_url], []},
-             {:meta, [property: "twitter:card", content: "summary"], []}
+             {:meta, [name: "twitter:title", content: Utils.user_name_string(user)], []},
+             {:meta, [name: "twitter:description", content: "born 19 March 1994"], []},
+             {:meta, [name: "twitter:image", content: avatar_url], []},
+             {:meta, [name: "twitter:card", content: "summary"], []}
            ]
+  end
+
+  test "it does not render twitter card for user info if it is restricted" do
+    clear_config([:restrict_unauthenticated, :profiles, :local], true)
+    user = insert(:user, name: "Jimmy Hendriks", bio: "born 19 March 1994")
+    res = TwitterCard.build_tags(%{user: user})
+
+    assert Enum.empty?(res)
   end
 
   test "it uses summary twittercard if post has no attachment" do
@@ -47,12 +56,22 @@ defmodule Pleroma.Web.Metadata.Providers.TwitterCardTest do
     result = TwitterCard.build_tags(%{object: note, user: user, activity_id: activity.id})
 
     assert [
-             {:meta, [property: "twitter:title", content: Utils.user_name_string(user)], []},
-             {:meta, [property: "twitter:description", content: "pleroma in a nutshell"], []},
-             {:meta, [property: "twitter:image", content: "http://localhost:4001/images/avi.png"],
+             {:meta, [name: "twitter:title", content: Utils.user_name_string(user)], []},
+             {:meta, [name: "twitter:description", content: "pleroma in a nutshell"], []},
+             {:meta, [name: "twitter:image", content: "http://localhost:4001/images/avi.png"],
               []},
-             {:meta, [property: "twitter:card", content: "summary"], []}
+             {:meta, [name: "twitter:card", content: "summary"], []}
            ] == result
+  end
+
+  test "it does not summarise activities if they are marked as restricted" do
+    clear_config([:restrict_unauthenticated, :activities, :local], true)
+    user = insert(:user)
+    note = insert(:note, data: %{"actor" => user.ap_id})
+
+    result = TwitterCard.build_tags(%{object: note, activity_id: note.data["id"], user: user})
+
+    assert {:meta, [name: "twitter:description", content: "Content cannot be displayed."], []} in result
   end
 
   test "it uses summary as description if post has one" do
@@ -73,15 +92,15 @@ defmodule Pleroma.Web.Metadata.Providers.TwitterCardTest do
     result = TwitterCard.build_tags(%{object: note, user: user, activity_id: activity.id})
 
     assert [
-             {:meta, [property: "twitter:title", content: Utils.user_name_string(user)], []},
+             {:meta, [name: "twitter:title", content: Utils.user_name_string(user)], []},
              {:meta,
               [
-                property: "twitter:description",
+                name: "twitter:description",
                 content: "Public service announcement on caffeine consumption"
               ], []},
-             {:meta, [property: "twitter:image", content: "http://localhost:4001/images/avi.png"],
+             {:meta, [name: "twitter:image", content: "http://localhost:4001/images/avi.png"],
               []},
-             {:meta, [property: "twitter:card", content: "summary"], []}
+             {:meta, [name: "twitter:card", content: "summary"], []}
            ] == result
   end
 
@@ -123,11 +142,11 @@ defmodule Pleroma.Web.Metadata.Providers.TwitterCardTest do
     result = TwitterCard.build_tags(%{object: note, user: user, activity_id: activity.id})
 
     assert [
-             {:meta, [property: "twitter:title", content: Utils.user_name_string(user)], []},
-             {:meta, [property: "twitter:description", content: "pleroma in a nutshell"], []},
-             {:meta, [property: "twitter:image", content: "http://localhost:4001/images/avi.png"],
+             {:meta, [name: "twitter:title", content: Utils.user_name_string(user)], []},
+             {:meta, [name: "twitter:description", content: "pleroma in a nutshell"], []},
+             {:meta, [name: "twitter:image", content: "http://localhost:4001/images/avi.png"],
               []},
-             {:meta, [property: "twitter:card", content: "summary"], []}
+             {:meta, [name: "twitter:card", content: "summary"], []}
            ] == result
   end
 
@@ -179,26 +198,26 @@ defmodule Pleroma.Web.Metadata.Providers.TwitterCardTest do
     result = TwitterCard.build_tags(%{object: note, user: user, activity_id: activity.id})
 
     assert [
-             {:meta, [property: "twitter:title", content: Utils.user_name_string(user)], []},
-             {:meta, [property: "twitter:description", content: "pleroma in a nutshell"], []},
-             {:meta, [property: "twitter:card", content: "summary_large_image"], []},
-             {:meta, [property: "twitter:player", content: "https://pleroma.gov/tenshi.png"], []},
-             {:meta, [property: "twitter:player:width", content: "1280"], []},
-             {:meta, [property: "twitter:player:height", content: "1024"], []},
-             {:meta, [property: "twitter:card", content: "player"], []},
+             {:meta, [name: "twitter:title", content: Utils.user_name_string(user)], []},
+             {:meta, [name: "twitter:description", content: "pleroma in a nutshell"], []},
+             {:meta, [name: "twitter:card", content: "summary_large_image"], []},
+             {:meta, [name: "twitter:player", content: "https://pleroma.gov/tenshi.png"], []},
+             {:meta, [name: "twitter:player:width", content: "1280"], []},
+             {:meta, [name: "twitter:player:height", content: "1024"], []},
+             {:meta, [name: "twitter:card", content: "player"], []},
              {:meta,
               [
-                property: "twitter:player",
-                content: Router.Helpers.o_status_url(Endpoint, :notice_player, activity.id)
+                name: "twitter:player",
+                content: url(Endpoint, ~p[/notice/#{activity.id}/embed_player])
               ], []},
-             {:meta, [property: "twitter:player:width", content: "800"], []},
-             {:meta, [property: "twitter:player:height", content: "600"], []},
+             {:meta, [name: "twitter:player:width", content: "800"], []},
+             {:meta, [name: "twitter:player:height", content: "600"], []},
              {:meta,
               [
-                property: "twitter:player:stream",
+                name: "twitter:player:stream",
                 content: "https://pleroma.gov/about/juche.webm"
               ], []},
-             {:meta, [property: "twitter:player:stream:content_type", content: "video/webm"], []}
+             {:meta, [name: "twitter:player:stream:content_type", content: "video/webm"], []}
            ] == result
   end
 end

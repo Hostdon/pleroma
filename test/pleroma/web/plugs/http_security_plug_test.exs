@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.Plugs.HTTPSecurityPlugTest do
-  use Pleroma.Web.ConnCase
+  use Pleroma.Web.ConnCase, async: false
 
   alias Plug.Conn
 
@@ -96,45 +96,68 @@ defmodule Pleroma.Web.Plugs.HTTPSecurityPlugTest do
     test "media_proxy with base_url", %{conn: conn} do
       url = "https://example.com"
       clear_config([:media_proxy, :base_url], url)
-      assert_media_img_src(conn, url)
+      assert_media_img_src(conn, proxy: url)
       assert_connect_src(conn, url)
     end
 
     test "upload with base url", %{conn: conn} do
       url = "https://example2.com"
       clear_config([Pleroma.Upload, :base_url], url)
-      assert_media_img_src(conn, url)
+      assert_media_img_src(conn, upload: url)
       assert_connect_src(conn, url)
     end
 
     test "with S3 public endpoint", %{conn: conn} do
       url = "https://example3.com"
       clear_config([Pleroma.Uploaders.S3, :public_endpoint], url)
-      assert_media_img_src(conn, url)
+      assert_media_img_src(conn, s3: url)
     end
 
     test "with captcha endpoint", %{conn: conn} do
       clear_config([Pleroma.Captcha.Mock, :endpoint], "https://captcha.com")
-      assert_media_img_src(conn, "https://captcha.com")
+      assert_media_img_src(conn, captcha: "https://captcha.com")
     end
 
     test "with media_proxy whitelist", %{conn: conn} do
       clear_config([:media_proxy, :whitelist], ["https://example6.com", "https://example7.com"])
-      assert_media_img_src(conn, "https://example7.com https://example6.com")
+      assert_media_img_src(conn, proxy_whitelist: "https://example7.com https://example6.com")
     end
 
     # TODO: delete after removing support bare domains for media proxy whitelist
     test "with media_proxy bare domains whitelist (deprecated)", %{conn: conn} do
       clear_config([:media_proxy, :whitelist], ["example4.com", "example5.com"])
-      assert_media_img_src(conn, "example5.com example4.com")
+      assert_media_img_src(conn, proxy_whitelist: "example5.com example4.com")
+    end
+
+    test "with media_proxy blocklist", %{conn: conn} do
+      clear_config([:media_proxy, :whitelist], ["https://example6.com", "https://example7.com"])
+      clear_config([:media_proxy, :blocklist], ["https://example8.com"])
+      assert_media_img_src(conn, proxy_whitelist: "https://example7.com https://example6.com")
     end
   end
 
-  defp assert_media_img_src(conn, url) do
+  defp maybe_concat(nil, b), do: b
+  defp maybe_concat(a, nil), do: a
+  defp maybe_concat(a, b), do: a <> " " <> b
+
+  defp build_src_str(urls) do
+    urls[:proxy_whitelist]
+    |> maybe_concat(urls[:s3])
+    |> maybe_concat(urls[:upload])
+    |> maybe_concat(urls[:proxy])
+    |> maybe_concat(urls[:captcha])
+  end
+
+  defp assert_media_img_src(conn, urls) do
+    urlstr =
+      [upload: "http://localhost", proxy: "http://localhost"]
+      |> Keyword.merge(urls)
+      |> build_src_str()
+
     conn = get(conn, "/api/v1/instance")
     [csp] = Conn.get_resp_header(conn, "content-security-policy")
-    assert csp =~ "media-src 'self' #{url};"
-    assert csp =~ "img-src 'self' data: blob: #{url};"
+    assert csp =~ "media-src 'self' #{urlstr};"
+    assert csp =~ "img-src 'self' data: blob: #{urlstr};"
   end
 
   defp assert_connect_src(conn, url) do

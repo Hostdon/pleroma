@@ -5,15 +5,27 @@ defmodule Pleroma.Search.Meilisearch do
   alias Pleroma.Activity
 
   import Pleroma.Search.DatabaseSearch
-  import Ecto.Query
 
   @behaviour Pleroma.Search.SearchBackend
 
-  defp meili_headers do
-    private_key = Pleroma.Config.get([Pleroma.Search.Meilisearch, :private_key])
+  defp meili_headers(key) do
+    key_header =
+      if is_nil(key), do: [], else: [{"Authorization", "Bearer #{key}"}]
 
-    [{"Content-Type", "application/json"}] ++
-      if is_nil(private_key), do: [], else: [{"Authorization", "Bearer #{private_key}"}]
+    [{"Content-Type", "application/json"} | key_header]
+  end
+
+  defp meili_headers_admin do
+    private_key = Pleroma.Config.get([Pleroma.Search.Meilisearch, :private_key])
+    meili_headers(private_key)
+  end
+
+  defp meili_headers_search do
+    search_key =
+      Pleroma.Config.get([Pleroma.Search.Meilisearch, :search_key]) ||
+        Pleroma.Config.get([Pleroma.Search.Meilisearch, :private_key])
+
+    meili_headers(search_key)
   end
 
   def meili_get(path) do
@@ -22,7 +34,7 @@ defmodule Pleroma.Search.Meilisearch do
     result =
       Pleroma.HTTP.get(
         Path.join(endpoint, path),
-        meili_headers()
+        meili_headers_admin()
       )
 
     with {:ok, res} <- result do
@@ -30,14 +42,14 @@ defmodule Pleroma.Search.Meilisearch do
     end
   end
 
-  def meili_post(path, params) do
+  defp meili_search(params) do
     endpoint = Pleroma.Config.get([Pleroma.Search.Meilisearch, :url])
 
     result =
       Pleroma.HTTP.post(
-        Path.join(endpoint, path),
+        Path.join(endpoint, "/indexes/objects/search"),
         Jason.encode!(params),
-        meili_headers()
+        meili_headers_search()
       )
 
     with {:ok, res} <- result do
@@ -53,7 +65,7 @@ defmodule Pleroma.Search.Meilisearch do
         :put,
         Path.join(endpoint, path),
         Jason.encode!(params),
-        meili_headers(),
+        meili_headers_admin(),
         []
       )
 
@@ -70,7 +82,7 @@ defmodule Pleroma.Search.Meilisearch do
         :delete,
         Path.join(endpoint, path),
         "",
-        meili_headers(),
+        meili_headers_admin(),
         []
       )
   end
@@ -81,25 +93,20 @@ defmodule Pleroma.Search.Meilisearch do
     author = Keyword.get(options, :author)
 
     res =
-      meili_post(
-        "/indexes/objects/search",
-        %{q: query, offset: offset, limit: limit}
-      )
+      meili_search(%{q: query, offset: offset, limit: limit})
 
     with {:ok, result} <- res do
       hits = result["hits"] |> Enum.map(& &1["ap"])
 
       try do
         hits
-        |> Activity.create_by_object_ap_id()
-        |> Activity.with_preloaded_object()
+        |> Activity.get_presorted_create_by_object_ap_id()
         |> Activity.with_preloaded_object()
         |> Activity.restrict_deactivated_users()
         |> maybe_restrict_local(user)
         |> maybe_restrict_author(author)
         |> maybe_restrict_blocked(user)
         |> maybe_fetch(user, query)
-        |> order_by([object: obj], desc: obj.data["published"])
         |> Pleroma.Repo.all()
       rescue
         _ -> maybe_fetch([], user, query)

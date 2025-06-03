@@ -62,6 +62,6 @@ mix ecto.migrate
 # Start akkoma (replace with your system service manager's equivalent if different)
 sudo systemctl start akkoma
 
-# Update Pleroma-FE frontend to latest stable. For other Frontends see Frontend Configuration doc for more information.
+# Update Akkoma-FE frontend to latest stable. For other Frontends see Frontend Configuration doc for more information.
 mix pleroma.frontend install pleroma-fe --ref stable
 ```

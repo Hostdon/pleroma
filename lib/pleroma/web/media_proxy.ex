@@ -52,11 +52,11 @@ defmodule Pleroma.Web.MediaProxy do
 
   @spec url_proxiable?(String.t()) :: boolean()
   def url_proxiable?(url) do
-    not local?(url) and not whitelisted?(url)
+    not local?(url) and not whitelisted?(url) and not blocked?(url) and http_scheme?(url)
   end
 
   def preview_url(url, preview_params \\ []) do
-    if preview_enabled?() do
+    if preview_enabled?() and url_proxiable?(url) do
       encode_preview_url(url, preview_params)
     else
       url(url)
@@ -71,16 +71,28 @@ defmodule Pleroma.Web.MediaProxy do
 
   def local?(url), do: String.starts_with?(url, Endpoint.url())
 
+  def http_scheme?(url), do: String.starts_with?(url, ["http:", "https:"])
+
   def whitelisted?(url) do
     %{host: domain} = URI.parse(url)
 
     mediaproxy_whitelist_domains =
       [:media_proxy, :whitelist]
-      |> Config.get()
+      |> Config.get([])
       |> Kernel.++(["#{Upload.base_url()}"])
       |> Enum.map(&maybe_get_domain_from_url/1)
 
     domain in mediaproxy_whitelist_domains
+  end
+
+  def blocked?(url) do
+    %{scheme: scheme, host: domain} = URI.parse(url)
+    # Block either the bare domain or the scheme-domain combo
+    scheme_domain = "#{scheme}://#{domain}"
+    blocklist = Config.get([:media_proxy, :blocklist])
+
+    Enum.member?(blocklist, domain) ||
+      Enum.member?(blocklist, scheme_domain)
   end
 
   defp maybe_get_domain_from_url("http" <> _ = url) do
@@ -135,7 +147,7 @@ defmodule Pleroma.Web.MediaProxy do
   end
 
   def base_url do
-    Config.get([:media_proxy, :base_url], Endpoint.url())
+    Config.get!([:media_proxy, :base_url])
   end
 
   defp proxy_url(path, sig_base64, url_base64, filename) do

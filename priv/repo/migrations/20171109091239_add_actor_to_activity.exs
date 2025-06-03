@@ -1,14 +1,12 @@
 defmodule Pleroma.Repo.Migrations.AddActorToActivity do
   use Ecto.Migration
 
-  @disable_ddl_transaction true
-
   def up do
     alter table(:activities) do
       add(:actor, :string)
     end
 
-    create(index(:activities, [:actor, "id DESC NULLS LAST"], concurrently: true))
+    create(index(:activities, [:actor, "id DESC NULLS LAST"]))
   end
 
   def down do

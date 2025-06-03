@@ -100,18 +100,23 @@ config :pleroma, :config_description, [
         label: "Base URL",
         type: :string,
         description:
-          "Base URL for the uploads. Required if you use a CDN or host attachments under a different domain.",
+          "Base URL for the uploads. Required if you use a CDN or host attachments under a different domain - it is HIGHLY recommended that you **do not** set this to be the same as the domain akkoma is hosted on.",
         suggestions: [
-          "https://cdn-host.com"
+          "https://media.akkoma.dev/media/"
         ]
       },
       %{
-        key: :proxy_remote,
-        type: :boolean,
-        description: """
-        Proxy requests to the remote uploader.\n
-        Useful if media upload endpoint is not internet accessible.
-        """
+        key: :allowed_mime_types,
+        label: "Allowed MIME types",
+        type: {:list, :string},
+        description:
+          "List of MIME (main) types uploads are allowed to identify themselves with. Other types may still be uploaded, but will identify as a generic binary to clients. WARNING: Loosening this over the defaults can lead to security issues. Removing types is safe, but only add to the list if you are sure you know what you are doing.",
+        suggestions: [
+          "image",
+          "audio",
+          "video",
+          "font"
+        ]
       },
       %{
         key: :filename_display_max_length,
@@ -206,6 +211,26 @@ config :pleroma, :config_description, [
         suggestions: [
           "custom-file-name.{extension}"
         ]
+      }
+    ]
+  },
+  %{
+    group: :pleroma,
+    key: Pleroma.Upload.Filter.Exiftool.StripMetadata,
+    type: :group,
+    description: "Strip specified metadata from image uploads",
+    children: [
+      %{
+        key: :purge,
+        description: "Metadata fields or groups to strip",
+        type: {:list, :string},
+        suggestions: ["all", "CommonIFD0"]
+      },
+      %{
+        key: :preserve,
+        description: "Metadata fields or groups to preserve (takes precedence over stripping)",
+        type: {:list, :string},
+        suggestions: ["ColorSpaces", "Orientation"]
       }
     ]
   },
@@ -969,6 +994,12 @@ config :pleroma, :config_description, [
         key: :export_prometheus_metrics,
         type: :boolean,
         description: "Enable prometheus metrics (at /api/v1/akkoma/metrics)"
+      },
+      %{
+        key: :federated_timeline_available,
+        type: :boolean,
+        description:
+          "Let people view the 'firehose' feed of all public statuses from all instances."
       }
     ]
   },
@@ -1075,7 +1106,7 @@ config :pleroma, :config_description, [
         key: :level,
         type: {:dropdown, :atom},
         description: "Log level",
-        suggestions: [:debug, :info, :warn, :error]
+        suggestions: [:debug, :info, :warning, :error]
       },
       %{
         key: :ident,
@@ -1108,7 +1139,7 @@ config :pleroma, :config_description, [
         key: :level,
         type: {:dropdown, :atom},
         description: "Log level",
-        suggestions: [:debug, :info, :warn, :error]
+        suggestions: [:debug, :info, :warning, :error]
       },
       %{
         key: :format,
@@ -1153,7 +1184,7 @@ config :pleroma, :config_description, [
             logoMask: true,
             minimalScopesMode: false,
             noAttachmentLinks: false,
-            nsfwCensorImage: "/static/img/nsfw.74818f9.png",
+            nsfwCensorImage: "",
             postContentType: "text/plain",
             redirectRootLogin: "/main/friends",
             redirectRootNoLogin: "/main/all",
@@ -1163,7 +1194,9 @@ config :pleroma, :config_description, [
             showInstanceSpecificPanel: false,
             subjectLineBehavior: "email",
             theme: "pleroma-dark",
-            webPushNotifications: false
+            webPushNotifications: false,
+            backendCommitUrl: "",
+            frontendCommitUrl: ""
           }
         ],
         children: [
@@ -1254,7 +1287,7 @@ config :pleroma, :config_description, [
             type: {:string, :image},
             description:
               "URL of the image to use for hiding NSFW media attachments in the timeline",
-            suggestions: ["/static/img/nsfw.74818f9.png"]
+            suggestions: [""]
           },
           %{
             key: :postContentType,
@@ -1367,6 +1400,18 @@ config :pleroma, :config_description, [
             label: "Stop Gifs",
             type: :boolean,
             description: "Whether to pause animated images until they're hovered on"
+          },
+          %{
+            key: :backendCommitUrl,
+            label: "Backend Commit URL",
+            type: :string,
+            description: "URL prefix for backend commit hashes"
+          },
+          %{
+            key: :frontendCommitUrl,
+            label: "Frontend Commit URL",
+            type: :string,
+            description: "URL prefix for frontend commit hashes"
           }
         ]
       },
@@ -1552,7 +1597,21 @@ config :pleroma, :config_description, [
       %{
         key: :whitelist,
         type: {:list, :string},
-        description: "List of hosts with scheme to bypass the MediaProxy",
+        description: """
+        List of hosts with scheme to bypass the MediaProxy.\n
+        The media will be fetched by the client, directly from the remote server.\n
+        To allow this, it will Content-Security-Policy exceptions for each instance listed.\n
+        This is to be used for instances you trust and do not want to cache media for.
+        """,
+        suggestions: ["http://example.com"]
+      },
+      %{
+        key: :blocklist,
+        type: {:list, :string},
+        description: """
+        List of hosts with scheme which will not go through the MediaProxy, and will not be explicitly allowed by the Content-Security-Policy.
+        This is to be used for instances where you do not want their media to go through your server or to be accessed by clients.
+        """,
         suggestions: ["http://example.com"]
       }
     ]
@@ -1838,7 +1897,7 @@ config :pleroma, :config_description, [
         key: :log,
         type: {:dropdown, :atom},
         description: "Logs verbose mode",
-        suggestions: [false, :error, :warn, :info, :debug]
+        suggestions: [false, :error, :warning, :info, :debug]
       },
       %{
         key: :queues,
@@ -2664,8 +2723,8 @@ config :pleroma, :config_description, [
       %{
         key: :pool_size,
         type: :integer,
-        description: "Number of concurrent outbound HTTP requests to allow. Default 50.",
-        suggestions: [50]
+        description: "Number of concurrent outbound HTTP requests to allow PER HOST. Default 10.",
+        suggestions: [10]
       },
       %{
         key: :adapter,
@@ -2688,6 +2747,13 @@ config :pleroma, :config_description, [
             ]
           }
         ]
+      },
+      %{
+        key: :pool_max_idle_time,
+        type: :integer,
+        description:
+          "Number of seconds to retain an HTTP pool; pool will remain if actively in use. Default 30 seconds (in ms).",
+        suggestions: [30_000]
       }
     ]
   },
@@ -2993,6 +3059,11 @@ config :pleroma, :config_description, [
             key: :federated,
             type: :boolean,
             description: "Disallow viewing the whole known network timeline."
+          },
+          %{
+            key: :bubble,
+            type: :boolean,
+            description: "Disallow viewing the bubble timeline."
           }
         ]
       },
@@ -3148,6 +3219,12 @@ config :pleroma, :config_description, [
         description:
           "A map containing available frontends and parameters for their installation.",
         children: frontend_options
+      },
+      %{
+        key: :pickable,
+        type: {:list, :string},
+        description:
+          "A list containing all frontends users can pick as their preference, format is :name/:ref, e.g pleroma-fe/stable."
       }
     ]
   },

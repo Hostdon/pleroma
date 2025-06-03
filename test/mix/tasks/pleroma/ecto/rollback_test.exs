@@ -3,13 +3,13 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Mix.Tasks.Pleroma.Ecto.RollbackTest do
-  use Pleroma.DataCase, async: true
+  use Pleroma.DataCase, async: false
   import ExUnit.CaptureLog
   require Logger
 
   test "ecto.rollback info message" do
     level = Logger.level()
-    Logger.configure(level: :warn)
+    Logger.configure(level: :warning)
 
     assert capture_log(fn ->
              Mix.Tasks.Pleroma.Ecto.Rollback.run(["--env", "test"])

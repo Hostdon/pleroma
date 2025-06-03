@@ -38,11 +38,11 @@
 {% endif %}
 
 {% if page and page.url.startswith('backend') %}
-  {% set repo_url = "https://git.pleroma.social/pleroma/pleroma" %}
-  {% set repo_name = "pleroma/pleroma" %}
+  {% set repo_url = "https://akkoma.dev/AkkomaGang/akkoma" %}
+  {% set repo_name = "AkkomaGang/akkoma" %}
 {% elif page and page.url.startswith('frontend') %}
-  {% set repo_url = "https://git.pleroma.social/pleroma/pleroma-fe" %}
-  {% set repo_name = "pleroma/pleroma-fe" %}
+  {% set repo_url = "https://akkoma.dev/AkkomaGang/akkoma-fe" %}
+  {% set repo_name = "AkkomaGang/akkoma-fe" %}
 {% else %}
   {% set repo_url = config.repo_url %}
   {% set repo_name = config.repo_name %}

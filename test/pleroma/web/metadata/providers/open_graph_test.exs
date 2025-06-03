@@ -3,11 +3,14 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.Metadata.Providers.OpenGraphTest do
-  use Pleroma.DataCase
+  use Pleroma.DataCase, async: false
   import Pleroma.Factory
   alias Pleroma.Web.Metadata.Providers.OpenGraph
 
   setup do: clear_config([Pleroma.Web.Metadata, :unfurl_nsfw])
+  setup do: clear_config([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
+  setup do: clear_config([:restrict_unauthenticated, :profiles, :local])
+  setup do: clear_config([:restrict_unauthenticated, :activities, :local])
 
   test "it renders all supported types of attachments and skips unknown types" do
     user = insert(:user)
@@ -186,5 +189,25 @@ defmodule Pleroma.Web.Metadata.Providers.OpenGraphTest do
               content:
                 "http://localhost:4001/proxy/preview/LzAnlke-l5oZbNzWsrHfprX1rGw/aHR0cHM6Ly9wbGVyb21hLmdvdi9hYm91dC9qdWNoZS53ZWJt/juche.webm"
             ], []} in result
+  end
+
+  test "it does not render users if profiles are marked as restricted" do
+    clear_config([:restrict_unauthenticated, :profiles, :local], true)
+
+    user = insert(:user)
+
+    result = OpenGraph.build_tags(%{user: user})
+    assert Enum.empty?(result)
+  end
+
+  test "it does not activities users if they are marked as restricted" do
+    clear_config([:restrict_unauthenticated, :activities, :local], true)
+
+    user = insert(:user)
+    note = insert(:note, data: %{"actor" => user.ap_id})
+
+    result = OpenGraph.build_tags(%{object: note, url: note.data["id"], user: user})
+
+    assert {:meta, [property: "og:description", content: "Content cannot be displayed."], []} in result
   end
 end

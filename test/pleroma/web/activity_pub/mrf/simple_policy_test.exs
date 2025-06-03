@@ -19,6 +19,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
             accept: [],
             avatar_removal: [],
             banner_removal: [],
+            background_removal: [],
             reject_deletes: []
           )
 
@@ -283,7 +284,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
 
       assert {:ok,
               %{
-                mrf_simple: %{reject: ["rem***.*****nce", "a.b"]},
+                mrf_simple: %{reject: ["rem***.*****nce", "*.b"]},
                 mrf_simple_info: %{reject: %{"rem***.*****nce" => %{}}}
               }} = SimplePolicy.describe()
     end
@@ -618,6 +619,42 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
     end
   end
 
+  describe "when :background_removal" do
+    test "is empty" do
+      clear_config([:mrf_simple, :background_removal], [])
+
+      remote_user = build_remote_user()
+
+      assert SimplePolicy.filter(remote_user) == {:ok, remote_user}
+    end
+
+    test "is not empty but it doesn't have a matching host" do
+      clear_config([:mrf_simple, :background_removal], [{"non.matching.remote", ""}])
+
+      remote_user = build_remote_user()
+
+      assert SimplePolicy.filter(remote_user) == {:ok, remote_user}
+    end
+
+    test "has a matching host" do
+      clear_config([:mrf_simple, :background_removal], [{"remote.instance", ""}])
+
+      remote_user = build_remote_user()
+      {:ok, filtered} = SimplePolicy.filter(remote_user)
+
+      refute filtered["backgroundUrl"]
+    end
+
+    test "match with wildcard domain" do
+      clear_config([:mrf_simple, :background_removal], [{"*.remote.instance", ""}])
+
+      remote_user = build_remote_user()
+      {:ok, filtered} = SimplePolicy.filter(remote_user)
+
+      refute filtered["backgroundUrl"]
+    end
+  end
+
   describe "when :reject_deletes is empty" do
     setup do: clear_config([:mrf_simple, :reject_deletes], [])
 
@@ -699,6 +736,10 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
       },
       "image" => %{
         "url" => "http://example.com/image.jpg",
+        "type" => "Image"
+      },
+      "backgroundUrl" => %{
+        "url" => "http://example.com/background.jpg",
         "type" => "Image"
       },
       "type" => "Person"

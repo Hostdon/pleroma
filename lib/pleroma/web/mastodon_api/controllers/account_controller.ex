@@ -51,7 +51,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
   plug(
     OAuthScopesPlug,
     %{scopes: ["read:accounts"]}
-    when action in [:verify_credentials, :endorsements, :identity_proofs]
+    when action in [:verify_credentials, :endorsements, :identity_proofs, :preferences]
   )
 
   plug(
@@ -221,6 +221,8 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
       |> Maps.put_if_present(:is_discoverable, params[:discoverable])
       |> Maps.put_if_present(:language, Pleroma.Web.Gettext.normalize_locale(params[:language]))
       |> Maps.put_if_present(:status_ttl_days, params[:status_ttl_days], status_ttl_days_value)
+      |> Maps.put_if_present(:accepts_direct_messages_from, params[:accepts_direct_messages_from])
+      |> Maps.put_if_present(:permit_followback, params[:permit_followback])
 
     # What happens here:
     #
@@ -496,7 +498,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
     users =
       user
       |> User.muted_users_relation(_restrict_deactivated = true)
-      |> Pleroma.Pagination.fetch_paginated(Map.put(params, :skip_order, true))
+      |> Pleroma.Pagination.fetch_paginated(params)
 
     conn
     |> add_link_headers(users)
@@ -513,11 +515,16 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
     users =
       user
       |> User.blocked_users_relation(_restrict_deactivated = true)
-      |> Pleroma.Pagination.fetch_paginated(Map.put(params, :skip_order, true))
+      |> Pleroma.Pagination.fetch_paginated(params)
 
     conn
     |> add_link_headers(users)
-    |> render("index.json", users: users, for: user, as: :user)
+    |> render("index.json",
+      users: users,
+      for: user,
+      as: :user,
+      embed_relationships: embed_relationships?(params)
+    )
   end
 
   @doc "GET /api/v1/accounts/lookup"
@@ -538,4 +545,9 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
 
   @doc "GET /api/v1/identity_proofs"
   def identity_proofs(conn, params), do: MastodonAPIController.empty_array(conn, params)
+
+  @doc "GET /api/v1/preferences"
+  def preferences(%{assigns: %{user: user}} = conn, _params) do
+    render(conn, "preferences.json", user: user)
+  end
 end

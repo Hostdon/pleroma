@@ -65,7 +65,7 @@ defmodule Pleroma.Web.WebFinger do
   end
 
   defp gather_aliases(%User{} = user) do
-    [user.ap_id | user.also_known_as]
+    [user.ap_id]
   end
 
   def represent_user(user, "JSON") do
@@ -96,7 +96,7 @@ defmodule Pleroma.Web.WebFinger do
     |> XmlBuilder.to_doc()
   end
 
-  defp domain do
+  def domain do
     Pleroma.Config.get([__MODULE__, :domain]) || Pleroma.Web.Endpoint.host()
   end
 
@@ -156,20 +156,30 @@ defmodule Pleroma.Web.WebFinger do
     end
   end
 
+  @cachex Pleroma.Config.get([:cachex, :provider], Cachex)
   def find_lrdd_template(domain) do
+    @cachex.fetch!(:host_meta_cache, domain, fn _ ->
+      {:commit, fetch_lrdd_template(domain)}
+    end)
+  rescue
+    e -> {:error, "Cachex error: #{inspect(e)}"}
+  end
+
+  defp fetch_lrdd_template(domain) do
     # WebFinger is restricted to HTTPS - https://tools.ietf.org/html/rfc7033#section-9.1
     meta_url = "https://#{domain}/.well-known/host-meta"
 
-    with {:ok, %{status: status, body: body}} when status in 200..299 <- HTTP.get(meta_url) do
+    with {:ok, %{status: status, body: body}} when status in 200..299 <-
+           HTTP.Backoff.get(meta_url) do
       get_template_from_xml(body)
     else
       error ->
-        Logger.warn("Can't find LRDD template in #{inspect(meta_url)}: #{inspect(error)}")
+        Logger.warning("Can't find LRDD template in #{inspect(meta_url)}: #{inspect(error)}")
         {:error, :lrdd_not_found}
     end
   end
 
-  defp get_address_from_domain(domain, encoded_account) when is_binary(domain) do
+  defp get_address_from_domain(domain, "acct:" <> _ = encoded_account) when is_binary(domain) do
     case find_lrdd_template(domain) do
       {:ok, template} ->
         String.replace(template, "{uri}", encoded_account)
@@ -177,6 +187,11 @@ defmodule Pleroma.Web.WebFinger do
       _ ->
         "https://#{domain}/.well-known/webfinger?resource=#{encoded_account}"
     end
+  end
+
+  defp get_address_from_domain(domain, account) when is_binary(domain) do
+    encoded_account = URI.encode("acct:#{account}")
+    get_address_from_domain(domain, encoded_account)
   end
 
   defp get_address_from_domain(_, _), do: {:error, :webfinger_no_domain}
@@ -193,11 +208,9 @@ defmodule Pleroma.Web.WebFinger do
           URI.parse(account).host
       end
 
-    encoded_account = URI.encode("acct:#{account}")
-
-    with address when is_binary(address) <- get_address_from_domain(domain, encoded_account),
+    with address when is_binary(address) <- get_address_from_domain(domain, account),
          {:ok, %{status: status, body: body, headers: headers}} when status in 200..299 <-
-           HTTP.get(
+           HTTP.Backoff.get(
              address,
              [{"accept", "application/xrd+xml,application/jrd+json"}]
            ) do
@@ -217,10 +230,28 @@ defmodule Pleroma.Web.WebFinger do
         _ ->
           {:error, {:content_type, nil}}
       end
+      |> case do
+        {:ok, data} -> validate_webfinger(address, data)
+        error -> error
+      end
     else
       error ->
         Logger.debug("Couldn't finger #{account}: #{inspect(error)}")
         error
     end
   end
+
+  defp validate_webfinger(request_url, %{"subject" => "acct:" <> acct = subject} = data) do
+    with [_name, acct_host] <- String.split(acct, "@"),
+         {_, url} <- {:address, get_address_from_domain(acct_host, subject)},
+         %URI{host: request_host} <- URI.parse(request_url),
+         %URI{host: acct_host} <- URI.parse(url),
+         {_, true} <- {:hosts_match, acct_host == request_host} do
+      {:ok, data}
+    else
+      _ -> {:error, {:webfinger_invalid, request_url, data}}
+    end
+  end
+
+  defp validate_webfinger(url, data), do: {:error, {:webfinger_invalid, url, data}}
 end

@@ -259,7 +259,7 @@ defmodule Pleroma.UserSearchTest do
         |> Map.put(:multi_factor_authentication_settings, nil)
         |> Map.put(:notification_settings, nil)
 
-      assert user == expected
+      assert_user_match(user, expected)
     end
 
     test "excludes a blocked users from search result" do

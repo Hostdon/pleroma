@@ -9,6 +9,7 @@ defmodule Pleroma.Factory do
 
   alias Pleroma.Object
   alias Pleroma.User
+  alias Pleroma.Web.ActivityPub.UserView
 
   @rsa_keys [
               "test/fixtures/rsa_keys/key_1.pem",
@@ -46,7 +47,6 @@ defmodule Pleroma.Factory do
   end
 
   def user_factory(attrs \\ %{}) do
-    pem = Enum.random(@rsa_keys)
     # Argon2.hash_pwd_salt("test")
     # it really eats CPU time, so we use a precomputed hash
     password_hash =
@@ -62,9 +62,7 @@ defmodule Pleroma.Factory do
       last_digest_emailed_at: NaiveDateTime.utc_now(),
       last_refreshed_at: NaiveDateTime.utc_now(),
       notification_settings: %Pleroma.User.NotificationSetting{},
-      multi_factor_authentication_settings: %Pleroma.MFA.Settings{},
-      ap_enabled: true,
-      keys: pem
+      multi_factor_authentication_settings: %Pleroma.MFA.Settings{}
     }
 
     urls =
@@ -94,6 +92,28 @@ defmodule Pleroma.Factory do
     |> Map.put(:raw_bio, user.bio)
     |> Map.merge(urls)
     |> merge_attributes(attrs)
+  end
+
+  def with_signing_key(%User{} = user, attrs \\ %{}) do
+    signing_key =
+      build(:signing_key, %{user: user, key_id: "#{user.ap_id}#main-key"})
+      |> merge_attributes(attrs)
+
+    insert(signing_key)
+    %{user | signing_key: signing_key}
+  end
+
+  def signing_key_factory(attrs \\ %{}) do
+    pem = Enum.random(@rsa_keys)
+    user = attrs[:user] || insert(:user)
+    {:ok, public_key} = Pleroma.User.SigningKey.private_pem_to_public_pem(pem)
+
+    %Pleroma.User.SigningKey{
+      user_id: user.id,
+      public_key: attrs[:public_key] || public_key,
+      private_key: attrs[:private_key] || pem,
+      key_id: attrs[:key_id]
+    }
   end
 
   def user_relationship_factory(attrs \\ %{}) do
@@ -307,7 +327,7 @@ defmodule Pleroma.Factory do
     featured_collection_activity(attrs, "Add")
   end
 
-  def remove_activity_factor(attrs \\ %{}) do
+  def remove_activity_factory(attrs \\ %{}) do
     featured_collection_activity(attrs, "Remove")
   end
 
@@ -328,7 +348,7 @@ defmodule Pleroma.Factory do
         "target" => user.featured_address,
         "object" => note.data["object"],
         "actor" => note.data["actor"],
-        "type" => "Add",
+        "type" => type,
         "to" => [Pleroma.Constants.as_public()],
         "cc" => [user.follower_address]
       }
@@ -550,6 +570,53 @@ defmodule Pleroma.Factory do
       data: data,
       actor: data["actor"],
       recipients: data["to"]
+    }
+    |> Map.merge(attrs)
+  end
+
+  def undo_activity_factory(attrs \\ %{}) do
+    like_activity = attrs[:like_activity] || insert(:like_activity)
+    attrs = Map.drop(attrs, [:like_activity])
+
+    data = %{
+      "id" => Pleroma.Web.ActivityPub.Utils.generate_activity_id(),
+      "type" => "Undo",
+      "actor" => like_activity.data["actor"],
+      "to" => like_activity.data["to"],
+      "object" => like_activity.data["id"],
+      "published" => DateTime.utc_now() |> DateTime.to_iso8601(),
+      "context" => like_activity.data["context"]
+    }
+
+    %Pleroma.Activity{
+      data: data,
+      actor: data["actor"],
+      recipients: data["to"]
+    }
+    |> Map.merge(attrs)
+  end
+
+  def update_activity_factory(attrs \\ %{}) do
+    user = attrs[:user] || insert(:user, nickname: "testuser")
+    attrs = Map.drop(attrs, [:user])
+
+    user_data =
+      UserView.render("user.json", %{user: user})
+      |> Map.merge(%{"name" => "new display name"})
+
+    data = %{
+      "type" => "Update",
+      "to" => [
+        user_data["followers"],
+        "https://www.w3.org/ns/activitystreams#Public"
+      ],
+      "actor" => user_data["id"],
+      "object" => user_data
+    }
+
+    %Pleroma.Activity{
+      actor: user_data["id"],
+      data: data
     }
     |> Map.merge(attrs)
   end

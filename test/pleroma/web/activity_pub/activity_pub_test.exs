@@ -3,7 +3,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
-  use Pleroma.DataCase
+  use Pleroma.DataCase, async: false
+  @moduletag :mocked
   use Oban.Testing, repo: Pleroma.Repo
 
   alias Pleroma.Activity
@@ -177,7 +178,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       {:ok, user} = ActivityPub.make_user_from_ap_id(user_id)
       assert user.ap_id == user_id
       assert user.nickname == "admin@mastodon.example.org"
-      assert user.ap_enabled
       assert user.follower_address == "http://mastodon.example.org/users/admin/followers"
     end
 
@@ -232,6 +232,48 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
              }
     end
 
+    test "works for takahe actors" do
+      user_id = "https://fedi.vision/@vote@fedi.vision/"
+
+      Tesla.Mock.mock(fn
+        %{method: :get, url: ^user_id} ->
+          %Tesla.Env{
+            status: 200,
+            body: File.read!("test/fixtures/users_mock/takahe_user.json"),
+            headers: [{"content-type", "application/activity+json"}]
+          }
+      end)
+
+      {:ok, user} = ActivityPub.make_user_from_ap_id(user_id)
+
+      assert user.actor_type == "Person"
+
+      assert [
+               %{
+                 "name" => "More details"
+               }
+             ] = user.fields
+    end
+
+    test "works for actors with malformed attachment fields" do
+      user_id = "https://fedi.vision/@vote@fedi.vision/"
+
+      Tesla.Mock.mock(fn
+        %{method: :get, url: ^user_id} ->
+          %Tesla.Env{
+            status: 200,
+            body: File.read!("test/fixtures/users_mock/nonsense_attachment_user.json"),
+            headers: [{"content-type", "application/activity+json"}]
+          }
+      end)
+
+      {:ok, user} = ActivityPub.make_user_from_ap_id(user_id)
+
+      assert user.actor_type == "Person"
+
+      assert [] = user.fields
+    end
+
     test "fetches user featured collection" do
       ap_id = "https://example.com/users/lain"
 
@@ -282,9 +324,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
             body: featured_data,
             headers: [{"content-type", "application/activity+json"}]
           }
-      end)
 
-      Tesla.Mock.mock_global(fn
         %{
           method: :get,
           url: ^object_url
@@ -297,7 +337,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       end)
 
       {:ok, user} = ActivityPub.make_user_from_ap_id(ap_id)
-      Process.sleep(50)
+      # wait for oban
+      Pleroma.Tests.ObanHelpers.perform_all()
 
       assert user.featured_address == featured_url
       assert Map.has_key?(user.pinned_objects, object_url)
@@ -311,7 +352,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
   end
 
   test "fetches user featured collection using the first property" do
-    featured_url = "https://friendica.example.com/raha/collections/featured"
+    featured_url = "https://friendica.example.com/featured/raha"
     first_url = "https://friendica.example.com/featured/raha?page=1"
 
     featured_data =
@@ -349,7 +390,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
   end
 
   test "fetches user featured when it has string IDs" do
-    featured_url = "https://example.com/alisaie/collections/featured"
+    featured_url = "https://example.com/users/alisaie/collections/featured"
     dead_url = "https://example.com/users/alisaie/statuses/108311386746229284"
 
     featured_data =
@@ -1308,28 +1349,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       assert object.data["name"] == "a cool file"
     end
 
-    test "it sets the default description depending on the configuration", %{test_file: file} do
-      clear_config([Pleroma.Upload, :default_description])
-
-      clear_config([Pleroma.Upload, :default_description], nil)
-      {:ok, %Object{} = object} = ActivityPub.upload(file)
-      assert object.data["name"] == ""
-
-      clear_config([Pleroma.Upload, :default_description], :filename)
-      {:ok, %Object{} = object} = ActivityPub.upload(file)
-      assert object.data["name"] == "an_image.jpg"
-
-      clear_config([Pleroma.Upload, :default_description], "unnamed attachment")
-      {:ok, %Object{} = object} = ActivityPub.upload(file)
-      assert object.data["name"] == "unnamed attachment"
-    end
-
-    test "copies the file to the configured folder", %{test_file: file} do
-      clear_config([Pleroma.Upload, :default_description], :filename)
-      {:ok, %Object{} = object} = ActivityPub.upload(file)
-      assert object.data["name"] == "an_image.jpg"
-    end
-
     test "works with base64 encoded images" do
       file = %{
         img: data_uri()
@@ -1664,8 +1683,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       user =
         insert(:user,
           local: false,
-          follower_address: "http://localhost:4001/users/fuser2/followers",
-          following_address: "http://localhost:4001/users/fuser2/following"
+          follower_address: "http://remote.org/users/fuser2/followers",
+          following_address: "http://remote.org/users/fuser2/following"
         )
 
       {:ok, info} = ActivityPub.fetch_follow_information_for_user(user)
@@ -1676,7 +1695,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
     test "detects hidden followers" do
       mock(fn env ->
         case env.url do
-          "http://localhost:4001/users/masto_closed/followers?page=1" ->
+          "http://remote.org/users/masto_closed/followers?page=1" ->
             %Tesla.Env{status: 403, body: ""}
 
           _ ->
@@ -1687,8 +1706,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       user =
         insert(:user,
           local: false,
-          follower_address: "http://localhost:4001/users/masto_closed/followers",
-          following_address: "http://localhost:4001/users/masto_closed/following"
+          follower_address: "http://remote.org/users/masto_closed/followers",
+          following_address: "http://remote.org/users/masto_closed/following"
         )
 
       {:ok, follow_info} = ActivityPub.fetch_follow_information_for_user(user)
@@ -1699,7 +1718,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
     test "detects hidden follows" do
       mock(fn env ->
         case env.url do
-          "http://localhost:4001/users/masto_closed/following?page=1" ->
+          "http://remote.org/users/masto_closed/following?page=1" ->
             %Tesla.Env{status: 403, body: ""}
 
           _ ->
@@ -1710,8 +1729,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       user =
         insert(:user,
           local: false,
-          follower_address: "http://localhost:4001/users/masto_closed/followers",
-          following_address: "http://localhost:4001/users/masto_closed/following"
+          follower_address: "http://remote.org/users/masto_closed/followers",
+          following_address: "http://remote.org/users/masto_closed/following"
         )
 
       {:ok, follow_info} = ActivityPub.fetch_follow_information_for_user(user)
@@ -1723,8 +1742,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       user =
         insert(:user,
           local: false,
-          follower_address: "http://localhost:8080/followers/fuser3",
-          following_address: "http://localhost:8080/following/fuser3"
+          follower_address: "http://remote.org/followers/fuser3",
+          following_address: "http://remote.org/following/fuser3"
         )
 
       {:ok, follow_info} = ActivityPub.fetch_follow_information_for_user(user)
@@ -1737,28 +1756,28 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
     test "doesn't crash when follower and following counters are hidden" do
       mock(fn env ->
         case env.url do
-          "http://localhost:4001/users/masto_hidden_counters/following" ->
+          "http://remote.org/users/masto_hidden_counters/following" ->
             json(
               %{
                 "@context" => "https://www.w3.org/ns/activitystreams",
-                "id" => "http://localhost:4001/users/masto_hidden_counters/followers"
+                "id" => "http://remote.org/users/masto_hidden_counters/following"
               },
               headers: HttpRequestMock.activitypub_object_headers()
             )
 
-          "http://localhost:4001/users/masto_hidden_counters/following?page=1" ->
+          "http://remote.org/users/masto_hidden_counters/following?page=1" ->
             %Tesla.Env{status: 403, body: ""}
 
-          "http://localhost:4001/users/masto_hidden_counters/followers" ->
+          "http://remote.org/users/masto_hidden_counters/followers" ->
             json(
               %{
                 "@context" => "https://www.w3.org/ns/activitystreams",
-                "id" => "http://localhost:4001/users/masto_hidden_counters/following"
+                "id" => "http://remote.org/users/masto_hidden_counters/followers"
               },
               headers: HttpRequestMock.activitypub_object_headers()
             )
 
-          "http://localhost:4001/users/masto_hidden_counters/followers?page=1" ->
+          "http://remote.org/users/masto_hidden_counters/followers?page=1" ->
             %Tesla.Env{status: 403, body: ""}
         end
       end)
@@ -1766,8 +1785,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       user =
         insert(:user,
           local: false,
-          follower_address: "http://localhost:4001/users/masto_hidden_counters/followers",
-          following_address: "http://localhost:4001/users/masto_hidden_counters/following"
+          follower_address: "http://remote.org/users/masto_hidden_counters/followers",
+          following_address: "http://remote.org/users/masto_hidden_counters/following"
         )
 
       {:ok, follow_info} = ActivityPub.fetch_follow_information_for_user(user)
@@ -2640,6 +2659,14 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
 
     {:ok, user} = ActivityPub.make_user_from_ap_id("https://princess.cat/users/mewmew")
     assert user.name == " "
+  end
+
+  test "pin_data_from_featured_collection will ignore unsupported values" do
+    assert %{} ==
+             ActivityPub.pin_data_from_featured_collection(%{
+               "type" => "CollectionThatIsNotRealAndCannotHurtMe",
+               "first" => "https://social.example/users/alice/collections/featured?page=true"
+             })
   end
 
   describe "persist/1" do

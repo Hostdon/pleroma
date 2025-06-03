@@ -95,6 +95,7 @@ msgctxt "remote follow success"
 msgid "Account followed!"
 msgstr "Account gevolgd!"
 
+#: lib/pleroma/web/templates/twitter_api/util/status_interact.html.eex:7
 #: lib/pleroma/web/templates/twitter_api/util/subscribe.html.eex:7
 #, elixir-autogen, elixir-format
 msgctxt "placeholder text for account id"
@@ -176,32 +177,32 @@ msgstr ""
 "Dit zijn openbare berichten die getagd zijn met #%{tag}. Je kunt op deze "
 "reageren indien je een account hebt in de fediverse."
 
-#: lib/pleroma/web/templates/o_auth/o_auth/oob_token_exists.html.eex:1
+#: lib/pleroma/web/templates/o_auth/o_auth/oob_token_exists.html.eex:3
 #, elixir-autogen, elixir-format
 msgctxt "oauth authorization exists page title"
 msgid "Authorization exists"
 msgstr "Machtiging bestaat"
 
-#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:32
+#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:37
 #, elixir-autogen, elixir-format
 msgctxt "oauth authorize approve button"
 msgid "Approve"
 msgstr "Goedkeuren"
 
-#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:30
+#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:35
 #, elixir-autogen, elixir-format
 msgctxt "oauth authorize cancel button"
 msgid "Cancel"
 msgstr "Annuleren"
 
-#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:23
+#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:26
 #, elixir-autogen, elixir-format
 msgctxt "oauth authorize message"
 msgid "Application <strong>%{client_name}</strong> is requesting access to your account."
 msgstr ""
 "Applicatie <strong>%{client_name}</strong> vraagt om toegang tot je account."
 
-#: lib/pleroma/web/templates/o_auth/o_auth/oob_authorization_created.html.eex:1
+#: lib/pleroma/web/templates/o_auth/o_auth/oob_authorization_created.html.eex:3
 #, elixir-autogen, elixir-format
 msgctxt "oauth authorized page title"
 msgid "Successfully authorized"
@@ -219,31 +220,31 @@ msgctxt "oauth external provider sign in button"
 msgid "Sign in with %{strategy}"
 msgstr "Inloggen met %{strategy}"
 
-#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:54
+#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:59
 #, elixir-autogen, elixir-format
 msgctxt "oauth login button"
 msgid "Log In"
 msgstr "Inloggen"
 
-#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:51
+#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:56
 #, elixir-autogen, elixir-format
 msgctxt "oauth login password prompt"
 msgid "Password"
 msgstr "Wachtwoord"
 
-#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:47
+#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:52
 #, elixir-autogen, elixir-format
 msgctxt "oauth login username prompt"
 msgid "Username"
 msgstr "Gebruikersnaam"
 
-#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:39
+#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:44
 #, elixir-autogen, elixir-format
 msgctxt "oauth register nickname prompt"
 msgid "Pleroma Handle"
 msgstr "Pleroma Gebruiker"
 
-#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:37
+#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:42
 #, elixir-autogen, elixir-format
 msgctxt "oauth register nickname unchangeable warning"
 msgid "Choose carefully! You won't be able to change this later. You will be able to change your display name, though."
@@ -307,74 +308,68 @@ msgctxt "oauth register page title"
 msgid "Registration Details"
 msgstr "Registratiegegevens"
 
-#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:36
-#, elixir-autogen, elixir-format
-msgctxt "oauth register page title"
-msgid "This is the first time you visit! Please enter your Pleroma handle."
-msgstr "Dit is je eerste bezoek! Vul a.u.b. je Pleroma gebruikersnaam in."
-
 #: lib/pleroma/web/templates/o_auth/o_auth/_scopes.html.eex:2
 #, elixir-autogen, elixir-format
 msgctxt "oauth scopes message"
 msgid "The following permissions will be granted"
 msgstr "De volgende rechten zullen worden toegekend"
 
-#: lib/pleroma/web/templates/o_auth/o_auth/oob_authorization_created.html.eex:2
-#: lib/pleroma/web/templates/o_auth/o_auth/oob_token_exists.html.eex:2
+#: lib/pleroma/web/templates/o_auth/o_auth/oob_authorization_created.html.eex:6
+#: lib/pleroma/web/templates/o_auth/o_auth/oob_token_exists.html.eex:6
 #, elixir-autogen, elixir-format
 msgctxt "oauth token code message"
 msgid "Token code is <br>%{token}"
 msgstr "Token code is <br>%{token}"
 
-#: lib/pleroma/web/templates/o_auth/mfa/totp.html.eex:12
+#: lib/pleroma/web/templates/o_auth/mfa/totp.html.eex:14
 #, elixir-autogen, elixir-format
 msgctxt "mfa auth code prompt"
 msgid "Authentication code"
 msgstr "Authenticatiecode"
 
-#: lib/pleroma/web/templates/o_auth/mfa/totp.html.eex:8
+#: lib/pleroma/web/templates/o_auth/mfa/totp.html.eex:9
 #, elixir-autogen, elixir-format
 msgctxt "mfa auth page title"
 msgid "Two-factor authentication"
 msgstr "Tweefactor authenticatie"
 
-#: lib/pleroma/web/templates/o_auth/mfa/totp.html.eex:23
+#: lib/pleroma/web/templates/o_auth/mfa/totp.html.eex:25
 #, elixir-autogen, elixir-format
 msgctxt "mfa auth page use recovery code link"
 msgid "Enter a two-factor recovery code"
 msgstr "Voer een tweefactor herstelcode in"
 
-#: lib/pleroma/web/templates/o_auth/mfa/totp.html.eex:20
+#: lib/pleroma/web/templates/o_auth/mfa/totp.html.eex:22
 #, elixir-autogen, elixir-format
 msgctxt "mfa auth verify code button"
 msgid "Verify"
 msgstr "Controleren"
 
-#: lib/pleroma/web/templates/o_auth/mfa/recovery.html.eex:8
+#: lib/pleroma/web/templates/o_auth/mfa/recovery.html.eex:9
 #, elixir-autogen, elixir-format
 msgctxt "mfa recover page title"
 msgid "Two-factor recovery"
 msgstr "Tweefactor herstel"
 
-#: lib/pleroma/web/templates/o_auth/mfa/recovery.html.eex:12
+#: lib/pleroma/web/templates/o_auth/mfa/recovery.html.eex:14
 #, elixir-autogen, elixir-format
 msgctxt "mfa recover recovery code prompt"
 msgid "Recovery code"
 msgstr "Herstelcode"
 
-#: lib/pleroma/web/templates/o_auth/mfa/recovery.html.eex:23
+#: lib/pleroma/web/templates/o_auth/mfa/recovery.html.eex:25
 #, elixir-autogen, elixir-format
 msgctxt "mfa recover use 2fa code link"
 msgid "Enter a two-factor code"
 msgstr "Voer een tweefactor code in"
 
-#: lib/pleroma/web/templates/o_auth/mfa/recovery.html.eex:20
+#: lib/pleroma/web/templates/o_auth/mfa/recovery.html.eex:22
 #, elixir-autogen, elixir-format
 msgctxt "mfa recover verify recovery code button"
 msgid "Verify"
 msgstr "Controleren"
 
-#: lib/pleroma/web/templates/static_fe/static_fe/profile.html.eex:8
+#: lib/pleroma/web/templates/static_fe/static_fe/profile.html.eex:42
 #, elixir-autogen, elixir-format
 msgctxt "static fe profile page remote follow button"
 msgid "Remote follow"
@@ -433,15 +428,6 @@ msgid "%{count} New Follower"
 msgid_plural "%{count} New Followers"
 msgstr[0] "%{count} Nieuwe Volger"
 msgstr[1] "%{count} Nieuwe Volgers"
-
-#: lib/pleroma/emails/user_email.ex:356
-#, elixir-autogen, elixir-format
-msgctxt "account archive email body - self-requested"
-msgid "<p>You requested a full backup of your Pleroma account. It's ready for download:</p>\n<p><a href=\"%{download_url}\">%{download_url}</a></p>\n"
-msgstr ""
-"<p>Je hebt een verzoek ingediend voor een volledige back-up van je Pleroma "
-"account. Deze is gereed om te downloaden:</p>\n"
-"<p><a href=\"%{download_url}\">%{download_url}</a></p>\n"
 
 #: lib/pleroma/emails/user_email.ex:384
 #, elixir-autogen, elixir-format
@@ -521,17 +507,6 @@ msgctxt "successful registration email subject"
 msgid "Account registered on %{instance_name}"
 msgstr "Account registratie bij %{instance_name}"
 
-#: lib/pleroma/emails/user_email.ex:119
-#, elixir-autogen, elixir-format
-msgctxt "user invitation email body"
-msgid "<h3>You are invited to %{instance_name}</h3>\n<p>%{inviter_name} invites you to join %{instance_name}, an instance of Pleroma federated social networking platform.</p>\n<p>Click the following link to register: <a href=\"%{registration_url}\">accept invitation</a>.</p>\n"
-msgstr ""
-"<h3>Je bent uitgenodigd bij %{instance_name}</h3>\n"
-"<p>%{inviter_name} nodigt je uit om je te registreren bij %{instance_name}, "
-"een instantie van het Pleroma gefedereerde sociale netwerk.</p>\n"
-"<p>Om je te registreren, klink op de volgende link: <a href=\""
-"%{registration_url}\">uitnodiging accepteren</a>.</p>\n"
-
 #: lib/pleroma/emails/user_email.ex:136
 #, elixir-autogen, elixir-format
 msgctxt "user invitation email subject"
@@ -557,11 +532,85 @@ msgid "Welcome to %{instance_name}!"
 msgstr "Welkom bij %{instance_name}!"
 
 #: lib/pleroma/emails/user_email.ex:368
-#, elixir-autogen, elixir-format
+#, elixir-autogen, elixir-format, fuzzy
 msgctxt "account archive email body - admin requested"
-msgid "<p>Admin @%{admin_nickname} requested a full backup of your Pleroma account. It's ready for download:</p>\n<p><a href=\"%{download_url}\">%{download_url}</a></p>\n"
+msgid "<p>Admin @%{admin_nickname} requested a full backup of your Akkoma account. It's ready for download:</p>\n<p><a href=\"%{download_url}\">%{download_url}</a></p>\n"
 msgstr ""
 "<p>Beheerder @%{admin_nickname} heeft een verzoek ingediend voor een "
 "volledige back-up van je Pleroma account. Deze is gereed om te "
 "downloaden:</p>\n"
 "<p><a href=\"%{download_url}\">%{download_url}</a></p>\n"
+
+#: lib/pleroma/emails/user_email.ex:356
+#, elixir-autogen, elixir-format, fuzzy
+msgctxt "account archive email body - self-requested"
+msgid "<p>You requested a full backup of your Akkoma account. It's ready for download:</p>\n<p><a href=\"%{download_url}\">%{download_url}</a></p>\n"
+msgstr ""
+"<p>Je hebt een verzoek ingediend voor een volledige back-up van je Pleroma "
+"account. Deze is gereed om te downloaden:</p>\n"
+"<p><a href=\"%{download_url}\">%{download_url}</a></p>\n"
+
+#: lib/pleroma/web/templates/o_auth/o_auth/show.html.eex:41
+#, elixir-autogen, elixir-format, fuzzy
+msgctxt "oauth register page title"
+msgid "This is your first visit! Please enter your Akkoma handle."
+msgstr "Dit is je eerste bezoek! Vul a.u.b. je Pleroma gebruikersnaam in."
+
+#: lib/pleroma/web/twitter_api/controllers/util_controller.ex:123
+#, elixir-autogen, elixir-format
+msgctxt "remote follow error message - unknown error"
+msgid "Something went wrong."
+msgstr ""
+
+#: lib/pleroma/web/twitter_api/controllers/util_controller.ex:67
+#, elixir-autogen, elixir-format
+msgctxt "remote follow error message - user not found"
+msgid "Could not find user"
+msgstr ""
+
+#: lib/pleroma/web/templates/twitter_api/util/status_interact.html.eex:8
+#, elixir-autogen, elixir-format
+msgctxt "status interact authorization button"
+msgid "Interact"
+msgstr ""
+
+#: lib/pleroma/web/templates/twitter_api/util/status_interact.html.eex:2
+#, elixir-autogen, elixir-format, fuzzy
+msgctxt "status interact error"
+msgid "Error: %{error}"
+msgstr "Fout: %{error}"
+
+#: lib/pleroma/web/twitter_api/controllers/util_controller.ex:95
+#, elixir-autogen, elixir-format
+msgctxt "status interact error message - status not found"
+msgid "Could not find status"
+msgstr ""
+
+#: lib/pleroma/web/twitter_api/controllers/util_controller.ex:144
+#, elixir-autogen, elixir-format
+msgctxt "status interact error message - unknown error"
+msgid "Something went wrong."
+msgstr ""
+
+#: lib/pleroma/web/templates/twitter_api/util/status_interact.html.eex:4
+#, elixir-autogen, elixir-format
+msgctxt "status interact header"
+msgid "Interacting with %{nickname}'s %{status_link}"
+msgstr ""
+
+#: lib/pleroma/web/templates/twitter_api/util/status_interact.html.eex:4
+#, elixir-autogen, elixir-format
+msgctxt "status interact header - status link text"
+msgid "status"
+msgstr ""
+
+#: lib/pleroma/emails/user_email.ex:119
+#, elixir-autogen, elixir-format, fuzzy
+msgctxt "user invitation email body"
+msgid "<h3>You are invited to %{instance_name}</h3>\n<p>%{inviter_name} invites you to join %{instance_name}, an instance of Akkoma federated social networking platform.</p>\n<p>Click the following link to register: <a href=\"%{registration_url}\">accept invitation</a>.</p>\n"
+msgstr ""
+"<h3>Je bent uitgenodigd bij %{instance_name}</h3>\n"
+"<p>%{inviter_name} nodigt je uit om je te registreren bij %{instance_name}, "
+"een instantie van het Pleroma gefedereerde sociale netwerk.</p>\n"
+"<p>Om je te registreren, klink op de volgende link: <a href=\""
+"%{registration_url}\">uitnodiging accepteren</a>.</p>\n"

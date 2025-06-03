@@ -4,6 +4,7 @@
 
 defmodule Pleroma.Web.MastodonAPI.FilterControllerTest do
   use Pleroma.Web.ConnCase, async: false
+  @moduletag :mocked
   use Oban.Testing, repo: Pleroma.Repo
 
   import Mock

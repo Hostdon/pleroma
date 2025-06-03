@@ -2,26 +2,28 @@
 # XXX: This should be removed when elixir's releases get custom command support
 
 detect_flavour() {
-    arch="amd64"
-    # Special cases
-    if grep -qe "VERSION_CODENAME=jammy" /etc/os-release; then
-        echo "$arch-ubuntu-jammy"
-    else
-        if getconf GNU_LIBC_VERSION >/dev/null; then
-		  libc_postfix=""
-	    elif [ "$(ldd 2>&1 | head -c 9)" = "musl libc" ]; then
-		  libc_postfix="-musl"
-	    elif [ "$(find /lib/libc.musl* | wc -l)" ]; then
-		  libc_postfix="-musl"
-	    else
-		  echo "Unsupported libc" >&2
-		  exit 1
-	    fi
-
-	    echo "$arch$libc_postfix"
+	machine_type=$(uname -m)
+	if [ ${machine_type} = 'aarch64' ] ; then
+		arch='arm64'
+	elif [ ${machine_type} = 'x86_64' ] ; then
+		arch='amd64'
+		if getconf GNU_LIBC_VERSION >/dev/null; then
+			libc_postfix=""
+		elif [ "$(ldd 2>&1 | head -c 9)" = "musl libc" ]; then
+			libc_postfix="-musl"
+		elif [ "$(find /lib/libc.musl* | wc -l)" ]; then
+			libc_postfix="-musl"
+		else
+			echo "Unsupported libc" >&2
+			exit 1
+		fi
+	else
+		echo "Could not detect your architecture please pass them via --flavour"
+		exit 1
     fi
-}
 
+    echo "$arch$libc_postfix"
+}
 detect_branch() {
 	version="$(cut -d' ' -f2 <"$RELEASE_ROOT"/releases/start_erl.data)"
 	# Expected format: major.minor.patch_version(-number_of_commits_ahead_of_tag-gcommit_hash).branch

@@ -21,19 +21,12 @@ defmodule Pleroma.Search.DatabaseSearch do
     offset = Keyword.get(options, :offset, 0)
     author = Keyword.get(options, :author)
 
-    search_function =
-      if :persistent_term.get({Pleroma.Repo, :postgres_version}) >= 11 do
-        :websearch
-      else
-        :plain
-      end
-
     try do
       Activity
       |> Activity.with_preloaded_object()
       |> Activity.restrict_deactivated_users()
       |> restrict_public()
-      |> query_with(index_type, search_query, search_function)
+      |> query_with(index_type, search_query)
       |> maybe_restrict_local(user)
       |> maybe_restrict_author(author)
       |> maybe_restrict_blocked(user)
@@ -46,12 +39,6 @@ defmodule Pleroma.Search.DatabaseSearch do
       _ -> maybe_fetch([], user, search_query)
     end
   end
-
-  @impl true
-  def add_to_index(_activity), do: nil
-
-  @impl true
-  def remove_from_index(_object), do: nil
 
   def maybe_restrict_author(query, %User{} = author) do
     Activity.Queries.by_author(query, author)
@@ -72,25 +59,7 @@ defmodule Pleroma.Search.DatabaseSearch do
     )
   end
 
-  defp query_with(q, :gin, search_query, :plain) do
-    %{rows: [[tsc]]} =
-      Ecto.Adapters.SQL.query!(
-        Pleroma.Repo,
-        "select current_setting('default_text_search_config')::regconfig::oid;"
-      )
-
-    from([a, o] in q,
-      where:
-        fragment(
-          "to_tsvector(?::oid::regconfig, ?->>'content') @@ plainto_tsquery(?)",
-          ^tsc,
-          o.data,
-          ^search_query
-        )
-    )
-  end
-
-  defp query_with(q, :gin, search_query, :websearch) do
+  defp query_with(q, :gin, search_query) do
     %{rows: [[tsc]]} =
       Ecto.Adapters.SQL.query!(
         Pleroma.Repo,
@@ -108,19 +77,7 @@ defmodule Pleroma.Search.DatabaseSearch do
     )
   end
 
-  defp query_with(q, :rum, search_query, :plain) do
-    from([a, o] in q,
-      where:
-        fragment(
-          "? @@ plainto_tsquery(?)",
-          o.fts_content,
-          ^search_query
-        ),
-      order_by: [fragment("? <=> now()::date", o.inserted_at)]
-    )
-  end
-
-  defp query_with(q, :rum, search_query, :websearch) do
+  defp query_with(q, :rum, search_query) do
     from([a, o] in q,
       where:
         fragment(
@@ -132,21 +89,29 @@ defmodule Pleroma.Search.DatabaseSearch do
     )
   end
 
-  def maybe_restrict_local(q, user) do
+  def should_restrict_local(user) do
     limit = Pleroma.Config.get([:instance, :limit_to_local_content], :unauthenticated)
 
     case {limit, user} do
-      {:all, _} -> restrict_local(q)
-      {:unauthenticated, %User{}} -> q
-      {:unauthenticated, _} -> restrict_local(q)
-      {false, _} -> q
+      {:all, _} -> true
+      {:unauthenticated, %User{}} -> false
+      {:unauthenticated, _} -> true
+      {false, _} -> false
+    end
+  end
+
+  def maybe_restrict_local(q, user) do
+    case should_restrict_local(user) do
+      true -> restrict_local(q)
+      false -> q
     end
   end
 
   defp restrict_local(q), do: where(q, local: true)
 
   def maybe_fetch(activities, user, search_query) do
-    with true <- Regex.match?(~r/https?:/, search_query),
+    with false <- should_restrict_local(user),
+         true <- Regex.match?(~r/https?:/, search_query),
          {:ok, object} <- Fetcher.fetch_object_from_id(search_query),
          %Activity{} = activity <- Activity.get_create_by_object_ap_id(object.data["id"]),
          true <- Visibility.visible_for_user?(activity, user) do

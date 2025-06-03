@@ -44,7 +44,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.UndoValidator do
     |> validate_inclusion(:type, ["Undo"])
     |> validate_required([:id, :type, :object, :actor, :to, :cc])
     |> validate_undo_actor(:actor)
-    |> validate_object_presence()
+    |> validate_object_presence(allowed_object_categories: [:activity])
     |> validate_undo_rights()
   end
 

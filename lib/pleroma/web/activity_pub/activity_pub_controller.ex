@@ -8,14 +8,11 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
   alias Pleroma.Activity
   alias Pleroma.Delivery
   alias Pleroma.Object
-  alias Pleroma.Object.Fetcher
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.InternalFetchActor
   alias Pleroma.Web.ActivityPub.ObjectView
-  alias Pleroma.Web.ActivityPub.Pipeline
   alias Pleroma.Web.ActivityPub.Relay
-  alias Pleroma.Web.ActivityPub.Transmogrifier
   alias Pleroma.Web.ActivityPub.UserView
   alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.ActivityPub.Visibility
@@ -41,10 +38,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
   # Note: :following and :followers must be served even without authentication (as via :api)
   plug(
     EnsureAuthenticatedPlug
-    when action in [:read_inbox, :update_outbox, :whoami, :upload_media]
+    when action in [:read_inbox]
   )
-
-  plug(Majic.Plug, [pool: Pleroma.MajicPool] when action in [:upload_media])
 
   plug(
     Pleroma.Web.Plugs.Cache,
@@ -65,12 +60,43 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
     end
   end
 
-  def user(conn, %{"nickname" => nickname}) do
+  @doc """
+  Render the user's AP data
+  WARNING: we cannot actually check if the request has a fragment! so let's play defensively
+  - IF we have a valid signature, serve full user
+  - IF we do not, and authorized_fetch_mode is enabled, serve the key only
+  - OTHERWISE, serve the full actor (since we don't need to worry about the signature)
+  """
+  def user(%{assigns: %{valid_signature: true}} = conn, params) do
+    render_full_user(conn, params)
+  end
+
+  def user(conn, params) do
+    if Pleroma.Config.get([:activitypub, :authorized_fetch_mode], false) do
+      render_key_only_user(conn, params)
+    else
+      render_full_user(conn, params)
+    end
+  end
+
+  defp render_full_user(conn, %{"nickname" => nickname}) do
     with %User{local: true} = user <- User.get_cached_by_nickname(nickname) do
       conn
       |> put_resp_content_type("application/activity+json")
       |> put_view(UserView)
       |> render("user.json", %{user: user})
+    else
+      nil -> {:error, :not_found}
+      %{local: false} -> {:error, :not_found}
+    end
+  end
+
+  def render_key_only_user(conn, %{"nickname" => nickname}) do
+    with %User{local: true} = user <- User.get_cached_by_nickname(nickname) do
+      conn
+      |> put_resp_content_type("application/activity+json")
+      |> put_view(UserView)
+      |> render("keys.json", %{user: user})
     else
       nil -> {:error, :not_found}
       %{local: false} -> {:error, :not_found}
@@ -161,7 +187,9 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
     end
   end
 
-  # GET /relay/following
+  @doc """
+  GET /relay/following
+  """
   def relay_following(conn, _params) do
     with %{halted: false} = conn <- FederatingPlug.call(conn, []) do
       conn
@@ -198,7 +226,9 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
     end
   end
 
-  # GET /relay/followers
+  @doc """
+  GET /relay/followers
+  """
   def relay_followers(conn, _params) do
     with %{halted: false} = conn <- FederatingPlug.call(conn, []) do
       conn
@@ -293,31 +323,10 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
     |> json("Invalid HTTP Signature")
   end
 
-  # POST /relay/inbox -or- POST /internal/fetch/inbox
-  def inbox(conn, %{"type" => "Create"} = params) do
-    if FederatingPlug.federating?() do
-      post_inbox_relayed_create(conn, params)
-    else
-      conn
-      |> put_status(:bad_request)
-      |> json("Not federating")
-    end
-  end
-
   def inbox(conn, _params) do
     conn
     |> put_status(:bad_request)
     |> json("error, missing HTTP Signature")
-  end
-
-  defp post_inbox_relayed_create(conn, params) do
-    Logger.debug(
-      "Signature missing or not from author, relayed Create message, fetching object from source"
-    )
-
-    Fetcher.fetch_object_from_id(params["object"]["id"])
-
-    json(conn, "ok")
   end
 
   defp represent_service_actor(%User{} = user, conn) do
@@ -337,14 +346,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
   def internal_fetch(conn, _params) do
     InternalFetchActor.get_actor()
     |> represent_service_actor(conn)
-  end
-
-  @doc "Returns the authenticated user's ActivityPub User object or a 404 Not Found if non-authenticated"
-  def whoami(%{assigns: %{user: %User{} = user}} = conn, _params) do
-    conn
-    |> put_resp_content_type("application/activity+json")
-    |> put_view(UserView)
-    |> render("user.json", %{user: user})
   end
 
   def read_inbox(
@@ -397,105 +398,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
     |> json(err)
   end
 
-  defp fix_user_message(%User{ap_id: actor}, %{"type" => "Create", "object" => object} = activity)
-       when is_map(object) do
-    length =
-      [object["content"], object["summary"], object["name"]]
-      |> Enum.filter(&is_binary(&1))
-      |> Enum.join("")
-      |> String.length()
-
-    limit = Pleroma.Config.get([:instance, :limit])
-
-    if length < limit do
-      object =
-        object
-        |> Transmogrifier.strip_internal_fields()
-        |> Map.put("attributedTo", actor)
-        |> Map.put("actor", actor)
-        |> Map.put("id", Utils.generate_object_id())
-
-      {:ok, Map.put(activity, "object", object)}
-    else
-      {:error,
-       dgettext(
-         "errors",
-         "Character limit (%{limit} characters) exceeded, contains %{length} characters",
-         limit: limit,
-         length: length
-       )}
-    end
-  end
-
-  defp fix_user_message(
-         %User{ap_id: actor} = user,
-         %{"type" => "Delete", "object" => object} = activity
-       ) do
-    with {_, %Object{data: object_data}} <- {:normalize, Object.normalize(object, fetch: false)},
-         {_, true} <- {:permission, user.is_moderator || actor == object_data["actor"]} do
-      {:ok, activity}
-    else
-      {:normalize, _} ->
-        {:error, "No such object found"}
-
-      {:permission, _} ->
-        {:forbidden, "You can't delete this object"}
-    end
-  end
-
-  defp fix_user_message(%User{}, activity) do
-    {:ok, activity}
-  end
-
-  def update_outbox(
-        %{assigns: %{user: %User{nickname: nickname, ap_id: actor} = user}} = conn,
-        %{"nickname" => nickname} = params
-      ) do
-    params =
-      params
-      |> Map.drop(["nickname"])
-      |> Map.put("id", Utils.generate_activity_id())
-      |> Map.put("actor", actor)
-
-    with {:ok, params} <- fix_user_message(user, params),
-         {:ok, activity, _} <- Pipeline.common_pipeline(params, local: true),
-         %Activity{data: activity_data} <- Activity.normalize(activity) do
-      conn
-      |> put_status(:created)
-      |> put_resp_header("location", activity_data["id"])
-      |> json(activity_data)
-    else
-      {:forbidden, message} ->
-        conn
-        |> put_status(:forbidden)
-        |> json(message)
-
-      {:error, message} ->
-        conn
-        |> put_status(:bad_request)
-        |> json(message)
-
-      e ->
-        Logger.warn(fn -> "AP C2S: #{inspect(e)}" end)
-
-        conn
-        |> put_status(:bad_request)
-        |> json("Bad Request")
-    end
-  end
-
-  def update_outbox(%{assigns: %{user: %User{} = user}} = conn, %{"nickname" => nickname}) do
-    err =
-      dgettext("errors", "can't update outbox of %{nickname} as %{as_nickname}",
-        nickname: nickname,
-        as_nickname: user.nickname
-      )
-
-    conn
-    |> put_status(:forbidden)
-    |> json(err)
-  end
-
   defp errors(conn, {:error, :not_found}) do
     conn
     |> put_status(:not_found)
@@ -515,21 +417,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
     end
 
     conn
-  end
-
-  def upload_media(%{assigns: %{user: %User{} = user}} = conn, %{"file" => file} = data) do
-    with {:ok, object} <-
-           ActivityPub.upload(
-             file,
-             actor: User.ap_id(user),
-             description: Map.get(data, "description")
-           ) do
-      Logger.debug(inspect(object))
-
-      conn
-      |> put_status(:created)
-      |> json(object.data)
-    end
   end
 
   def pinned(conn, %{"nickname" => nickname}) do

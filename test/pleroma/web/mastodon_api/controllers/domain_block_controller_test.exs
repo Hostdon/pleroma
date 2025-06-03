@@ -4,7 +4,7 @@
 
 defmodule Pleroma.Web.MastodonAPI.DomainBlockControllerTest do
   # TODO: Should not need Cachex
-  use Pleroma.Web.ConnCase
+  use Pleroma.Web.ConnCase, async: false
 
   alias Pleroma.User
 

@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.ActivityPub.Transmogrifier.EmojiReactHandlingTest do
-  use Pleroma.DataCase, async: true
+  use Pleroma.DataCase
 
   alias Pleroma.Activity
   alias Pleroma.Object
@@ -37,7 +37,80 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier.EmojiReactHandlingTest do
     assert match?([["👌", _, nil]], object.data["reactions"])
   end
 
-  test "it works for incoming custom emoji reactions" do
+  test "it works for incoming custom emoji with nil id" do
+    user = insert(:user)
+    other_user = insert(:user, local: false)
+    {:ok, activity} = CommonAPI.post(user, %{status: "hello"})
+
+    shortcode = "blobcatgoogly"
+    emoji = emoji_object(shortcode)
+    data = react_with_custom(activity.data["object"], other_user.ap_id, emoji)
+
+    {:ok, %Activity{data: data, local: false}} = Transmogrifier.handle_incoming(data)
+
+    assert data["actor"] == other_user.ap_id
+    assert data["type"] == "EmojiReact"
+    assert data["object"] == activity.data["object"]
+    assert data["content"] == ":" <> shortcode <> ":"
+    [%{}] = data["tag"]
+
+    object = Object.get_by_ap_id(data["object"])
+
+    assert object.data["reaction_count"] == 1
+    assert match?([[^shortcode, _, _]], object.data["reactions"])
+  end
+
+  test "it works for incoming custom emoji with image url as id" do
+    user = insert(:user)
+    other_user = insert(:user, local: false)
+    {:ok, activity} = CommonAPI.post(user, %{status: "hello"})
+
+    shortcode = "blobcatgoogly"
+    imgurl = "https://example.org/emoji/a.png"
+    emoji = emoji_object(shortcode, imgurl, imgurl)
+    data = react_with_custom(activity.data["object"], other_user.ap_id, emoji)
+
+    {:ok, %Activity{data: data, local: false}} = Transmogrifier.handle_incoming(data)
+
+    assert data["actor"] == other_user.ap_id
+    assert data["type"] == "EmojiReact"
+    assert data["object"] == activity.data["object"]
+    assert data["content"] == ":" <> shortcode <> ":"
+    assert [%{}] = data["tag"]
+
+    object = Object.get_by_ap_id(data["object"])
+
+    assert object.data["reaction_count"] == 1
+    assert match?([[^shortcode, _, ^imgurl]], object.data["reactions"])
+  end
+
+  test "it works for incoming custom emoji without tag array" do
+    user = insert(:user)
+    other_user = insert(:user, local: false)
+    {:ok, activity} = CommonAPI.post(user, %{status: "hello"})
+
+    shortcode = "blobcatgoogly"
+    imgurl = "https://example.org/emoji/b.png"
+    emoji = emoji_object(shortcode, imgurl, imgurl)
+    data = react_with_custom(activity.data["object"], other_user.ap_id, emoji, false)
+
+    assert %{} = data["tag"]
+
+    {:ok, %Activity{data: data, local: false}} = Transmogrifier.handle_incoming(data)
+
+    assert data["actor"] == other_user.ap_id
+    assert data["type"] == "EmojiReact"
+    assert data["object"] == activity.data["object"]
+    assert data["content"] == ":" <> shortcode <> ":"
+    assert [%{}] = data["tag"]
+
+    object = Object.get_by_ap_id(data["object"])
+
+    assert object.data["reaction_count"] == 1
+    assert match?([[^shortcode, _, _]], object.data["reactions"])
+  end
+
+  test "it works for incoming custom emoji reactions from Misskey" do
     user = insert(:user)
     other_user = insert(:user, local: false)
     {:ok, activity} = CommonAPI.post(user, %{status: "hello"})
@@ -137,5 +210,28 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier.EmojiReactHandlingTest do
       |> Map.put("actor", other_user.ap_id)
 
     assert {:error, _} = Transmogrifier.handle_incoming(data)
+  end
+
+  defp emoji_object(shortcode, id \\ nil, url \\ "https://example.org/emoji.png") do
+    %{
+      "type" => "Emoji",
+      "id" => id,
+      "name" => shortcode |> String.replace_prefix(":", "") |> String.replace_suffix(":", ""),
+      "icon" => %{
+        "type" => "Image",
+        "url" => url
+      }
+    }
+  end
+
+  defp react_with_custom(object_id, as_actor, emoji, tag_array \\ true) do
+    tag = if tag_array, do: [emoji], else: emoji
+
+    File.read!("test/fixtures/emoji-reaction.json")
+    |> Jason.decode!()
+    |> Map.put("object", object_id)
+    |> Map.put("actor", as_actor)
+    |> Map.put("content", ":" <> emoji["name"] <> ":")
+    |> Map.put("tag", tag)
   end
 end

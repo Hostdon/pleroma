@@ -4,7 +4,7 @@
 
 defmodule Pleroma.Emoji.FormatterTest do
   alias Pleroma.Emoji.Formatter
-  use Pleroma.DataCase, async: true
+  use Pleroma.DataCase, async: false
 
   describe "emojify" do
     test "it adds cool emoji" do

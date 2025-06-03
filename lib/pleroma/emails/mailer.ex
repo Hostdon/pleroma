@@ -55,12 +55,67 @@ defmodule Pleroma.Emails.Mailer do
 
   @doc false
   def validate_dependency do
-    parse_config([])
+    parse_config([], defaults: false)
     |> Keyword.get(:adapter)
     |> Swoosh.Mailer.validate_dependency()
   end
 
-  defp parse_config(config) do
-    Swoosh.Mailer.parse_config(@otp_app, __MODULE__, @mailer_config, config)
+  defp ensure_charlist(input) do
+    case input do
+      i when is_binary(i) -> String.to_charlist(input)
+      i when is_list(i) -> i
+    end
+  end
+
+  defp default_config(adapter, conf, opts)
+
+  defp default_config(_, _, defaults: false) do
+    []
+  end
+
+  defp default_config(Swoosh.Adapters.SMTP, conf, _) do
+    # gen_smtp and Erlang's tls defaults are very barebones, if nothing is set.
+    # Add sane defaults for our usecase to make config less painful for admins
+    relay = ensure_charlist(Keyword.get(conf, :relay))
+    ssl_disabled = Keyword.get(conf, :ssl) === false
+    os_cacerts = :public_key.cacerts_get()
+
+    common_tls_opts = [
+      cacerts: os_cacerts,
+      versions: [:"tlsv1.2", :"tlsv1.3"],
+      verify: :verify_peer,
+      server_name_indication: relay,
+      # This allows wildcard ceritifcates to be verified properly.
+      # The :https parameter simply means to use the HTTPS wildcard format
+      # (as opposed to say LDAP). SMTP servers tend to use the same type of
+      # certs as HTTPS ones so this should work for most.
+      customize_hostname_check: [
+        match_fun: :public_key.pkix_verify_hostname_match_fun(:https)
+      ],
+      # the default of 10 is too restrictive
+      depth: 32
+    ]
+
+    [
+      auth: :always,
+      no_mx_lookups: false,
+      # Direct SSL/TLS
+      # (if ssl was explicitly disabled, we must not pass TLS options to the socket)
+      ssl: true,
+      sockopts: if(ssl_disabled, do: [], else: common_tls_opts),
+      # STARTTLS upgrade (can't be set to :always when already using direct TLS)
+      tls: :if_available,
+      tls_options: common_tls_opts
+    ]
+  end
+
+  defp default_config(_, _, _), do: []
+
+  defp parse_config(config, opts \\ []) do
+    conf = Swoosh.Mailer.parse_config(@otp_app, __MODULE__, @mailer_config, config)
+    adapter = Keyword.get(conf, :adapter)
+
+    default_config(adapter, conf, opts)
+    |> Keyword.merge(conf)
   end
 end

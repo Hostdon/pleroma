@@ -25,16 +25,20 @@ defmodule Pleroma.Workers.WorkerHelper do
   defmacro __using__(opts) do
     caller_module = __CALLER__.module
     queue = Keyword.fetch!(opts, :queue)
+    # by default just stop unintended duplicates - this can and should be overridden
+    # if you want to have a more complex uniqueness constraint
+    uniqueness = Keyword.get(opts, :unique, period: 1)
 
     quote do
       # Note: `max_attempts` is intended to be overridden in `new/2` call
       use Oban.Worker,
         queue: unquote(queue),
-        max_attempts: 1
+        max_attempts: 1,
+        unique: unquote(uniqueness)
 
       alias Oban.Job
 
-      def enqueue(op, params, worker_args \\ []) do
+      defp do_enqueue(op, params, worker_args \\ []) do
         params = Map.merge(%{"op" => op}, params)
         queue_atom = String.to_atom(unquote(queue))
         worker_args = worker_args ++ WorkerHelper.worker_args(queue_atom)
@@ -44,11 +48,16 @@ defmodule Pleroma.Workers.WorkerHelper do
         |> Oban.insert()
       end
 
+      def enqueue(op, params, worker_args \\ []),
+        do: do_enqueue(op, params, worker_args)
+
       @impl Oban.Worker
       def timeout(_job) do
         queue_atom = String.to_atom(unquote(queue))
         Config.get([:workers, :timeout, queue_atom], :timer.minutes(1))
       end
+
+      defoverridable enqueue: 3
     end
   end
 end

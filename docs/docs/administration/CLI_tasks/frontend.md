@@ -42,7 +42,7 @@ For a frontend configured under the `available` key, it's enough to install it b
 
 This will download the latest build for the pre-configured `ref` and install it. It can then be configured as the one of the served frontends in the config file (see `primary` or `admin`).
 
-You can override any of the details. To install a Pleroma-FE build from a different URL, you could do this:
+You can override any of the details. To install an Akkoma-FE build from a different URL, you could do this:
 
 === "OTP"
 

@@ -27,6 +27,7 @@ defmodule Pleroma.Web do
   alias Pleroma.Web.Plugs.ExpectPublicOrAuthenticatedCheckPlug
   alias Pleroma.Web.Plugs.OAuthScopesPlug
   alias Pleroma.Web.Plugs.PlugHelper
+  require Pleroma.Constants
 
   def controller do
     quote do
@@ -37,7 +38,7 @@ defmodule Pleroma.Web do
       import Pleroma.Web.Gettext
       import Pleroma.Web.TranslationHelpers
 
-      alias Pleroma.Web.Router.Helpers, as: Routes
+      unquote(verified_routes())
 
       plug(:set_put_layout)
 
@@ -184,7 +185,10 @@ defmodule Pleroma.Web do
 
       # Import convenience functions from controllers
       import Phoenix.Controller,
-        only: [get_flash: 1, get_flash: 2, view_module: 1, view_template: 1]
+        only: [view_module: 1, view_template: 1]
+
+      import Phoenix.Flash
+      alias Phoenix.Flash
 
       # Include shared imports and aliases for views
       unquote(view_helpers())
@@ -218,7 +222,7 @@ defmodule Pleroma.Web do
 
   def router do
     quote do
-      use Phoenix.Router
+      use Phoenix.Router, helpers: false
 
       import Plug.Conn
       import Phoenix.Controller
@@ -246,7 +250,24 @@ defmodule Pleroma.Web do
 
       import Pleroma.Web.ErrorHelpers
       import Pleroma.Web.Gettext
-      alias Pleroma.Web.Router.Helpers, as: Routes
+      unquote(verified_routes())
+    end
+  end
+
+  def static_paths, do: Pleroma.Constants.static_only_files()
+
+  def verified_routes do
+    quote do
+      use Phoenix.VerifiedRoutes,
+        endpoint: Pleroma.Web.Endpoint,
+        router: Pleroma.Web.Router,
+        statics: Pleroma.Web.static_paths()
+    end
+  end
+
+  def mailer do
+    quote do
+      unquote(verified_routes())
     end
   end
 

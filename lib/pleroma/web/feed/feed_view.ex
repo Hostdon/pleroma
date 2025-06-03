@@ -78,9 +78,7 @@ defmodule Pleroma.Web.Feed.FeedView do
   end
 
   def activity_content(%{"content" => content}) do
-    content
-    |> String.replace(~r/[\n\r]/, "")
-    |> escape()
+    escape(content)
   end
 
   def activity_content(_), do: ""

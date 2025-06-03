@@ -12,11 +12,14 @@ defmodule Akkoma.Collections.FetcherTest do
   end
 
   test "it should extract items from an embedded array in a Collection" do
+    ap_id = "https://example.com/collection/ordered_array"
+
     unordered_collection =
       "test/fixtures/collections/unordered_array.json"
       |> File.read!()
-
-    ap_id = "https://example.com/collection/ordered_array"
+      |> Jason.decode!()
+      |> Map.put("id", ap_id)
+      |> Jason.encode!(pretty: true)
 
     Tesla.Mock.mock(fn
       %{

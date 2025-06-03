@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
-  use Pleroma.Web.ConnCase
+  use Pleroma.Web.ConnCase, async: false
   use Oban.Testing, repo: Pleroma.Repo
 
   import ExUnit.CaptureLog
@@ -20,11 +20,11 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   setup_all do
     Tesla.Mock.mock_global(fn env -> apply(HttpRequestMock, :request, [env]) end)
-
     :ok
   end
 
   setup do
+    clear_config([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
     admin = insert(:user, is_admin: true)
     token = insert(:oauth_admin_token, user: admin)
 
@@ -783,7 +783,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   describe "PATCH /resend_confirmation_email" do
     test "it resend emails for two users", %{conn: conn, admin: admin} do
-      [first_user, second_user] = insert_pair(:user, is_confirmed: false)
+      [first_user, second_user] =
+        insert_pair(:user, is_confirmed: false, confirmation_token: "something")
 
       ret_conn =
         patch(conn, "/api/v1/pleroma/admin/users/resend_confirmation_email", %{

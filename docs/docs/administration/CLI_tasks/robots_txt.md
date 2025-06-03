@@ -17,5 +17,5 @@ If you want to generate a restrictive `robots.txt`, you can run the following mi
 === "From Source"
 
     ```sh
-    mix pleroma.robotstxt disallow_all
+    mix pleroma.robots_txt disallow_all
     ```

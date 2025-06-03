@@ -4,6 +4,7 @@
 
 defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
   use Pleroma.DataCase, async: false
+  @moduletag :mocked
 
   alias Pleroma.User
   alias Pleroma.UserRelationship
@@ -16,6 +17,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
 
   setup do
     mock(fn env -> apply(HttpRequestMock, :request, [env]) end)
+    clear_config([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
     :ok
   end
 
@@ -38,7 +40,8 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
         emoji: %{"karjalanpiirakka" => "/file.png"},
         raw_bio: "valid html. a\nb\nc\nd\nf '&<>\"",
         also_known_as: ["https://shitposter.zone/users/shp"],
-        status_ttl_days: 5
+        status_ttl_days: 5,
+        last_status_at: ~N[2023-12-31T15:06:17]
       })
 
     insert(:instance, %{host: "example.com", nodeinfo: %{version: "2.1"}})
@@ -63,7 +66,8 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
           },
           favicon: nil
         },
-        status_ttl_days: 5
+        status_ttl_days: 5,
+        permit_followback: false
       },
       avatar: "http://localhost:4001/images/avi.png",
       avatar_static: "http://localhost:4001/images/avi.png",
@@ -89,7 +93,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
         fields: []
       },
       fqn: "shp@shitposter.club",
-      last_status_at: nil,
+      last_status_at: ~D[2023-12-31],
       pleroma: %{
         ap_id: user.ap_id,
         also_known_as: ["https://shitposter.zone/users/shp"],
@@ -246,7 +250,8 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
           favicon: "http://localhost:4001/favicon.png",
           nodeinfo: %{version: "2.0"}
         },
-        status_ttl_days: nil
+        status_ttl_days: nil,
+        permit_followback: false
       },
       pleroma: %{
         ap_id: user.ap_id,
@@ -269,8 +274,8 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
     }
 
     with_mock(
-      Pleroma.Web.Nodeinfo.NodeinfoController,
-      raw_nodeinfo: fn -> %{version: "2.0"} end
+      Pleroma.Web.Nodeinfo.Nodeinfo,
+      get_nodeinfo: fn _ -> %{version: "2.0"} end
     ) do
       assert expected ==
                AccountView.render("show.json", %{user: user, skip_visibility_check: true})
@@ -397,7 +402,22 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
       expected =
         Map.merge(
           @blank_response,
-          %{following: false, blocking: true, blocked_by: true, id: to_string(other_user.id)}
+          %{following: false, blocking: true, blocked_by: false, id: to_string(other_user.id)}
+        )
+
+      test_relationship_rendering(user, other_user, expected)
+    end
+
+    test "blocks are not visible to the blocked user" do
+      user = insert(:user)
+      other_user = insert(:user)
+
+      {:ok, _user_relationship} = User.block(other_user, user)
+
+      expected =
+        Map.merge(
+          @blank_response,
+          %{following: false, blocking: false, blocked_by: false, id: to_string(other_user.id)}
         )
 
       test_relationship_rendering(user, other_user, expected)

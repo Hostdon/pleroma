@@ -109,7 +109,7 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
          %User{} = followed <- User.get_cached_by_ap_id(followed_user),
          {_, {:ok, _, _}, _, _} <-
            {:following, User.follow(follower, followed, :follow_pending), follower, followed} do
-      if followed.local && !followed.is_locked do
+      if followed.local && User.can_direct_follow_local(follower, followed) do
         {:ok, accept_data, _} = Builder.accept(followed, object)
         {:ok, _activity, _} = Pipeline.common_pipeline(accept_data, local: true)
       end
@@ -225,9 +225,7 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
         end
       end
 
-      ConcurrentLimiter.limit(Pleroma.Web.RichMedia.Helpers, fn ->
-        Task.start(fn -> Pleroma.Web.RichMedia.Helpers.fetch_data_for_activity(activity) end)
-      end)
+      Pleroma.Web.RichMedia.Card.get_by_activity(activity)
 
       Pleroma.Search.add_to_index(Map.put(activity, :object, object))
 

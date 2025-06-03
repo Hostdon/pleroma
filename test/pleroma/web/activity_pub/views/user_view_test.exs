@@ -11,7 +11,9 @@ defmodule Pleroma.Web.ActivityPub.UserViewTest do
   alias Pleroma.Web.CommonAPI
 
   test "Renders a user, including the public key" do
-    user = insert(:user)
+    user =
+      insert(:user)
+      |> with_signing_key()
 
     result = UserView.render("user.json", %{user: user})
 
@@ -37,13 +39,14 @@ defmodule Pleroma.Web.ActivityPub.UserViewTest do
   end
 
   test "Renders with emoji tags" do
-    user = insert(:user, emoji: %{"bib" => "/test"})
+    user =
+      insert(:user, emoji: %{"bib" => "/test"})
+      |> with_signing_key()
 
     assert %{
              "tag" => [
                %{
                  "icon" => %{"type" => "Image", "url" => "/test"},
-                 "id" => "/test",
                  "name" => ":bib:",
                  "type" => "Emoji",
                  "updated" => "1970-01-01T00:00:00Z"
@@ -58,22 +61,39 @@ defmodule Pleroma.Web.ActivityPub.UserViewTest do
     result = UserView.render("user.json", %{user: user})
     refute result["icon"]
     refute result["image"]
+    refute result["backgroundUrl"]
 
     user =
       insert(:user,
         avatar: %{"url" => [%{"href" => "https://someurl"}]},
-        banner: %{"url" => [%{"href" => "https://somebanner"}]}
+        banner: %{"url" => [%{"href" => "https://somebanner"}]},
+        background: %{"url" => [%{"href" => "https://somebackground"}]}
       )
 
     result = UserView.render("user.json", %{user: user})
     assert result["icon"]["url"] == "https://someurl"
     assert result["image"]["url"] == "https://somebanner"
+    assert result["backgroundUrl"]["url"] == "https://somebackground"
   end
 
   test "renders an invisible user with the invisible property set to true" do
-    user = insert(:user, invisible: true)
+    user =
+      insert(:user, invisible: true)
+      |> with_signing_key()
 
     assert %{"invisible" => true} = UserView.render("service.json", %{user: user})
+  end
+
+  test "service has a few essential fields" do
+    user =
+      insert(:user)
+      |> with_signing_key()
+
+    result = UserView.render("service.json", %{user: user})
+    assert result["id"]
+    assert result["type"] == "Application"
+    assert result["inbox"]
+    assert result["outbox"]
   end
 
   test "renders AKAs" do
@@ -108,7 +128,9 @@ defmodule Pleroma.Web.ActivityPub.UserViewTest do
     end
 
     test "instance users do not expose oAuth endpoints" do
-      user = insert(:user, nickname: nil, local: true)
+      user =
+        insert(:user, nickname: nil, local: true)
+        |> with_signing_key()
 
       result = UserView.render("user.json", %{user: user})
 

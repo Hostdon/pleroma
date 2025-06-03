@@ -117,6 +117,7 @@ nav {
 
 .inner-nav img {
     height: 28px;
+    width: auto;
     vertical-align: middle;
     padding-right: 5px
 }
@@ -440,6 +441,7 @@ summary {
 .avatar img {
     border-radius: 3px;
     box-shadow: var(--avatarShadow);
+    object-fit: cover;
 }
 
 .user-summary {
@@ -642,13 +644,13 @@ summary {
 }
 
 img:not(.u-photo, .fa-icon) {
-    width: 32px;
+    width: auto;
     height: 32px;
     padding: 0;
     vertical-align: middle;
 }
 
 .username img:not(.u-photo) {
-    width: 16px;
+    width: auto;
     height: 16px;
 }

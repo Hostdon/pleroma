@@ -32,7 +32,9 @@ defmodule Pleroma.Web.ApiSpec.Schemas.Poll do
       },
       voters_count: %Schema{
         type: :integer,
-        description: "How many unique accounts have voted. Number."
+        nullable: true,
+        description:
+          "How many unique accounts have voted for a multi-selection poll. Number, or null if single-selection poll."
       },
       voted: %Schema{
         type: :boolean,

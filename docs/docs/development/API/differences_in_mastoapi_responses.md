@@ -1,6 +1,6 @@
 # Differences in Mastodon API responses from vanilla Mastodon
 
-A Akkoma instance can be identified by "<Mastodon version> (compatible; Pleroma <version>)" present in `version` field in response from `/api/v1/instance`
+A Akkoma instance can be identified by "<Mastodon version> (compatible; Akkoma <version>)" present in `version` field in response from `/api/v1/instance`
 
 ## Flake IDs
 
@@ -8,23 +8,32 @@ Akkoma uses 128-bit ids as opposed to Mastodon's 64 bits. However, just like Mas
 
 ## Timelines
 
+In addition to Mastodon’s timelines, there is also a “bubble timeline” showing
+posts from the local instance and a set of closely related instances as chosen
+by the administrator. It is available under `/api/v1/timelines/bubble`.
+
 Adding the parameter `with_muted=true` to the timeline queries will also return activities by muted (not by blocked!) users.
 
 Adding the parameter `exclude_visibilities` to the timeline queries will exclude the statuses with the given visibilities. The parameter accepts an array of visibility types (`public`, `unlisted`, `private`, `direct`), e.g., `exclude_visibilities[]=direct&exclude_visibilities[]=private`.
 
-Adding the parameter `reply_visibility` to the public and home timelines queries will filter replies. Possible values: without parameter (default) shows all replies, `following` - replies directed to you or users you follow, `self` - replies directed to you.
+Adding the parameter `reply_visibility` to the public, bubble or home timelines queries will filter replies. Possible values: without parameter (default) shows all replies, `following` - replies directed to you or users you follow, `self` - replies directed to you.
 
 Adding the parameter `instance=lain.com` to the public timeline will show only statuses originating from `lain.com` (or any remote instance).
 
-Home, public, hashtag & list timelines accept these parameters:
+All but the direct timeline accept these parameters:
 
 - `only_media`: show only statuses with media attached
-- `local`: show only local statuses
 - `remote`: show only remote statuses
+
+Home, public, hashtag & list timelines further accept:
+
+- `local`: show only local statuses
+
 
 ## Statuses
 
 - `visibility`: has additional possible values `list` and `local` (for local-only statuses)
+- `emoji_reactions`: additional field since Akkoma 3.2.0; identical to `pleroma/emoji_reactions`
 
 Has these additional fields under the `pleroma` object:
 
@@ -36,7 +45,9 @@ Has these additional fields under the `pleroma` object:
 - `spoiler_text`: a map consisting of alternate representations of the `spoiler_text` property with the key being its mimetype. Currently, the only alternate representation supported is `text/plain`
 - `expires_at`: a datetime (iso8601) that states when the post will expire (be deleted automatically), or empty if the post won't expire
 - `thread_muted`: true if the thread the post belongs to is muted
-- `emoji_reactions`: A list with emoji / reaction maps. The format is `{name: "☕", count: 1, me: true}`. Contains no information about the reacting users, for that use the `/statuses/:id/reactions` endpoint.
+- `emoji_reactions`: A list with emoji / reaction maps. The format is `{name: "☕", count: 2, me: true, account_ids: ["UserID1", "UserID2"]}`.
+  The `account_ids` property was added in Akkoma 3.2.0.
+  Further info about all reacting users at once, can be found using the `/statuses/:id/reactions` endpoint.
 - `parent_visible`: If the parent of this post is visible to the user or not.
 - `pinned_at`: a datetime (iso8601) when status was pinned, `null` otherwise.
 
@@ -109,6 +120,12 @@ Has these additional fields under the `pleroma` object:
 - `unread_notifications_count`: The count of unread notifications. Only returned to the account owner.
 - `notification_settings`: object, can be absent. See `/api/v1/pleroma/notification_settings` for the parameters/keys returned.
 - `favicon`: nullable URL string, Favicon image of the user's instance
+
+Has these additional fields under the `akkoma` object:
+
+- `instance`: nullable object with metadata about the user’s instance
+- `status_ttl_days`: nullable int, default time after which statuses are deleted
+- `permit_followback`: boolean, whether follows from followed accounts are auto-approved
 
 ### Source
 
@@ -213,6 +230,11 @@ Usage example: `GET /api/v1/statuses/?ids[]=1&ids[]=2`.
 Returns: array of Status.
 
 The maximum number of statuses is limited to 100 per request.
+
+## PUT `/api/v1/statuses/:id/emoji_reactions/:emoji`
+
+This endpoint is an extension of the Fedibird Mastodon fork.
+It behaves identical to PUT `/api/v1/pleroma/statuses/:id/reactions/:emoji`.
 
 ## PATCH `/api/v1/accounts/update_credentials`
 
