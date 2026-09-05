@@ -5,7 +5,8 @@
 defmodule Pleroma.Web.Plugs.IdempotencyPlugTest do
   # Relies on Cachex, has to stay synchronous
   use Pleroma.DataCase
-  use Plug.Test
+  import Plug.Test
+  import Plug.Conn
 
   alias Pleroma.Web.Plugs.IdempotencyPlug
   alias Plug.Conn

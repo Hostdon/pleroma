@@ -15,7 +15,7 @@ In most cases, you would need an extension installed to support parsing CJK text
  
 Once you have the new search config , make sure you test it with the `pleroma` user in PostgreSQL (change `YOUR.CONFIG` to your real configuration name)
 ```
-SELECT ts_debug('YOUR.CONFIG', '安装和配置Nginx, ElixirとErlangをインストールします');
+SELECT ts_debug('YOUR.CONFIG', '安装和配置nginx, ElixirとErlangをインストールします');
 ```
 Check output of the query, and see if it matches your expectation.
 

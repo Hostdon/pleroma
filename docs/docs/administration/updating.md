@@ -31,10 +31,14 @@ su -s "$SHELL" akkoma
 
 # Update frontend(s). See Frontend Configuration doc for more information.
 ./bin/pleroma_ctl frontend install pleroma-fe --ref stable
+
+# If there were migrations and you now experience degraded db perf
+# force the planner to pick up the changes to resolve it:
+./bin/pleroma_ctl database vacuum analyze
 ```
 
-If you selected an alternate flavour on installation, 
-you _may_ need to specify `--flavour`, in the same way as 
+If you selected an alternate flavour on installation,
+you _may_ need to specify `--flavour`, in the same way as
 [when installing](../../installation/otp_en#detecting-flavour).
 
 ## For from source installations (using git)
@@ -62,6 +66,10 @@ mix ecto.migrate
 # Start akkoma (replace with your system service manager's equivalent if different)
 sudo systemctl start akkoma
 
-# Update Akkoma-FE frontend to latest stable. For other Frontends see Frontend Configuration doc for more information.
+# Update akkoma-fe frontend to latest stable. For other Frontends see Frontend Configuration doc for more information.
 mix pleroma.frontend install pleroma-fe --ref stable
+
+# If there were migrations and you now experience degraded db perf
+# force the planner to pick up the changes to resolve it:
+mix pleroma.database vacuum analyze
 ```

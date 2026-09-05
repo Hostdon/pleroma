@@ -78,7 +78,7 @@ defmodule Pleroma.Marker do
 
   defp get_marker(user, timeline) do
     case Repo.find_resource(get_query(user, timeline)) do
-      {:ok, marker} -> %__MODULE__{marker | user: user}
+      {:ok, %__MODULE__{} = marker} -> %__MODULE__{marker | user: user}
       _ -> %__MODULE__{timeline: timeline, user_id: user.id}
     end
   end

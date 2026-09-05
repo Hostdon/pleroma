@@ -7,6 +7,8 @@ defmodule Pleroma.Docs.Translator.Compiler do
   @raw_config Pleroma.Config.Loader.read("config/description.exs")
   @raw_descriptions @raw_config[:pleroma][:config_description]
 
+  require Gettext.Macros
+
   defmacro __before_compile__(_env) do
     strings =
       __MODULE__.descriptions()
@@ -21,7 +23,8 @@ defmodule Pleroma.Docs.Translator.Compiler do
               ctxt = msgctxt_for(path, type)
 
               quote do
-                Pleroma.Web.Gettext.dpgettext_noop(
+                Gettext.Macros.dpgettext_noop_with_backend(
+                  Pleroma.Web.Gettext,
                   "config_descriptions",
                   unquote(ctxt),
                   unquote(string)

@@ -7,7 +7,24 @@ defmodule Pleroma.Workers.ReceiverWorker do
 
   alias Pleroma.Web.Federator
 
-  use Pleroma.Workers.WorkerHelper, queue: "federator_incoming"
+  use Pleroma.Workers.WorkerHelper,
+    queue: "federator_incoming",
+    unique: [
+      keys: [:op, :id],
+      # all states except :discarded
+      states: [:scheduled, :suspended, :available, :executing, :retryable, :completed, :cancelled]
+    ]
+
+  def enqueue(op, %{"id" => _} = params, worker_args), do: do_enqueue(op, params, worker_args)
+
+  def enqueue(op, %{"params" => %{"id" => id}} = params, worker_args) when is_binary(id) do
+    do_enqueue(op, Map.put(params, "id", id), worker_args)
+  end
+
+  def enqueue(op, params, worker_args) do
+    # should be rare if it happens at all (transient activity)
+    do_enqueue(op, Map.put(params, "id", Ecto.UUID.generate()), worker_args)
+  end
 
   @impl Oban.Worker
   def perform(%Job{args: %{"op" => "incoming_ap_doc", "params" => params}}) do
@@ -18,13 +35,17 @@ defmodule Pleroma.Workers.ReceiverWorker do
         {:discard, :origin_containment_failed}
 
       {:error, {:reject, reason}} ->
-        {:discard, reason}
+        {:cancel, reason}
 
       {:error, :already_present} ->
-        {:discard, :already_present}
+        {:cancel, :already_present}
 
       {:error, :ignore} ->
-        {:discard, :ignore}
+        {:cancel, :ignore}
+
+      {:error, :unsupported} ->
+        Logger.info("Received unsupported action: #{inspect(params)}")
+        {:cancel, :unsupported}
 
       # invalid data or e.g. deleting an object we don't know about anyway
       {:error, {:validate, issue}} ->
@@ -58,5 +79,9 @@ defmodule Pleroma.Workers.ReceiverWorker do
 
       # reraise to let oban handle transaction conflicts without deductig an attempt
       reraise err, __STACKTRACE__
+  end
+
+  def backoff(%Job{attempt: attempt}) when is_integer(attempt) do
+    Pleroma.Workers.WorkerHelper.sidekiq_backoff(attempt, 5)
   end
 end

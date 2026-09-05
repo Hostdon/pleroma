@@ -6,139 +6,80 @@ defmodule Pleroma.HTTP.AdapterHelper do
   @moduledoc """
   Configure Tesla.Client with default and customized adapter options.
   """
-  @defaults [name: MyFinch, pool_timeout: 5_000, receive_timeout: 5_000]
 
   @type proxy_type() :: :socks4 | :socks5
   @type host() :: charlist() | :inet.ip_address()
 
-  alias Pleroma.HTTP.AdapterHelper
+  alias Pleroma.Config
   require Logger
 
   @type proxy :: {Connection.proxy_type(), Connection.host(), pos_integer(), list()}
 
-  @callback options(keyword(), URI.t()) :: keyword()
+  @doc """
+  Merge default connection & adapter options with received ones.
+  """
+  @spec options(Keyword.t()) :: Keyword.t()
+  def options(opts \\ []) do
+    [
+      name: MyFinch,
+      pools: %{
+        default: [
+          size: Config.get!([:http, :pool_size]),
+          pool_max_idle_time: Config.get!([:http, :pool_timeout]),
+          conn_max_idle_time: Config.get!([:http, :receive_timeout]),
+          protocols: Config.get!([:http, :protocols]),
+          conn_opts: [
+            transport_opts: [
+              inet6: true,
+              inet4: true,
+              cacerts: :public_key.cacerts_get()
+            ]
+          ]
+        ]
+      }
+    ]
+    |> maybe_add_proxy_pool(Config.get([:http, :proxy_url]))
+    |> nested_merge(opts)
+    # Ensure name is not overwritten
+    |> Keyword.put(:name, MyFinch)
+  end
+
+  @spec nested_merge(Keyword.t(), Keyword.t()) :: Keyword.t()
+  defp nested_merge(k1, k2) do
+    Keyword.merge(k1, k2, &nested_merge/3)
+  end
+
+  defp nested_merge(_key, v1, v2) when is_list(v1) and is_list(v2) do
+    if Keyword.keyword?(v1) and Keyword.keyword?(v2) do
+      nested_merge(v1, v2)
+    else
+      v2
+    end
+  end
+
+  defp nested_merge(_key, v1, v2) when is_map(v1) and is_map(v2) do
+    Map.merge(v1, v2, &nested_merge/3)
+  end
+
+  defp nested_merge(_key, _v1, v2), do: v2
+
+  defp maybe_add_proxy_pool(opts, proxy_config) do
+    case format_proxy(proxy_config) do
+      nil ->
+        opts
+
+      proxy ->
+        Logger.info("Using HTTP Proxy: #{inspect(proxy)}")
+        put_in(opts, [:pools, :default, :conn_opts, :proxy], proxy)
+    end
+  end
 
   @spec format_proxy(String.t() | tuple() | nil) :: proxy() | nil
-  def format_proxy(nil), do: nil
-
-  def format_proxy(proxy_url) do
+  defp format_proxy(proxy_url) do
     case parse_proxy(proxy_url) do
       {:ok, type, host, port} -> {type, host, port, []}
       _ -> nil
     end
-  end
-
-  @spec maybe_add_proxy(keyword(), proxy() | nil) :: keyword()
-  def maybe_add_proxy(opts, nil), do: opts
-
-  def maybe_add_proxy(opts, proxy) do
-    Keyword.put(opts, :proxy, proxy)
-  end
-
-  def maybe_add_proxy_pool(opts, nil), do: opts
-
-  def maybe_add_proxy_pool(opts, proxy) do
-    Logger.info("Using HTTP Proxy: #{inspect(proxy)}")
-
-    opts
-    |> maybe_add_pools()
-    |> maybe_add_default_pool()
-    |> maybe_add_conn_opts()
-    |> put_in([:pools, :default, :conn_opts, :proxy], proxy)
-  end
-
-  def maybe_add_cacerts(opts, nil), do: opts
-
-  def maybe_add_cacerts(opts, cacerts) do
-    opts
-    |> maybe_add_pools()
-    |> maybe_add_default_pool()
-    |> maybe_add_conn_opts()
-    |> maybe_add_transport_opts()
-    |> put_in([:pools, :default, :conn_opts, :transport_opts, :cacerts], cacerts)
-  end
-
-  def add_pool_size(opts, pool_size) do
-    opts
-    |> maybe_add_pools()
-    |> maybe_add_default_pool()
-    |> put_in([:pools, :default, :size], pool_size)
-  end
-
-  def ensure_ipv6(opts) do
-    # Default transport opts already enable IPv6, so just ensure they're loaded
-    opts
-    |> maybe_add_pools()
-    |> maybe_add_default_pool()
-    |> maybe_add_conn_opts()
-    |> maybe_add_transport_opts()
-  end
-
-  defp maybe_add_pools(opts) do
-    if Keyword.has_key?(opts, :pools) do
-      opts
-    else
-      Keyword.put(opts, :pools, %{})
-    end
-  end
-
-  defp maybe_add_default_pool(opts) do
-    pools = Keyword.get(opts, :pools)
-
-    if Map.has_key?(pools, :default) do
-      opts
-    else
-      put_in(opts, [:pools, :default], [])
-    end
-  end
-
-  defp maybe_add_conn_opts(opts) do
-    conn_opts = get_in(opts, [:pools, :default, :conn_opts])
-
-    unless is_nil(conn_opts) do
-      opts
-    else
-      put_in(opts, [:pools, :default, :conn_opts], [])
-    end
-  end
-
-  defp maybe_add_transport_opts(opts) do
-    transport_opts = get_in(opts, [:pools, :default, :conn_opts, :transport_opts])
-
-    opts =
-      unless is_nil(transport_opts) do
-        opts
-      else
-        put_in(opts, [:pools, :default, :conn_opts, :transport_opts], [])
-      end
-
-    # IPv6 is disabled and IPv4 enabled by default; ensure we can use both
-    put_in(opts, [:pools, :default, :conn_opts, :transport_opts, :inet6], true)
-  end
-
-  def add_default_pool_max_idle_time(opts, pool_timeout) do
-    opts
-    |> maybe_add_pools()
-    |> maybe_add_default_pool()
-    |> put_in([:pools, :default, :pool_max_idle_time], pool_timeout)
-  end
-
-  def add_default_conn_max_idle_time(opts, connection_timeout) do
-    opts
-    |> maybe_add_pools()
-    |> maybe_add_default_pool()
-    |> put_in([:pools, :default, :conn_max_idle_time], connection_timeout)
-  end
-
-  @doc """
-  Merge default connection & adapter options with received ones.
-  """
-
-  @spec options(URI.t(), keyword()) :: keyword()
-  def options(%URI{} = uri, opts \\ []) do
-    @defaults
-    |> Keyword.merge(opts)
-    |> AdapterHelper.Default.options(uri)
   end
 
   defp proxy_type("http"), do: {:ok, :http}
@@ -149,10 +90,10 @@ defmodule Pleroma.HTTP.AdapterHelper do
           {:ok, proxy_type(), host(), pos_integer()}
           | {:error, atom()}
           | nil
-  def parse_proxy(nil), do: nil
-  def parse_proxy(""), do: nil
+  defp parse_proxy(nil), do: nil
+  defp parse_proxy(""), do: nil
 
-  def parse_proxy(proxy) when is_binary(proxy) do
+  defp parse_proxy(proxy) when is_binary(proxy) do
     with %URI{} = uri <- URI.parse(proxy),
          {:ok, type} <- proxy_type(uri.scheme) do
       {:ok, type, uri.host, uri.port}
@@ -163,39 +104,13 @@ defmodule Pleroma.HTTP.AdapterHelper do
     end
   end
 
-  def parse_proxy(proxy) when is_tuple(proxy) do
+  defp parse_proxy(proxy) when is_tuple(proxy) do
     with {type, host, port} <- proxy do
       {:ok, type, host, port}
     else
       _ ->
         Logger.warning("Parsing proxy failed #{inspect(proxy)}")
         {:error, :invalid_proxy}
-    end
-  end
-
-  @spec parse_host(String.t() | atom() | charlist()) :: charlist() | :inet.ip_address()
-  def parse_host(host) when is_list(host), do: host
-  def parse_host(host) when is_atom(host), do: to_charlist(host)
-
-  def parse_host(host) when is_binary(host) do
-    host = to_charlist(host)
-
-    case :inet.parse_address(host) do
-      {:error, :einval} -> host
-      {:ok, ip} -> ip
-    end
-  end
-
-  @spec format_host(String.t()) :: charlist()
-  def format_host(host) do
-    host_charlist = to_charlist(host)
-
-    case :inet.parse_address(host_charlist) do
-      {:error, :einval} ->
-        :idna.encode(host_charlist)
-
-      {:ok, _ip} ->
-        host_charlist
     end
   end
 end

@@ -23,8 +23,11 @@ defmodule Pleroma.RepoTest do
 
   describe "get_assoc/2" do
     test "get assoc from preloaded data" do
+      # note: this is intentionally an invalid user object (violates constraints)
+      #  to ensure this cannot live or be fetched from the database
+      #  (thus also not passed as an argument to insert())
       user = %User{name: "Agent Smith"}
-      token = %Pleroma.Web.OAuth.Token{insert(:oauth_token) | user: user}
+      token = %{insert(:oauth_token) | user: user}
       assert Repo.get_assoc(token, :user) == {:ok, user}
     end
 

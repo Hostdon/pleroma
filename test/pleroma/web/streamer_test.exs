@@ -15,8 +15,6 @@ defmodule Pleroma.Web.StreamerTest do
 
   @moduletag needs_streamer: true, capture_log: true
 
-  setup do: clear_config([:instance, :skip_thread_containment])
-
   describe "get_topic/_ (unauthenticated)" do
     test "allows public" do
       assert {:ok, "public"} = Streamer.get_topic("public", nil, nil)
@@ -203,7 +201,7 @@ defmodule Pleroma.Web.StreamerTest do
     } do
       %{token: read_lists_token} = oauth_access(["read:lists"], user: user)
       %{token: invalid_token} = oauth_access(["irrelevant:scope"], user: user)
-      {:ok, list} = List.create("Test", user)
+      {:ok, list} = List.create(%{title: "Test"}, user)
 
       assert {:error, _} = Streamer.get_topic("list:#{list.id}", user, read_oauth_token)
 
@@ -216,7 +214,7 @@ defmodule Pleroma.Web.StreamerTest do
 
     test "disallows list stream that are not owned by the user", %{user: user, token: oauth_token} do
       another_user = insert(:user)
-      {:ok, list} = List.create("Test", another_user)
+      {:ok, list} = List.create(%{title: "Test"}, another_user)
 
       assert {:error, _} = Streamer.get_topic("list:#{list.id}", user, oauth_token)
       assert {:error, _} = Streamer.get_topic("list", user, oauth_token, %{"list" => list.id})
@@ -416,7 +414,7 @@ defmodule Pleroma.Web.StreamerTest do
       token: oauth_token
     } do
       user_id = user.id
-      other_user = insert(:user)
+      other_user = insert(:user, hide_follows_count: false)
       other_user_id = other_user.id
 
       Streamer.get_topic_and_add_socket("user", user, oauth_token)
@@ -609,74 +607,6 @@ defmodule Pleroma.Web.StreamerTest do
     end
   end
 
-  describe "thread_containment/2" do
-    test "it filters to user if recipients invalid and thread containment is enabled" do
-      clear_config([:instance, :skip_thread_containment], false)
-      author = insert(:user)
-      %{user: user, token: oauth_token} = oauth_access(["read"])
-      User.follow(user, author, :follow_accept)
-
-      activity =
-        insert(:note_activity,
-          note:
-            insert(:note,
-              user: author,
-              data: %{"to" => ["TEST-FFF"]}
-            )
-        )
-
-      Streamer.get_topic_and_add_socket("public", user, oauth_token)
-      Streamer.stream("public", activity)
-      assert_receive {:render_with_user, _, _, ^activity, "public"}
-      assert Streamer.filtered_by_user?(user, activity)
-    end
-
-    test "it sends message if recipients invalid and thread containment is disabled" do
-      clear_config([:instance, :skip_thread_containment], true)
-      author = insert(:user)
-      %{user: user, token: oauth_token} = oauth_access(["read"])
-      User.follow(user, author, :follow_accept)
-
-      activity =
-        insert(:note_activity,
-          note:
-            insert(:note,
-              user: author,
-              data: %{"to" => ["TEST-FFF"]}
-            )
-        )
-
-      Streamer.get_topic_and_add_socket("public", user, oauth_token)
-      Streamer.stream("public", activity)
-
-      assert_receive {:render_with_user, _, _, ^activity, "public"}
-      refute Streamer.filtered_by_user?(user, activity)
-    end
-
-    test "it sends message if recipients invalid and thread containment is enabled but user's thread containment is disabled" do
-      clear_config([:instance, :skip_thread_containment], false)
-      author = insert(:user)
-      user = insert(:user, skip_thread_containment: true)
-      %{token: oauth_token} = oauth_access(["read"], user: user)
-      User.follow(user, author, :follow_accept)
-
-      activity =
-        insert(:note_activity,
-          note:
-            insert(:note,
-              user: author,
-              data: %{"to" => ["TEST-FFF"]}
-            )
-        )
-
-      Streamer.get_topic_and_add_socket("public", user, oauth_token)
-      Streamer.stream("public", activity)
-
-      assert_receive {:render_with_user, _, _, ^activity, "public"}
-      refute Streamer.filtered_by_user?(user, activity)
-    end
-  end
-
   describe "blocks" do
     setup do: oauth_access(["read"])
 
@@ -727,7 +657,7 @@ defmodule Pleroma.Web.StreamerTest do
 
       {:ok, user_a, user_b} = User.follow(user_a, user_b)
 
-      {:ok, list} = List.create("Test", user_a)
+      {:ok, list} = List.create(%{title: "Test"}, user_a)
       {:ok, list} = List.follow(list, user_b)
 
       Streamer.get_topic_and_add_socket("list", user_a, user_a_token, %{"list" => list.id})
@@ -744,7 +674,7 @@ defmodule Pleroma.Web.StreamerTest do
     test "it doesn't send unwanted private posts to list", %{user: user_a, token: user_a_token} do
       user_b = insert(:user)
 
-      {:ok, list} = List.create("Test", user_a)
+      {:ok, list} = List.create(%{title: "Test"}, user_a)
       {:ok, list} = List.follow(list, user_b)
 
       Streamer.get_topic_and_add_socket("list", user_a, user_a_token, %{"list" => list.id})
@@ -763,7 +693,7 @@ defmodule Pleroma.Web.StreamerTest do
 
       {:ok, user_a, user_b} = User.follow(user_a, user_b)
 
-      {:ok, list} = List.create("Test", user_a)
+      {:ok, list} = List.create(%{title: "Test"}, user_a)
       {:ok, list} = List.follow(list, user_b)
 
       Streamer.get_topic_and_add_socket("list", user_a, user_a_token, %{"list" => list.id})
@@ -867,7 +797,7 @@ defmodule Pleroma.Web.StreamerTest do
                Jason.decode!(received_event)
 
       assert %{"last_status" => last_status} = Jason.decode!(received_payload)
-      [participation] = Participation.for_user(user)
+      [%{entry: participation}] = Participation.for_user_with_pagination(user)
       assert last_status["pleroma"]["direct_conversation_id"] == participation.id
     end
 

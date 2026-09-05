@@ -4,7 +4,7 @@
 
 ## Create trusted OAuth App.
 
-Optional params:
+Optional parameters:
   * `-s SCOPES` - scopes for app, e.g. `read,write,follow,push`.
 
 === "OTP"

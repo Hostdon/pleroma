@@ -15,18 +15,17 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
   alias Pleroma.Object
   alias Pleroma.Repo
   alias Pleroma.User
+  alias Pleroma.User.Fetcher, as: UserFetcher
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Builder
   alias Pleroma.Web.ActivityPub.Pipeline
   alias Pleroma.Web.ActivityPub.Utils
-  alias Pleroma.Web.Push
+  alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Web.Streamer
   alias Pleroma.Workers.PollWorker
 
   require Pleroma.Constants
   require Logger
-
-  @logger Pleroma.Config.get([:side_effects, :logger], Logger)
 
   @behaviour Pleroma.Web.ActivityPub.SideEffects.Handling
 
@@ -122,7 +121,7 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
         nil
     end
 
-    {:ok, notifications} = Notification.create_notifications(object, do_send: false)
+    {:ok, notifications, _} = Notification.create_notifications(object)
 
     meta =
       meta
@@ -181,7 +180,8 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
     liked_object = Object.get_by_ap_id(object.data["object"])
     Utils.add_like_to_object(object, liked_object)
 
-    Notification.create_notifications(object)
+    {:ok, notifications, _} = Notification.create_notifications(object)
+    meta = add_notifications(meta, notifications)
 
     {:ok, object, meta}
   end
@@ -200,15 +200,29 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
   def handle(%{data: %{"type" => "Create"}} = activity, meta) do
     with {:ok, object, meta} <- handle_object_creation(meta[:object_data], activity, meta),
          %User{} = user <- User.get_cached_by_ap_id(activity.data["actor"]) do
-      {:ok, notifications} = Notification.create_notifications(activity, do_send: false)
+      {:ok, notifications, _} = Notification.create_notifications(activity)
       {:ok, _user} = ActivityPub.increase_note_count_if_public(user, object)
       {:ok, _user} = ActivityPub.update_last_status_at_if_public(user, object)
 
-      if in_reply_to = object.data["type"] != "Answer" && object.data["inReplyTo"] do
+      if in_reply_to =
+           object.data["type"] != "Answer" && Visibility.is_public?(object.data) &&
+             object.data["inReplyTo"] do
         Object.increase_replies_count(in_reply_to)
       end
 
       reply_depth = (meta[:depth] || 0) + 1
+
+      participations =
+        with true <- Visibility.is_direct?(activity),
+             {:ok, conversation} <-
+               ActivityPub.create_or_bump_conversation(activity, activity.actor) do
+          conversation
+          |> Repo.preload(:participations)
+          |> Map.get(:participations)
+          |> Repo.preload(:user)
+        else
+          _ -> []
+        end
 
       Pleroma.Workers.NodeInfoFetcherWorker.enqueue("process", %{
         "source_url" => activity.data["actor"]
@@ -232,6 +246,7 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
       meta =
         meta
         |> add_notifications(notifications)
+        |> add_streamables([{"participation", participations}])
 
       ap_streamer().stream_out(activity)
 
@@ -254,9 +269,11 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
 
     Utils.add_announce_to_object(object, announced_object)
 
-    if !User.is_internal_user?(user) do
-      Notification.create_notifications(object)
+    {:ok, notifications, _} = Notification.create_notifications(object)
+    meta = add_notifications(meta, notifications)
 
+    if !User.is_internal_user?(user) do
+      # XXX: this too should be added to meta and only done after transaction
       ap_streamer().stream_out(object)
     end
 
@@ -279,7 +296,8 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
     reacted_object = Object.get_by_ap_id(object.data["object"])
     Utils.add_emoji_reaction_to_object(object, reacted_object)
 
-    Notification.create_notifications(object)
+    {:ok, notifications, _} = Notification.create_notifications(object)
+    meta = add_notifications(meta, notifications)
 
     {:ok, object, meta}
   end
@@ -307,7 +325,8 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
 
             {:ok, user} = ActivityPub.decrease_note_count_if_public(user, deleted_object)
 
-            if in_reply_to = deleted_object.data["inReplyTo"] do
+            if in_reply_to =
+                 Visibility.is_public?(deleted_object.data) && deleted_object.data["inReplyTo"] do
               Object.decrease_replies_count(in_reply_to)
             end
 
@@ -316,7 +335,7 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
             :ok
           else
             {:actor, _} ->
-              @logger.error("The object doesn't have an actor: #{inspect(deleted_object)}")
+              Logger.error("The object doesn't have an actor: #{inspect(deleted_object)}")
               :no_object_actor
           end
 
@@ -409,11 +428,7 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
       changeset
       |> User.update_and_set_cache()
     else
-      {:ok, new_user_data} = ActivityPub.user_data_from_user_object(updated_object)
-
-      User.get_by_ap_id(updated_object["id"])
-      |> User.remote_user_changeset(new_user_data)
-      |> User.update_and_set_cache()
+      UserFetcher.update_user_with_apdata(updated_object)
     end
 
     {:ok, object, meta}
@@ -555,10 +570,7 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
 
   defp send_notifications(meta) do
     Keyword.get(meta, :notifications, [])
-    |> Enum.each(fn notification ->
-      Streamer.stream(["user", "user:notification"], notification)
-      Push.send(notification)
-    end)
+    |> Notification.send()
 
     meta
   end
@@ -572,12 +584,16 @@ defmodule Pleroma.Web.ActivityPub.SideEffects do
     meta
   end
 
-  defp add_notifications(meta, notifications) do
-    existing = Keyword.get(meta, :notifications, [])
-
-    meta
-    |> Keyword.put(:notifications, notifications ++ existing)
+  defp add_to_list(meta, key, entries) do
+    existing = Keyword.get(meta, key, [])
+    Keyword.put(meta, key, entries ++ existing)
   end
+
+  defp add_notifications(meta, notifications),
+    do: add_to_list(meta, :notifications, notifications)
+
+  defp add_streamables(meta, streamables),
+    do: add_to_list(meta, :streamables, streamables)
 
   @impl true
   def handle_after_transaction(meta) do

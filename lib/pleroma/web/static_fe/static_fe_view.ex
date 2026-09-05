@@ -8,11 +8,9 @@ defmodule Pleroma.Web.StaticFE.StaticFEView do
   alias Calendar.Strftime
   alias Pleroma.Emoji.Formatter
   alias Pleroma.User
-  alias Pleroma.Web.Gettext
+  use Gettext, backend: Pleroma.Web.Gettext
   alias Pleroma.Web.MediaProxy
   alias Pleroma.Web.Metadata.Utils
-
-  use Phoenix.HTML
 
   @media_types ["image", "audio", "video"]
 

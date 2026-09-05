@@ -18,8 +18,8 @@ defmodule Pleroma.Web.PleromaAPI.NotificationControllerTest do
       user2 = insert(:user)
       {:ok, activity1} = CommonAPI.post(user2, %{status: "hi @#{user1.nickname}"})
       {:ok, activity2} = CommonAPI.post(user2, %{status: "hi @#{user1.nickname}"})
-      {:ok, [notification1]} = Notification.create_notifications(activity1)
-      {:ok, [notification2]} = Notification.create_notifications(activity2)
+      {:ok, [notification1], []} = Notification.create_notifications(activity1)
+      {:ok, [notification2], []} = Notification.create_notifications(activity2)
 
       response =
         conn

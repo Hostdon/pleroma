@@ -1,5 +1,5 @@
 # How to configure upstream proxy for federation
-If you want to proxify all http requests (e.g. for TOR) that Akkoma makes to an upstream proxy server, edit your config file (`dev.secret.exs` or `prod.secret.exs`) and add the following:
+If you want to proxify all HTTP requests (e.g. for TOR) that Akkoma makes to an upstream proxy server, edit your config file (`dev.secret.exs` or `prod.secret.exs`) and add the following:
 
 ```
 config :pleroma, :http,

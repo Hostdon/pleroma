@@ -51,6 +51,11 @@ config :pleroma, Pleroma.Repo,
   queue_target: 20_000,
   migration_lock: nil
 
+# password hash strength
+config :argon2_elixir,
+  t_cost: 8,
+  parallelism: 2
+
 config :pleroma, Pleroma.Captcha,
   enabled: true,
   seconds_valid: 300,
@@ -181,20 +186,22 @@ config :tesla, :adapter, {Tesla.Adapter.Finch, name: MyFinch}
 
 # Configures http settings, upstream proxy etc.
 config :pleroma, :http,
-  pool_timeout: :timer.seconds(5),
+  pool_timeout: :timer.seconds(60),
   receive_timeout: :timer.seconds(15),
   proxy_url: nil,
+  protocols: [:http1],
   user_agent: :default,
   pool_size: 10,
-  adapter: [],
-  # see: https://hexdocs.pm/finch/Finch.html#start_link/1
-  pool_max_idle_time: :timer.seconds(30)
+  adapter: []
 
 config :pleroma, :instance,
   name: "Akkoma",
   email: "example@example.com",
   notify_email: "noreply@example.com",
+  # allowed to use HTML (if short_description is set)
   description: "Akkoma: The cooler fediverse server",
+  # only plain text (defaults to description)
+  short_description: nil,
   background_image: "/images/city.jpg",
   instance_thumbnail: "/instance/thumbnail.jpeg",
   limit: 5_000,
@@ -240,8 +247,8 @@ config :pleroma, :instance,
   safe_dm_mentions: false,
   healthcheck: false,
   remote_post_retention_days: 90,
-  skip_thread_containment: true,
   limit_to_local_content: :unauthenticated,
+  filter_embedded_nodeinfo: true,
   user_bio_length: 5000,
   user_name_length: 100,
   max_account_fields: 10,
@@ -251,7 +258,7 @@ config :pleroma, :instance,
   registration_reason_length: 500,
   external_user_synchronization: true,
   extended_nickname_format: true,
-  cleanup_attachments: false,
+  cleanup_attachments: true,
   cleanup_attachments_delay: 1800,
   multi_factor_authentication: [
     totp: [
@@ -352,16 +359,6 @@ config :pleroma, :assets,
   ],
   default_mascot: :pleroma_fox_tan
 
-config :pleroma, :manifest,
-  icons: [
-    %{
-      src: "/static/logo.svg",
-      type: "image/svg+xml"
-    }
-  ],
-  theme_color: "#282c37",
-  background_color: "#191b22"
-
 config :pleroma, :activitypub,
   unfollow_blocked: true,
   outgoing_blocks: false,
@@ -369,6 +366,7 @@ config :pleroma, :activitypub,
   follow_handshake_timeout: 500,
   note_replies_output_limit: 5,
   sign_object_fetches: true,
+  sign_query_part: true,
   authorized_fetch_mode: false,
   min_key_refetch_interval: 86_400,
   max_collection_objects: 50
@@ -558,6 +556,15 @@ config :pleroma, Pleroma.User,
   ],
   email_blacklist: []
 
+config :pleroma, :database_config_whitelist, [
+  {:pleroma},
+  {:cors_plug},
+  {:ex_aws, :s3},
+  {:mime},
+  {:web_push_encryption, :vapid_details},
+  {:logger}
+]
+
 config :pleroma, Oban,
   repo: Pleroma.Repo,
   log: false,
@@ -578,6 +585,7 @@ config :pleroma, Oban,
     remote_fetcher: 2,
     attachments_cleanup: 1,
     new_users_digest: 1,
+    digest_emails: 1,
     mute_expire: 5,
     search_indexing: 10,
     nodeinfo_fetcher: 1,
@@ -598,7 +606,7 @@ config :pleroma, Oban,
 config :pleroma, :workers,
   retries: [
     federator_incoming: 5,
-    federator_outgoing: 5,
+    federator_outgoing: 6,
     search_indexing: 2,
     rich_media_backfill: 1
   ],
@@ -773,7 +781,9 @@ config :pleroma, :frontends,
   available: %{
     "pleroma-fe" => %{
       "name" => "pleroma-fe",
-      "git" => "https://akkoma.dev/AkkomaGang/pleroma-fe",
+      "blind_trust" => true,
+      "git" => "https://akkoma.dev/AkkomaGang/akkoma-fe",
+      "bugtracker" => "https://akkoma.dev/AkkomaGang/akkoma-fe/issues",
       "build_url" =>
         "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/${ref}/akkoma-fe.zip",
       "ref" => "stable",
@@ -782,7 +792,9 @@ config :pleroma, :frontends,
     # Mastodon-Fe cannot be set as a primary - this is only here so we can update this seperately
     "mastodon-fe" => %{
       "name" => "mastodon-fe",
+      "blind_trust" => true,
       "git" => "https://akkoma.dev/AkkomaGang/masto-fe",
+      "bugtracker" => "https://akkoma.dev/AkkomaGang/masto-fe/issues",
       "build_url" =>
         "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/${ref}/masto-fe.zip",
       "build_dir" => "distribution",
@@ -790,7 +802,9 @@ config :pleroma, :frontends,
     },
     "fedibird-fe" => %{
       "name" => "fedibird-fe",
+      "blind_trust" => true,
       "git" => "https://akkoma.dev/AkkomaGang/fedibird-fe",
+      "bugtracker" => "https://akkoma.dev/AkkomaGang/fedibird-fe/issues",
       "build_url" =>
         "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/${ref}/fedibird-fe.zip",
       "build_dir" => "distribution",
@@ -798,7 +812,9 @@ config :pleroma, :frontends,
     },
     "admin-fe" => %{
       "name" => "admin-fe",
+      "blind_trust" => true,
       "git" => "https://akkoma.dev/AkkomaGang/admin-fe",
+      "bugtracker" => "https://akkoma.dev/AkkomaGang/admin-fe/issues",
       "build_url" =>
         "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/${ref}/admin-fe.zip",
       "ref" => "stable"
@@ -806,10 +822,31 @@ config :pleroma, :frontends,
     # For developers - enables a swagger frontend to view the openapi spec
     "swagger-ui" => %{
       "name" => "swagger-ui",
+      "blind_trust" => true,
       "git" => "https://github.com/swagger-api/swagger-ui",
+      # API spec definitions are part of the backend (and the swagger-ui build outdated)
+      "bugtracker" => "https://akkoma.dev/AkkomaGang/akkoma/issues",
       "build_url" => "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/swagger-ui.zip",
       "build_dir" => "dist",
       "ref" => "stable"
+    },
+    # Third-party frontends
+    "pleroma-fe-vanilla" => %{
+      "name" => "pleroma-fe-vanilla",
+      "git" => "https://git.pleroma.social/pleroma/pleroma-fe/",
+      "build_url" =>
+        "https://git.pleroma.social/api/packages/pleroma/generic/pleroma-fe-builds/${ref}/latest.zip",
+      "ref" => "develop",
+      "build_dir" => "dist",
+      "bugtracker" => "https://git.pleroma.social/pleroma/pleroma-fe/issues"
+    },
+    "pl-fe" => %{
+      "name" => "pl-fe",
+      "git" => "https://codeberg.org/mkljczk/pl-fe",
+      "build_url" => "https://pl.mkljczk.pl/pl-fe.zip",
+      "ref" => "develop",
+      "build_dir" => ".",
+      "bugtracker" => "https://codeberg.org/mkljczk/pl-fe/issues"
     }
   }
 
@@ -823,7 +860,6 @@ config :pleroma, configurable_from_database: false
 
 config :pleroma, Pleroma.Repo,
   parameters: [
-    gin_fuzzy_search_limit: "500",
     plan_cache_mode: "force_custom_plan"
   ]
 
@@ -834,7 +870,8 @@ private_instance? = :if_instance_is_private
 config :pleroma, :restrict_unauthenticated,
   timelines: %{local: private_instance?, federated: private_instance?, bubble: true},
   profiles: %{local: private_instance?, remote: private_instance?},
-  activities: %{local: private_instance?, remote: private_instance?}
+  activities: %{local: private_instance?, remote: private_instance?},
+  search: %{all: private_instance?, resolve: true, paginate: true}
 
 config :pleroma, Pleroma.Web.ApiSpec.CastAndValidate, strict: false
 
@@ -866,9 +903,18 @@ config :pleroma, ConcurrentLimiter, [
   {Pleroma.Search, [max_running: 30, max_waiting: 50]}
 ]
 
-config :pleroma, Pleroma.Web.WebFinger, domain: nil, update_nickname_on_user_fetch: true
+config :pleroma, Pleroma.Web.WebFinger,
+  domain: nil,
+  # this _forces_ a nickname rediscovery and validation, otherwise only updates when detecting a change
+  # TODO: default this to false after the fallout from recent WebFinger bugs is healed
+  update_nickname_on_user_fetch: true
 
-config :pleroma, Pleroma.Search, module: Pleroma.Search.DatabaseSearch
+config :pleroma, Pleroma.Search,
+  module: Pleroma.Search.DatabaseSearch,
+  # note this + pre- & postprocessing needs to fit into Phoenix/Cowboy’s timeout too (default: 60s)
+  task_timeout: 45_000
+
+config :pleroma, Pleroma.Search.DatabaseSearch, gin_fuzzy_search_limit: nil
 
 config :pleroma, Pleroma.Search.Meilisearch,
   url: "http://127.0.0.1:7700/",

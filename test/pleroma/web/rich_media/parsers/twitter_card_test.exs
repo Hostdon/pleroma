@@ -102,7 +102,7 @@ defmodule Pleroma.Web.RichMedia.Parsers.TwitterCardTest do
              }
   end
 
-  test "takes first founded title in html head if there is html markup error" do
+  test "takes first found title in html head if there is html markup error" do
     html =
       File.read!("test/fixtures/nypd-facial-recognition-children-teenagers4.html")
       |> Floki.parse_document!()

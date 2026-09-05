@@ -62,6 +62,18 @@ frontend_options = [
     description: "The directory inside the zip file "
   },
   %{
+    key: "blind_trust",
+    label: "Blindly trust frontend devs?",
+    type: :boolean,
+    description: "Do NOT change this unless you’re really sure"
+  },
+  %{
+    key: "bugtracker",
+    label: "Bug tracker",
+    type: :string,
+    description: "Where to report bugs (for third-party FEs)"
+  },
+  %{
     key: "custom-http-headers",
     label: "Custom HTTP headers",
     type: {:list, :string},
@@ -298,7 +310,7 @@ config :pleroma, :config_description, [
         key: :ssl,
         label: "Use SSL",
         type: :boolean,
-        description: "Use Implicit SSL/TLS. e.g. port 465"
+        description: "Use Implicit SSL/TLS. e.g. port 465; default: true"
       },
       %{
         group: {:subgroup, Swoosh.Adapters.SMTP},
@@ -566,7 +578,16 @@ config :pleroma, :config_description, [
         key: :description,
         type: :string,
         description:
-          "The instance's description. It can be seen in nodeinfo and `/api/v1/instance`",
+          "The instance's description. It may use HTML and can be seen in `/api/v1/instance` and nodeifno if no short description is set",
+        suggestions: [
+          "Very cool instance"
+        ]
+      },
+      %{
+        key: :short_description,
+        type: :string,
+        description:
+          "A brief instance description. It must be plain text and can be seen in `/api/v1/instance` and nodeinfo",
         suggestions: [
           "Very cool instance"
         ]
@@ -841,11 +862,6 @@ config :pleroma, :config_description, [
         suggestions: [
           100
         ]
-      },
-      %{
-        key: :skip_thread_containment,
-        type: :boolean,
-        description: "Skip filtering out broken threads. Default: enabled."
       },
       %{
         key: :limit_to_local_content,
@@ -1480,8 +1496,7 @@ config :pleroma, :config_description, [
     group: :pleroma,
     key: :manifest,
     type: :group,
-    description:
-      "This section describe PWA manifest instance-specific values. Currently this option relate only for MastoFE.",
+    description: "This section describe PWA manifest instance-specific values.",
     children: [
       %{
         key: :icons,
@@ -3100,6 +3115,29 @@ config :pleroma, :config_description, [
             description: "Disallow viewing remote posts."
           }
         ]
+      },
+      %{
+        key: :search,
+        type: :map,
+        description: "Settings for search endpoints.",
+        children: [
+          %{
+            key: :all,
+            type: :boolean,
+            description: "Disallow search access entirely."
+          },
+          %{
+            key: :resolve,
+            type: :boolean,
+            description: "Disallow fetching not-yet-known remote content via search."
+          },
+          %{
+            key: :paginate,
+            type: :boolean,
+            description:
+              "Disallow traversing past the first page of results (search pagination can be inefficient)."
+          }
+        ]
       }
     ]
   },
@@ -3241,8 +3279,7 @@ config :pleroma, :config_description, [
         suggestions: [
           Pleroma.Web.Preload.Providers.Instance,
           Pleroma.Web.Preload.Providers.User,
-          Pleroma.Web.Preload.Providers.Timelines,
-          Pleroma.Web.Preload.Providers.StatusNet
+          Pleroma.Web.Preload.Providers.Timelines
         ]
       }
     ]
@@ -3341,6 +3378,12 @@ config :pleroma, :config_description, [
         type: :module,
         description: "Selected search module.",
         suggestions: {:list_behaviour_implementations, Pleroma.Search.SearchBackend}
+      },
+      %{
+        key: :task_timeout,
+        type: :integer,
+        description: "Timeout for individual search tasks.",
+        suggestions: [45_000]
       }
     ]
   },
@@ -3475,7 +3518,7 @@ config :pleroma, :config_description, [
         key: :module,
         type: :module,
         description: "Translation module.",
-        suggestions: {:list_behaviour_implementations, Pleroma.Akkoma.Translator}
+        suggestions: {:list_behaviour_implementations, Pleroma.Akkoma.Translator.Provider}
       }
     ]
   },

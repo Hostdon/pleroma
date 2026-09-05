@@ -44,11 +44,12 @@ defmodule Pleroma.Workers.AttachmentsCleanupWorker do
         }
       }) do
     attachments
+    |> filter_active_media_objects()
     |> Enum.flat_map(fn item -> Enum.map(item["url"], & &1["href"]) end)
-    |> fetch_objects
+    |> fetch_all_objects_for_files()
     |> prepare_objects(actor, Enum.map(attachments, & &1["name"]))
-    |> filter_objects
-    |> do_clean
+    |> filter_reused_files()
+    |> do_clean()
 
     {:ok, :success}
   end
@@ -90,9 +91,9 @@ defmodule Pleroma.Workers.AttachmentsCleanupWorker do
 
   defp delete_objects(_), do: :ok
 
-  # we should delete 1 object for any given attachment, but don't delete
-  # files if there are more than 1 object for it
-  defp filter_objects(objects) do
+  # we should delete 1 unused attachment object for any given attachment,
+  # but don't delete the files if also referenced by another attachment object
+  defp filter_reused_files(objects) do
     Enum.reduce(objects, {[], []}, fn {href, %{id: id, count: count}}, {ids, hrefs} ->
       with 1 <- count do
         {ids ++ [id], hrefs ++ [href]}
@@ -127,7 +128,7 @@ defmodule Pleroma.Workers.AttachmentsCleanupWorker do
     end)
   end
 
-  defp fetch_objects(hrefs) do
+  defp fetch_all_objects_for_files(hrefs) do
     from(o in Object,
       where:
         fragment(
@@ -140,5 +141,34 @@ defmodule Pleroma.Workers.AttachmentsCleanupWorker do
     # The query above can be time consumptive on large instances until we
     # refactor how uploads are stored
     |> Repo.all(timeout: :infinity)
+  end
+
+  # do not delete attachment objects still referenced in a non-deleted status
+  def filter_active_media_objects(objects) do
+    obj_id_candidates =
+      objects
+      |> Enum.map(fn data -> data["id"] end)
+      |> Enum.reject(&(&1 == nil))
+
+    # Needs to be subquery to prevent json_array_elelemtns to run on null values
+    objects_with_attachments =
+      Object
+      |> where([o], fragment("jsonb_typeof(?->'attachment') = 'array'", o.data))
+
+    used_ids =
+      subquery(objects_with_attachments)
+      |> join(
+        :cross_lateral,
+        [o],
+        ua in fragment("jsonb_array_elements(?->'attachment')", o.data)
+      )
+      |> join(:inner, [_o, ua], id in fragment("UNNEST(?::text[])", ^obj_id_candidates),
+        on: fragment("? = ?->>'id'", id, ua)
+      )
+      |> select([_o, _ua, id], fragment("?", id))
+      |> distinct(true)
+      |> Repo.all(timeout: :infinity)
+
+    Enum.filter(objects, fn data -> data["id"] && data["id"] not in used_ids end)
   end
 end

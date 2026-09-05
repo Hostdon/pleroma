@@ -4,5 +4,5 @@
 
 defmodule Pleroma.Web.Mailer.SubscriptionView do
   use Pleroma.Web, :view
-  alias Pleroma.Web.Gettext
+  use Gettext, backend: Pleroma.Web.Gettext
 end

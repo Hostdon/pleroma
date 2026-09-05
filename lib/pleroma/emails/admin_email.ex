@@ -10,10 +10,6 @@ defmodule Pleroma.Emails.AdminEmail do
   alias Pleroma.Config
   alias Pleroma.HTML
 
-  use Phoenix.VerifiedRoutes,
-    endpoint: Pleroma.Web.Endpoint,
-    router: Pleroma.Web.Router
-
   defp instance_config, do: Config.get(:instance)
   defp instance_name, do: instance_config()[:name]
 

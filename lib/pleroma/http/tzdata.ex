@@ -10,15 +10,15 @@ defmodule Pleroma.HTTP.Tzdata do
   alias Pleroma.HTTP
 
   @impl true
-  def get(url, headers, options) do
-    with {:ok, %Tesla.Env{} = env} <- HTTP.get(url, headers, options) do
+  def get(url, headers, _options) do
+    with {:ok, %Tesla.Env{} = env} <- HTTP.get(url, headers) do
       {:ok, {env.status, env.headers, env.body}}
     end
   end
 
   @impl true
-  def head(url, headers, options) do
-    with {:ok, %Tesla.Env{} = env} <- HTTP.head(url, headers, options) do
+  def head(url, headers, _options) do
+    with {:ok, %Tesla.Env{} = env} <- HTTP.head(url, headers) do
       {:ok, {env.status, env.headers}}
     end
   end

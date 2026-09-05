@@ -22,6 +22,7 @@ defmodule Pleroma.FrontendTest do
       "pleroma" => %{
         "ref" => "fantasy",
         "name" => "pleroma",
+        "blind_trust" => true,
         "build_url" => "http://gensokyo.2hu/builds/${ref}"
       }
     })
@@ -40,6 +41,7 @@ defmodule Pleroma.FrontendTest do
       "pleroma" => %{
         "ref" => "fantasy",
         "name" => "pleroma",
+        "blind_trust" => true,
         "build_dir" => ""
       }
     })

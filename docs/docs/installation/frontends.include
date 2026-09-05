@@ -8,6 +8,7 @@ command to install.
 
 You **must** run frontend management tasks as the akkoma user,
 the same way you downloaded the build or cloned the git repo before.
+This includes adding the same `MIX_ENV=…` prefix as used in prior commands if any!
 But otherwise, for most installations, the following will suffice:
 
 === "OTP" 

@@ -8,9 +8,10 @@ defmodule Pleroma.SignatureTest do
 
   import Pleroma.Factory
   import Tesla.Mock
-  import Mock
 
+  alias HTTPSignatures.HTTPKey
   alias Pleroma.Signature
+  alias Pleroma.User.SigningKey
 
   setup do
     mock(fn env -> apply(HttpRequestMock, :request, [env]) end)
@@ -28,20 +29,27 @@ defmodule Pleroma.SignatureTest do
     65_537
   }
 
-  defp make_fake_signature(key_id), do: "keyId=\"#{key_id}\""
+  defp keyid(user = %Pleroma.User{}), do: keyid(user.ap_id)
+  defp keyid(user_ap_id), do: user_ap_id <> "#main-key"
 
-  defp make_fake_conn(key_id),
-    do: %Plug.Conn{req_headers: %{"signature" => make_fake_signature(key_id <> "#main-key")}}
+  defp assert_key(retval, refkey, refuser) do
+    assert match?(
+             {:ok, %HTTPKey{key: ^refkey, user_data: %{"key_user" => %Pleroma.User{}}}},
+             retval
+           )
+
+    {:ok, key} = retval
+    # Avoid comparison failures from (not) loaded Ecto associations etc
+    assert refuser.id == key.user_data["key_user"].id
+  end
 
   describe "fetch_public_key/1" do
     test "it returns the key" do
-      expected_result = {:ok, @rsa_public_key}
-
       user =
         insert(:user)
         |> with_signing_key(public_key: @public_key)
 
-      assert Signature.fetch_public_key(make_fake_conn(user.ap_id)) == expected_result
+      assert_key(Signature.fetch_public_key(keyid(user), nil), @rsa_public_key, user)
     end
 
     test "it returns error if public key is nil" do
@@ -50,7 +58,7 @@ defmodule Pleroma.SignatureTest do
       key_id = user.ap_id <> "#main-key"
       Tesla.Mock.mock(fn %{url: ^key_id} -> {:ok, %{status: 404}} end)
 
-      assert {:error, _} = Signature.fetch_public_key(make_fake_conn(user.ap_id))
+      assert {:error, _} = Signature.fetch_public_key(keyid(user), nil)
     end
   end
 
@@ -60,16 +68,17 @@ defmodule Pleroma.SignatureTest do
       ap_id = "https://mastodon.social/users/lambadalambda"
 
       %Pleroma.User{signing_key: sk} =
+        user =
         Pleroma.User.get_or_fetch_by_ap_id(ap_id)
         |> then(fn {:ok, u} -> u end)
-        |> Pleroma.User.SigningKey.load_key()
+        |> SigningKey.load_key()
 
       {:ok, _} =
         %{sk | public_key: "-----BEGIN PUBLIC KEY-----\nasdfghjkl"}
         |> Ecto.Changeset.change()
         |> Pleroma.Repo.update()
 
-      assert Signature.refetch_public_key(make_fake_conn(ap_id)) == {:ok, @rsa_public_key}
+      assert_key(Signature.refetch_public_key(keyid(ap_id), nil), @rsa_public_key, user)
     end
   end
 
@@ -111,30 +120,20 @@ defmodule Pleroma.SignatureTest do
         |> with_signing_key(private_key: @private_key)
 
       headers = %{
-        host: "test.test",
-        "content-length": "100"
+        "host" => "test.test",
+        "content-length" => "100",
+        "date" => "Fri, 23 Aug 2019 18:11:24 GMT",
+        "digest" => "SHA-256=a29cdd711788c5118a2256c00d31519e0a5a0d4b144214e012f81e67b80b0ec1",
+        "(request-target)" => "post https://example.com/inbox"
       }
 
       assert_signature_equal(
         Signature.sign(
-          user,
+          user.signing_key,
           headers
         ),
-        "keyId=\"https://mastodon.social/users/lambadalambda#main-key\",algorithm=\"rsa-sha256\",headers=\"content-length host\",signature=\"sibUOoqsFfTDerquAkyprxzDjmJm6erYc42W5w1IyyxusWngSinq5ILTjaBxFvfarvc7ci1xAi+5gkBwtshRMWm7S+Uqix24Yg5EYafXRun9P25XVnYBEIH4XQ+wlnnzNIXQkU3PU9e6D8aajDZVp3hPJNeYt1gIPOA81bROI8/glzb1SAwQVGRbqUHHHKcwR8keiR/W2h7BwG3pVRy4JgnIZRSW7fQogKedDg02gzRXwUDFDk0pr2p3q6bUWHUXNV8cZIzlMK+v9NlyFbVYBTHctAR26GIAN6Hz0eV0mAQAePHDY1mXppbA8Gpp6hqaMuYfwifcXmcc+QFm4e+n3A==\""
+        ~s|keyId="https://mastodon.social/users/lambadalambda#main-key",algorithm="rsa-sha256",headers="(request-target) content-length date digest host",signature="fhOT6IBThnCo6rv2Tv8BRXLV7LvVf/7wTX/bbPLtdq5A4GUqrmXUcY5p77jQ6NU9IRIVczeeStxQV6TrHqk/qPdqQOzDcB6cWsSfrB1gsTinBbAWdPzQYqUOTl+Minqn2RERAfPebKYr9QGa0sTODDHvze/UFPuL8a1lDO2VQE0lRCdg49Igr8pGl/CupUx8Fb874omqP0ba3M+siuKEwo02m9hHcbZUeLSN0ZVdvyTMttyqPM1BfwnFXkaQRAblLTyzt4Fv2+fTN+zPipSxJl1YIo1TsmwNq9klqImpjh8NHM3MJ5eZxTZ109S6Q910n1Lm46V/SqByDaYeg9g7Jw=="|
       )
-    end
-  end
-
-  describe "signed_date" do
-    test "it returns formatted current date" do
-      with_mock(NaiveDateTime, utc_now: fn -> ~N[2019-08-23 18:11:24.822233] end) do
-        assert Signature.signed_date() == "Fri, 23 Aug 2019 18:11:24 GMT"
-      end
-    end
-
-    test "it returns formatted date" do
-      assert Signature.signed_date(~N[2019-08-23 08:11:24.822233]) ==
-               "Fri, 23 Aug 2019 08:11:24 GMT"
     end
   end
 end

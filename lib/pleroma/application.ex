@@ -44,9 +44,6 @@ defmodule Pleroma.Application do
     # every time the application is restarted, so we disable module
     # conflicts at runtime
     Code.compiler_options(ignore_module_conflict: true)
-    # Disable warnings_as_errors at runtime, it breaks Phoenix live reload
-    # due to protocol consolidation warnings
-    Code.compiler_options(warnings_as_errors: false)
     Config.Holder.save_default()
     Pleroma.HTML.compile_scrubbers()
     Pleroma.Config.Oban.warn()
@@ -71,14 +68,13 @@ defmodule Pleroma.Application do
         http_children() ++
         [
           Pleroma.Stats,
-          Pleroma.JobQueueMonitor,
           {Majic.Pool, [name: Pleroma.MajicPool, pool_size: Config.get([:majic_pool, :size], 2)]},
           {Oban, Config.get(Oban)},
           Pleroma.Web.Endpoint,
           Pleroma.Web.Telemetry
         ] ++
         elasticsearch_children() ++
-        task_children(@mix_env) ++
+        task_children() ++
         dont_run_in_test(@mix_env)
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
@@ -148,34 +144,89 @@ defmodule Pleroma.Application do
 
   defp cachex_children do
     [
-      build_cachex("used_captcha", ttl_interval: seconds_valid_interval()),
-      build_cachex("user", default_ttl: 25_000, ttl_interval: 1000, limit: 2500),
-      build_cachex("object", default_ttl: 25_000, ttl_interval: 1000, limit: 2500),
-      build_cachex("rich_media", default_ttl: :timer.minutes(120), limit: 5000),
-      build_cachex("scrubber", limit: 2500),
-      build_cachex("scrubber_management", limit: 2500),
-      build_cachex("idempotency", expiration: idempotency_expiration(), limit: 2500),
-      build_cachex("web_resp", limit: 2500),
-      build_cachex("emoji_packs", expiration: emoji_packs_expiration(), limit: 10),
-      build_cachex("failed_proxy_url", limit: 2500),
-      build_cachex("banned_urls", default_ttl: :timer.hours(24 * 30), limit: 5_000),
-      build_cachex("translations", default_ttl: :timer.hours(24 * 30), limit: 2500),
-      build_cachex("instances", default_ttl: :timer.hours(24), ttl_interval: 1000, limit: 2500),
-      build_cachex("request_signatures", default_ttl: :timer.hours(24 * 30), limit: 3000),
-      build_cachex("rel_me", default_ttl: :timer.hours(24 * 30), limit: 300),
-      build_cachex("host_meta", default_ttl: :timer.minutes(120), limit: 5000),
-      build_cachex("http_backoff", default_ttl: :timer.hours(24 * 30), limit: 10000)
+      build_cachex(
+        "used_captcha",
+        expiration: expiration(interval: seconds_valid_interval())
+      ),
+      build_cachex(
+        "user",
+        expiration: expiration(default: 3_000, interval: 1_000),
+        hooks: [cachex_sched_limit(2500)]
+      ),
+      build_cachex(
+        "object",
+        expiration: expiration(default: 3_000, interval: 1_000),
+        hooks: [cachex_sched_limit(2500)]
+      ),
+      build_cachex(
+        "rich_media",
+        expiration: expiration(default: :timer.hours(2)),
+        hooks: [cachex_sched_limit(5000)]
+      ),
+      build_cachex(
+        "scrubber",
+        hooks: [cachex_sched_limit(2500)]
+      ),
+      build_cachex(
+        "scrubber_management",
+        hooks: [cachex_sched_limit(2500)]
+      ),
+      build_cachex(
+        "idempotency",
+        expiration: expiration(default: :timer.hours(6), interval: :timer.minutes(1)),
+        hooks: [cachex_sched_limit(2500, [], frequency: :timer.minutes(1))]
+      ),
+      build_cachex(
+        "web_resp",
+        hooks: [cachex_sched_limit(2500)]
+      ),
+      build_cachex(
+        "emoji_packs",
+        expiration: expiration(default: :timer.minutes(5), interval: :timer.minutes(1)),
+        hooks: [cachex_sched_limit(10)]
+      ),
+      build_cachex(
+        "failed_proxy_url",
+        hooks: [cachex_sched_limit(2500)]
+      ),
+      build_cachex(
+        "banned_urls",
+        expiration: expiration(default: :timer.hours(24 * 30)),
+        hooks: [cachex_sched_limit(5_000, [], frequency: :timer.minutes(5))]
+      ),
+      build_cachex(
+        "translations",
+        expiration: expiration(default: :timer.hours(24 * 30)),
+        hooks: [cachex_sched_limit(2500)]
+      ),
+      build_cachex(
+        "instances",
+        expiration: expiration(default: :timer.hours(24), interval: 1000),
+        hooks: [cachex_sched_limit(2500)]
+      ),
+      build_cachex(
+        "rel_me",
+        expiration: expiration(default: :timer.hours(24 * 30)),
+        hooks: [cachex_sched_limit(300, [], frequency: :timer.minutes(1))]
+      ),
+      build_cachex(
+        "host_meta",
+        expiration: expiration(default: :timer.minutes(120)),
+        hooks: [cachex_sched_limit(5000, [], frequency: :timer.minutes(1))]
+      ),
+      build_cachex(
+        "http_backoff",
+        expiration: expiration(default: :timer.hours(24 * 30)),
+        hooks: [cachex_sched_limit(10_000, [], frequency: :timer.minutes(5))]
+      )
     ]
   end
 
-  defp emoji_packs_expiration,
-    do: expiration(default: :timer.seconds(5 * 60), interval: :timer.seconds(60))
-
-  defp idempotency_expiration,
-    do: expiration(default: :timer.seconds(6 * 60 * 60), interval: :timer.seconds(60))
-
   defp seconds_valid_interval,
     do: :timer.seconds(Config.get!([Pleroma.Captcha, :seconds_valid]))
+
+  defp cachex_sched_limit(limit, prune_opts \\ [], sched_opts \\ []),
+    do: hook(module: Cachex.Limit.Scheduled, args: {limit, prune_opts, sched_opts})
 
   @spec build_cachex(String.t(), keyword()) :: map()
   def build_cachex(type, opts),
@@ -204,31 +255,29 @@ defmodule Pleroma.Application do
     ]
   end
 
-  @spec task_children(atom()) :: [map()]
+  @spec task_children() :: [map()]
+  defp task_children() do
+    always =
+      [
+        %{
+          id: :web_push_init,
+          start: {Task, :start_link, [&Pleroma.Web.Push.init/0]},
+          restart: :temporary
+        }
+      ]
 
-  defp task_children(:test) do
-    [
-      %{
-        id: :web_push_init,
-        start: {Task, :start_link, [&Pleroma.Web.Push.init/0]},
-        restart: :temporary
-      }
-    ]
-  end
-
-  defp task_children(_) do
-    [
-      %{
-        id: :web_push_init,
-        start: {Task, :start_link, [&Pleroma.Web.Push.init/0]},
-        restart: :temporary
-      },
-      %{
-        id: :internal_fetch_init,
-        start: {Task, :start_link, [&Pleroma.Web.ActivityPub.InternalFetchActor.init/0]},
-        restart: :temporary
-      }
-    ]
+    if @mix_env == :test do
+      always
+    else
+      [
+        %{
+          id: :internal_fetch_init,
+          start: {Task, :start_link, [&Pleroma.Web.ActivityPub.InternalFetchActor.init/0]},
+          restart: :temporary
+        }
+        | always
+      ]
+    end
   end
 
   @spec elasticsearch_children :: [Pleroma.Search.Elasticsearch.Cluster]
@@ -262,23 +311,11 @@ defmodule Pleroma.Application do
   end
 
   defp http_children do
-    proxy_url = Config.get([:http, :proxy_url])
-    proxy = Pleroma.HTTP.AdapterHelper.format_proxy(proxy_url)
-    pool_size = Config.get([:http, :pool_size], 10)
-    pool_timeout = Config.get([:http, :pool_timeout], 60_000)
-    connection_timeout = Config.get([:http, :conn_max_idle_time], 10_000)
-
     :public_key.cacerts_load()
 
     config =
-      [:http, :adapter]
-      |> Config.get([])
-      |> Pleroma.HTTP.AdapterHelper.add_pool_size(pool_size)
-      |> Pleroma.HTTP.AdapterHelper.maybe_add_proxy_pool(proxy)
-      |> Pleroma.HTTP.AdapterHelper.ensure_ipv6()
-      |> Pleroma.HTTP.AdapterHelper.add_default_conn_max_idle_time(connection_timeout)
-      |> Pleroma.HTTP.AdapterHelper.add_default_pool_max_idle_time(pool_timeout)
-      |> Keyword.put(:name, MyFinch)
+      Config.get([:http, :adapter])
+      |> Pleroma.HTTP.AdapterHelper.options()
 
     [{Finch, config}]
   end

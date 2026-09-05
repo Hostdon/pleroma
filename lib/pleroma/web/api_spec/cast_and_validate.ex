@@ -15,8 +15,11 @@ defmodule Pleroma.Web.ApiSpec.CastAndValidate do
 
   @behaviour Plug
 
+  alias OpenApiSpex.Cast
   alias OpenApiSpex.Plug.PutApiSpec
   alias Plug.Conn
+
+  use Gettext, backend: Pleroma.Web.Gettext
 
   @impl Plug
   def init(opts) do
@@ -26,6 +29,9 @@ defmodule Pleroma.Web.ApiSpec.CastAndValidate do
   end
 
   @impl Plug
+
+  # How often to attempt removing errors and retrying validation in permissive mode
+  @max_retries 10
 
   def call(conn, %{operation_id: operation_id, render_error: render_error}) do
     {spec, operation_lookup} = PutApiSpec.get_spec_and_operation_lookup(conn)
@@ -99,31 +105,62 @@ defmodule Pleroma.Web.ApiSpec.CastAndValidate do
   end
 
   defp cast_and_validate(spec, operation, conn, content_type, false = _strict) do
-    case OpenApiSpex.cast_and_validate(spec, operation, conn, content_type) do
+    with {:error, errors} <- OpenApiSpex.cast_and_validate(spec, operation, conn, content_type),
+         state <- conn.private[:akkoma_api_spec] || %{},
+         {_, _, attempt} when attempt < @max_retries <- {:attempt, errors, state[:attempt] || 0} do
+      case strip_errors(errors, conn.query_params) do
+        {:error, _} = err ->
+          err
+
+        {:ok, query_params} ->
+          state = Map.put(state, :attempt, attempt + 1)
+          private = Map.put(conn.private, :akkoma_api_spec, state)
+
+          conn =
+            conn
+            |> Map.put(:query_params, query_params)
+            |> Map.put(:private, private)
+
+          cast_and_validate(spec, operation, conn, content_type, false)
+      end
+    else
       {:ok, conn} ->
         {:ok, conn}
 
-      # Remove unexpected query params and cast/validate again
-      {:error, errors} ->
-        query_params =
-          Enum.reduce(errors, conn.query_params, fn
-            %{reason: :unexpected_field, name: name, path: [name]}, params ->
-              Map.delete(params, name)
+      {:attempt, errors, _} ->
+        Cast.error(
+          %{path: ["/"], value: @max_retries, errors: errors},
+          {:custom, dgettext("errors", "too many bad parameters.")}
+        )
+    end
+  end
 
-            # Filter out empty params
-            %{reason: :invalid_type, path: [name_atom], value: ""}, params ->
-              Map.delete(params, to_string(name_atom))
+  @spec strip_errors([OpenApiSpex.Cast.Error.t()], Plug.Conn.query_params()) ::
+          {:error, [OpenApiSpex.Cast.Error.t()]} | {:ok, Plug.Conn.query_params()}
+  defp strip_errors(errors, query_params) do
+    res =
+      Enum.reduce_while(errors, query_params, fn
+        %{reason: :unexpected_field, name: name, path: [name]}, params ->
+          res = Map.delete(params, name)
+          {:cont, res}
 
-            %{reason: :invalid_enum, name: nil, path: path, value: value}, params ->
-              path = path |> Enum.reverse() |> tl() |> Enum.reverse() |> list_items_to_string()
-              update_in(params, path, &List.delete(&1, value))
+        # Filter out empty params
+        %{reason: :invalid_type, path: [name_atom], value: ""}, params ->
+          res = Map.delete(params, to_string(name_atom))
+          {:cont, res}
 
-            _, params ->
-              params
-          end)
+        %{reason: :invalid_enum, name: nil, path: path, value: value}, params ->
+          path = path |> Enum.reverse() |> tl() |> Enum.reverse() |> list_items_to_string()
+          res = update_in(params, path, &List.delete(&1, value))
+          {:cont, res}
 
-        conn = %Conn{conn | query_params: query_params}
-        OpenApiSpex.cast_and_validate(spec, operation, conn, content_type)
+        _err, _params ->
+          {:halt, {:error, errors}}
+      end)
+
+    case res do
+      {:error, _} = err -> err
+      res -> {:ok, res}
     end
   end
 

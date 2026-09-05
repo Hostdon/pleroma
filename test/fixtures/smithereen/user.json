@@ -1,0 +1,250 @@
+{
+  "type": "Person",
+  "id": "https://smithereen.example/users/1",
+  "attachment": [
+    {
+      "type": "PropertyValue",
+      "name": "Website",
+      "value": "<a href=\"https://grishka.me\" rel=\"me\">https://grishka.me</a>"
+    },
+    {
+      "type": "PropertyValue",
+      "name": "Matrix",
+      "value": "<a href=\"https://matrix.to/#/@grishk:matrix.org\" rel=\"me\">@grishk:matrix.org</a>"
+    },
+    {
+      "type": "PropertyValue",
+      "name": "Telegram",
+      "value": "<a href=\"https://t.me/grishka\" rel=\"me\">grishka</a>"
+    },
+    {
+      "type": "PropertyValue",
+      "name": "Twitter",
+      "value": "<a href=\"https://twitter.com/grishka11\" rel=\"me\">grishka11</a>"
+    },
+    {
+      "type": "PropertyValue",
+      "name": "Git",
+      "value": "<a href=\"https://github.com/grishka\" rel=\"me\">https://github.com/grishka</a>"
+    }
+  ],
+  "name": "Григорий Клюшников",
+  "icon": {
+    "type": "Image",
+    "width": 573,
+    "height": 572,
+    "cropRegion": [
+      0.26422762870788574,
+      0.3766937553882599,
+      0.7113820910453796,
+      0.9728997349739075
+    ],
+    "image": {
+      "type": "Image",
+      "url": "https://smithereen.example/i/-QttwTPRJpjwkRrB1MuI1zS--NGKf8r-K18LZAkqQ6g/q:93/bG9jYWw6Ly8vcy91cGxvYWRzLzAxLzAwLzAwLzloTWJvTzgyQzZnSV9GeHZVVVFUdUgzT19mNC0wVUczRmFfTS53ZWJw.jpg",
+      "mediaType": "image/jpeg",
+      "width": 1280,
+      "height": 960
+    },
+    "url": "https://smithereen.example/i/EWM-QfEuhSLizijJLta-0NWvN0KT2YJNfclg-Uvkxag/c:573:572:nowe:338:362/q:93/bG9jYWw6Ly8vcy91cGxvYWRzLzAxLzAwLzAwLzloTWJvTzgyQzZnSV9GeHZVVVFUdUgzT19mNC0wVUczRmFfTS53ZWJw.jpg",
+    "mediaType": "image/jpeg"
+  },
+  "summary": "<p>I mostly post in Russian here. My English-language account is <a href=\"https://mastodon.social/@grishka\">@grishka@mastodon.social</a>.</p>",
+  "url": "https://smithereen.example/grishka",
+  "preferredUsername": "grishka",
+  "inbox": "https://smithereen.example/users/1/inbox",
+  "outbox": "https://smithereen.example/users/1/outbox",
+  "followers": "https://smithereen.example/users/1/followers",
+  "following": "https://smithereen.example/users/1/following",
+  "endpoints": {
+    "sharedInbox": "https://smithereen.example/activitypub/sharedInbox",
+    "collectionSimpleQuery": "https://smithereen.example/users/1/collectionQuery"
+  },
+  "publicKey": {
+    "id": "https://smithereen.example/users/1#main-key",
+    "owner": "https://smithereen.example/users/1",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAjlakm+i/d9ER/hIeR7Kf\niFW+SdLZj2SkKIeM8cmR+YFJuh9ghFqXrkFEjcaqUnAFqe5gYDNSQACnDLA8y4Dn\nzjfGNIohKAnRoa9x6GORmfKQvcnjaTZ53S1NvUiPPyc0Pv/vfCtY/Ab0CEXe5BLq\nL38oZn817Jf7pBrPRTYH7m012kvwAUTT6k0Y8lPITBEG7nzYbbuGcrN9Y/RDdwE0\n8jmBXlZ45bahRH3VNXVpQE17dCzJB+7k+iJ1R7YCoI+DuMlBYGXGE2KVk46NZTuL\nnOjFV9SyXfWX4/SrJM4oxev+SX2N75tQgmNZmVVHeqg2ZcbC0WCfNjJOi2HHS9Mu\njwIDAQAB\n-----END PUBLIC KEY-----\n"
+  },
+  "wall": "https://smithereen.example/users/1/wall",
+  "wallComments": "https://smithereen.example/users/1/wallComments",
+  "discoverable": true,
+  "indexable": true,
+  "status": {
+    "type": "ActorStatus",
+    "id": "https://smithereen.example/users/1/statuses/1747352717",
+    "attributedTo": "https://smithereen.example/users/1",
+    "content": "Гришка, верни стену!!!1",
+    "published": "2025-05-15T23:45:17.460Z"
+  },
+  "firstName": "Григорий",
+  "lastName": "Клюшников",
+  "middleName": "Александрович",
+  "vcard:bday": "1993-01-22",
+  "gender": "http://schema.org#Male",
+  "supportsFriendRequests": true,
+  "friends": "https://smithereen.example/users/1/friends",
+  "groups": "https://smithereen.example/users/1/groups",
+  "capabilities": {
+    "supportsFriendRequests": true
+  },
+  "privacySettings": {
+    "wallPosting": {
+      "allowedTo": [
+        "https://www.w3.org/ns/activitystreams#Public"
+      ]
+    },
+    "wallPostVisibility": {
+      "allowedTo": [
+        "https://www.w3.org/ns/activitystreams#Public"
+      ]
+    },
+    "commenting": {
+      "allowedTo": [
+        "https://www.w3.org/ns/activitystreams#Public"
+      ]
+    },
+    "groupInvitations": {
+      "allowedTo": [
+        "https://www.w3.org/ns/activitystreams#Public"
+      ]
+    },
+    "directMessages": {
+      "allowedTo": [
+        "https://www.w3.org/ns/activitystreams#Public"
+      ]
+    },
+    "photoTagging": {
+      "allowedTo": [
+        "https://www.w3.org/ns/activitystreams#Public"
+      ]
+    },
+    "photoTagList": {
+      "allowedTo": [
+        "https://www.w3.org/ns/activitystreams#Public"
+      ]
+    }
+  },
+  "activities": "Разрабатываю для федивёрса, приближаю уход централизованных соцсетей в небытие, возвращаю 2007й, бесконечно ругаюсь на ИТ-индустрию",
+  "interests": "Децентрализация, социальные сети, программирование, user experience, исследования о продлении жизни и лечении старения",
+  "favoriteTvShows": "Black Mirror, Stargate, Upload",
+  "favoriteQuotes": "\"Когда доделаем и оттестируем\"\n\"Всё невозможное возможно, знаю точно\"",
+  "politicalViews": "sm:Libertarian",
+  "personalPriority": "sm:ImprovingTheWorld",
+  "smokingViews": "sm:Negative",
+  "alcoholViews": "sm:Negative",
+  "vcard:Address": "St Petersburg",
+  "relationshipStatus": "sm:Complicated",
+  "photoAlbums": "https://smithereen.example/users/1/albums",
+  "manuallyApprovesFollowers": false,
+  "taggedPhotos": "https://smithereen.example/users/1/tagged",
+  "suspended": false,
+  "featured": "https://smithereen.example/users/1/pinnedPosts",
+  "apps": "https://smithereen.example/users/1/apps",
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    {
+      "value": "http://schema.org#value",
+      "PropertyValue": "http://schema.org#PropertyValue",
+      "sm": "http://smithereen.software/ns#",
+      "cropRegion": {
+        "@id": "sm:cropRegion",
+        "@container": "@list"
+      },
+      "wall": {
+        "@id": "sm:wall",
+        "@type": "@id"
+      },
+      "wallComments": {
+        "@id": "sm:wallComments",
+        "@type": "@id"
+      },
+      "collectionSimpleQuery": "sm:collectionSimpleQuery",
+      "toot": "http://joinmastodon.org/ns#",
+      "discoverable": "toot:discoverable",
+      "indexable": "toot:indexable",
+      "status": {
+        "@id": "sm:status",
+        "@type": "@id"
+      },
+      "ActorStatus": "sm:ActorStatus",
+      "sc": "http://schema.org#",
+      "firstName": "sc:givenName",
+      "lastName": "sc:familyName",
+      "middleName": "sc:additionalName",
+      "gender": {
+        "@id": "sc:gender",
+        "@type": "sc:GenderType"
+      },
+      "maidenName": "sm:maidenName",
+      "friends": {
+        "@id": "sm:friends",
+        "@type": "@id"
+      },
+      "groups": {
+        "@id": "sm:groups",
+        "@type": "@id"
+      },
+      "vcard": "http://www.w3.org/2006/vcard/ns#",
+      "capabilities": "litepub:capabilities",
+      "supportsFriendRequests": "sm:supportsFriendRequests",
+      "litepub": "http://litepub.social/ns#",
+      "privacySettings": "sm:privacySettings",
+      "allowedTo": "sm:allowedTo",
+      "except": "sm:except",
+      "wallPosting": "sm:wallPosting",
+      "wallPostVisibility": "sm:wallPostVisibility",
+      "commenting": "sm:commenting",
+      "groupInvitations": "sm:groupInvitations",
+      "directMessages": "sm:directMessages",
+      "photoTagging": "sm:photoTagging",
+      "photoTagList": "sm:photoTagList",
+      "activities": "sm:activities",
+      "interests": "sm:interests",
+      "favoriteTvShows": "sm:favoriteTvShows",
+      "favoriteQuotes": "sm:favoriteQuotes",
+      "politicalViews": {
+        "@id": "sm:politicalViews",
+        "@type": "@id"
+      },
+      "personalPriority": {
+        "@id": "sm:personalPriority",
+        "@type": "@id"
+      },
+      "smokingViews": {
+        "@id": "sm:smokingViews",
+        "@type": "@id"
+      },
+      "alcoholViews": {
+        "@id": "sm:alcoholViews",
+        "@type": "@id"
+      },
+      "relationshipStatus": {
+        "@id": "sm:relationshipStatus",
+        "@type": "@id"
+      },
+      "relationshipPartner": {
+        "@id": "sm:relationshipPartner",
+        "@type": "@id"
+      },
+      "photoAlbums": {
+        "@id": "sm:photoAlbums",
+        "@type": "@id"
+      },
+      "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+      "taggedPhotos": {
+        "@id": "sm:taggedPhotos",
+        "@type": "@id"
+      },
+      "suspended": "toot:suspended",
+      "featured": {
+        "@id": "toot:featured",
+        "@type": "@id"
+      },
+      "apps": {
+        "@id": "sm:apps",
+        "@type": "@id"
+      }
+    },
+    "https://w3id.org/security/v1"
+  ]
+}

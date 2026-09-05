@@ -1,10 +1,10 @@
 # Storing Remote Media
 
-Akkoma does not store remote/federated media by default. The best way to achieve this is to change Nginx to keep its reverse proxy cache
+Akkoma does not store remote/federated media by default. The best way to achieve this is to change nginx to keep its reverse proxy cache
 for a year and to activate the `MediaProxyWarmingPolicy` MRF policy in Akkoma which will automatically fetch all media through the proxy
 as soon as the post is received by your instance.
 
-## Nginx
+## nginx
 
 The following are excerpts from the [suggested nginx config](https://akkoma.dev/AkkomaGang/akkoma/src/branch/develop/installation/nginx/akkoma.nginx) that demonstrates the necessary config for the media proxy to work.
 

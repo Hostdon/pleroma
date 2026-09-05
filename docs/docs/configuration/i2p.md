@@ -1,4 +1,4 @@
-# I2P Federation and Accessability
+# I2P Federation and Accessibility
 
 This guide is going to focus on the Akkoma federation aspect. The actual installation is neatly explained in the official documentation, and more likely to remain up-to-date.
 It might be added to this guide if there will be a need for that.
@@ -15,9 +15,10 @@ One using the config, and one using external software (fedproxy). The external s
 
 ### Using the Config
 
-**Warning:** So far, everytime I followed this way of federating using I2P, the rest of my federation stopped working. I'm leaving this here in case it will help with making it work.
+!!! warning
+    So far, everytime I followed this way of federating using I2P, the rest of my federation stopped working. I'm leaving this here in case it will help with making it work.
 
-Assuming you're running in prod, cd to your Akkoma folder and append the following to `config/prod.secret.exs`:
+Assuming you're running in prod, `cd` to your Akkoma folder and append the following to `config/prod.secret.exs`:
 ```
 config :pleroma, :http, proxy_url: {:socks5, :localhost, 4447}
 ```
@@ -45,7 +46,7 @@ To use [fedproxy](https://github.com/majestrate/fedproxy) you'll need to install
 ```
 apt install golang
 ```
-Use a different user than akkoma or root. Run the following to add the Gopath to your ~/.bashrc.
+Use a different user than akkoma or root. Run the following to add the `GOPATH` to your ~/.bashrc.
 ```
 echo "export GOPATH=/home/ren/.go" >> ~/.bashrc
 ```
@@ -103,7 +104,7 @@ systemctl start i2pd.service
 *Notice:* The stop command initiates a graceful shutdown process, i2pd stops after finishing to route transit tunnels (maximum 10 minutes).
 
 Now you'll have to find your address.
-To do that you can download and use I2PD tools.[^1]  
+To do that, you can download and use I2PD tools.[^1]  
 Or you'll need to access your web-console on localhost:7070.
 If you don't have a GUI, you'll have to SSH tunnel into it like this:
 `ssh -L 7070:127.0.0.1:7070 user@ip -p port`.
@@ -130,7 +131,7 @@ config :pleroma, :http_security,
   enabled: false
 ```
 
-In the Nginx config, add the following into the `location /` block:
+In the nginx config, add the following into the `location /` block:
 ```nginx
         add_header X-XSS-Protection "0";
         add_header X-Permitted-Cross-Domain-Policies none;
@@ -146,7 +147,7 @@ listen 127.0.0.1:14447;
 
 Set `server_name` to your i2p address.
 
-Reload Nginx:
+Reload nginx:
 ```
 systemctl restart i2pd.service --no-block
 systemctl reload nginx.service

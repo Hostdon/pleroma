@@ -55,6 +55,20 @@ defmodule Pleroma.Web.MediaProxyTest do
       assert decode_result(encoded) == url
     end
 
+    test "encodes and decodes a network-path reference URL as HTTPS" do
+      url = "//example.org/static/logo.png"
+      encoded = MediaProxy.url(url)
+
+      assert String.starts_with?(
+               encoded,
+               Config.get([:media_proxy, :base_url], Pleroma.Web.Endpoint.url())
+             )
+
+      assert String.ends_with?(encoded, "/logo.png")
+
+      assert decode_result(encoded) == "https:" <> url
+    end
+
     test "encodes and decodes URL without a path" do
       url = "https://pleroma.soykaf.com"
       encoded = MediaProxy.url(url)

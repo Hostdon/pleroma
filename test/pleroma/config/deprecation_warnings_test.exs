@@ -250,14 +250,14 @@ defmodule Pleroma.Config.DeprecationWarningsTest do
     clear_config([:instance, :mrf_transparency_exclusions], [])
 
     assert capture_log(fn -> DeprecationWarnings.check_old_mrf_config() end) =~
-             """
+             String.trim("""
              !!!DEPRECATION WARNING!!!
              Your config is using old namespaces for MRF configuration. They should work for now, but you are advised to change to new namespaces to prevent possible issues later:
 
              * `config :pleroma, :instance, rewrite_policy` is now `config :pleroma, :mrf, policies`
              * `config :pleroma, :instance, mrf_transparency` is now `config :pleroma, :mrf, transparency`
              * `config :pleroma, :instance, mrf_transparency_exclusions` is now `config :pleroma, :mrf, transparency_exclusions`
-             """
+             """)
   end
 
   test "move_namespace_and_warn/2" do

@@ -1,8 +1,8 @@
 <div class="scopes-input">
-  <%= label @form, :scope, Gettext.dpgettext("static_pages", "oauth scopes message", "The following permissions will be granted") %>
+  <%= label @form, :scope, dpgettext("static_pages", "oauth scopes message", "The following permissions will be granted") %>
   <div class="scopes">
     <%= for scope <- @available_scopes do %>
-      <%# Note: using hidden input with `unchecked_value` in order to distinguish user's empty selection from `scope` param being omitted %>
+      <%!-- Note: using hidden input with `unchecked_value` in order to distinguish user's empty selection from `scope` param being omitted --%>
       <%= if scope in @scopes do %>
         <div class="scope">
           <%= checkbox @form, :"scope_#{scope}", value: scope in @scopes && scope, checked_value: scope, unchecked_value: "", name: "authorization[scope][]" %>

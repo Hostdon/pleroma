@@ -1,5 +1,5 @@
 defmodule Pleroma.Akkoma.Translators.ArgosTranslate do
-  @behaviour Pleroma.Akkoma.Translator
+  @behaviour Pleroma.Akkoma.Translator.Provider
 
   alias Pleroma.Config
 
@@ -23,7 +23,7 @@ defmodule Pleroma.Akkoma.Translators.ArgosTranslate do
     end
   end
 
-  @impl Pleroma.Akkoma.Translator
+  @impl Pleroma.Akkoma.Translator.Provider
   def languages do
     with {response, 0} <- safe_languages() do
       langs =
@@ -83,7 +83,7 @@ defmodule Pleroma.Akkoma.Translators.ArgosTranslate do
 
   defp htmlify_response(string, _), do: string
 
-  @impl Pleroma.Akkoma.Translator
+  @impl Pleroma.Akkoma.Translator.Provider
   def translate(string, nil, to_language) do
     # Akkoma's Pleroma-fe expects us to detect the source language automatically.
     # Argos-translate doesn't have that option (yet?)
@@ -106,4 +106,7 @@ defmodule Pleroma.Akkoma.Translators.ArgosTranslate do
       {response, _} -> {:error, "ArgosTranslate failed to translate (#{response})"}
     end
   end
+
+  @impl Pleroma.Akkoma.Translator.Provider
+  def name, do: "Argos Translate"
 end

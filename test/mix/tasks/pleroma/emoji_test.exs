@@ -144,6 +144,12 @@ defmodule Mix.Tasks.Pleroma.EmojiTest do
       name = "pack1"
       pack_json = "#{name}.json"
       files_json = "#{name}_file.json"
+
+      on_exit(fn ->
+        File.rm(pack_json)
+        File.rm(files_json)
+      end)
+
       refute File.exists?(pack_json)
       refute File.exists?(files_json)
 
@@ -172,17 +178,18 @@ defmodule Mix.Tasks.Pleroma.EmojiTest do
 
       assert File.exists?(pack_json)
       assert File.exists?(files_json)
-
-      on_exit(fn ->
-        File.rm!(pack_json)
-        File.rm!(files_json)
-      end)
     end
 
     test "with custom extensions and update existing files", %{url: url} do
       name = "pack2"
       pack_json = "#{name}.json"
       files_json = "#{name}_file.json"
+
+      on_exit(fn ->
+        File.rm(pack_json)
+        File.rm(files_json)
+      end)
+
       refute File.exists?(pack_json)
       refute File.exists?(files_json)
 
@@ -233,11 +240,6 @@ defmodule Mix.Tasks.Pleroma.EmojiTest do
         end)
 
       assert captured =~ "#{pack_json} has been updated with the pack2 pack"
-
-      on_exit(fn ->
-        File.rm!(pack_json)
-        File.rm!(files_json)
-      end)
     end
   end
 end

@@ -12,10 +12,11 @@ defmodule Pleroma.Web.StaticFE.StaticFEController do
   alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Web.Metadata
 
-  plug(:put_layout, :static_fe)
+  plug(:put_layout, html: {Pleroma.Web.LayoutView, :static_fe})
   plug(:assign_id)
 
   @page_keys ["max_id", "min_id", "limit", "since_id", "order"]
+  @user_tabs ["posts", "with_replies", "following", "followers", "media", "feed"]
 
   @doc "Renders requested local public activity or public activities of requested user"
   def show(%{assigns: %{notice_id: notice_id}} = conn, _params) do
@@ -50,9 +51,44 @@ defmodule Pleroma.Web.StaticFE.StaticFEController do
     end
   end
 
-  def show(%{assigns: %{username_or_id: username_or_id, tab: tab}} = conn, params) do
-    with {_, %User{local: true} = user} <-
-           {:fetch_user, User.get_cached_by_nickname_or_id(username_or_id)},
+  def show(%{assigns: %{user_name: user_name, tab: _tab}} = conn, params) do
+    User.get_cached_by_nickname(user_name)
+    |> show_user(conn, params)
+  end
+
+  def show(%{assigns: %{user_id: user_id, tab: _tab}} = conn, params) do
+    User.get_cached_by_id(user_id)
+    |> show_user(conn, params)
+  end
+
+  def show(%{assigns: %{object_id: _}} = conn, _params) do
+    url = unverified_url(conn, conn.request_path)
+
+    case Activity.get_create_by_object_ap_id_with_object(url) do
+      %Activity{} = activity ->
+        to = ~p[/notice/#{activity}]
+        redirect(conn, to: to)
+
+      _ ->
+        not_found(conn, "Post not found.")
+    end
+  end
+
+  def show(%{assigns: %{activity_id: _}} = conn, _params) do
+    url = unverified_url(conn, conn.request_path)
+
+    case Activity.get_by_ap_id(url) do
+      %Activity{} = activity ->
+        to = ~p[/notice/#{activity}]
+        redirect(conn, to: to)
+
+      _ ->
+        not_found(conn, "Post not found.")
+    end
+  end
+
+  defp show_user(user, %{assigns: %{tab: tab}} = conn, params) do
+    with {_, %User{local: true} = user} <- {:fetch_user, user},
          {_, :visible} <- {:visibility, User.visible_for(user, _reading_user = nil)} do
       meta = Metadata.build_tags(%{user: user})
 
@@ -112,32 +148,6 @@ defmodule Pleroma.Web.StaticFE.StaticFEController do
 
       _ ->
         not_found(conn, "User not found.")
-    end
-  end
-
-  def show(%{assigns: %{object_id: _}} = conn, _params) do
-    url = unverified_url(conn, conn.request_path)
-
-    case Activity.get_create_by_object_ap_id_with_object(url) do
-      %Activity{} = activity ->
-        to = ~p[/notice/#{activity}]
-        redirect(conn, to: to)
-
-      _ ->
-        not_found(conn, "Post not found.")
-    end
-  end
-
-  def show(%{assigns: %{activity_id: _}} = conn, _params) do
-    url = unverified_url(conn, conn.request_path)
-
-    case Activity.get_by_ap_id(url) do
-      %Activity{} = activity ->
-        to = ~p[/notice/#{activity}]
-        redirect(conn, to: to)
-
-      _ ->
-        not_found(conn, "Post not found.")
     end
   end
 
@@ -229,6 +239,7 @@ defmodule Pleroma.Web.StaticFE.StaticFEController do
 
   defp in_reply_to_user(_), do: nil
 
+  # post display URLs, akkoma-fe style and other FEs
   defp assign_id(%{path_info: ["notice", notice_id]} = conn, _opts),
     do: assign(conn, :notice_id, notice_id)
 
@@ -241,18 +252,33 @@ defmodule Pleroma.Web.StaticFE.StaticFEController do
   defp assign_id(%{path_info: [_nickname, "status", notice_id]} = conn, _opts),
     do: assign(conn, :notice_id, notice_id)
 
-  defp assign_id(%{path_info: ["users", user_id]} = conn, _opts),
+  # user display URL and subpages (and also legacy user AP ID)
+  defp assign_id(%{path_info: ["users", user_name]} = conn, _opts),
     do:
       conn
-      |> assign(:username_or_id, user_id)
+      |> assign(:user_name, user_name)
       |> assign(:tab, "posts")
 
-  defp assign_id(%{path_info: ["users", user_id, tab]} = conn, _opts),
+  defp assign_id(%{path_info: ["users", user_name, tab]} = conn, _opts) when tab in @user_tabs,
     do:
       conn
-      |> assign(:username_or_id, user_id)
+      |> assign(:user_name, user_name)
       |> assign(:tab, tab)
 
+  # (new) user AP ID (tabs mostly to handle HTML fallback for /feed URL)
+  defp assign_id(%{path_info: ["users", "by-id", user_id]} = conn, _opts),
+    do:
+      conn
+      |> assign(:user_id, user_id)
+      |> assign(:tab, "posts")
+
+  defp assign_id(%{path_info: ["users", "by-id", user_id, tab]} = conn, _opts),
+    do:
+      conn
+      |> assign(:user_id, user_id)
+      |> assign(:tab, tab)
+
+  # object AP IDs
   defp assign_id(%{path_info: ["objects", object_id]} = conn, _opts),
     do: assign(conn, :object_id, object_id)
 

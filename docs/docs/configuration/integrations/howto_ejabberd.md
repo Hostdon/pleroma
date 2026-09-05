@@ -1,10 +1,10 @@
-# Configuring Ejabberd (XMPP Server) to use Akkoma for authentication
+# Configuring ejabberd (XMPP Server) to use Akkoma for authentication
 
-If you want to give your Akkoma users an XMPP (chat) account, you can configure [Ejabberd](https://github.com/processone/ejabberd) to use your Akkoma server for user authentication, automatically giving every local user an XMPP account.
+If you want to give your Akkoma users an XMPP (chat) account, you can configure [ejabberd](https://github.com/processone/ejabberd) to use your Akkoma server for user authentication, automatically giving every local user an XMPP account.
 
-In general, you just have to follow the configuration described at [https://docs.ejabberd.im/admin/configuration/authentication/#external-script](https://docs.ejabberd.im/admin/configuration/authentication/#external-script). Please read this section carefully. 
+In general, you just have to follow the configuration described at [https://docs.ejabberd.im/admin/configuration/authentication/#external-script](https://docs.ejabberd.im/admin/configuration/authentication/#external-script). Please read this section carefully.
 
-Copy the script below to suitable path on your system and set owner and permissions. Also do not forget adjusting `AKKOMA_HOST` and `AKKOMA_PORT`, if necessary.
+Copy the script below to a suitable path on your system and set owner and permissions. Also do not forget adjusting `AKKOMA_HOST` and `AKKOMA_PORT`, if necessary.
 
 ```bash
 cp akkoma_ejabberd_auth.py /etc/ejabberd/akkoma_ejabberd_auth.py
@@ -12,7 +12,7 @@ chown ejabberd /etc/ejabberd/akkoma_ejabberd_auth.py
 chmod 700 /etc/ejabberd/akkoma_ejabberd_auth.py
 ```
 
-Set external auth params in ejabberd.yaml file:
+Set external auth parameters in ejabberd.yaml file:
 
 ```bash
 auth_method: [external]
@@ -23,8 +23,7 @@ auth_use_cache: false
 
 Restart / reload your ejabberd service.
 
-After restarting your Ejabberd server, your users should now be able to connect with their Akkoma credentials.
-
+After restarting your ejabberd server, your users should now be able to connect with their Akkoma credentials.
 
 ```python
 import sys
@@ -32,7 +31,6 @@ import struct
 import http.client
 from base64 import b64encode
 import logging
-
 
 AKKOMA_HOST = "127.0.0.1"
 AKKOMA_PORT = "4000"

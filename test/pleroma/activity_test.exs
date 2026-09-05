@@ -7,7 +7,6 @@ defmodule Pleroma.ActivityTest do
   alias Pleroma.Activity
   alias Pleroma.Bookmark
   alias Pleroma.Object
-  alias Pleroma.Tests.ObanHelpers
   alias Pleroma.ThreadMute
   import Pleroma.Factory
 
@@ -127,83 +126,6 @@ defmodule Pleroma.ActivityTest do
         |> Repo.one()
 
       assert Activity.get_bookmark(queried_activity, user) == bookmark
-    end
-  end
-
-  describe "search" do
-    setup do
-      user = insert(:user)
-
-      params = %{
-        "@context" => "https://www.w3.org/ns/activitystreams",
-        "actor" => "http://mastodon.example.org/users/admin",
-        "type" => "Create",
-        "id" => "http://mastodon.example.org/users/admin/activities/1",
-        "object" => %{
-          "type" => "Note",
-          "content" => "find me!",
-          "id" => "http://mastodon.example.org/users/admin/objects/1",
-          "attributedTo" => "http://mastodon.example.org/users/admin",
-          "to" => ["https://www.w3.org/ns/activitystreams#Public"]
-        },
-        "to" => ["https://www.w3.org/ns/activitystreams#Public"]
-      }
-
-      {:ok, local_activity} = Pleroma.Web.CommonAPI.post(user, %{status: "find me!"})
-      {:ok, japanese_activity} = Pleroma.Web.CommonAPI.post(user, %{status: "更新情報"})
-      {:ok, job} = Pleroma.Web.Federator.incoming_ap_doc(params)
-      {:ok, remote_activity} = ObanHelpers.perform(job)
-      remote_activity = Activity.get_by_id_with_object(remote_activity.id)
-
-      %{
-        japanese_activity: japanese_activity,
-        local_activity: local_activity,
-        remote_activity: remote_activity,
-        user: user
-      }
-    end
-
-    setup do: clear_config([:instance, :limit_to_local_content])
-
-    test "finds utf8 text in statuses", %{
-      japanese_activity: japanese_activity,
-      user: user
-    } do
-      activities = Activity.search(user, "更新情報")
-
-      assert [^japanese_activity] = activities
-    end
-
-    test "find local and remote statuses for authenticated users", %{
-      local_activity: local_activity,
-      remote_activity: remote_activity,
-      user: user
-    } do
-      activities = Enum.sort_by(Activity.search(user, "find me"), & &1.id)
-
-      assert [^local_activity, ^remote_activity] = activities
-    end
-
-    test "find only local statuses for unauthenticated users", %{local_activity: local_activity} do
-      assert [^local_activity] = Activity.search(nil, "find me")
-    end
-
-    test "find only local statuses for unauthenticated users  when `limit_to_local_content` is `:all`",
-         %{local_activity: local_activity} do
-      clear_config([:instance, :limit_to_local_content], :all)
-      assert [^local_activity] = Activity.search(nil, "find me")
-    end
-
-    test "find all statuses for unauthenticated users when `limit_to_local_content` is `false`",
-         %{
-           local_activity: local_activity,
-           remote_activity: remote_activity
-         } do
-      clear_config([:instance, :limit_to_local_content], false)
-
-      activities = Enum.sort_by(Activity.search(nil, "find me"), & &1.id)
-
-      assert [^local_activity, ^remote_activity] = activities
     end
   end
 

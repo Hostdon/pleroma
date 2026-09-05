@@ -9,30 +9,30 @@
 5. Restart the Akkoma service.
 
 [¹]: We assume the database name is "akkoma". If not, you can find the correct name in your configuration files.  
-[²]: If you have a from source installation, you need `config/prod.secret.exs` instead of `config/config.exs`. The `config/config.exs` file also exists, but in case of from source installations, it only contains the default values and it is tracked by Git, so you don't need to back it up.  
+[²]: If you have a from source installation, you need `config/prod.secret.exs` instead of `config/config.exs`. The `config/config.exs` file also exists, but in case of from source installations, it only contains the default values and it is tracked by Git, so you don't need to back it up.
 
 ## Restore/Move
 
 1. Optionally reinstall Akkoma (either on the same server or on another server if you want to move servers).
 2. Stop the Akkoma service.
 3. Go to the working directory of Akkoma (default is `/opt/akkoma`)
-4. Copy the above mentioned files back to their original position.
+4. Copy the above-mentioned files back to their original position.
 5. Drop the existing database and user[¹]. `sudo -Hu postgres psql -c 'DROP DATABASE akkoma;';` `sudo -Hu postgres psql -c 'DROP USER akkoma;'`
-6. Restore the database schema and akkoma role[¹] (replace the password with the one you find in the configuration file), `sudo -Hu postgres psql -c "CREATE USER akkoma WITH ENCRYPTED PASSWORD '<database-password-wich-you-can-find-in-your-configuration-file>';"` `sudo -Hu postgres psql -c "CREATE DATABASE akkoma OWNER akkoma;"`.
-7. Now restore the Akkoma instance's data into the empty database schema[¹]: `sudo -Hu postgres pg_restore -d akkoma -v -1 </path/to/backup_location/akkoma.pgdump>`
+6. Restore the database schema and akkoma role[¹] (replace the password with the one you find in the configuration file), `sudo -Hu postgres psql -c "CREATE USER akkoma WITH ENCRYPTED PASSWORD '<database-password-wich-you-can-find-in-your-configuration-file>';";` `sudo -Hu postgres psql -c "CREATE DATABASE akkoma OWNER akkoma;"`.
+7. Now restore the Akkoma instance's data into the empty database schema[¹]: `sudo -Hu postgres pg_restore -j "$(nproc)" -d akkoma -v </path/to/backup_location/akkoma.pgdump>`
 8. If you installed a newer Akkoma version, you should run the database migrations `./bin/pleroma_ctl migrate`[²].
 9. Restart the Akkoma service.
 10. Run `sudo -Hu postgres vacuumdb --all --analyze-in-stages`. This will quickly generate the statistics so that postgres can properly plan queries.
-11. If setting up on a new server, configure Nginx by using the `installation/nginx/akkoma.nginx` configuration sample or reference the Akkoma installation guide which contains the Nginx configuration instructions.
+11. If setting up on a new server, configure nginx by using the `installation/nginx/akkoma.nginx` configuration sample or reference the Akkoma installation guide which contains the nginx configuration instructions.
 
 [¹]: We assume the database name and user are both "akkoma". If not, you can find the correct name in your configuration files.  
 [²]: If you have a from source installation, the command is `MIX_ENV=prod mix ecto.migrate`. Note that we prefix with `MIX_ENV=prod` to use the `config/prod.secret.exs` configuration file.  
 
 ## Remove
 
-1. Optionally you can remove the users of your instance. This will trigger delete requests for their accounts and posts. Note that this is 'best effort' and doesn't mean that all traces of your instance will be gone from the fediverse.
-    * You can do this from the admin-FE where you can select all local users and delete the accounts using the *Moderate multiple users* dropdown.
-    * You can also list local users and delete them individually using the CLI tasks for [Managing users](./CLI_tasks/user.md).
+1. Optionally, you can remove the users of your instance. This will trigger delete requests for their accounts and posts. Note that this is 'best effort' and doesn't mean that all traces of your instance will be gone from the fediverse.
+    * You can do this from the admin-fe where you can select all local users and delete the accounts using the *Moderate multiple users* dropdown.
+    * You can also list local users and delete them individually using the CLI tasks for [managing users](./CLI_tasks/user.md).
 2. Stop the Akkoma service `systemctl stop akkoma`
 3. Disable Akkoma from systemd `systemctl disable akkoma`
 4. Remove the files and folders you created during installation (see installation guide). This includes the akkoma, nginx and systemd files and folders.

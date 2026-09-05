@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Formatter do
+  alias PhoenixHTMLHelpers.Tag
   alias Pleroma.HTML
   alias Pleroma.User
 
@@ -34,13 +35,14 @@ defmodule Pleroma.Formatter do
 
   def mention_tag(%User{id: id} = user, nickname, opts \\ []) do
     user_url = user.uri || user.ap_id
+
     nickname_text = get_nickname_text(nickname, opts)
 
     :span
-    |> Phoenix.HTML.Tag.content_tag(
-      Phoenix.HTML.Tag.content_tag(
+    |> Tag.content_tag(
+      Tag.content_tag(
         :a,
-        ["@", Phoenix.HTML.Tag.content_tag(:span, nickname_text)],
+        ["@", Tag.content_tag(:span, nickname_text)],
         "data-user": id,
         class: "u-url mention",
         href: user_url,
@@ -68,7 +70,7 @@ defmodule Pleroma.Formatter do
     url = "#{Pleroma.Web.Endpoint.url()}/tag/#{tag}"
 
     link =
-      Phoenix.HTML.Tag.content_tag(:a, tag_text,
+      Tag.content_tag(:a, tag_text,
         class: "hashtag",
         "data-tag": tag,
         href: url,

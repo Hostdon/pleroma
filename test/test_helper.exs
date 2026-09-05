@@ -6,6 +6,7 @@ os_exclude = if :os.type() == {:unix, :darwin}, do: [skip_on_mac: true], else: [
 
 ExUnit.start(
   capture_log: true,
+  assert_receive_timeout: 1_000,
   exclude: [:federated, :erratic] ++ os_exclude
 )
 

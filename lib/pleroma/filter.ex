@@ -193,6 +193,12 @@ defmodule Pleroma.Filter do
     end
   end
 
+  defp escape_for_regex(plain_phrase) do
+    # Escape all active characters:
+    #   .^$*+?()[{\|
+    Regex.replace(~r/\.\^\$\*\+\?\(\)\[\{\\\|/, plain_phrase, fn m -> "\\" <> m end)
+  end
+
   @spec compose_regex(User.t() | [t()], format()) :: String.t() | Regex.t() | nil
   def compose_regex(user_or_filters, format \\ :postgres)
 
@@ -207,7 +213,7 @@ defmodule Pleroma.Filter do
   def compose_regex([_ | _] = filters, format) do
     phrases =
       filters
-      |> Enum.map(& &1.phrase)
+      |> Enum.map(&escape_for_regex(&1.phrase))
       |> Enum.join("|")
 
     case format do

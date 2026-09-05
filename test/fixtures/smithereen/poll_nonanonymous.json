@@ -1,0 +1,112 @@
+{
+  "type": "Question",
+  "id": "https://smithereen.example/posts/poll-disclosed",
+  "attributedTo": "https://smithereen.example/users/1",
+  "content": "<p>Example poll for which all votes will be published with voter identity</p>",
+  "name": "Какую русскую раскладку клавиатуры вы используете на macOS?",
+  "published": "2024-04-19T13:34:51Z",
+  "tag": [],
+  "url": "https://smithereen.example/posts/poll-disclosed",
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public",
+    "https://smithereen.example/users/1/followers"
+  ],
+  "cc": [],
+  "replies": {
+    "type": "Collection",
+    "id": "https://smithereen.example/posts/poll-disclosed/replies",
+    "first": {
+      "type": "CollectionPage",
+      "items": [],
+      "partOf": "https://smithereen.example/posts/poll-disclosed/replies",
+      "next": "https://smithereen.example/posts/poll-disclosed/replies?page=1"
+    }
+  },
+  "sensitive": false,
+  "likes": {
+    "type": "Collection",
+    "id": "https://smithereen.example/posts/poll-disclosed/likes",
+    "first": {
+      "type": "CollectionPage",
+      "items": [],
+      "partOf": "https://smithereen.example/posts/poll-disclosed/likes",
+      "next": "https://smithereen.example/posts/poll-disclosed/likes?page=1"
+    }
+  },
+  "interactionPolicy": {
+    "canQuote": {
+      "automaticApproval": "https://www.w3.org/ns/activitystreams#Public"
+    }
+  },
+  "oneOf": [
+    {
+      "type": "Note",
+      "id": "https://smithereen.example/posts/poll-disclosed#options/8352",
+      "name": "Просто \"русская\"",
+      "replies": {
+        "type": "Collection",
+        "id": "https://smithereen.example/activitypub/objects/polls/2231/options/8352/votes",
+        "totalItems": 11,
+        "items": []
+      }
+    },
+    {
+      "type": "Note",
+      "id": "https://smithereen.example/posts/poll-disclosed#options/8353",
+      "name": "Русская — ПК",
+      "replies": {
+        "type": "Collection",
+        "id": "https://smithereen.example/activitypub/objects/polls/2231/options/8353/votes",
+        "totalItems": 6,
+        "items": []
+      }
+    },
+    {
+      "type": "Note",
+      "id": "https://smithereen.example/posts/poll-disclosed#options/8354",
+      "name": "Другая",
+      "replies": {
+        "type": "Collection",
+        "id": "https://smithereen.example/activitypub/objects/polls/2231/options/8354/votes",
+        "totalItems": 1,
+        "items": []
+      }
+    },
+    {
+      "type": "Note",
+      "id": "https://smithereen.example/posts/poll-disclosed#options/8355",
+      "name": "Не пользуюсь macOS и/или русским языком",
+      "replies": {
+        "type": "Collection",
+        "id": "https://smithereen.example/activitypub/objects/polls/2231/options/8355/votes",
+        "totalItems": 17,
+        "items": []
+      }
+    }
+  ],
+  "votersCount": 35,
+  "nonAnonymous": true,
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    {
+      "sensitive": "as:sensitive",
+      "gts": "https://gotosocial.org/ns#",
+      "interactionPolicy": {
+        "@id": "gts:interactionPolicy",
+        "@type": "@id"
+      },
+      "canQuote": {
+        "@id": "gts:canQuote",
+        "@type": "@id"
+      },
+      "automaticApproval": {
+        "@id": "gts:automaticApproval",
+        "@type": "@id"
+      },
+      "toot": "http://joinmastodon.org/ns#",
+      "sm": "http://smithereen.software/ns#",
+      "votersCount": "toot:votersCount",
+      "nonAnonymous": "sm:nonAnonymous"
+    }
+  ]
+}

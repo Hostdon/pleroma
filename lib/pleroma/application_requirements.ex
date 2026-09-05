@@ -164,13 +164,13 @@ defmodule Pleroma.ApplicationRequirements do
 
   defp check_system_commands!(:ok) do
     filter_commands_statuses = [
-      check_filter(Pleroma.Upload.Filter.Exiftool.StripMetadata, "exiftool"),
-      check_filter(Pleroma.Upload.Filter.Exiftool.ReadDescription, "exiftool"),
-      check_filter(Pleroma.Upload.Filter.Mogrify, "mogrify"),
-      check_filter(Pleroma.Upload.Filter.Mogrifun, "mogrify"),
-      check_filter(Pleroma.Upload.Filter.AnalyzeMetadata, "mogrify"),
-      check_filter(Pleroma.Upload.Filter.AnalyzeMetadata, "convert"),
-      check_filter(Pleroma.Upload.Filter.AnalyzeMetadata, "ffprobe")
+      check_filter(Pleroma.Upload.Filter.Exiftool.StripMetadata, ["exiftool"]),
+      check_filter(Pleroma.Upload.Filter.Exiftool.ReadDescription, ["exiftool"]),
+      check_filter(Pleroma.Upload.Filter.Mogrify, ["mogrify"]),
+      check_filter(Pleroma.Upload.Filter.Mogrifun, ["mogrify"]),
+      check_filter(Pleroma.Upload.Filter.AnalyzeMetadata, ["mogrify"]),
+      check_filter(Pleroma.Upload.Filter.AnalyzeMetadata, ["magick", "convert"]),
+      check_filter(Pleroma.Upload.Filter.AnalyzeMetadata, ["ffprobe"])
     ]
 
     preview_proxy_commands_status =
@@ -219,13 +219,13 @@ defmodule Pleroma.ApplicationRequirements do
 
   defp check_repo_pool_size!(result), do: result
 
-  defp check_filter(filter, command_required) do
+  defp check_filter(filter, commands_required) do
     filters = Config.get([Pleroma.Upload, :filters])
 
-    if filter in filters and not Pleroma.Utils.command_available?(command_required) do
+    if filter in filters and not Enum.any?(commands_required, &Pleroma.Utils.command_available?/1) do
       Logger.error(
-        "#{filter} is specified in list of Pleroma.Upload filters, but the " <>
-          "#{command_required} command is not found"
+        "#{filter} is specified in list of Pleroma.Upload filters, but none of the commands in " <>
+          "[#{Enum.join(commands_required, ", ")}] are found"
       )
 
       false

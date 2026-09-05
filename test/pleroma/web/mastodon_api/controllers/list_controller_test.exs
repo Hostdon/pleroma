@@ -56,7 +56,7 @@ defmodule Pleroma.Web.MastodonAPI.ListControllerTest do
     %{user: user, conn: conn} = oauth_access(["write:lists"])
     other_user = insert(:user)
     third_user = insert(:user)
-    {:ok, list} = Pleroma.List.create("name", user)
+    {:ok, list} = Pleroma.List.create(%{"title" => "name"}, user)
 
     assert %{} ==
              conn
@@ -77,7 +77,7 @@ defmodule Pleroma.Web.MastodonAPI.ListControllerTest do
     other_user = insert(:user)
     third_user = insert(:user)
     fourth_user = insert(:user)
-    {:ok, list} = Pleroma.List.create("name", user)
+    {:ok, list} = Pleroma.List.create(%{"title" => "name"}, user)
     {:ok, list} = Pleroma.List.follow(list, other_user)
     {:ok, list} = Pleroma.List.follow(list, third_user)
     {:ok, list} = Pleroma.List.follow(list, fourth_user)
@@ -98,7 +98,7 @@ defmodule Pleroma.Web.MastodonAPI.ListControllerTest do
     %{user: user, conn: conn} = oauth_access(["write:lists"])
     other_user = insert(:user)
     third_user = insert(:user)
-    {:ok, list} = Pleroma.List.create("name", user)
+    {:ok, list} = Pleroma.List.create(%{"title" => "name"}, user)
     {:ok, list} = Pleroma.List.follow(list, other_user)
     {:ok, list} = Pleroma.List.follow(list, third_user)
 
@@ -115,7 +115,7 @@ defmodule Pleroma.Web.MastodonAPI.ListControllerTest do
   test "listing users in a list" do
     %{user: user, conn: conn} = oauth_access(["read:lists"])
     other_user = insert(:user)
-    {:ok, list} = Pleroma.List.create("name", user)
+    {:ok, list} = Pleroma.List.create(%{"title" => "name"}, user)
     {:ok, list} = Pleroma.List.follow(list, other_user)
 
     conn =
@@ -129,7 +129,7 @@ defmodule Pleroma.Web.MastodonAPI.ListControllerTest do
 
   test "retrieving a list" do
     %{user: user, conn: conn} = oauth_access(["read:lists"])
-    {:ok, list} = Pleroma.List.create("name", user)
+    {:ok, list} = Pleroma.List.create(%{"title" => "name"}, user)
 
     conn =
       conn
@@ -150,7 +150,7 @@ defmodule Pleroma.Web.MastodonAPI.ListControllerTest do
 
   test "renaming a list" do
     %{user: user, conn: conn} = oauth_access(["write:lists"])
-    {:ok, list} = Pleroma.List.create("name", user)
+    {:ok, list} = Pleroma.List.create(%{"title" => "name"}, user)
 
     assert %{"title" => "newname"} =
              conn
@@ -161,7 +161,7 @@ defmodule Pleroma.Web.MastodonAPI.ListControllerTest do
 
   test "validates title when renaming a list" do
     %{user: user, conn: conn} = oauth_access(["write:lists"])
-    {:ok, list} = Pleroma.List.create("name", user)
+    {:ok, list} = Pleroma.List.create(%{"title" => "name"}, user)
 
     conn =
       conn
@@ -175,7 +175,7 @@ defmodule Pleroma.Web.MastodonAPI.ListControllerTest do
 
   test "deleting a list" do
     %{user: user, conn: conn} = oauth_access(["write:lists"])
-    {:ok, list} = Pleroma.List.create("name", user)
+    {:ok, list} = Pleroma.List.create(%{"title" => "name"}, user)
 
     conn = delete(conn, "/api/v1/lists/#{list.id}")
 

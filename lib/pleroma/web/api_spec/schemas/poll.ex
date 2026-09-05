@@ -58,6 +58,17 @@ defmodule Pleroma.Web.ApiSpec.Schemas.Poll do
           }
         },
         description: "Possible answers for the poll."
+      },
+      akkoma: %Schema{
+        type: :object,
+        properties: %{
+          anonymous: %Schema{
+            type: :boolean,
+            nullable: true,
+            description:
+              "Whether the poll creator indicates votes are processed anonymously (true), votes with voter identity will be published to some parties or the public (false) or did not indicate anything about vote confidentiality (null)"
+          }
+        }
       }
     },
     example: %{
@@ -81,7 +92,10 @@ defmodule Pleroma.Web.ApiSpec.Schemas.Poll do
           votes_count: 4
         }
       ],
-      emojis: []
+      emojis: [],
+      akkoma: %{
+        anonymous: true
+      }
     }
   })
 end

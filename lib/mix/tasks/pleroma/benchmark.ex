@@ -11,7 +11,7 @@ defmodule Mix.Tasks.Pleroma.Benchmark do
 
     Benchee.run(%{
       "search" => fn ->
-        Pleroma.Activity.search(nil, "cofe")
+        Pleroma.Search.DatabaseSearch.search(nil, "cofe", resolve: false)
       end
     })
   end

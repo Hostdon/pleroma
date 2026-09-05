@@ -158,6 +158,7 @@ defmodule Pleroma.Web.NodeInfoTest do
     end
 
     test "shows quarantined instances data if enabled", %{conn: conn} do
+      clear_config([:mrf, :transparency], true)
       expected_config = ["example.com"]
 
       response =
@@ -166,6 +167,19 @@ defmodule Pleroma.Web.NodeInfoTest do
         |> json_response(:ok)
 
       assert response["metadata"]["federation"]["quarantined_instances"] == expected_config
+    end
+
+    test "shows quarantined instances data if restricted or disabled", %{conn: conn} do
+      for s <- [:authenticated, false] do
+        clear_config([:mrf, :transparency], s)
+
+        response =
+          conn
+          |> get("/nodeinfo/2.1.json")
+          |> json_response(:ok)
+
+        assert response["metadata"]["federation"] == %{"enabled" => false}
+      end
     end
 
     test "shows extra information in the quarantined_info field for relevant entries", %{

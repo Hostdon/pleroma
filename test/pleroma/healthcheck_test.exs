@@ -15,7 +15,6 @@ defmodule Pleroma.HealthcheckTest do
       :active,
       :healthy,
       :idle,
-      :job_queue_stats,
       :memory_used,
       :pool_size
     ])

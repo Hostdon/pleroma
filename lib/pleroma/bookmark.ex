@@ -53,13 +53,15 @@ defmodule Pleroma.Bookmark do
   end
 
   @spec destroy(FlakeId.Ecto.CompatType.t(), FlakeId.Ecto.CompatType.t()) ::
-          {:ok, Bookmark.t()} | {:error, Changeset.t()}
+          :ok | {:error, any()}
   def destroy(user_id, activity_id) do
-    from(b in Bookmark,
-      where: b.user_id == ^user_id,
-      where: b.activity_id == ^activity_id
-    )
-    |> Repo.one()
-    |> Repo.delete()
+    {cnt, _} =
+      from(b in Bookmark,
+        where: b.user_id == ^user_id,
+        where: b.activity_id == ^activity_id
+      )
+      |> Repo.delete_all()
+
+    if cnt >= 1, do: :ok, else: {:error, :not_found}
   end
 end

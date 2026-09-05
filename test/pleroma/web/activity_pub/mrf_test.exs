@@ -7,18 +7,28 @@ defmodule Pleroma.Web.ActivityPub.MRFTest do
   use Pleroma.Tests.Helpers
   alias Pleroma.Web.ActivityPub.MRF
 
+  defp regexes_equal([], []), do: true
+
+  defp regexes_equal([areg | arest], [breg | brest]),
+    do: areg.source == breg.source and regexes_equal(arest, brest)
+
+  defp regexes_equal(_a, _b), do: false
+
   test "subdomains_regex/1" do
-    assert MRF.subdomains_regex(["unsafe.tld", "*.unsafe.tld"]) == [
-             ~r/^(.+\.)?unsafe\.tld$/i,
-             ~r/^(.+\.)?unsafe\.tld$/i
-           ]
+    assert regexes_equal(
+             MRF.subdomains_regex(["unsafe.tld", "*.unsafe.tld"]),
+             [
+               ~r/^(.+\.)?unsafe\.tld$/i,
+               ~r/^(.+\.)?unsafe\.tld$/i
+             ]
+           )
   end
 
   describe "subdomain_match/2" do
     test "common domains" do
       regexes = MRF.subdomains_regex(["unsafe.tld", "unsafe2.tld"])
 
-      assert regexes == [~r/^(.+\.)?unsafe\.tld$/i, ~r/^(.+\.)?unsafe2\.tld$/i]
+      assert regexes_equal(regexes, [~r/^(.+\.)?unsafe\.tld$/i, ~r/^(.+\.)?unsafe2\.tld$/i])
 
       assert MRF.subdomain_match?(regexes, "unsafe.tld")
       assert MRF.subdomain_match?(regexes, "unsafe2.tld")
@@ -29,7 +39,7 @@ defmodule Pleroma.Web.ActivityPub.MRFTest do
     test "wildcard domains with one subdomain" do
       regexes = MRF.subdomains_regex(["unsafe.tld"])
 
-      assert regexes == [~r/^(.+\.)?unsafe\.tld$/i]
+      assert regexes_equal(regexes, [~r/^(.+\.)?unsafe\.tld$/i])
 
       assert MRF.subdomain_match?(regexes, "unsafe.tld")
       assert MRF.subdomain_match?(regexes, "sub.unsafe.tld")
@@ -40,7 +50,7 @@ defmodule Pleroma.Web.ActivityPub.MRFTest do
     test "wildcard domains with two subdomains" do
       regexes = MRF.subdomains_regex(["unsafe.tld"])
 
-      assert regexes == [~r/^(.+\.)?unsafe\.tld$/i]
+      assert regexes_equal(regexes, [~r/^(.+\.)?unsafe\.tld$/i])
 
       assert MRF.subdomain_match?(regexes, "unsafe.tld")
       assert MRF.subdomain_match?(regexes, "sub.sub.unsafe.tld")
@@ -51,7 +61,7 @@ defmodule Pleroma.Web.ActivityPub.MRFTest do
     test "wildcard on the tld" do
       regexes = MRF.subdomains_regex(["somewhere.*"])
 
-      assert regexes == [~r/^(.+\.)?somewhere\.(.+)$/i]
+      assert regexes_equal(regexes, [~r/^(.+\.)?somewhere\.(.+)$/i])
 
       assert MRF.subdomain_match?(regexes, "somewhere.net")
       assert MRF.subdomain_match?(regexes, "somewhere.com")
@@ -62,7 +72,7 @@ defmodule Pleroma.Web.ActivityPub.MRFTest do
     test "wildcards on subdomain _and_ tld" do
       regexes = MRF.subdomains_regex(["*.somewhere.*"])
 
-      assert regexes == [~r/^(.+\.)?somewhere\.(.+)$/i]
+      assert regexes_equal(regexes, [~r/^(.+\.)?somewhere\.(.+)$/i])
 
       assert MRF.subdomain_match?(regexes, "somewhere.net")
       assert MRF.subdomain_match?(regexes, "somewhere.com")
@@ -76,7 +86,7 @@ defmodule Pleroma.Web.ActivityPub.MRFTest do
     test "matches are case-insensitive" do
       regexes = MRF.subdomains_regex(["UnSafe.TLD", "UnSAFE2.Tld"])
 
-      assert regexes == [~r/^(.+\.)?UnSafe\.TLD$/i, ~r/^(.+\.)?UnSAFE2\.Tld$/i]
+      assert regexes_equal(regexes, [~r/^(.+\.)?UnSafe\.TLD$/i, ~r/^(.+\.)?UnSAFE2\.Tld$/i])
 
       assert MRF.subdomain_match?(regexes, "UNSAFE.TLD")
       assert MRF.subdomain_match?(regexes, "UNSAFE2.TLD")

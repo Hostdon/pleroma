@@ -15,7 +15,6 @@ defmodule Pleroma.Notification do
   alias Pleroma.Repo
   alias Pleroma.ThreadMute
   alias Pleroma.User
-  alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.CommonAPI.Utils
   alias Pleroma.Web.Push
   alias Pleroma.Web.Streamer
@@ -129,7 +128,6 @@ defmodule Pleroma.Notification do
     |> exclude_blocked(user, exclude_blocked_opts)
     |> exclude_blockers(user)
     |> exclude_filtered(user)
-    |> exclude_visibility(opts)
   end
 
   # Excludes blocked users and non-followed domain-blocked users
@@ -148,9 +146,7 @@ defmodule Pleroma.Notification do
       fragment(
         # "(actor's domain NOT in domain_blocks)"
         """
-        NOT (
-          substring(? from '.*://([^/]*)') = ANY(?)
-        )
+        split_part(?, '/', 3) <> ALL(?)
         """,
         activity.actor,
         ^user.domain_blocks
@@ -200,67 +196,6 @@ defmodule Pleroma.Notification do
         )
     end
   end
-
-  @valid_visibilities ~w[direct unlisted public private]
-
-  defp exclude_visibility(query, %{exclude_visibilities: visibility})
-       when is_list(visibility) do
-    if Enum.all?(visibility, &(&1 in @valid_visibilities)) do
-      query
-      |> join(:left, [n, a], mutated_activity in Pleroma.Activity,
-        on:
-          fragment(
-            "COALESCE((?->'object')->>'id', ?->>'object')",
-            a.data,
-            a.data
-          ) ==
-            fragment(
-              "COALESCE((?->'object')->>'id', ?->>'object')",
-              mutated_activity.data,
-              mutated_activity.data
-            ) and
-            fragment("(?->>'type' = 'Like' or ?->>'type' = 'Announce')", a.data, a.data) and
-            fragment("?->>'type'", mutated_activity.data) == "Create",
-        as: :mutated_activity
-      )
-      |> where(
-        [n, a, mutated_activity: mutated_activity],
-        not fragment(
-          """
-          CASE WHEN (?->>'type') = 'Like' or (?->>'type') = 'Announce'
-            THEN (activity_visibility(?, ?, ?) = ANY (?))
-            ELSE (activity_visibility(?, ?, ?) = ANY (?)) END
-          """,
-          a.data,
-          a.data,
-          mutated_activity.actor,
-          mutated_activity.recipients,
-          mutated_activity.data,
-          ^visibility,
-          a.actor,
-          a.recipients,
-          a.data,
-          ^visibility
-        )
-      )
-    else
-      Logger.error("Could not exclude visibility to #{visibility}")
-      query
-    end
-  end
-
-  defp exclude_visibility(query, %{exclude_visibilities: visibility})
-       when visibility in @valid_visibilities do
-    exclude_visibility(query, [visibility])
-  end
-
-  defp exclude_visibility(query, %{exclude_visibilities: visibility})
-       when visibility not in @valid_visibilities do
-    Logger.error("Could not exclude visibility to #{visibility}")
-    query
-  end
-
-  defp exclude_visibility(query, _visibility), do: query
 
   def for_user(user, opts \\ %{}) do
     user
@@ -388,40 +323,46 @@ defmodule Pleroma.Notification do
     end
   end
 
-  @spec create_notifications(Activity.t(), keyword()) :: {:ok, [Notification.t()] | []}
-  def create_notifications(activity, options \\ [])
+  @doc """
+  Create notifications for given Activity in database, but does NOT send them to streams and webpush.
+  On success returns :ok triple with non-muted notifications in the second position and
+  muted (i.e. likely not supposed to be pro-actively sent) notifications in the third position.
+  """
+  @spec create_notifications(Activity.t()) ::
+          {:ok, [Notification.t()] | [], [Notification.t()] | []}
+  def create_notifications(activity)
 
-  def create_notifications(%Activity{data: %{"to" => _, "type" => "Create"}} = activity, options) do
+  def create_notifications(%Activity{data: %{"to" => _, "type" => "Create"}} = activity) do
     object = Object.normalize(activity, fetch: false)
 
     if object && object.data["type"] == "Answer" do
-      {:ok, []}
+      {:ok, [], []}
     else
-      do_create_notifications(activity, options)
+      do_create_notifications(activity)
     end
   end
 
-  def create_notifications(%Activity{data: %{"type" => type}} = activity, options)
+  def create_notifications(%Activity{data: %{"type" => type}} = activity)
       when type in ["Follow", "Like", "Announce", "Move", "EmojiReact", "Flag", "Update"] do
-    do_create_notifications(activity, options)
+    do_create_notifications(activity)
   end
 
-  def create_notifications(_, _), do: {:ok, []}
+  def create_notifications(_), do: {:ok, [], []}
 
-  defp do_create_notifications(%Activity{} = activity, options) do
-    do_send = Keyword.get(options, :do_send, true)
-
+  defp do_create_notifications(%Activity{} = activity) do
     {enabled_receivers, disabled_receivers} = get_notified_from_activity(activity)
-    potential_receivers = enabled_receivers ++ disabled_receivers
 
-    notifications =
-      Enum.map(potential_receivers, fn user ->
-        do_send = do_send && user in enabled_receivers
-        create_notification(activity, user, do_send: do_send)
-      end)
+    notifications_active =
+      enabled_receivers
+      |> Enum.map(&create_notification(activity, &1))
       |> Enum.reject(&is_nil/1)
 
-    {:ok, notifications}
+    notifications_silent =
+      disabled_receivers
+      |> Enum.map(&create_notification(activity, &1, seen: true))
+      |> Enum.reject(&is_nil/1)
+
+    {:ok, notifications_active, notifications_silent}
   end
 
   defp type_from_activity(%{data: %{"type" => type}} = activity) do
@@ -467,9 +408,9 @@ defmodule Pleroma.Notification do
   defp type_from_activity_object(%{data: %{"type" => "Create"}}), do: "mention"
 
   # TODO move to sql, too.
-  def create_notification(%Activity{} = activity, %User{} = user, opts \\ []) do
-    do_send = Keyword.get(opts, :do_send, true)
+  defp create_notification(%Activity{} = activity, %User{} = user, opts \\ []) do
     type = Keyword.get(opts, :type, type_from_activity(activity))
+    seen = Keyword.get(opts, :seen, false)
 
     unless skip?(activity, user, opts) do
       {:ok, %{notification: notification}} =
@@ -477,16 +418,11 @@ defmodule Pleroma.Notification do
         |> Multi.insert(:notification, %Notification{
           user_id: user.id,
           activity: activity,
-          seen: mark_as_read?(activity, user),
+          seen: seen,
           type: type
         })
         |> Marker.multi_set_last_read_id(user, "notifications")
         |> Repo.transaction()
-
-      if do_send do
-        Streamer.stream(["user", "user:notification"], notification)
-        Push.send(notification)
-      end
 
       notification
     end
@@ -678,6 +614,12 @@ defmodule Pleroma.Notification do
     end
   end
 
+  def skip?(:internal, %Activity{} = activity, _user, _opts) do
+    actor = activity.data["actor"]
+    user = User.get_cached_by_ap_id(actor)
+    User.is_internal_user?(user)
+  end
+
   def skip?(:invisible, %Activity{} = activity, _user, _opts) do
     actor = activity.data["actor"]
     user = User.get_cached_by_ap_id(actor)
@@ -740,11 +682,6 @@ defmodule Pleroma.Notification do
 
   def skip?(_type, _activity, _user, _opts), do: false
 
-  def mark_as_read?(activity, target_user) do
-    user = Activity.user_actor(activity)
-    User.mutes_user?(target_user, user) || CommonAPI.thread_muted?(target_user, activity)
-  end
-
   def for_user_and_activity(user, activity) do
     from(n in __MODULE__,
       where: n.user_id == ^user.id,
@@ -763,5 +700,13 @@ defmodule Pleroma.Notification do
       where: fragment("?->>'context'", a.data) == ^context
     )
     |> Repo.update_all(set: [seen: true])
+  end
+
+  @spec send(list(Notification.t())) :: :ok
+  def send(notifications) do
+    Enum.each(notifications, fn notification ->
+      Streamer.stream(["user", "user:notification"], notification)
+      Push.send(notification)
+    end)
   end
 end

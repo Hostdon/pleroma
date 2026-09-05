@@ -71,7 +71,7 @@ defmodule Pleroma.Web.MastodonAPI.ReportControllerTest do
              |> json_response_and_validate_schema(400)
   end
 
-  test "returns error when account is not exist", %{
+  test "returns error when account does not exist", %{
     conn: conn,
     activity: activity
   } do
@@ -81,6 +81,51 @@ defmodule Pleroma.Web.MastodonAPI.ReportControllerTest do
       |> post("/api/v1/reports", %{"status_ids" => [activity.id], "account_id" => "foo"})
 
     assert json_response_and_validate_schema(conn, 400) == %{"error" => "Account not found"}
+  end
+
+  test "returns not found when post isn't visible to reporter", %{user: target_user} do
+    %{conn: conn, user: reporter} = oauth_access(["write:reports"])
+
+    {:ok, invisible_activity} =
+      CommonAPI.post(target_user, %{status: "Invisible!", visibility: "private"})
+
+    assert Pleroma.Web.ActivityPub.Visibility.is_private?(invisible_activity)
+    refute Pleroma.Web.ActivityPub.Visibility.visible_for_user?(invisible_activity, reporter)
+
+    assert %{"error" => "Record not found"} =
+             conn
+             |> put_req_header("content-type", "application/json")
+             |> post(
+               "/api/v1/reports",
+               %{"account_id" => target_user.id, "status_ids" => [invisible_activity.id]}
+             )
+             |> json_response_and_validate_schema(404)
+  end
+
+  test "returns not found when some post aren't visible to reporter", %{
+    activity: activity,
+    user: target_user
+  } do
+    %{conn: conn, user: reporter} = oauth_access(["write:reports"])
+
+    {:ok, invisible_activity} =
+      CommonAPI.post(target_user, %{status: "Invisible!", visibility: "private"})
+
+    assert Pleroma.Web.ActivityPub.Visibility.is_private?(invisible_activity)
+    assert Pleroma.Web.ActivityPub.Visibility.visible_for_user?(activity, reporter)
+    refute Pleroma.Web.ActivityPub.Visibility.visible_for_user?(invisible_activity, reporter)
+
+    assert %{"error" => "Record not found"} =
+             conn
+             |> put_req_header("content-type", "application/json")
+             |> post(
+               "/api/v1/reports",
+               %{
+                 "account_id" => target_user.id,
+                 "status_ids" => [activity.id, invisible_activity.id]
+               }
+             )
+             |> json_response_and_validate_schema(404)
   end
 
   test "doesn't fail if an admin has no email", %{conn: conn, target_user: target_user} do

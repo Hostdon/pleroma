@@ -45,7 +45,7 @@ defmodule Pleroma.Web.MastodonAPI.NotificationViewTest do
     user = insert(:user)
     mentioned_user = insert(:user)
     {:ok, activity} = CommonAPI.post(user, %{status: "hey @#{mentioned_user.nickname}"})
-    {:ok, [notification]} = Notification.create_notifications(activity)
+    {:ok, [notification], []} = Notification.create_notifications(activity)
     user = User.get_cached_by_id(user.id)
 
     expected = %{
@@ -69,7 +69,7 @@ defmodule Pleroma.Web.MastodonAPI.NotificationViewTest do
     another_user = insert(:user)
     {:ok, create_activity} = CommonAPI.post(user, %{status: "hey"})
     {:ok, favorite_activity} = CommonAPI.favorite(another_user, create_activity.id)
-    {:ok, [notification]} = Notification.create_notifications(favorite_activity)
+    {:ok, [notification], []} = Notification.create_notifications(favorite_activity)
     create_activity = Activity.get_by_id(create_activity.id)
 
     expected = %{
@@ -89,7 +89,7 @@ defmodule Pleroma.Web.MastodonAPI.NotificationViewTest do
     another_user = insert(:user)
     {:ok, create_activity} = CommonAPI.post(user, %{status: "hey"})
     {:ok, reblog_activity} = CommonAPI.repeat(create_activity.id, another_user)
-    {:ok, [notification]} = Notification.create_notifications(reblog_activity)
+    {:ok, [notification], []} = Notification.create_notifications(reblog_activity)
     reblog_activity = Activity.get_by_id(create_activity.id)
 
     expected = %{
@@ -275,7 +275,7 @@ defmodule Pleroma.Web.MastodonAPI.NotificationViewTest do
     {:ok, moderator_user} = insert(:user) |> User.admin_api_update(%{is_moderator: true})
 
     {:ok, activity} = CommonAPI.report(reporting_user, %{account_id: reported_user.id})
-    {:ok, [notification]} = Notification.create_notifications(activity)
+    {:ok, [notification], []} = Notification.create_notifications(activity)
 
     expected = %{
       id: to_string(notification.id),
@@ -301,7 +301,7 @@ defmodule Pleroma.Web.MastodonAPI.NotificationViewTest do
     activity = Pleroma.Activity.normalize(activity)
     update = Pleroma.Activity.normalize(update)
 
-    {:ok, [notification]} = Notification.create_notifications(update)
+    {:ok, [notification], []} = Notification.create_notifications(update)
 
     expected = %{
       id: to_string(notification.id),
@@ -322,12 +322,12 @@ defmodule Pleroma.Web.MastodonAPI.NotificationViewTest do
     {:ok, _} = Pleroma.UserRelationship.create_mute(user, another_user)
     {:ok, create_activity} = CommonAPI.post(user, %{status: "hey"})
     {:ok, favorite_activity} = CommonAPI.favorite(another_user, create_activity.id)
-    {:ok, [notification]} = Notification.create_notifications(favorite_activity)
+    {:ok, [notification], []} = Notification.create_notifications(favorite_activity)
     create_activity = Activity.get_by_id(create_activity.id)
 
     expected = %{
       id: to_string(notification.id),
-      pleroma: %{is_seen: true, is_muted: true},
+      pleroma: %{is_seen: false, is_muted: true},
       type: "favourite",
       account: AccountView.render("show.json", %{user: another_user, for: user}),
       status: StatusView.render("show.json", %{activity: create_activity, for: user}),

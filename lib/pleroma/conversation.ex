@@ -15,7 +15,6 @@ defmodule Pleroma.Conversation do
     # This is the context ap id.
     field(:ap_id, :string)
     has_many(:participations, Participation)
-    has_many(:users, through: [:participations, :user])
 
     timestamps()
   end
@@ -45,7 +44,11 @@ defmodule Pleroma.Conversation do
     participation = Repo.preload(participation, :recipients)
 
     if Enum.empty?(participation.recipients) do
-      recipients = User.get_all_by_ap_id(activity.recipients)
+      recipients =
+        [activity.actor | activity.recipients]
+        |> Enum.uniq()
+        |> User.get_all_by_ap_id()
+
       RecipientShip.create(recipients, participation)
     end
   end
@@ -64,15 +67,16 @@ defmodule Pleroma.Conversation do
          ap_id when is_binary(ap_id) and byte_size(ap_id) > 0 <- object.data["context"],
          {:ok, conversation} <- create_for_ap_id(ap_id) do
       users = User.get_users_from_set(activity.recipients, local_only: false)
+      local_users = Enum.filter(users, & &1.local)
 
       participations =
-        Enum.map(users, fn user ->
+        Enum.map(local_users, fn user ->
           invisible_conversation = Enum.any?(users, &User.blocks?(user, &1))
 
           opts = Keyword.put(opts, :invisible_conversation, invisible_conversation)
 
           {:ok, participation} =
-            Participation.create_for_user_and_conversation(user, conversation, opts)
+            Participation.create_or_bump(user, conversation, activity.id, opts)
 
           maybe_create_recipientships(participation, activity)
           participation
@@ -86,22 +90,5 @@ defmodule Pleroma.Conversation do
     else
       e -> {:error, e}
     end
-  end
-
-  @doc """
-  This is only meant to be run by a mix task. It creates conversations/participations for all direct messages in the database.
-  """
-  def bump_for_all_activities do
-    stream =
-      Pleroma.Web.ActivityPub.ActivityPub.fetch_direct_messages_query()
-      |> Repo.stream()
-
-    Repo.transaction(
-      fn ->
-        stream
-        |> Enum.each(fn a -> create_or_bump_for(a, read: true) end)
-      end,
-      timeout: :infinity
-    )
   end
 end

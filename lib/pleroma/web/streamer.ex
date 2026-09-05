@@ -11,7 +11,6 @@ defmodule Pleroma.Web.Streamer do
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.OAuth.Token
@@ -200,7 +199,6 @@ defmodule Pleroma.Web.Streamer do
          %{host: parent_host} <- URI.parse(parent.data["actor"]),
          false <- Pleroma.Web.ActivityPub.MRF.subdomain_match?(domain_blocks, item_host),
          false <- Pleroma.Web.ActivityPub.MRF.subdomain_match?(domain_blocks, parent_host),
-         true <- thread_containment(item, user),
          false <- CommonAPI.thread_muted?(user, parent) do
       false
     else
@@ -363,16 +361,6 @@ defmodule Pleroma.Web.Streamer do
         end
       end)
     end)
-  end
-
-  defp thread_containment(_activity, %User{skip_thread_containment: true}), do: true
-
-  defp thread_containment(activity, user) do
-    if Config.get([:instance, :skip_thread_containment]) do
-      true
-    else
-      ActivityPub.contain_activity(activity, user)
-    end
   end
 
   def close_streams_by_oauth_token(oauth_token) do

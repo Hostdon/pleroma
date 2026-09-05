@@ -63,10 +63,16 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidator do
            |> Ecto.Changeset.apply_action(:insert) do
       object = stringify_keys(object)
       undone_object = Activity.get_by_ap_id(object["object"])
+      outgoing_blocks = Pleroma.Config.get([:activitypub, :outgoing_blocks])
+      # if we're undoing a block, and do not permit federating that:
+      do_not_federate =
+        Keyword.get(meta, :do_not_federate) ||
+          (Map.get(undone_object.data, "type") == "Block" && !outgoing_blocks)
 
       meta =
         meta
         |> Keyword.put(:object_data, undone_object.data)
+        |> Keyword.put(:do_not_federate, do_not_federate)
 
       {:ok, object, meta}
     end

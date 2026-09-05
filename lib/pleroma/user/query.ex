@@ -34,10 +34,9 @@ defmodule Pleroma.User.Query do
 
   @type criteria ::
           %{
-            query: String.t(),
             tags: [String.t()],
             name: String.t(),
-            email: String.t(),
+            email: String.t() | [String.t()],
             local: boolean(),
             external: boolean(),
             active: boolean(),
@@ -55,6 +54,8 @@ defmodule Pleroma.User.Query do
             friends: User.t(),
             recipients_from_activity: [String.t()],
             nickname: [String.t()] | String.t(),
+            nickname_substr: String.t(),
+            nickname_suffix: String.t(),
             ap_id: [String.t()],
             order_by: term(),
             select: term(),
@@ -63,9 +64,9 @@ defmodule Pleroma.User.Query do
           }
           | map()
 
-  @ilike_criteria [:nickname, :name, :query]
+  @ilike_criteria [:nickname_substr, :name]
   @equal_criteria [:email]
-  @contains_criteria [:ap_id, :nickname]
+  @contains_criteria [:ap_id, :email]
 
   @spec build(Query.t(), criteria()) :: Query.t()
   def build(query \\ base_query(), criteria) do
@@ -92,9 +93,16 @@ defmodule Pleroma.User.Query do
 
   defp compose_query({key, value}, query)
        when key in @ilike_criteria and not_empty_string(value) do
-    # hack for :query key
-    key = if key == :query, do: :nickname, else: key
-    where(query, [u], ilike(field(u, ^key), ^"%#{value}%"))
+    key = if key == :nickname_substr, do: :nickname, else: key
+    where(query, [u], ilike(field(u, ^key), ^"%#{escape_sql_like(value)}%"))
+  end
+
+  defp compose_query({:nickname_suffix, value}, query) when not_empty_string(value) do
+    where(query, [u], ilike(u.nickname, ^"%#{escape_sql_like(value)}"))
+  end
+
+  defp compose_query({:nickname, nick}, query) when not_empty_string(nick) do
+    where(query, [u], fragment("LOWER(?) = LOWER(?)", u.nickname, ^nick))
   end
 
   defp compose_query({:invisible, bool}, query) when is_boolean(bool) do
@@ -108,6 +116,17 @@ defmodule Pleroma.User.Query do
 
   defp compose_query({key, values}, query) when key in @contains_criteria and is_list(values) do
     where(query, [u], field(u, ^key) in ^values)
+  end
+
+  defp compose_query({:nickname, nicks}, query) when is_list(nicks) do
+    where(
+      query,
+      [u],
+      fragment("LOWER(?)", u.nickname) in fragment(
+        "(SELECT LOWER(UNNEST(?::text[])))",
+        ^nicks
+      )
+    )
   end
 
   defp compose_query({:tags, tags}, query) when is_list(tags) and length(tags) > 0 do
@@ -142,11 +161,6 @@ defmodule Pleroma.User.Query do
     where(query, [u], u.is_active == true)
     |> where([u], u.is_approved == true)
     |> where([u], u.is_confirmed == true)
-  end
-
-  defp compose_query({:legacy_active, _}, query) do
-    query
-    |> where([u], fragment("not (?->'deactivated' @> 'true')", u.info))
   end
 
   defp compose_query({:deactivated, false}, query) do
@@ -227,12 +241,20 @@ defmodule Pleroma.User.Query do
   defp compose_query({:internal, false}, query) do
     query
     |> where([u], not is_nil(u.nickname))
-    |> where([u], not like(u.nickname, "internal.%"))
+    |> where([u], fragment("LOWER(?) NOT LIKE 'internal.%'", u.nickname))
   end
 
   defp compose_query(_unsupported_param, query), do: query
 
   defp location_query(query, local) do
     where(query, [u], u.local == ^local)
+  end
+
+  defp escape_sql_like(literal) do
+    # https://www.postgresql.org/docs/current/functions-matching.html#FUNCTIONS-LIKE
+    # (assumes the default config of standard_conforming_strings=on)
+    literal
+    |> String.replace("%", "\\%")
+    |> String.replace("_", "\\_")
   end
 end

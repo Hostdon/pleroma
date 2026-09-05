@@ -250,6 +250,16 @@ defmodule Pleroma.Web.ApiSpec.Schemas.Status do
                 }
               }
             ]
+          },
+          in_reply_to_apid: %Schema{
+            type: :string,
+            nullable: true,
+            description: "The AcitivityPub ID this post is replying to, if it is a reply."
+          },
+          quote_apid: %Schema{
+            type: :string,
+            nullable: true,
+            description: "The AcitivityPub ID this post is quoting, if it is a quote."
           }
         }
       },
@@ -337,7 +347,6 @@ defmodule Pleroma.Web.ApiSpec.Schemas.Status do
             "subscribing" => false,
             "notifying" => false
           },
-          "skip_thread_containment" => false,
           "tags" => []
         },
         "source" => %{

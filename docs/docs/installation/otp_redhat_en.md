@@ -218,7 +218,7 @@ sudo systemctl start akkoma
 sudo systemctl enable akkoma
 ```
 
-If everything worked, you should see a response from Akkoma-BE when visiting your domain. You may need to install frontends like Akkoma-FE and Admin-FE; refer to [this guide](../administration/CLI_tasks/frontend.md) on how to install them.
+If everything worked, you should see a response from Akkoma-BE when visiting your domain. You may need to install frontends like akkoma-fe and admin-fe; refer to [this guide](../administration/CLI_tasks/frontend.md) on how to install them.
 
 If that didn't happen, try reviewing the installation steps, starting Akkoma in the foreground and seeing if there are any errrors.
 

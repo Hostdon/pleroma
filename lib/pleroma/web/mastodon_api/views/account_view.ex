@@ -181,10 +181,19 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
   end
 
   def render("instance.json", %{instance: %Pleroma.Instances.Instance{} = instance}) do
+    nodeinfo =
+      if Pleroma.Config.get!([:instance, :filter_embedded_nodeinfo]) and instance.nodeinfo do
+        %{}
+        |> maybe_put_nodeinfo(instance.nodeinfo, "version")
+        |> maybe_put_nodeinfo(instance.nodeinfo, "software")
+      else
+        instance.nodeinfo
+      end
+
     %{
       name: instance.host,
       favicon: instance.favicon |> MediaProxy.url(),
-      nodeinfo: instance.nodeinfo
+      nodeinfo: nodeinfo
     }
   end
 
@@ -207,16 +216,20 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
 
     avatar = User.avatar_url(user) |> MediaProxy.url()
     avatar_static = User.avatar_url(user) |> MediaProxy.preview_url(static: true)
+    avatar_description = User.image_description(user.avatar, "")
     header = User.banner_url(user) |> MediaProxy.url()
     header_static = User.banner_url(user) |> MediaProxy.preview_url(static: true)
+    header_description = User.image_description(user.banner, "")
+
+    self_view? = opts[:for] && opts[:for].id == user.id
 
     following_count =
-      if !user.hide_follows_count or !user.hide_follows or opts[:for] == user,
+      if !user.hide_follows_count or !user.hide_follows or self_view?,
         do: user.following_count,
         else: 0
 
     followers_count =
-      if !user.hide_followers_count or !user.hide_followers or opts[:for] == user,
+      if !user.hide_followers_count or !user.hide_followers or self_view?,
         do: user.follower_count,
         else: 0
 
@@ -264,6 +277,14 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
     last_status_at =
       if is_nil(user.last_status_at), do: nil, else: NaiveDateTime.to_date(user.last_status_at)
 
+    # some cursed code paths pass an ad-hoc fake "error user" here with a nil id
+    feed_url =
+      if user.local && user.id do
+        Pleroma.Web.Endpoint.url() <> ~p"/users/by-id/#{user.id}/feed"
+      else
+        nil
+      end
+
     %{
       id: to_string(user.id),
       username: username_from_nickname(user.nickname),
@@ -278,8 +299,10 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
       url: user.uri || user.ap_id,
       avatar: avatar,
       avatar_static: avatar_static,
+      avatar_description: avatar_description,
       header: header,
       header_static: header_static,
+      header_description: header_description,
       emojis: emojis,
       fields: user.fields,
       bot: bot,
@@ -296,7 +319,8 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
       akkoma: %{
         instance: render("instance.json", %{instance: instance}),
         status_ttl_days: user.status_ttl_days,
-        permit_followback: user.permit_followback
+        permit_followback: user.permit_followback,
+        web_feed: feed_url
       },
       # Pleroma extensions
       # Note: it's insecure to output :email but fully-qualified nickname may serve as safe stub
@@ -313,8 +337,8 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
         hide_follows: user.hide_follows,
         hide_favorites: user.hide_favorites,
         relationship: relationship,
-        skip_thread_containment: user.skip_thread_containment,
         background_image: image_url(user.background) |> MediaProxy.url(),
+        background_image_description: User.image_description(user.background, ""),
         favicon: favicon
       }
     }
@@ -343,8 +367,8 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
        ) do
     count =
       user
-      |> User.get_follow_requests()
-      |> length()
+      |> User.get_follow_requests_query()
+      |> Pleroma.Repo.aggregate(:count)
 
     data
     |> Kernel.put_in([:follow_requests_count], count)
@@ -441,6 +465,16 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
   end
 
   defp maybe_put_email_address(data, _, _), do: data
+
+  defp maybe_put_nodeinfo(map, nodeinfo, key) do
+    val = nodeinfo[key]
+
+    if val do
+      Map.put(map, key, val)
+    else
+      map
+    end
+  end
 
   defp image_url(%{"url" => [%{"href" => href} | _]}), do: href
   defp image_url(_), do: nil

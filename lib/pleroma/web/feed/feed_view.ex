@@ -3,13 +3,12 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.Feed.FeedView do
-  use Phoenix.HTML
   use Pleroma.Web, :view
 
   alias Pleroma.Formatter
   alias Pleroma.Object
   alias Pleroma.User
-  alias Pleroma.Web.Gettext
+  use Gettext, backend: Pleroma.Web.Gettext
   alias Pleroma.Web.MediaProxy
 
   require Pleroma.Constants

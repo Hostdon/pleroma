@@ -84,22 +84,9 @@ defmodule Pleroma.Web.Federator.Publisher do
   @doc """
   Gathers a set of remote users given an IR envelope.
   """
-  def remote_users(%User{id: user_id}, %{data: %{"to" => to} = data}) do
+  def remote_users(%{data: %{"to" => to} = data}) do
     cc = Map.get(data, "cc", [])
-
-    bcc =
-      data
-      |> Map.get("bcc", [])
-      |> Enum.reduce([], fn ap_id, bcc ->
-        case Pleroma.List.get_by_ap_id(ap_id) do
-          %Pleroma.List{user_id: ^user_id} = list ->
-            {:ok, following} = Pleroma.List.get_following(list)
-            bcc ++ Enum.map(following, & &1.ap_id)
-
-          _ ->
-            bcc
-        end
-      end)
+    bcc = Map.get(data, "bcc", [])
 
     [to, cc, bcc]
     |> Enum.concat()

@@ -4,6 +4,7 @@
 
 defmodule Pleroma.Emoji.PackTest do
   use Pleroma.DataCase, async: false
+  alias Pleroma.Emoji
   alias Pleroma.Emoji.Pack
 
   @static_dir Pleroma.Config.get!([:instance, :static_dir])
@@ -11,6 +12,14 @@ defmodule Pleroma.Emoji.PackTest do
                 Pleroma.Config.get!([:instance, :static_dir]),
                 "emoji"
               )
+
+  defp sync_emoji_changes() do
+    # emoji updates happen asynchronously;
+    # force all pending change requests to be processed before checking condition
+    # (this is an (afaik undocumented) side-effect of get_state;
+    #  presumably due to it doing a sync call to retrieve the state and message queue ordering)
+    :sys.get_state(Pleroma.Emoji)
+  end
 
   setup do
     pack_path = Path.join(@emoji_path, "dump_pack")
@@ -29,7 +38,7 @@ defmodule Pleroma.Emoji.PackTest do
     {:ok, pack} = Pleroma.Emoji.Pack.load_pack("dump_pack")
 
     on_exit(fn ->
-      File.rm_rf!(pack_path)
+      Pack.delete("dump_pack")
     end)
 
     {:ok, pack: pack}
@@ -94,6 +103,61 @@ defmodule Pleroma.Emoji.PackTest do
            }
 
     assert updated_pack.files_count == 1
+
+    sync_emoji_changes()
+
+    emoji = Emoji.get("test_blank")
+    assert emoji
+    assert emoji.file == "/emoji/" <> pack.name <> "/test_blank.png"
+  end
+
+  test "update emoji file keeping name", %{pack: pack} do
+    file = %Plug.Upload{
+      filename: "blank.png",
+      path: "#{@emoji_path}/test_pack/blank.png"
+    }
+
+    {:ok, pack} = Pack.add_file(pack, "test_blank", "test_blank.png", file)
+
+    {:ok, updated_pack} =
+      Pack.update_file(pack, "test_blank", "test_blank", "newblank.webp", true)
+
+    assert updated_pack.files == %{
+             "test_blank" => "newblank.webp"
+           }
+
+    assert updated_pack.files_count == 1
+
+    sync_emoji_changes()
+
+    emoji = Emoji.get("test_blank")
+    assert emoji
+    assert emoji.file == "/emoji/" <> pack.name <> "/newblank.webp"
+  end
+
+  test "rename emoji", %{pack: pack} do
+    file = %Plug.Upload{
+      filename: "blank.png",
+      path: "#{@emoji_path}/test_pack/blank.png"
+    }
+
+    {:ok, pack} = Pack.add_file(pack, "test_blank", "test_blank.png", file)
+
+    {:ok, updated_pack} = Pack.update_file(pack, "test_blank", "blank_ng", "newblank.webp", false)
+
+    assert updated_pack.files == %{
+             "blank_ng" => "newblank.webp"
+           }
+
+    assert updated_pack.files_count == 1
+
+    sync_emoji_changes()
+
+    refute Emoji.get("test_blank")
+
+    emoji = Emoji.get("blank_ng")
+    assert emoji
+    assert emoji.file == "/emoji/" <> pack.name <> "/newblank.webp"
   end
 
   test "load_pack/1 panics on path traversal in a forged pack name" do

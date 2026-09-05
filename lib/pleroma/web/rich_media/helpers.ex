@@ -9,7 +9,7 @@ defmodule Pleroma.Web.RichMedia.Helpers do
     headers = [{"user-agent", Pleroma.Application.user_agent() <> "; Bot"}]
 
     head_check =
-      case Pleroma.HTTP.head(url, headers, http_options()) do
+      case Pleroma.HTTP.head(url, headers) do
         # If the HEAD request didn't reach the server for whatever reason,
         # we assume the GET that comes right after won't either
         {:error, _} = e ->
@@ -24,7 +24,7 @@ defmodule Pleroma.Web.RichMedia.Helpers do
           :ok
       end
 
-    with :ok <- head_check, do: Pleroma.HTTP.get(url, headers, http_options())
+    with :ok <- head_check, do: Pleroma.HTTP.get(url, headers)
   end
 
   defp check_content_type(headers) do
@@ -41,7 +41,7 @@ defmodule Pleroma.Web.RichMedia.Helpers do
   end
 
   defp check_content_length(headers) do
-    max_body = Keyword.get(http_options(), :max_body)
+    max_body = Config.get([:rich_media, :max_body], 5_000_000)
 
     case List.keyfind(headers, "content-length", 0) do
       {_, maybe_content_length} ->
@@ -54,12 +54,5 @@ defmodule Pleroma.Web.RichMedia.Helpers do
       _ ->
         :ok
     end
-  end
-
-  defp http_options do
-    [
-      pool: :media,
-      max_body: Config.get([:rich_media, :max_body], 5_000_000)
-    ]
   end
 end

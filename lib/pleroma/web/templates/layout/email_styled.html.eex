@@ -111,7 +111,7 @@
 				<td style="word-break: break-word; vertical-align: top;" valign="top">
 					<!--[if (mso)|(IE)]><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="background-color:<%= @styling.background_color %>"><![endif]-->
 
-					<%# header %>
+					<%!-- header --%>
 					<div style="background-color:transparent;">
 						<div class="block-grid"
 							style="Margin: 0 auto; min-width: 320px; max-width: 590px; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; background-color: <%= @styling.content_background_color%>;">
@@ -145,7 +145,7 @@
 					</div>
 
 
-					<%# title %>
+					<%!-- title --%>
 					<%= if @title do %>
 						<div style="background-color:transparent;">
 							<div class="block-grid"

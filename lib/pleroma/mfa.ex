@@ -54,6 +54,7 @@ defmodule Pleroma.MFA do
   end
 
   @doc false
+  @spec fetch_settings(User.t()) :: Settings.t()
   def fetch_settings(%User{} = user) do
     user.multi_factor_authentication_settings || %Settings{}
   end

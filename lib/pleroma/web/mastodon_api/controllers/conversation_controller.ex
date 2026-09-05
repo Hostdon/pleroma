@@ -21,10 +21,14 @@ defmodule Pleroma.Web.MastodonAPI.ConversationController do
 
   @doc "GET /api/v1/conversations"
   def index(%{assigns: %{user: user}} = conn, params) do
-    participations = Participation.for_user_with_last_activity_id(user, params)
+    participations_keyed = Participation.for_user_with_pagination(user, params)
+
+    participations =
+      Pleroma.Pagination.unwrap(participations_keyed)
+      |> Participation.preload_last_activity_id_and_filter()
 
     conn
-    |> add_link_headers(participations)
+    |> add_link_headers(participations_keyed)
     |> render("participations.json", participations: participations, for: user)
   end
 

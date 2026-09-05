@@ -59,6 +59,8 @@ defmodule Pleroma.Activity.HTML do
       object = Object.normalize(activity, fetch: false)
 
       add_cache_key_for(activity.id, key)
+
+      # callback already produces :commit or :ignore tuples
       HTML.ensure_scrubbed_html(content, scrubbers, object.data["fake"] || false, callback)
     end)
   end

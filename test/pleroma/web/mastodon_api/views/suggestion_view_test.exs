@@ -29,6 +29,7 @@ defmodule Pleroma.Web.MastodonAPI.SuggestionViewTest do
 
     assert suggestion1.source == :staff
     assert suggestion2.account.id == user2.id
-    assert suggestion3.account.url == user3.ap_id
+    assert suggestion3.account.url == user3.uri
+    assert suggestion3.account.pleroma.ap_id == user3.ap_id
   end
 end

@@ -258,24 +258,28 @@ defmodule Pleroma.ConfigDBTest do
     end
 
     test "sigil" do
-      assert ConfigDB.to_elixir_types("~r[comp[lL][aA][iI][nN]er]") == ~r/comp[lL][aA][iI][nN]er/
+      assert ConfigDB.to_elixir_types("~r[comp[lL][aA][iI][nN]er]").source ==
+               ~r/comp[lL][aA][iI][nN]er/.source
     end
 
     test "link sigil" do
-      assert ConfigDB.to_elixir_types("~r/https:\/\/example.com/") == ~r/https:\/\/example.com/
+      assert ConfigDB.to_elixir_types("~r/https:\/\/example.com/").source ==
+               ~r/https:\/\/example.com/.source
     end
 
     test "link sigil with um modifiers" do
-      assert ConfigDB.to_elixir_types("~r/https:\/\/example.com/um") ==
-               ~r/https:\/\/example.com/um
+      assert ConfigDB.to_elixir_types("~r/https:\/\/example.com/um").source ==
+               ~r/https:\/\/example.com/um.source
     end
 
     test "link sigil with i modifier" do
-      assert ConfigDB.to_elixir_types("~r/https:\/\/example.com/i") == ~r/https:\/\/example.com/i
+      assert ConfigDB.to_elixir_types("~r/https:\/\/example.com/i").source ==
+               ~r/https:\/\/example.com/i.source
     end
 
     test "link sigil with s modifier" do
-      assert ConfigDB.to_elixir_types("~r/https:\/\/example.com/s") == ~r/https:\/\/example.com/s
+      assert ConfigDB.to_elixir_types("~r/https:\/\/example.com/s").source ==
+               ~r/https:\/\/example.com/s.source
     end
 
     test "raise if valid delimiter not found" do
@@ -441,15 +445,18 @@ defmodule Pleroma.ConfigDBTest do
     end
 
     test "complex keyword with sigil" do
-      assert ConfigDB.to_elixir_types([
-               %{"tuple" => [":federated_timeline_removal", []]},
-               %{"tuple" => [":reject", ["~r/comp[lL][aA][iI][nN]er/"]]},
-               %{"tuple" => [":replace", []]}
-             ]) == [
-               federated_timeline_removal: [],
-               reject: [~r/comp[lL][aA][iI][nN]er/],
-               replace: []
-             ]
+      [
+        federated_timeline_removal: [],
+        reject: [reject_regex],
+        replace: []
+      ] =
+        ConfigDB.to_elixir_types([
+          %{"tuple" => [":federated_timeline_removal", []]},
+          %{"tuple" => [":reject", ["~r/comp[lL][aA][iI][nN]er/"]]},
+          %{"tuple" => [":replace", []]}
+        ])
+
+      assert reject_regex.source == ~r/comp[lL][aA][iI][nN]er/.source
     end
 
     test "complex keyword with tuples with more than 2 values" do

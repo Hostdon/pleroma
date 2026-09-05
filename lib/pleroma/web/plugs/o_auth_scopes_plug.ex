@@ -4,7 +4,9 @@
 
 defmodule Pleroma.Web.Plugs.OAuthScopesPlug do
   import Plug.Conn
-  import Pleroma.Web.Gettext
+
+  use Gettext,
+    backend: Pleroma.Web.Gettext
 
   alias Pleroma.Helpers.AuthHelper
 

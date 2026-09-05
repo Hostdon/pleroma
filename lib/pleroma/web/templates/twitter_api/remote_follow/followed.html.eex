@@ -1,5 +1,5 @@
 <%= if @error do %>
-<p><%= Gettext.dpgettext("static_pages", "remote follow error", "Error following account") %></p>
+<p><%= dpgettext("static_pages", "remote follow error", "Error following account") %></p>
 <% else %>
-<h2><%= Gettext.dpgettext("static_pages", "remote follow success", "Account followed!") %></h2>
+<h2><%= dpgettext("static_pages", "remote follow success", "Account followed!") %></h2>
 <% end %>

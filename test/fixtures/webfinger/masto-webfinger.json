@@ -2,7 +2,7 @@
   "subject": "acct:{{nickname}}@{{domain}}",
   "aliases": [
     "https://{{subdomain}}/@{{nickname}}",
-    "https://{{subdomain}}/users/{{nickname}}"
+    "{{apid}}"
   ],
   "links": [
     {
@@ -13,7 +13,7 @@
     {
       "rel": "self",
       "type": "application/activity+json",
-      "href": "https://{{subdomain}}/users/{{nickname}}"
+      "href": "{{apid}}"
     },
     {
       "rel": "http://ostatus.org/schema/1.0/subscribe",

@@ -8,6 +8,7 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionController do
   alias Pleroma.Activity
   alias Pleroma.Object
   alias Pleroma.User
+  alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.MastodonAPI.StatusView
   alias Pleroma.Web.Plugs.OAuthScopesPlug
@@ -28,6 +29,7 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionController do
   def index(%{assigns: %{user: user}} = conn, %{id: activity_id} = params) do
     with true <- Pleroma.Config.get([:instance, :show_reactions]),
          %Activity{} = activity <- Activity.get_by_id_with_object(activity_id),
+         {_, true} <- {:visible, Visibility.visible_for_user?(activity, user)},
          %Object{data: %{"reactions" => reactions}} when is_list(reactions) <-
            Object.normalize(activity, fetch: false) do
       reactions =
@@ -37,6 +39,7 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionController do
 
       render(conn, "index.json", emoji_reactions: reactions, user: user)
     else
+      {:visible, _} -> {:error, :forbidden}
       _e -> json(conn, [])
     end
   end
@@ -101,6 +104,7 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionController do
       |> Pleroma.Emoji.fully_qualify_emoji()
       |> Pleroma.Emoji.maybe_quote()
 
+    # CommonAPI checks if allowed to react
     with {:ok, _activity} <- CommonAPI.react_with_emoji(activity_id, user, emoji) do
       activity = Activity.get_by_id(activity_id)
 
@@ -116,6 +120,7 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionController do
       |> Pleroma.Emoji.fully_qualify_emoji()
       |> Pleroma.Emoji.maybe_quote()
 
+    # CommonAPI checks only author can revoke reactions
     with {:ok, _activity} <- CommonAPI.unreact_with_emoji(activity_id, user, emoji) do
       activity = Activity.get_by_id(activity_id)
 

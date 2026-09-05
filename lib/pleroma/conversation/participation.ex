@@ -12,9 +12,12 @@ defmodule Pleroma.Conversation.Participation do
   import Ecto.Changeset
   import Ecto.Query
 
+  @type t() :: %__MODULE__{}
+
   schema "conversation_participations" do
     belongs_to(:user, User, type: FlakeId.Ecto.CompatType)
     belongs_to(:conversation, Conversation)
+    field(:last_bump, FlakeId.Ecto.CompatType)
     field(:read, :boolean, default: false)
     field(:last_activity_id, FlakeId.Ecto.CompatType, virtual: true)
 
@@ -24,24 +27,26 @@ defmodule Pleroma.Conversation.Participation do
     timestamps()
   end
 
-  def creation_cng(struct, params) do
+  defp creation_cng(struct, params) do
     struct
-    |> cast(params, [:user_id, :conversation_id, :read])
-    |> validate_required([:user_id, :conversation_id])
+    |> cast(params, [:user_id, :conversation_id, :last_bump, :read])
+    |> validate_required([:user_id, :conversation_id, :last_bump])
   end
 
-  def create_for_user_and_conversation(user, conversation, opts \\ []) do
+  def create_or_bump(user, conversation, status_id, opts \\ []) do
     read = !!opts[:read]
     invisible_conversation = !!opts[:invisible_conversation]
 
     update_on_conflict =
       if(invisible_conversation, do: [], else: [read: read])
       |> Keyword.put(:updated_at, NaiveDateTime.utc_now())
+      |> Keyword.put(:last_bump, status_id)
 
     %__MODULE__{}
     |> creation_cng(%{
       user_id: user.id,
       conversation_id: conversation.id,
+      last_bump: status_id,
       read: invisible_conversation || read
     })
     |> Repo.insert(
@@ -51,7 +56,7 @@ defmodule Pleroma.Conversation.Participation do
     )
   end
 
-  def read_cng(struct, params) do
+  defp read_cng(struct, params) do
     struct
     |> cast(params, [:read])
     |> validate_required([:read])
@@ -99,43 +104,87 @@ defmodule Pleroma.Conversation.Participation do
     {:ok, user, participations}
   end
 
+  # used for tests
   def mark_as_unread(participation) do
     participation
     |> read_cng(%{read: false})
     |> Repo.update()
   end
 
-  def for_user(user, params \\ %{}) do
+  def for_user_with_pagination(user, params \\ %{}) do
     from(p in __MODULE__,
       where: p.user_id == ^user.id,
-      order_by: [desc: p.updated_at],
-      preload: [conversation: [:users]]
+      preload: [:conversation]
     )
     |> restrict_recipients(user, params)
-    |> Pleroma.Pagination.fetch_paginated(params)
+    |> select([p], %{id: p.last_bump, entry: p})
+    |> Pleroma.Pagination.fetch_paginated(Map.put(params, :pagination_field, :last_bump))
   end
 
-  def restrict_recipients(query, user, %{recipients: user_ids}) do
+  def preload_last_activity_id_and_filter(participations) when is_list(participations) do
+    participations
+    |> Enum.map(fn p -> load_last_activity_id(p) end)
+    |> Enum.filter(fn p -> p.last_activity_id end)
+  end
+
+  defp load_last_activity_id(%__MODULE__{} = participation) do
+    %{
+      participation
+      | last_activity_id: last_activity_id(participation)
+    }
+  end
+
+  @spec last_activity_id(t(), User.t() | nil) :: Flake.t()
+  def last_activity_id(participation, user \\ nil)
+
+  def last_activity_id(
+        %__MODULE__{conversation: %Conversation{}} = participation,
+        user
+      ) do
+    user =
+      if user && user.id == participation.user_id do
+        user
+      else
+        case participation.user do
+          %User{} -> participation.user
+          _ -> User.get_cached_by_id(participation.user_id)
+        end
+      end
+
+    ActivityPub.fetch_latest_direct_activity_id_for_context(
+      participation.conversation.ap_id,
+      user
+    )
+  end
+
+  def last_activity_id(%__MODULE__{} = participation, user) do
+    case Repo.preload(participation, :conversation) do
+      %{conversation: %Conversation{}} = p -> last_activity_id(p, user)
+      _ -> nil
+    end
+  end
+
+  defp restrict_recipients(query, user, %{recipients: user_ids}) do
     user_binary_ids =
       [user.id | user_ids]
       |> Enum.uniq()
       |> User.binary_id()
 
-    conversation_subquery =
-      __MODULE__
-      |> group_by([p], p.conversation_id)
+    recipient_subquery =
+      RecipientShip
+      |> group_by([r], r.participation_id)
       |> having(
-        [p],
-        count(p.user_id) == ^length(user_binary_ids) and
-          fragment("array_agg(?) @> ?", p.user_id, ^user_binary_ids)
+        [r],
+        count(r.user_id) == ^length(user_binary_ids) and
+          fragment("array_agg(?) @> ?", r.user_id, ^user_binary_ids)
       )
-      |> select([p], %{id: p.conversation_id})
+      |> select([r], %{pid: r.participation_id})
 
     query
-    |> join(:inner, [p], c in subquery(conversation_subquery), on: p.conversation_id == c.id)
+    |> join(:inner, [p], r in subquery(recipient_subquery), on: p.id == r.pid)
   end
 
-  def restrict_recipients(query, _, _), do: query
+  defp restrict_recipients(query, _, _), do: query
 
   def for_user_and_conversation(user, conversation) do
     from(p in __MODULE__,
@@ -143,26 +192,6 @@ defmodule Pleroma.Conversation.Participation do
       where: p.conversation_id == ^conversation.id
     )
     |> Repo.one()
-  end
-
-  def for_user_with_last_activity_id(user, params \\ %{}) do
-    for_user(user, params)
-    |> Enum.map(fn participation ->
-      activity_id =
-        ActivityPub.fetch_latest_direct_activity_id_for_context(
-          participation.conversation.ap_id,
-          %{
-            user: user,
-            blocking_user: user
-          }
-        )
-
-      %{
-        participation
-        | last_activity_id: activity_id
-      }
-    end)
-    |> Enum.reject(&is_nil(&1.last_activity_id))
   end
 
   def get(_, _ \\ [])
@@ -211,14 +240,6 @@ defmodule Pleroma.Conversation.Participation do
   def unread_count(%User{id: user_id}) do
     from(q in __MODULE__, where: q.user_id == ^user_id and q.read == false)
     |> Repo.aggregate(:count, :id)
-  end
-
-  def unread_conversation_count_for_user(user) do
-    from(p in __MODULE__,
-      where: p.user_id == ^user.id,
-      where: not p.read,
-      select: %{count: count(p.id)}
-    )
   end
 
   def delete(%__MODULE__{} = participation) do

@@ -7,8 +7,31 @@ defmodule Pleroma.Web.ActivityPub.UserViewTest do
   import Pleroma.Factory
 
   alias Pleroma.User
+  alias Pleroma.Web.ActivityPub.ObjectValidators.UserValidator
   alias Pleroma.Web.ActivityPub.UserView
   alias Pleroma.Web.CommonAPI
+
+  test "Renders a user such that we accept it ourselves" do
+    user =
+      insert(:user)
+      |> with_signing_key()
+
+    representation = UserView.render("user.json", %{user: user})
+    validation_res = UserValidator.validate(representation, [])
+
+    assert match?({:ok, _user, _meta}, validation_res)
+  end
+
+  test "Renders a minimal user such that we accept it ourselves" do
+    user =
+      insert(:user)
+      |> with_signing_key()
+
+    representation = UserView.render("stripped_user.json", %{user: user})
+    validation_res = UserValidator.validate(representation, [])
+
+    assert match?({:ok, _user, _meta}, validation_res)
+  end
 
   test "Renders a user, including the public key" do
     user =
@@ -74,6 +97,22 @@ defmodule Pleroma.Web.ActivityPub.UserViewTest do
     assert result["icon"]["url"] == "https://someurl"
     assert result["image"]["url"] == "https://somebanner"
     assert result["backgroundUrl"]["url"] == "https://somebackground"
+    assert result["icon"]["name"] == ""
+    assert result["image"]["name"] == ""
+  end
+
+  test "Avatar has a description if the user set one" do
+    user =
+      insert(:user,
+        avatar: %{
+          "url" => [%{"href" => "https://someurl"}],
+          "name" => "a drawing of pleroma-tan using pleroma groups"
+        }
+      )
+
+    result = UserView.render("user.json", %{user: user})
+
+    assert result["icon"]["name"] == "a drawing of pleroma-tan using pleroma groups"
   end
 
   test "renders an invisible user with the invisible property set to true" do
@@ -126,26 +165,16 @@ defmodule Pleroma.Web.ActivityPub.UserViewTest do
       assert result["id"] == user.ap_id
       assert result["endpoints"] == %{}
     end
-
-    test "instance users do not expose oAuth endpoints" do
-      user =
-        insert(:user, nickname: nil, local: true)
-        |> with_signing_key()
-
-      result = UserView.render("user.json", %{user: user})
-
-      refute result["endpoints"]["oauthAuthorizationEndpoint"]
-      refute result["endpoints"]["oauthRegistrationEndpoint"]
-      refute result["endpoints"]["oauthTokenEndpoint"]
-    end
   end
 
   describe "followers" do
-    test "sets totalItems to zero when followers are hidden" do
+    test "omits totalItems when followers are hidden" do
       user = insert(:user)
       other_user = insert(:user)
       {:ok, _other_user, user, _activity} = CommonAPI.follow(other_user, user)
+
       assert %{"totalItems" => 1} = UserView.render("followers.json", %{user: user})
+
       user = Map.merge(user, %{hide_followers_count: true, hide_followers: true})
       refute UserView.render("followers.json", %{user: user}) |> Map.has_key?("totalItems")
     end
@@ -154,29 +183,38 @@ defmodule Pleroma.Web.ActivityPub.UserViewTest do
       user = insert(:user)
       other_user = insert(:user)
       {:ok, _other_user, user, _activity} = CommonAPI.follow(other_user, user)
+
       assert %{"totalItems" => 1} = UserView.render("followers.json", %{user: user})
+
       user = Map.merge(user, %{hide_followers_count: false, hide_followers: true})
       assert %{"totalItems" => 1} = UserView.render("followers.json", %{user: user})
     end
   end
 
   describe "following" do
-    test "sets totalItems to zero when follows are hidden" do
+    test "omits totalItems when follows are hidden" do
       user = insert(:user)
       other_user = insert(:user)
       {:ok, user, _other_user, _activity} = CommonAPI.follow(user, other_user)
+
       assert %{"totalItems" => 1} = UserView.render("following.json", %{user: user})
       user = Map.merge(user, %{hide_follows_count: true, hide_follows: true})
-      assert %{"totalItems" => 0} = UserView.render("following.json", %{user: user})
+      refute UserView.render("following.json", %{user: user}) |> Map.has_key?("totalItems")
     end
 
     test "sets correct totalItems when follows are hidden but the follow counter is not" do
       user = insert(:user)
       other_user = insert(:user)
       {:ok, user, _other_user, _activity} = CommonAPI.follow(user, other_user)
+
       assert %{"totalItems" => 1} = UserView.render("following.json", %{user: user})
+
       user = Map.merge(user, %{hide_follows_count: false, hide_follows: true})
       assert %{"totalItems" => 1} = UserView.render("following.json", %{user: user})
     end
+  end
+
+  describe "webfinger" do
+    # TODO
   end
 end

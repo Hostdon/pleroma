@@ -9,7 +9,10 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
   alias Pleroma.Activity
   alias Pleroma.Object
   alias Pleroma.User
+  alias Pleroma.Web.ActivityPub.Builder
+  alias Pleroma.Web.ActivityPub.Pipeline
   alias Pleroma.Web.ActivityPub.Transmogrifier
+  alias Pleroma.Web.ActivityPub.UserView
   alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.AdminAPI.AccountView
   alias Pleroma.Web.CommonAPI
@@ -98,6 +101,26 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
       assert {:ok, activity} = Transmogrifier.handle_incoming(message)
 
       assert activity.data["object"] == [user.ap_id, note_obj]
+      assert activity.data["content"] == "blocked AND reported!!!"
+      assert activity.data["actor"] == other_user.ap_id
+      assert activity.data["cc"] == [user.ap_id]
+    end
+
+    test "it accepts Flag activities with just actor id as object" do
+      user = insert(:user)
+      other_user = insert(:user)
+
+      message = %{
+        "@context" => "https://www.w3.org/ns/activitystreams",
+        "cc" => [user.ap_id],
+        "object" => user.ap_id,
+        "type" => "Flag",
+        "content" => "blocked AND reported!!!",
+        "actor" => other_user.ap_id
+      }
+
+      assert {:ok, activity} = Transmogrifier.handle_incoming(message)
+
       assert activity.data["content"] == "blocked AND reported!!!"
       assert activity.data["actor"] == other_user.ap_id
       assert activity.data["cc"] == [user.ap_id]
@@ -451,6 +474,7 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
       assert is_nil(modified["object"]["announcements"])
       assert is_nil(modified["object"]["announcement_count"])
       assert is_nil(modified["object"]["generator"])
+      assert is_nil(modified["object"]["voters"])
     end
 
     test "it strips internal fields of article" do
@@ -496,7 +520,7 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
 
     test "it strips BCC field" do
       user = insert(:user)
-      {:ok, list} = Pleroma.List.create("foo", user)
+      {:ok, list} = Pleroma.List.create(%{title: "foo"}, user)
 
       {:ok, activity} = CommonAPI.post(user, %{status: "foobar", visibility: "list:#{list.id}"})
 
@@ -540,6 +564,94 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
                  ]
                }
              } = prepared["object"]
+    end
+
+    test "Updates of Actors are handled" do
+      user = insert(:user, local: true)
+
+      changeset = User.update_changeset(user, %{name: "new name"})
+      {:ok, unpersisted_user} = Ecto.Changeset.apply_action(changeset, :update)
+
+      updated_object =
+        UserView.render("user.json", user: unpersisted_user)
+        |> Map.delete("@context")
+
+      {:ok, update_data, []} = Builder.update(user, updated_object)
+
+      {:ok, activity, _} =
+        Pipeline.common_pipeline(update_data,
+          local: true,
+          user_update_changeset: changeset
+        )
+
+      assert {:ok, prepared} = Transmogrifier.prepare_outgoing(activity.data)
+      assert prepared["type"] == "Update"
+      assert prepared["@context"]
+      assert prepared["object"]["type"] == user.actor_type
+    end
+
+    test "Correctly handles Undo activities" do
+      blocked = insert(:user)
+      blocker = insert(:user, local: true)
+
+      blocked_ap_id = blocked.ap_id
+      blocker_ap_id = blocker.ap_id
+
+      {:ok, %Activity{} = block_activity} = CommonAPI.block(blocker, blocked)
+      {:ok, %Activity{} = undo_activity} = CommonAPI.unblock(blocker, blocked)
+      {:ok, data} = Transmogrifier.prepare_outgoing(undo_activity.data)
+
+      block_ap_id = block_activity.data["id"]
+      assert is_binary(block_ap_id)
+
+      assert match?(
+               %{
+                 "@context" => [_ | _],
+                 "type" => "Undo",
+                 "id" => "http://localhost" <> _,
+                 "actor" => ^blocker_ap_id,
+                 "object" => ^block_ap_id,
+                 "to" => [^blocked_ap_id],
+                 "cc" => [],
+                 "bto" => [],
+                 "bcc" => []
+               },
+               data
+             )
+    end
+
+    test "Correctly handles EmojiReact activities" do
+      user = insert(:user, local: true)
+      note_activity = insert(:note_activity)
+
+      user_ap_id = user.ap_id
+      user_followers = user.follower_address
+      note_author = note_activity.data["actor"]
+      note_ap_id = note_activity.data["object"]
+
+      assert is_binary(note_author)
+      assert is_binary(note_ap_id)
+
+      {:ok, react_activity} = CommonAPI.react_with_emoji(note_activity.id, user, "🐈")
+      {:ok, data} = Transmogrifier.prepare_outgoing(react_activity.data)
+
+      assert match?(
+               %{
+                 "@context" => [_ | _],
+                 "type" => "EmojiReact",
+                 "actor" => ^user_ap_id,
+                 "to" => [^user_followers, ^note_author],
+                 "cc" => ["https://www.w3.org/ns/activitystreams#Public"],
+                 "bto" => [],
+                 "bcc" => [],
+                 "content" => "🐈",
+                 "context" => <<_ctx_uri::binary>>,
+                 "id" => "http://localhost" <> _,
+                 "object" => ^note_ap_id,
+                 "tag" => []
+               },
+               data
+             )
     end
   end
 
@@ -733,6 +845,109 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
             ],
             "mediaType" => "image/jpeg",
             "blurhash" => "eTKL26+HDjcEIBVl;ds+K6t301W.t7nit7y1E,R:v}ai4nXSt7V@of"
+          }
+        ]
+      }
+
+      assert Transmogrifier.fix_attachments(object) == expected
+    end
+
+    test "can deal with non-array attachment" do
+      object = %{
+        "attachment" => %{
+          "type" => "Document",
+          "name" => "Hello world",
+          "url" => "https://media.example.tld/1.jpg",
+          "mediaType" => "image/jpeg"
+        }
+      }
+
+      expected = %{
+        "attachment" => [
+          %{
+            "type" => "Document",
+            "name" => "Hello world",
+            "url" => [
+              %{
+                "type" => "Link",
+                "mediaType" => "image/jpeg",
+                "href" => "https://media.example.tld/1.jpg"
+              }
+            ],
+            "mediaType" => "image/jpeg"
+          }
+        ]
+      }
+
+      assert Transmogrifier.fix_attachments(object) == expected
+    end
+
+    test "can deal with missing MIME type" do
+      object_flat = %{
+        "attachment" => [
+          %{
+            "type" => "Document",
+            "name" => "Hello world",
+            "url" => "https://media.example.tld/1.jpg"
+          }
+        ]
+      }
+
+      object_url_map = %{
+        "attachment" => [
+          %{
+            "type" => "Document",
+            "name" => "Hello world",
+            "url" => %{
+              "type" => "Link",
+              "href" => "https://media.example.tld/1.jpg"
+            }
+          }
+        ]
+      }
+
+      expected = %{
+        "attachment" => [
+          %{
+            "type" => "Document",
+            "name" => "Hello world",
+            "url" => [
+              %{
+                "type" => "Link",
+                "href" => "https://media.example.tld/1.jpg"
+              }
+            ]
+          }
+        ]
+      }
+
+      assert Transmogrifier.fix_attachments(object_flat) == expected
+      assert Transmogrifier.fix_attachments(object_url_map) == expected
+    end
+
+    test "rejects invalid MIME type" do
+      object = %{
+        "attachment" => [
+          %{
+            "type" => "Document",
+            "name" => "Hello world",
+            "url" => "https://media.example.tld/1.jpg",
+            "mediaType" => "apzlicatonne/quark"
+          }
+        ]
+      }
+
+      expected = %{
+        "attachment" => [
+          %{
+            "type" => "Document",
+            "name" => "Hello world",
+            "url" => [
+              %{
+                "type" => "Link",
+                "href" => "https://media.example.tld/1.jpg"
+              }
+            ]
           }
         ]
       }

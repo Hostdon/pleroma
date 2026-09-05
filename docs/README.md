@@ -15,7 +15,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # Run an http server who rebuilds when files change
-# Accessable on http://127.0.0.1:8000
+# Accessible on http://127.0.0.1:8000
 mkdocs serve
 
 # Build the docs

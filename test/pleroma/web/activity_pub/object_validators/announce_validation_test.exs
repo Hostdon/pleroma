@@ -86,23 +86,32 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.AnnounceValidationTest do
       object = Object.normalize(post_activity, fetch: false)
 
       # Another user can't announce it
-      {:ok, announce, []} = Builder.announce(announcer, object, public: false)
+      {:ok, announce, []} = Builder.announce(announcer, object, visibility: "private")
 
       {:error, cng} = ObjectValidator.validate(announce, [])
 
       assert {:actor, {"can not announce this object", []}} in cng.errors
 
-      # The actor of the object can announce it
-      {:ok, announce, []} = Builder.announce(user, object, public: false)
+      # The actor of the object can announce it with a restrictive scope
+      {:ok, announce, []} = Builder.announce(user, object, visibility: "private")
+      assert {:ok, _, _} = ObjectValidator.validate(announce, [])
 
+      {:ok, announce, []} = Builder.announce(user, object, visibility: "direct")
       assert {:ok, _, _} = ObjectValidator.validate(announce, [])
 
       # The actor of the object can not announce it publicly
-      {:ok, announce, []} = Builder.announce(user, object, public: true)
+      {:ok, announce, []} = Builder.announce(user, object, visibility: "public")
+      {:error, cng1} = ObjectValidator.validate(announce, [])
 
-      {:error, cng} = ObjectValidator.validate(announce, [])
+      {:ok, announce, []} = Builder.announce(user, object, visibility: "unlisted")
+      {:error, cng2} = ObjectValidator.validate(announce, [])
 
-      assert {:actor, {"can not announce this object publicly", []}} in cng.errors
+      {:ok, announce, []} = Builder.announce(user, object, visibility: "local")
+      {:error, cng3} = ObjectValidator.validate(announce, [])
+
+      for cng <- [cng1, cng2, cng3] do
+        assert {:actor, {"can not announce this object publicly", []}} in cng.errors
+      end
     end
   end
 end

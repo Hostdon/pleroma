@@ -11,6 +11,8 @@ defmodule Pleroma.Object.FetcherTest do
   alias Pleroma.Object
   alias Pleroma.Object.Fetcher
 
+  require Pleroma.Constants
+
   import Mock
   import Tesla.Mock
 
@@ -325,7 +327,26 @@ defmodule Pleroma.Object.FetcherTest do
   end
 
   describe "fetching an object" do
-    test "it fetches an object" do
+    test "it fetches an object by AP ID" do
+      ap_id = "http://mastodon.example.org/users/admin/statuses/99541947525187367"
+
+      {:ok, object} =
+        Fetcher.fetch_object_from_id(ap_id)
+
+      assert ap_id == object.data["id"]
+
+      assert _activity = Activity.get_create_by_object_ap_id(object.data["id"])
+
+      {:ok, object_again} =
+        Fetcher.fetch_object_from_id(ap_id)
+
+      assert [attachment] = object.data["attachment"]
+      assert is_list(attachment["url"])
+
+      assert object == object_again
+    end
+
+    test "it fetches an object by display URL" do
       {:ok, object} =
         Fetcher.fetch_object_from_id("http://mastodon.example.org/@admin/99541947525187367")
 
@@ -337,6 +358,9 @@ defmodule Pleroma.Object.FetcherTest do
       assert [attachment] = object.data["attachment"]
       assert is_list(attachment["url"])
 
+      # on refetch object might be updated to new remote state
+      # (here no actual data change though)
+      object = %{object | updated_at: object_again.updated_at}
       assert object == object_again
     end
 
@@ -352,14 +376,29 @@ defmodule Pleroma.Object.FetcherTest do
 
     test "does not fetch anything from a rejected instance" do
       clear_config([:mrf_simple, :reject], [{"evil.example.org", "i said so"}])
+      clear_config([:mrf, :policies], [Pleroma.Web.ActivityPub.MRF.SimplePolicy])
 
       assert {:reject, _} =
                Fetcher.fetch_object_from_id("http://evil.example.org/@admin/99541947525187367")
     end
 
+    test "fetches from a rejected instance when mrf_simple is off" do
+      clear_config([:mrf_simple, :reject], [
+        {"mastodon.example.org", "forgot the reason, will disable for now"}
+      ])
+
+      clear_config([:mrf, :policies], [])
+
+      assert {:ok, _object} =
+               Fetcher.fetch_object_from_id(
+                 "http://mastodon.example.org/@admin/99541947525187367"
+               )
+    end
+
     test "does not fetch anything if mrf_simple accept is on" do
       clear_config([:mrf_simple, :accept], [{"mastodon.example.org", "i said so"}])
       clear_config([:mrf_simple, :reject], [])
+      clear_config([:mrf, :policies], [Pleroma.Web.ActivityPub.MRF.SimplePolicy])
 
       assert {:reject, _} =
                Fetcher.fetch_object_from_id(
@@ -453,6 +492,7 @@ defmodule Pleroma.Object.FetcherTest do
       object_id = "http://mastodon.example.org/@admin/99541947525187367"
 
       {:ok, object} = Fetcher.fetch_object_from_id(object_id)
+      old_create = Activity.get_create_by_object_ap_id(object.data["id"])
 
       assert object
 
@@ -461,9 +501,13 @@ defmodule Pleroma.Object.FetcherTest do
       refute Object.get_by_ap_id(object_id)
 
       {:ok, %Object{} = object_two} = Fetcher.fetch_object_from_id(object_id)
+      new_create = Activity.get_create_by_object_ap_id(object.data["id"])
 
       assert object.data["id"] == object_two.data["id"]
       assert object.id != object_two.id
+      # Create must have been recreated with new data
+      refute old_create.id == new_create.id
+      refute Activity.get_by_id(old_create.id)
     end
   end
 
@@ -478,7 +522,7 @@ defmodule Pleroma.Object.FetcherTest do
 
       Fetcher.fetch_object_from_id("http://mastodon.example.org/@admin/99541947525187367")
 
-      assert called(Pleroma.Signature.sign(:_, :_))
+      assert called(Pleroma.Signature.sign(:_, :_, :_))
     end
 
     test_with_mock "it doesn't sign fetches when not configured to do so",
@@ -489,7 +533,25 @@ defmodule Pleroma.Object.FetcherTest do
 
       Fetcher.fetch_object_from_id("http://mastodon.example.org/@admin/99541947525187367")
 
-      refute called(Pleroma.Signature.sign(:_, :_))
+      refute called(Pleroma.Signature.sign(:_, :_, :_))
+    end
+
+    test_with_mock "it signs the query params of the request target",
+                   Pleroma.Signature,
+                   [:passthrough],
+                   sign: fn key, headers, opts ->
+                     rt = headers["(request-target)"]
+                     unless String.ends_with?(rt, "?page=1"), do: raise("omits query part!")
+                     passthrough([key, headers, opts])
+                   end do
+      clear_config([:activitypub, :sign_object_fetches], true)
+
+      {:ok, _doc} =
+        Fetcher.fetch_and_contain_remote_object_from_id(
+          "http://remote.org/users/masto_closed/followers?page=1"
+        )
+
+      assert_called(Pleroma.Signature.sign(:_, :_, :_))
     end
   end
 
@@ -504,8 +566,12 @@ defmodule Pleroma.Object.FetcherTest do
         "bcc" => [],
         "bto" => [],
         "cc" => [],
-        "to" => [],
-        "summary" => ""
+        "to" => [Pleroma.Constants.as_public()],
+        "summary" => nil,
+        "tag" => [],
+        "emoji" => %{},
+        "sensitive" => false,
+        "attachment" => []
       }
 
       object2 = %{
@@ -517,7 +583,7 @@ defmodule Pleroma.Object.FetcherTest do
         "bcc" => [],
         "bto" => [],
         "cc" => [],
-        "to" => [],
+        "to" => [Pleroma.Constants.as_public()],
         "summary" => "",
         "formerRepresentations" => %{
           "type" => "OrderedCollection",
@@ -530,7 +596,7 @@ defmodule Pleroma.Object.FetcherTest do
               "bcc" => [],
               "bto" => [],
               "cc" => [],
-              "to" => [],
+              "to" => [Pleroma.Constants.as_public()],
               "summary" => ""
             }
           ],
@@ -599,7 +665,7 @@ defmodule Pleroma.Object.FetcherTest do
                 "bcc" => [],
                 "bto" => [],
                 "cc" => [],
-                "to" => [],
+                "to" => [Pleroma.Constants.as_public()],
                 "summary" => ""
               }
             ],
@@ -632,7 +698,12 @@ defmodule Pleroma.Object.FetcherTest do
           "formerRepresentations" => %{
             "type" => "OrderedCollection",
             "orderedItems" => [
-              %{"type" => "Note", "content" => "mew mew 2"}
+              %{
+                "type" => "Note",
+                "content" => "mew mew 2",
+                "actor" => object2["actor"],
+                "to" => object2["to"]
+              }
             ],
             "totalItems" => 1
           }
@@ -657,7 +728,12 @@ defmodule Pleroma.Object.FetcherTest do
           "formerRepresentations" => %{
             "type" => "OrderedCollection",
             "orderedItems" => [
-              %{"type" => "Note", "content" => "mew mew 1"}
+              %{
+                "type" => "Note",
+                "content" => "mew mew 1",
+                "actor" => object1["actor"],
+                "to" => object1["to"]
+              }
             ],
             "totalItems" => 1
           }

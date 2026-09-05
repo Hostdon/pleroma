@@ -4,7 +4,7 @@
 
 defmodule Pleroma.Docs.Translator do
   require Pleroma.Docs.Translator.Compiler
-  require Pleroma.Web.Gettext
+  use Gettext, backend: Pleroma.Web.Gettext
 
   @before_compile Pleroma.Docs.Translator.Compiler
 end

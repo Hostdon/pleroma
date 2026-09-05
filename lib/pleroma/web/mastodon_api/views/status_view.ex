@@ -26,6 +26,12 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
 
   import Pleroma.Web.ActivityPub.Visibility, only: [get_visibility: 1, visible_for_user?: 2]
 
+  # Used as a placeholder to represent known-existing relatives we do cannot resolve locally
+  # will always 404 when supplied to API endpoints
+  @ghost_flake_id "_"
+
+  @valid_attach_types ["image", "audio", "video"]
+
   defp fetch_rich_media_for_activities(activities) do
     Enum.each(activities, fn activity ->
       Card.get_by_activity(activity)
@@ -277,9 +283,12 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
             nil
         end
 
-      reply_to = get_reply_to(activity, opts)
+      reply_to_apid = get_single_apid(object.data, "inReplyTo")
+      reply_to = reply_to_apid && get_reply_to(activity, opts)
+      reply_to_id = reply_to_apid && get_id_or_ghost(reply_to)
 
       reply_to_user = reply_to && CommonAPI.get_user(reply_to.data["actor"])
+      reply_to_user_id = reply_to_apid && get_id_or_ghost(reply_to_user)
 
       history_len =
         1 +
@@ -363,7 +372,10 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
 
       {pinned?, pinned_at} = pin_data(object, user)
 
-      quote = Activity.get_quoted_activity_from_object(object)
+      quote_apid = get_single_apid(object.data, "quoteUri")
+      quote = quote_apid && Activity.get_quoted_activity_from_object(object)
+      quote_id = quote_apid && get_id_or_ghost(quote)
+
       lang = language(object)
 
       %{
@@ -375,8 +387,8 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
             user: user,
             for: opts[:for]
           }),
-        in_reply_to_id: reply_to && to_string(reply_to.id),
-        in_reply_to_account_id: reply_to_user && to_string(reply_to_user.id),
+        in_reply_to_id: reply_to_id,
+        in_reply_to_account_id: reply_to_user_id,
         reblog: nil,
         card: card,
         content: content_html,
@@ -401,7 +413,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
         application: build_application(object.data["generator"]),
         language: lang,
         emojis: build_emojis(object.data["emoji"]),
-        quote_id: if(quote, do: quote.id, else: nil),
+        quote_id: quote_id,
         quote: maybe_render_quote(quote, opts),
         emoji_reactions: emoji_reactions,
         pleroma: %{
@@ -419,7 +431,12 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
           pinned_at: pinned_at
         },
         akkoma: %{
-          source: object.data["source"]
+          source: object.data["source"],
+          # Note: these AP IDs will also be filled out if we cannot resolve the actual object
+          # (e.g. because it’s a private post we aren't allowed to access, or just federation woes)
+          # allowing users to potentially discover the full context from other accounts/servers.
+          in_reply_to_apid: reply_to_apid,
+          quote_apid: quote_apid
         }
       }
     else
@@ -558,18 +575,22 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
 
   def render("attachment.json", %{attachment: attachment}) do
     [attachment_url | _] = attachment["url"]
-    media_type = attachment_url["mediaType"] || attachment_url["mimeType"] || "image"
+
+    media_type =
+      attachment_url["mediaType"] || attachment_url["mimeType"] || "application/octet-stream"
+
     href = attachment_url["href"] |> MediaProxy.url()
     href_preview = attachment_url["href"] |> MediaProxy.preview_url()
     meta = render("attachment_meta.json", %{attachment: attachment})
 
+    # try to deduce type from full MIME, but if inconclusive (and since full type not set
+    # by all remote servers) try to fallback to generic type
+    generic_type = String.downcase(attachment["type"] || "")
+
     type =
-      cond do
-        String.contains?(media_type, "image") -> "image"
-        String.contains?(media_type, "video") -> "video"
-        String.contains?(media_type, "audio") -> "audio"
-        true -> "unknown"
-      end
+      Enum.find(@valid_attach_types, fn type -> String.contains?(media_type, type) end) ||
+        (generic_type in @valid_attach_types && generic_type) ||
+        "unknown"
 
     attachment_id =
       with {_, ap_id} when is_binary(ap_id) <- {:ap_id, attachment["id"]},
@@ -589,7 +610,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
       preview_url: href_preview,
       text_url: href,
       type: type,
-      description: attachment["name"],
+      description: attachment["summary"] || attachment["name"],
       pleroma: %{mime_type: media_type},
       blurhash: attachment["blurhash"]
     }
@@ -599,7 +620,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
   def render("attachment_meta.json", %{
         attachment: %{"url" => [%{"width" => width, "height" => height} | _]}
       })
-      when is_integer(width) and is_integer(height) do
+      when is_integer(width) and is_integer(height) and width > 0 and height > 0 do
     %{
       original: %{
         width: width,
@@ -632,6 +653,26 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
   defp proxied_url(url, page_url_data) do
     if is_binary(url) do
       build_image_url(URI.parse(url), page_url_data) |> MediaProxy.url()
+    else
+      nil
+    end
+  end
+
+  defp get_id_or_ghost(object) do
+    (object && to_string(object.id)) || @ghost_flake_id
+  end
+
+  defp get_single_apid(object, key) do
+    apid = object[key]
+
+    apid =
+      case apid do
+        [head | _] -> head
+        _ -> apid
+      end
+
+    if apid != "" and is_binary(apid) do
+      apid
     else
       nil
     end
@@ -751,8 +792,8 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
   defp maybe_render_quote(nil, _), do: nil
 
   defp maybe_render_quote(quote, opts) do
-    with %User{} = quoted_user <- User.get_cached_by_ap_id(quote.actor),
-         false <- Map.get(opts, :do_not_recurse, false),
+    with false <- Map.get(opts, :do_not_recurse, false),
+         %User{} = quoted_user <- User.get_cached_by_ap_id(quote.actor),
          true <- visible_for_user?(quote, opts[:for]),
          false <- User.blocks?(opts[:for], quoted_user),
          false <- User.mutes?(opts[:for], quoted_user) do
@@ -761,7 +802,14 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
         |> Map.put(:activity, quote)
         |> Map.put(:do_not_recurse, true)
 
-      render("show.json", opts)
+      qdata = render("show.json", opts)
+
+      # For Masto-API compat we need to stuff the quote into itself
+      # such that the "quote" object meets both the old *oma convention
+      # being directly a status itself and the new Masto flavour with a sub-object
+      qdata
+      |> Map.put(:state, "accepted")
+      |> Map.put(:quoted_status, qdata)
     else
       _ -> nil
     end

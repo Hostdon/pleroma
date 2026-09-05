@@ -808,41 +808,6 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
   end
 
-  describe "/api/v1/pleroma/admin/stats" do
-    test "status visibility count", %{conn: conn} do
-      user = insert(:user)
-      CommonAPI.post(user, %{visibility: "public", status: "hey"})
-      CommonAPI.post(user, %{visibility: "unlisted", status: "hey"})
-      CommonAPI.post(user, %{visibility: "unlisted", status: "hey"})
-
-      response =
-        conn
-        |> get("/api/v1/pleroma/admin/stats")
-        |> json_response(200)
-
-      assert %{"direct" => 0, "private" => 0, "public" => 1, "unlisted" => 2} =
-               response["status_visibility"]
-    end
-
-    test "by instance", %{conn: conn} do
-      user1 = insert(:user)
-      instance2 = "instance2.tld"
-      user2 = insert(:user, %{ap_id: "https://#{instance2}/@actor"})
-
-      CommonAPI.post(user1, %{visibility: "public", status: "hey"})
-      CommonAPI.post(user2, %{visibility: "unlisted", status: "hey"})
-      CommonAPI.post(user2, %{visibility: "private", status: "hey"})
-
-      response =
-        conn
-        |> get("/api/v1/pleroma/admin/stats", instance: instance2)
-        |> json_response(200)
-
-      assert %{"direct" => 0, "private" => 1, "public" => 0, "unlisted" => 1} =
-               response["status_visibility"]
-    end
-  end
-
   describe "/api/v1/pleroma/backups" do
     test "it creates a backup", %{conn: conn} do
       admin = %{id: admin_id, nickname: admin_nickname} = insert(:user, is_admin: true)

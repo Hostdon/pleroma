@@ -77,8 +77,8 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPITest do
       {:ok, status} = CommonAPI.post(user, %{status: "Akariiiin"})
 
       {:ok, status1} = CommonAPI.post(user, %{status: "Magi"})
-      {:ok, [notification]} = Notification.create_notifications(status)
-      {:ok, [notification1]} = Notification.create_notifications(status1)
+      {:ok, [notification], []} = Notification.create_notifications(status)
+      {:ok, [notification1], []} = Notification.create_notifications(status1)
       res = MastodonAPI.get_notifications(subscriber)
 
       assert Enum.member?(Enum.map(res, & &1.id), notification.id)

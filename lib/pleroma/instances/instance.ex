@@ -26,7 +26,6 @@ defmodule Pleroma.Instances.Instance do
     field(:favicon, :string)
     field(:metadata_updated_at, :naive_datetime)
     field(:nodeinfo, :map, default: %{})
-    field(:has_request_signatures, :boolean)
 
     timestamps()
   end
@@ -40,8 +39,7 @@ defmodule Pleroma.Instances.Instance do
       :unreachable_since,
       :favicon,
       :nodeinfo,
-      :metadata_updated_at,
-      :has_request_signatures
+      :metadata_updated_at
     ])
     |> validate_required([:host])
     |> unique_constraint(:host)
@@ -244,7 +242,7 @@ defmodule Pleroma.Instances.Instance do
            {:ok,
             Enum.find(links, &(&1["rel"] == "http://nodeinfo.diaspora.software/ns/schema/2.0"))},
          {:ok, %Tesla.Env{body: data}} <-
-           Pleroma.HTTP.get(href, [{"accept", "application/json"}], []),
+           Pleroma.HTTP.get(href, [{"accept", "application/json"}]),
          {:length, true} <- {:length, String.length(data) < 50_000},
          {:ok, nodeinfo} <- Jason.decode(data) do
       nodeinfo
@@ -272,7 +270,7 @@ defmodule Pleroma.Instances.Instance do
     with true <- Pleroma.Config.get([:instances_favicons, :enabled]),
          {_, true} <- {:reachable, reachable?(instance_uri.host)},
          {:ok, %Tesla.Env{body: html}} <-
-           Pleroma.HTTP.get(to_string(instance_uri), [{"accept", "text/html"}], []),
+           Pleroma.HTTP.get(to_string(instance_uri), [{"accept", "text/html"}]),
          {_, [favicon_rel | _]} when is_binary(favicon_rel) <-
            {:parse, html |> Floki.parse_document!() |> Floki.attribute("link[rel=icon]", "href")},
          {_, favicon} when is_binary(favicon) <-
@@ -301,7 +299,7 @@ defmodule Pleroma.Instances.Instance do
   end
 
   def perform(:delete_instance, host) when is_binary(host) do
-    User.Query.build(%{nickname: "@#{host}"})
+    User.Query.build(%{nickname_suffix: "@#{host}"})
     |> Repo.chunk_stream(100, :batches)
     |> Stream.each(fn users ->
       users
@@ -332,24 +330,4 @@ defmodule Pleroma.Instances.Instance do
       end)
     end
   end
-
-  def set_request_signatures(url_or_host) when is_binary(url_or_host) do
-    host = host(url_or_host)
-    existing_record = Repo.get_by(Instance, %{host: host})
-    changes = %{has_request_signatures: true}
-
-    cond do
-      is_nil(existing_record) ->
-        %Instance{}
-        |> changeset(Map.put(changes, :host, host))
-        |> Repo.insert()
-
-      true ->
-        existing_record
-        |> changeset(changes)
-        |> Repo.update()
-    end
-  end
-
-  def set_request_signatures(_), do: {:error, :invalid_input}
 end

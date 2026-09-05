@@ -10,7 +10,7 @@
 
   For routes with `:authenticated_api` pipeline, authentication & authorization are expected, thus `OAuthScopesPlug` will be run unless explicitly skipped (also `EnsureAuthenticatedPlug` will be executed immediately before action even if there was an early run to give an early error, since `OAuthScopesPlug` supports `:proceed_unauthenticated` option, and other plugs may support similar options as well).
 
-  For `:api` pipeline routes, it'll be verified whether `OAuthScopesPlug` was called or explicitly skipped, and if it was not then auth information will be dropped for request. Then `EnsurePublicOrAuthenticatedPlug` will be called to ensure that either the instance is not private or user is authenticated (unless explicitly skipped). Such automated checks help to prevent human errors and result in higher security / privacy for users.
+  For `:api` pipeline routes, it'll be verified whether `OAuthScopesPlug` was called or explicitly skipped, and if it was not, then auth information will be dropped for request. Then `EnsurePublicOrAuthenticatedPlug` will be called to ensure that either the instance is not private or user is authenticated (unless explicitly skipped). Such automated checks help to prevent human errors and result in higher security / privacy for users.
 
 ## Non-OAuth authentication
 

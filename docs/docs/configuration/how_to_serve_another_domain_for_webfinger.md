@@ -11,7 +11,7 @@ Akkoma supports that, but it might be tricky to set up, and any error might prev
 
 It is important to understand that for federation purposes, a user in Akkoma has two unique identifiers associated:
 
-- A webfinger `acct:` URI, used for discovery and as a verifiable global name for the user across Akkoma instances. In our example, our account's acct: URI is `acct:user@example.org`
+- A WebFinger `acct:` URI, used for discovery and as a verifiable global name for the user across Akkoma instances. In our example, our account's acct: URI is `acct:user@example.org`
 - An author/actor URI, used in every other aspect of federation. This is the way in which users are identified in ActivityPub, the underlying protocol used for federation with other Akkoma instances.
 In our case, it is `https://akkoma.example.org/users/user`.
 
@@ -19,7 +19,7 @@ Both account identifiers are unique and required for Akkoma. An important risk i
 
 ## WebFinger
 
-As said earlier, each Akkoma user has an `acct`: URI, which is used for discovery and authentication. When you add @user@example.org, a webfinger query is performed. This is done in two steps:
+As said earlier, each Akkoma user has an `acct`: URI, which is used for discovery and authentication. When you add @user@example.org, a WebFinger query is performed. This is done in two steps:
 
 1. Querying `https://example.org/.well-known/host-meta` (where the domain of the URL matches the domain part of the `acct`: URI) to get information on how to perform the query.
 This file will indeed contain a URL template of the form `https://example.org/.well-known/webfinger?resource={uri}` that will be used in the second step.
@@ -27,7 +27,8 @@ This file will indeed contain a URL template of the form `https://example.org/.w
 
 ## Configuring your Akkoma instance
 
-**_DO NOT ATTEMPT TO CONFIGURE YOUR INSTANCE THIS WAY IF YOU DID NOT UNDERSTAND THE ABOVE_**
+!!! danger
+    DO NOT ATTEMPT TO CONFIGURE YOUR INSTANCE THIS WAY IF YOU DID NOT UNDERSTAND THE ABOVE
 
 ### Configuring Akkoma
 
@@ -47,7 +48,7 @@ config :pleroma, Pleroma.Web.WebFinger, domain: "example.org"
 
 ### Configuring WebFinger domain
 
-Now, you have Akkoma running at `https://akkoma.example.org` as well as a website at `https://example.org`. If you recall how webfinger queries work, the first step is to query `https://example.org/.well-known/host-meta`, which will contain an URL template.
+Now, you have Akkoma running at `https://akkoma.example.org` as well as a website at `https://example.org`. If you recall how WebFinger queries work, the first step is to query `https://example.org/.well-known/host-meta`, which will contain a URL template.
 
 Therefore, the easiest way to configure `example.org` is to redirect `/.well-known/host-meta` to `akkoma.example.org`.
 

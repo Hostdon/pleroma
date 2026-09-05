@@ -15,7 +15,8 @@ defmodule Pleroma.UtilsTest do
 
   describe "compile_dir/1" do
     test "recursively compiles directories" do
-      {:ok, [DynamicModule.First, DynamicModule.Second], []} =
+      {:ok, [DynamicModule.First, DynamicModule.Second],
+       %{runtime_warnings: [], compile_warnings: []}} =
         Pleroma.Utils.compile_dir("test/fixtures/runtime_modules")
     end
   end

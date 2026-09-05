@@ -16,6 +16,9 @@ defmodule Pleroma.Web.OAuth.Authorization do
 
   @type t :: %__MODULE__{}
 
+  # hide sensitive data from logs
+  @derive {Inspect, except: [:token]}
+
   schema "oauth_authorizations" do
     field(:token, :string)
     field(:scopes, {:array, :string}, default: [])

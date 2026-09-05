@@ -14,6 +14,8 @@ defmodule Pleroma.Frontend do
       "build_dir" => opts[:build_dir]
     }
 
+    explicit_source = !!(opts[:file] || opts[:build_dir] || opts[:build_url])
+
     frontend_info =
       [:frontends, :available, name]
       |> Config.get(%{})
@@ -26,6 +28,25 @@ defmodule Pleroma.Frontend do
 
     unless ref do
       raise "No ref given or configured"
+    end
+
+    if Map.get(frontend_info, "blind_trust", false) !== true do
+      bugtracker = frontend_info["bugtracker"]
+
+      unless bugtracker || explicit_source do
+        raise "Configured third-party frontend without a bugtracker; refusing install."
+      end
+
+      bugtracker = bugtracker || "the external frontend developers"
+
+      Logger.warning("""
+        !!!!!!!!
+        You are installing a third-party frontend not vetted by the Akkoma team.
+        THERE ARE NO GUARANTTES ABOUT SAFETY AND FUNCTIONALITY!
+        Do NOT report problems to Akkoma, instead
+        all bugs must be reported to #{bugtracker}
+        !!!!!!!!
+      """)
     end
 
     dest = Path.join([dir(), name, ref])
@@ -69,7 +90,7 @@ defmodule Pleroma.Frontend do
     end
   end
 
-  def unzip(zip, dest) do
+  defp unzip(zip, dest) do
     File.rm_rf!(dest)
     File.mkdir_p!(dest)
 
@@ -84,7 +105,7 @@ defmodule Pleroma.Frontend do
     url = String.replace(frontend_info["build_url"], "${ref}", frontend_info["ref"])
 
     with {:ok, %{status: 200, body: zip_body}} <-
-           Pleroma.HTTP.get(url, [], receive_timeout: 120_000) do
+           Pleroma.HTTP.get(url, [], adapter: [receive_timeout: 120_000]) do
       unzip(zip_body, dest)
     else
       {:error, e} -> {:error, e}

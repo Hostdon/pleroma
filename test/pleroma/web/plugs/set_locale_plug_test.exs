@@ -4,7 +4,7 @@
 
 defmodule Pleroma.Web.Plugs.SetLocalePlugTest do
   use ExUnit.Case, async: true
-  use Plug.Test
+  import Plug.Test
 
   alias Pleroma.Web.Plugs.SetLocalePlug
   alias Plug.Conn

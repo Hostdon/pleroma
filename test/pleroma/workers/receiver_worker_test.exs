@@ -20,7 +20,7 @@ defmodule Pleroma.Workers.ReceiverWorkerTest do
 
     with_mock Pleroma.Web.ActivityPub.Transmogrifier,
       handle_incoming: fn _ -> {:reject, "MRF"} end do
-      assert {:discard, "MRF"} =
+      assert {:cancel, "MRF"} =
                ReceiverWorker.perform(%Oban.Job{
                  args: %{"op" => "incoming_ap_doc", "params" => params}
                })

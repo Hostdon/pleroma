@@ -12,7 +12,9 @@ defmodule Pleroma.Web.AdminAPI.FrontendView do
   def render("show.json", %{frontend: frontend}) do
     %{
       name: frontend["name"],
+      blind_trust: frontend["blind_trust"],
       git: frontend["git"],
+      bugtracker: frontend["bugtracker"],
       build_url: frontend["build_url"],
       ref: frontend["ref"],
       installed: frontend["installed"]

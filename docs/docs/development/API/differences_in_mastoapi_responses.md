@@ -1,10 +1,10 @@
 # Differences in Mastodon API responses from vanilla Mastodon
 
-A Akkoma instance can be identified by "<Mastodon version> (compatible; Akkoma <version>)" present in `version` field in response from `/api/v1/instance`
+An Akkoma instance can be identified by "<Mastodon version> (compatible; Akkoma <version>)" present in `version` field in response from `/api/v1/instance`
 
 ## Flake IDs
 
-Akkoma uses 128-bit ids as opposed to Mastodon's 64 bits. However, just like Mastodon's ids, they are lexically sortable strings
+Akkoma uses 128-bit IDs as opposed to Mastodon's 64 bits. However, just like Mastodon's IDs, they are lexically sortable strings
 
 ## Timelines
 
@@ -13,8 +13,6 @@ posts from the local instance and a set of closely related instances as chosen
 by the administrator. It is available under `/api/v1/timelines/bubble`.
 
 Adding the parameter `with_muted=true` to the timeline queries will also return activities by muted (not by blocked!) users.
-
-Adding the parameter `exclude_visibilities` to the timeline queries will exclude the statuses with the given visibilities. The parameter accepts an array of visibility types (`public`, `unlisted`, `private`, `direct`), e.g., `exclude_visibilities[]=direct&exclude_visibilities[]=private`.
 
 Adding the parameter `reply_visibility` to the public, bubble or home timelines queries will filter replies. Possible values: without parameter (default) shows all replies, `following` - replies directed to you or users you follow, `self` - replies directed to you.
 
@@ -32,7 +30,7 @@ Home, public, hashtag & list timelines further accept:
 
 ## Statuses
 
-- `visibility`: has additional possible values `list` and `local` (for local-only statuses)
+- `visibility`: has additional possible value `local` (for local-only statuses)
 - `emoji_reactions`: additional field since Akkoma 3.2.0; identical to `pleroma/emoji_reactions`
 
 Has these additional fields under the `pleroma` object:
@@ -51,6 +49,15 @@ Has these additional fields under the `pleroma` object:
 - `parent_visible`: If the parent of this post is visible to the user or not.
 - `pinned_at`: a datetime (iso8601) when status was pinned, `null` otherwise.
 
+Furthermore, has the following additional attributes under the `poll.akkoma` object *(if `poll` is non-null)*:
+- `anonymous`: relays whether the poll creator promised to process votes anonymously *(`true`)*,
+    publishes votes with voter identity to some parties or the public *(`false`)*
+    or did not indicate how votes are processed (`null`).   
+    Note this assumes any remote’s claim about its process are true and
+    even if this is truthfully set to `true`, while no regular users ought to have access to voter identities,
+    the server operator of the poll’s home instance may in principle still be able to
+    extract voter identites via the database or side channels.
+
 The `GET /api/v1/statuses/:id/source` endpoint additionally has the following attributes:
 
 - `content_type`: The content type of the status source.
@@ -60,6 +67,7 @@ The `GET /api/v1/statuses/:id/source` endpoint additionally has the following at
 Has these additional fields in `params`:
 
 - `expires_in`: the number of seconds the posted activity should expire in.
+    **Deprecated**; replaced by Mastodon-compatible `duration`
 
 ## Media Attachments
 
@@ -90,22 +98,22 @@ The `id` parameter can also be the `nickname` of the user. This only works in th
 - `with_muted`: include statuses/reactions from muted accounts
 - `exclude_reblogs`: exclude reblogs
 - `exclude_replies`: exclude replies
-- `exclude_visibilities`: exclude visibilities
 
 Endpoints which accept `with_relationships` parameter:
 
 - `/api/v1/accounts/:id`
 - `/api/v1/accounts/:id/followers`
 - `/api/v1/accounts/:id/following`
+- `/api/v1/accounts/lookup`
 - `/api/v1/mutes`
 
 Has these additional fields under the `pleroma` object:
 
-- `ap_id`: nullable URL string, ActivityPub id of the user
+- `ap_id`: nullable URL string, ActivityPub ID of the user
 - `background_image`: nullable URL string, background image of the user
 - `tags`: Lists an array of tags for the user
 - `relationship` (object): Includes fields as documented for Mastodon API https://docs.joinmastodon.org/entities/relationship/
-- `is_moderator`: boolean, nullable,  true if user is a moderator
+- `is_moderator`: boolean, nullable, true if user is a moderator
 - `is_admin`: boolean, nullable, true if user is an admin
 - `confirmation_pending`: boolean, true if a new user account is waiting on email confirmation to be activated
 - `hide_favorites`: boolean, true when the user has hiding favorites enabled
@@ -126,13 +134,15 @@ Has these additional fields under the `akkoma` object:
 - `instance`: nullable object with metadata about the user’s instance
 - `status_ttl_days`: nullable int, default time after which statuses are deleted
 - `permit_followback`: boolean, whether follows from followed accounts are auto-approved
+- `web_feed`: nullable string, if known, the preferred URL for retrieving an
+    Atom and/or RSS feed with an appropriate `Accept` header
 
 ### Source
 
 Has these additional fields under the `pleroma` object:
 
-- `show_role`: boolean, nullable, true when the user wants his role (e.g admin, moderator) to be shown
-- `no_rich_text` - boolean, nullable, true when html tags are stripped from all statuses requested from the API
+- `show_role`: boolean, nullable, true when the user wants his role (e.g. admin, moderator) to be shown
+- `no_rich_text` - boolean, nullable, true when HTML tags are stripped from all statuses requested from the API
 - `discoverable`: boolean, true when the user allows external services (search bots) etc. to index / list the account (regardless of this setting, user will still appear in regular search results)
 - `actor_type`: string, the type of this account.
 
@@ -191,8 +201,8 @@ The `type` value is `pleroma:report`
 
 Accepts additional parameters:
 
-- `exclude_visibilities`: will exclude the notifications for activities with the given visibilities. The parameter accepts an array of visibility types (`public`, `unlisted`, `private`, `direct`). Usage example: `GET /api/v1/notifications?exclude_visibilities[]=direct&exclude_visibilities[]=private`.
 - `include_types`: will include the notifications for activities with the given types. The parameter accepts an array of types (`mention`, `follow`, `reblog`, `favourite`, `move`, `pleroma:emoji_reaction`, `pleroma:report`). Usage example: `GET /api/v1/notifications?include_types[]=mention&include_types[]=reblog`.
+    **Deprecated:** replaced by `types` which is equivalent but (by now) also supported by vanilla Mastodon.
 
 ## DELETE `/api/v1/notifications/destroy_multiple`
 
@@ -200,7 +210,7 @@ An endpoint to delete multiple statuses by IDs.
 
 Required parameters:
 
-- `ids`: array of activity ids
+- `ids`: array of activity IDs
 
 Usage example: `DELETE /api/v1/notifications/destroy_multiple/?ids[]=1&ids[]=2`.
 
@@ -214,8 +224,8 @@ Additional parameters can be added to the JSON body/Form data:
 - `content_type`: string, contain the MIME type of the status, it is transformed into HTML by the backend. You can get the list of the supported MIME types with the nodeinfo endpoint.
 - `to`: A list of nicknames (like `admin@otp.akkoma.dev` or `admin` on the local server) that will be used to determine who is going to be addressed by this post. Using this will disable the implicit addressing by mentioned names in the `status` body, only the people in the `to` list will be addressed. The normal rules for post visibility are not affected by this and will still apply.
 - `visibility`: string, besides standard MastoAPI values (`direct`, `private`, `unlisted`, `local` or `public`) it can be used to address a List by setting it to `list:LIST_ID`.
-- `expires_in`: The number of seconds the posted activity should expire in. When a posted activity expires it will be deleted from the server, and a delete request for it will be federated. This needs to be longer than an hour.
-- `in_reply_to_conversation_id`: Will reply to a given conversation, addressing only the people who are part of the recipient set of that conversation. Sets the visibility to `direct`.
+- `expires_in`: **Deprecated**; replaced by `duration`.  
+    The number of seconds the posted activity should expire in. When a posted activity expires it will be deleted from the server, and a delete request for it will be federated. This needs to be longer than an hour.
 
 ## GET `/api/v1/statuses`
 
@@ -253,6 +263,7 @@ Additional parameters can be added to the JSON body/Form data:
 - `allow_following_move` - if true, allows automatically follow moved following accounts
 - `also_known_as` - array of ActivityPub IDs, needed for following move
 - `pleroma_background_image` - sets the background image of the user. Can be set to "" (an empty string) to reset.
+- `pleroma_background_image_description` - sets plaintext alt text for the background image of the user. Can be set to "" (an empty string) to delete.
 - `discoverable` - if true, external services (search bots) etc. are allowed to index / list the account (regardless of this setting, user will still appear in regular search results).
 - `actor_type` - the type of this account.
 - `language` - user's preferred language for receiving emails (digest, confirmation, etc.)
@@ -261,7 +272,7 @@ All images (avatar, banner and background) can be reset to the default by sendin
 
 ### Akkoma Settings Store
 
-Akkoma has mechanism that allows frontends to save blobs of json for each user on the backend. This can be used to save frontend-specific settings for a user that the backend does not need to know about.
+Akkoma has a mechanism that allows frontends to save blobs of json for each user on the backend. This can be used to save frontend-specific settings for a user that the backend does not need to know about.
 
 The parameter should have a form of `{frontend_name: {...}}`, with `frontend_name` identifying your type of client, e.g. `pleroma_fe`. It will overwrite everything under this property, but will not overwrite other frontend's settings.
 
@@ -340,7 +351,7 @@ Permits these additional alert types:
 
 Has these additional fields under the `pleroma` object:
 
-- `unread_count`: contains number unread notifications
+- `unread_count`: contains number of unread notifications
 
 ## Streaming
 
@@ -352,7 +363,7 @@ For viewing remote server timelines, there are `public:remote` and `public:remot
 
 Akkoma streams follow relationships updates as `pleroma:follow_relationships_update` events to the `user` stream.
 
-The message payload consist of:
+The message payload consists of:
 
 - `state`: a relationship state, one of `follow_pending`, `follow_accept` or `follow_reject`.
 
@@ -360,10 +371,6 @@ The message payload consist of:
   - `id`: user ID
   - `follower_count`: follower count
   - `following_count`: following count
-
-## User muting and thread muting
-
-Both user muting and thread muting can be done for only a certain time by adding an `expires_in` parameter to the API calls and giving the expiration time in seconds.
 
 ## Not implemented
 

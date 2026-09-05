@@ -273,6 +273,6 @@ defmodule Pleroma.Web.Plugs.RateLimiterTest do
     key_name = "ip::#{remote_ip |> Tuple.to_list() |> Enum.join(".")}"
 
     {:ok, bucket_value} = Cachex.get(bucket_name, key_name)
-    Cachex.put(bucket_name, key_name, bucket_value, ttl: -1)
+    Cachex.put(bucket_name, key_name, bucket_value, expire: -1)
   end
 end

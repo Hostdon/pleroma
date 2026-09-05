@@ -41,18 +41,7 @@ defmodule Mix.Tasks.Pleroma.NotificationSettings do
   end
 
   defp build_query(hide_notification_contents, options) do
-    query =
-      from(u in Pleroma.User,
-        update: [
-          set: [
-            notification_settings:
-              fragment(
-                "jsonb_set(notification_settings, '{hide_notification_contents}', ?)",
-                ^hide_notification_contents
-              )
-          ]
-        ]
-      )
+    criteria = %{internal: :allowed, local: true}
 
     user_emails =
       options
@@ -61,11 +50,11 @@ defmodule Mix.Tasks.Pleroma.NotificationSettings do
       |> Enum.map(&String.trim(&1))
       |> Enum.reject(&(&1 == ""))
 
-    query =
+    criteria =
       if length(user_emails) > 0 do
-        where(query, [u], u.email in ^user_emails)
+        Map.put(criteria, :email, user_emails)
       else
-        query
+        criteria
       end
 
     user_nicknames =
@@ -75,13 +64,23 @@ defmodule Mix.Tasks.Pleroma.NotificationSettings do
       |> Enum.map(&String.trim(&1))
       |> Enum.reject(&(&1 == ""))
 
-    query =
+    criteria =
       if length(user_nicknames) > 0 do
-        where(query, [u], u.nickname in ^user_nicknames)
+        Map.put(criteria, :nickname, user_nicknames)
       else
-        query
+        criteria
       end
 
-    query
+    criteria
+    |> Pleroma.User.Query.build(criteria)
+    |> update([u],
+      set: [
+        notification_settings:
+          fragment(
+            "jsonb_set(notification_settings, '{hide_notification_contents}', ?)",
+            ^hide_notification_contents
+          )
+      ]
+    )
   end
 end

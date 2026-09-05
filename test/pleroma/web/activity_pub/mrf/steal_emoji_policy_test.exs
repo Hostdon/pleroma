@@ -17,11 +17,26 @@ defmodule Pleroma.Web.ActivityPub.MRF.StealEmojiPolicyTest do
     end
   end
 
+  defp sync_emoji_changes() do
+    # emoji updates happen asynchronously;
+    # force all pending change requests to be processed before checking condition
+    # (this is an (afaik undocumented) side-effect of get_state;
+    #  presumably due to it doing a sync call to retrieve the state and message queue ordering)
+    :sys.get_state(Pleroma.Emoji)
+  end
+
   defp has_emoji?(shortcode) do
+    sync_emoji_changes()
+
     case Pack.load_pack("stolen") do
       {:ok, pack} -> Map.has_key?(pack.files, shortcode)
       {:error, :enoent} -> false
     end
+  end
+
+  defp installed() do
+    sync_emoji_changes()
+    Emoji.get_all() |> Enum.map(fn {k, _} -> k end)
   end
 
   defmacro mock_tesla(
@@ -224,6 +239,4 @@ defmodule Pleroma.Web.ActivityPub.MRF.StealEmojiPolicyTest do
 
     assert "firedfox" in installed()
   end
-
-  defp installed, do: Emoji.get_all() |> Enum.map(fn {k, _} -> k end)
 end

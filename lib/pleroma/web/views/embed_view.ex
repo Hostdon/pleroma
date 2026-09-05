@@ -10,7 +10,7 @@ defmodule Pleroma.Web.EmbedView do
   alias Pleroma.Emoji.Formatter
   alias Pleroma.Object
   alias Pleroma.User
-  alias Pleroma.Web.Gettext
+  use Gettext, backend: Pleroma.Web.Gettext
   alias Pleroma.Web.MediaProxy
   alias Pleroma.Web.Metadata.Utils
 

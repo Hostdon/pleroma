@@ -17,7 +17,7 @@ defmodule Pleroma.Web.MastodonAPI.NotificationControllerTest do
     other_user = insert(:user)
 
     {:ok, activity} = CommonAPI.post(other_user, %{status: "hi @#{user.nickname}"})
-    {:ok, [_notification]} = Notification.create_notifications(activity)
+    {:ok, [_notification], []} = Notification.create_notifications(activity)
 
     response =
       conn
@@ -36,7 +36,7 @@ defmodule Pleroma.Web.MastodonAPI.NotificationControllerTest do
 
     {:ok, activity} = CommonAPI.post(other_user, %{status: "hi @#{user.nickname}"})
 
-    {:ok, [_notification]} = Notification.create_notifications(activity)
+    {:ok, [_notification], []} = Notification.create_notifications(activity)
 
     conn =
       conn
@@ -44,7 +44,7 @@ defmodule Pleroma.Web.MastodonAPI.NotificationControllerTest do
       |> get("/api/v1/notifications")
 
     expected_response =
-      "hi <span class=\"h-card\"><a class=\"u-url mention\" data-user=\"#{user.id}\" href=\"#{user.ap_id}\" rel=\"ugc\">@<span>#{user.nickname}</span></a></span>"
+      "hi <span class=\"h-card\"><a class=\"u-url mention\" data-user=\"#{user.id}\" href=\"#{user.uri}\" rel=\"ugc\">@<span>#{user.nickname}</span></a></span>"
 
     assert [%{"status" => %{"content" => response}} | _rest] =
              json_response_and_validate_schema(conn, 200)
@@ -74,7 +74,7 @@ defmodule Pleroma.Web.MastodonAPI.NotificationControllerTest do
 
     result =
       conn
-      |> get("/api/v1/notifications?include_types[]=pleroma:report")
+      |> get("/api/v1/notifications?types[]=pleroma:report")
       |> json_response_and_validate_schema(200)
 
     assert [_] = result
@@ -89,7 +89,7 @@ defmodule Pleroma.Web.MastodonAPI.NotificationControllerTest do
     {:ok, _} = CommonAPI.block(blocker, user)
     {:ok, activity} = CommonAPI.post(blocker, %{status: "hi @#{user.nickname}"})
 
-    {:ok, [_notification]} = Notification.create_notifications(activity)
+    {:ok, [_notification], []} = Notification.create_notifications(activity)
 
     conn =
       conn
@@ -105,12 +105,12 @@ defmodule Pleroma.Web.MastodonAPI.NotificationControllerTest do
 
     {:ok, activity} = CommonAPI.post(other_user, %{status: "hi @#{user.nickname}"})
 
-    {:ok, [notification]} = Notification.create_notifications(activity)
+    {:ok, [notification], []} = Notification.create_notifications(activity)
 
     conn = get(conn, "/api/v1/notifications/#{notification.id}")
 
     expected_response =
-      "hi <span class=\"h-card\"><a class=\"u-url mention\" data-user=\"#{user.id}\" href=\"#{user.ap_id}\" rel=\"ugc\">@<span>#{user.nickname}</span></a></span>"
+      "hi <span class=\"h-card\"><a class=\"u-url mention\" data-user=\"#{user.id}\" href=\"#{user.uri}\" rel=\"ugc\">@<span>#{user.nickname}</span></a></span>"
 
     assert %{"status" => %{"content" => response}} = json_response_and_validate_schema(conn, 200)
     assert response == expected_response
@@ -122,7 +122,7 @@ defmodule Pleroma.Web.MastodonAPI.NotificationControllerTest do
 
     {:ok, activity} = CommonAPI.post(other_user, %{status: "hi @#{user.nickname}"})
 
-    {:ok, [notification]} = Notification.create_notifications(activity)
+    {:ok, [notification], []} = Notification.create_notifications(activity)
 
     conn =
       conn
@@ -138,7 +138,7 @@ defmodule Pleroma.Web.MastodonAPI.NotificationControllerTest do
 
     {:ok, activity} = CommonAPI.post(other_user, %{status: "hi @#{user.nickname}"})
 
-    {:ok, [_notification]} = Notification.create_notifications(activity)
+    {:ok, [_notification], []} = Notification.create_notifications(activity)
 
     ret_conn = post(conn, "/api/v1/notifications/clear")
 
@@ -192,158 +192,16 @@ defmodule Pleroma.Web.MastodonAPI.NotificationControllerTest do
   end
 
   describe "exclude_visibilities" do
-    test "filters notifications for mentions" do
-      %{user: user, conn: conn} = oauth_access(["read:notifications"])
-      other_user = insert(:user)
+    test "will be ignored" do
+      # feature was removed in 2025.12 (3.17)
+      %{conn: conn} = oauth_access(["read:notifications"])
 
-      {:ok, public_activity} =
-        CommonAPI.post(other_user, %{status: "@#{user.nickname}", visibility: "public"})
-
-      {:ok, direct_activity} =
-        CommonAPI.post(other_user, %{status: "@#{user.nickname}", visibility: "direct"})
-
-      {:ok, unlisted_activity} =
-        CommonAPI.post(other_user, %{status: "@#{user.nickname}", visibility: "unlisted"})
-
-      {:ok, private_activity} =
-        CommonAPI.post(other_user, %{status: "@#{user.nickname}", visibility: "private"})
-
-      query = params_to_query(%{exclude_visibilities: ["public", "unlisted", "private"]})
-      conn_res = get(conn, "/api/v1/notifications?" <> query)
-
-      assert [%{"status" => %{"id" => id}}] = json_response_and_validate_schema(conn_res, 200)
-      assert id == direct_activity.id
-
-      query = params_to_query(%{exclude_visibilities: ["public", "unlisted", "direct"]})
-      conn_res = get(conn, "/api/v1/notifications?" <> query)
-
-      assert [%{"status" => %{"id" => id}}] = json_response_and_validate_schema(conn_res, 200)
-      assert id == private_activity.id
-
-      query = params_to_query(%{exclude_visibilities: ["public", "private", "direct"]})
-      conn_res = get(conn, "/api/v1/notifications?" <> query)
-
-      assert [%{"status" => %{"id" => id}}] = json_response_and_validate_schema(conn_res, 200)
-      assert id == unlisted_activity.id
-
-      query = params_to_query(%{exclude_visibilities: ["unlisted", "private", "direct"]})
-      conn_res = get(conn, "/api/v1/notifications?" <> query)
-
-      assert [%{"status" => %{"id" => id}}] = json_response_and_validate_schema(conn_res, 200)
-      assert id == public_activity.id
-    end
-
-    test "filters notifications for Like activities" do
-      user = insert(:user)
-      %{user: other_user, conn: conn} = oauth_access(["read:notifications"])
-
-      {:ok, public_activity} = CommonAPI.post(other_user, %{status: ".", visibility: "public"})
-
-      {:ok, direct_activity} =
-        CommonAPI.post(other_user, %{status: "@#{user.nickname}", visibility: "direct"})
-
-      {:ok, unlisted_activity} =
-        CommonAPI.post(other_user, %{status: ".", visibility: "unlisted"})
-
-      {:ok, private_activity} = CommonAPI.post(other_user, %{status: ".", visibility: "private"})
-
-      {:ok, _} = CommonAPI.favorite(user, public_activity.id)
-      {:ok, _} = CommonAPI.favorite(user, direct_activity.id)
-      {:ok, _} = CommonAPI.favorite(user, unlisted_activity.id)
-      {:ok, _} = CommonAPI.favorite(user, private_activity.id)
-
-      activity_ids =
-        conn
-        |> get("/api/v1/notifications?exclude_visibilities[]=direct")
-        |> json_response_and_validate_schema(200)
-        |> Enum.map(& &1["status"]["id"])
-
-      assert public_activity.id in activity_ids
-      assert unlisted_activity.id in activity_ids
-      assert private_activity.id in activity_ids
-      refute direct_activity.id in activity_ids
-
-      activity_ids =
+      resp =
         conn
         |> get("/api/v1/notifications?exclude_visibilities[]=unlisted")
-        |> json_response_and_validate_schema(200)
-        |> Enum.map(& &1["status"]["id"])
+        |> json_response(400)
 
-      assert public_activity.id in activity_ids
-      refute unlisted_activity.id in activity_ids
-      assert private_activity.id in activity_ids
-      assert direct_activity.id in activity_ids
-
-      activity_ids =
-        conn
-        |> get("/api/v1/notifications?exclude_visibilities[]=private")
-        |> json_response_and_validate_schema(200)
-        |> Enum.map(& &1["status"]["id"])
-
-      assert public_activity.id in activity_ids
-      assert unlisted_activity.id in activity_ids
-      refute private_activity.id in activity_ids
-      assert direct_activity.id in activity_ids
-
-      activity_ids =
-        conn
-        |> get("/api/v1/notifications?exclude_visibilities[]=public")
-        |> json_response_and_validate_schema(200)
-        |> Enum.map(& &1["status"]["id"])
-
-      refute public_activity.id in activity_ids
-      assert unlisted_activity.id in activity_ids
-      assert private_activity.id in activity_ids
-      assert direct_activity.id in activity_ids
-    end
-
-    test "filters notifications for Announce activities" do
-      user = insert(:user)
-      %{user: other_user, conn: conn} = oauth_access(["read:notifications"])
-
-      {:ok, public_activity} = CommonAPI.post(other_user, %{status: ".", visibility: "public"})
-
-      {:ok, unlisted_activity} =
-        CommonAPI.post(other_user, %{status: ".", visibility: "unlisted"})
-
-      {:ok, _} = CommonAPI.repeat(public_activity.id, user)
-      {:ok, _} = CommonAPI.repeat(unlisted_activity.id, user)
-
-      activity_ids =
-        conn
-        |> get("/api/v1/notifications?exclude_visibilities[]=unlisted")
-        |> json_response_and_validate_schema(200)
-        |> Enum.map(& &1["status"]["id"])
-
-      assert public_activity.id in activity_ids
-      refute unlisted_activity.id in activity_ids
-    end
-
-    test "doesn't return less than the requested amount of records when the user's reply is liked" do
-      user = insert(:user)
-      %{user: other_user, conn: conn} = oauth_access(["read:notifications"])
-
-      {:ok, mention} =
-        CommonAPI.post(user, %{status: "@#{other_user.nickname}", visibility: "public"})
-
-      {:ok, activity} = CommonAPI.post(user, %{status: ".", visibility: "public"})
-
-      {:ok, reply} =
-        CommonAPI.post(other_user, %{
-          status: ".",
-          visibility: "public",
-          in_reply_to_status_id: activity.id
-        })
-
-      {:ok, _favorite} = CommonAPI.favorite(user, reply.id)
-
-      activity_ids =
-        conn
-        |> get("/api/v1/notifications?exclude_visibilities[]=direct&limit=2")
-        |> json_response_and_validate_schema(200)
-        |> Enum.map(& &1["status"]["id"])
-
-      assert [reply.id, mention.id] == activity_ids
+      %{"error" => "Unexpected field: exclude_visibilities."} = resp
     end
   end
 
@@ -385,7 +243,7 @@ defmodule Pleroma.Web.MastodonAPI.NotificationControllerTest do
     assert [%{"id" => ^reblog_notification_id}] = json_response_and_validate_schema(conn_res, 200)
   end
 
-  test "filters notifications using include_types" do
+  test "filters notifications using types" do
     %{user: user, conn: conn} = oauth_access(["read:notifications"])
     other_user = insert(:user)
 
@@ -400,21 +258,21 @@ defmodule Pleroma.Web.MastodonAPI.NotificationControllerTest do
     reblog_notification_id = get_notification_id_by_activity(reblog_activity)
     follow_notification_id = get_notification_id_by_activity(follow_activity)
 
-    conn_res = get(conn, "/api/v1/notifications?include_types[]=follow")
+    conn_res = get(conn, "/api/v1/notifications?types[]=follow")
 
     assert [%{"id" => ^follow_notification_id}] = json_response_and_validate_schema(conn_res, 200)
 
-    conn_res = get(conn, "/api/v1/notifications?include_types[]=mention")
+    conn_res = get(conn, "/api/v1/notifications?types[]=mention")
 
     assert [%{"id" => ^mention_notification_id}] =
              json_response_and_validate_schema(conn_res, 200)
 
-    conn_res = get(conn, "/api/v1/notifications?include_types[]=favourite")
+    conn_res = get(conn, "/api/v1/notifications?types[]=favourite")
 
     assert [%{"id" => ^favorite_notification_id}] =
              json_response_and_validate_schema(conn_res, 200)
 
-    conn_res = get(conn, "/api/v1/notifications?include_types[]=reblog")
+    conn_res = get(conn, "/api/v1/notifications?types[]=reblog")
 
     assert [%{"id" => ^reblog_notification_id}] = json_response_and_validate_schema(conn_res, 200)
 
@@ -422,7 +280,7 @@ defmodule Pleroma.Web.MastodonAPI.NotificationControllerTest do
 
     assert length(result) == 4
 
-    query = params_to_query(%{include_types: ["follow", "mention", "favourite", "reblog"]})
+    query = params_to_query(%{types: ["follow", "mention", "favourite", "reblog"]})
 
     result =
       conn
@@ -430,6 +288,23 @@ defmodule Pleroma.Web.MastodonAPI.NotificationControllerTest do
       |> json_response_and_validate_schema(200)
 
     assert length(result) == 4
+  end
+
+  test "filtering falls back to include_types" do
+    %{user: user, conn: conn} = oauth_access(["read:notifications"])
+    other_user = insert(:user)
+
+    {:ok, _activity} = CommonAPI.post(other_user, %{status: "hey @#{user.nickname}"})
+    {:ok, create_activity} = CommonAPI.post(user, %{status: "hey"})
+    {:ok, _activity} = CommonAPI.favorite(other_user, create_activity.id)
+    {:ok, _activity} = CommonAPI.repeat(create_activity.id, other_user)
+    {:ok, _, _, follow_activity} = CommonAPI.follow(other_user, user)
+
+    follow_notification_id = get_notification_id_by_activity(follow_activity)
+
+    conn_res = get(conn, "/api/v1/notifications?include_types[]=follow")
+
+    assert [%{"id" => ^follow_notification_id}] = json_response_and_validate_schema(conn_res, 200)
   end
 
   test "destroy multiple" do

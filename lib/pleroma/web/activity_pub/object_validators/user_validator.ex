@@ -14,6 +14,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.UserValidator do
   @behaviour Pleroma.Web.ActivityPub.ObjectValidator.Validating
 
   alias Pleroma.Object.Containment
+  alias Pleroma.Web.ActivityPub.Utils
 
   require Pleroma.Constants
 
@@ -24,6 +25,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.UserValidator do
       when type in Pleroma.Constants.actor_types() do
     with :ok <- validate_pubkey(data),
          :ok <- validate_inbox(data),
+         :ok <- validate_nickname(data),
          :ok <- contain_collection_origin(data) do
       {:ok, data, meta}
     else
@@ -62,6 +64,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.UserValidator do
   defp validate_inbox(_), do: {:error, "No inbox"}
 
   defp check_field_value(%{"id" => id} = _data, value) do
+    value = Utils.get_ap_id(value)
     Containment.same_origin(id, value)
   end
 
@@ -81,4 +84,18 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.UserValidator do
       _, error -> error
     end)
   end
+
+  defp validate_nickname(%{"preferredUsername" => nick}) when is_binary(nick) do
+    if String.valid?(nick) do
+      :ok
+    else
+      {:error, "Nickname is not valid UTF-8"}
+    end
+  end
+
+  defp validate_nickname(%{"preferredUsername" => _nick}) do
+    {:error, "Nickname is not a valid string"}
+  end
+
+  defp validate_nickname(_), do: :ok
 end

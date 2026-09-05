@@ -53,7 +53,7 @@ defmodule Pleroma.LoadTesting.Fetcher do
     fetch_public_timeline(user, :local)
     fetch_public_timeline(user, :tag)
     fetch_notifications(user)
-    fetch_favourites(user)
+    fetch_favourited_with_fav_id(user)
     fetch_long_thread(user)
     fetch_timelines_with_reply_filtering(user)
   end
@@ -378,21 +378,21 @@ defmodule Pleroma.LoadTesting.Fetcher do
   end
 
   defp fetch_favourites(user) do
-    first_page_last = ActivityPub.fetch_favourites(user) |> List.last()
+    first_page_last = ActivityPub.fetch_favourited_with_fav_id(user) |> List.last()
 
     second_page_last =
-      ActivityPub.fetch_favourites(user, %{:max_id => first_page_last.id}) |> List.last()
+      ActivityPub.fetch_favourited_with_fav_id(user, %{:max_id => first_page_last.id}) |> List.last()
 
     third_page_last =
-      ActivityPub.fetch_favourites(user, %{:max_id => second_page_last.id}) |> List.last()
+      ActivityPub.fetch_favourited_with_fav_id(user, %{:max_id => second_page_last.id}) |> List.last()
 
     forth_page_last =
-      ActivityPub.fetch_favourites(user, %{:max_id => third_page_last.id}) |> List.last()
+      ActivityPub.fetch_favourited_with_fav_id(user, %{:max_id => third_page_last.id}) |> List.last()
 
     Benchee.run(
       %{
         "Favourites" => fn opts ->
-          ActivityPub.fetch_favourites(user, opts)
+          ActivityPub.fetch_favourited_with_fav_id(user, opts)
         end
       },
       inputs: %{
@@ -465,7 +465,8 @@ defmodule Pleroma.LoadTesting.Fetcher do
 
     notifications = MastodonAPI.get_notifications(user, opts)
 
-    favourites = ActivityPub.fetch_favourites(user)
+    favourites_keyed = ActivityPub.fetch_favourited_with_fav_id(user)
+    favourites = Pagiation.unwrap(favourites_keyed)
 
     Benchee.run(
       %{

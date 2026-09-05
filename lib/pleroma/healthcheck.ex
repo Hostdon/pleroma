@@ -14,7 +14,6 @@ defmodule Pleroma.Healthcheck do
             active: 0,
             idle: 0,
             memory_used: 0,
-            job_queue_stats: nil,
             healthy: true
 
   @type t :: %__MODULE__{
@@ -22,7 +21,6 @@ defmodule Pleroma.Healthcheck do
           active: non_neg_integer(),
           idle: non_neg_integer(),
           memory_used: number(),
-          job_queue_stats: map(),
           healthy: boolean()
         }
 
@@ -32,7 +30,6 @@ defmodule Pleroma.Healthcheck do
       memory_used: Float.round(:recon_alloc.memory(:allocated) / 1024 / 1024, 2)
     }
     |> assign_db_info()
-    |> assign_job_queue_stats()
     |> check_health()
   end
 
@@ -56,11 +53,6 @@ defmodule Pleroma.Healthcheck do
       |> Map.put(:pool_size, pool_size)
 
     Map.merge(healthcheck, db_info)
-  end
-
-  defp assign_job_queue_stats(healthcheck) do
-    stats = Pleroma.JobQueueMonitor.stats()
-    Map.put(healthcheck, :job_queue_stats, stats)
   end
 
   @spec check_health(Healthcheck.t()) :: Healthcheck.t()

@@ -24,7 +24,17 @@ defmodule Pleroma.Web.ApiSpec.ReportOperation do
       requestBody: Helpers.request_body("Parameters", create_request(), required: true),
       responses: %{
         200 => Operation.response("Report", "application/json", create_response()),
-        400 => Operation.response("Report", "application/json", ApiError)
+        400 => Operation.response("Report", "application/json", ApiError),
+        404 =>
+          Operation.response(
+            "Report",
+            "application/json",
+            %Schema{
+              allOf: [ApiError],
+              title: "Report",
+              example: %{"error" => "Record not found"}
+            }
+          )
       }
     }
   end

@@ -57,6 +57,8 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.EmojiReactValidator do
       |> fix_emoji_qualification()
       |> CommonFixes.fix_actor()
       |> CommonFixes.fix_activity_addressing()
+      |> prune_tags()
+      |> drop_remote_indicator()
 
     data =
       if Map.has_key?(data, "tag") do
@@ -133,4 +135,54 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.EmojiReactValidator do
     |> validate_emoji()
     |> maybe_validate_tag_presence()
   end
+
+  # All tags but the single emoji tag corresponding to the used custom emoji (if any)
+  # are ignored anyway. Having a known single-element array makes further processing easier.
+  # Also ensures the Emoji tag uses a pre-stripped name
+  defp prune_tags(%{"content" => emoji, "tag" => tags} = data) do
+    clean_emoji = Emoji.stripped_name(emoji)
+
+    pruned_tags =
+      Enum.reduce_while(tags, [], fn
+        %{"type" => "Emoji", "name" => name} = tag, res ->
+          clean_name = Emoji.stripped_name(name)
+
+          if clean_name == clean_emoji do
+            {:halt, [%{tag | "name" => clean_name}]}
+          else
+            {:cont, res}
+          end
+
+        _, res ->
+          {:cont, res}
+      end)
+
+    %{data | "tag" => pruned_tags}
+  end
+
+  defp prune_tags(data), do: data
+
+  # some software, like Iceshrimp.NET, federates emoji reaction with (from its POV) remote emoji
+  # with the source instance added to the name in AP as an @ postfix, similar to how it’s handled
+  # in Akkoma’s REST API.
+  # However, this leads to duplicated remote indicators being presented to our clients an can cause
+  # issues when trying to split the values we receive from REST API. Thus just drop them here.
+  defp drop_remote_indicator(%{"content" => emoji, "tag" => tag} = data) when is_list(tag) do
+    if String.contains?(emoji, "@") do
+      stripped_emoji = Emoji.stripped_name(emoji)
+      [clean_emoji | _] = String.split(stripped_emoji, "@", parts: 2)
+
+      clean_tag =
+        Enum.map(tag, fn
+          %{"name" => ^stripped_emoji} = t -> %{t | "name" => clean_emoji}
+          t -> t
+        end)
+
+      %{data | "content" => ":" <> clean_emoji <> ":", "tag" => clean_tag}
+    else
+      data
+    end
+  end
+
+  defp drop_remote_indicator(data), do: data
 end

@@ -13,6 +13,10 @@ defmodule Pleroma.HTML.Transform.MediaProxy do
     {"src", media_url}
   end
 
+  def scrub_attribute(:img, {"src", "//" <> target}) do
+    scrub_attribute(:img, {"src", "https://" <> target})
+  end
+
   def scrub_attribute(_tag, attribute), do: attribute
 
   def scrub({:img, attributes, children}) do

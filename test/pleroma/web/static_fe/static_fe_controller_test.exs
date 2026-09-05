@@ -16,6 +16,7 @@ defmodule Pleroma.Web.StaticFE.StaticFEControllerTest do
 
   setup_all do: clear_config([:static_fe, :enabled], true)
   setup do: clear_config([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
+  setup :request_host_header
 
   setup %{conn: conn} do
     conn = put_req_header(conn, "accept", "text/html")
@@ -321,6 +322,16 @@ defmodule Pleroma.Web.StaticFE.StaticFEControllerTest do
     Floki.find(document, "head>meta[name=\"twitter:" <> name <> "\"]")
   end
 
+  defp meta_find_alt_links(document) do
+    Floki.find(document, "head>link[rel=\"alternate\"]")
+    |> Enum.map(fn {_, attr, _} ->
+      {
+        :proplists.get_value("type", attr),
+        :proplists.get_value("href", attr)
+      }
+    end)
+  end
+
   # Detailed metadata tests are already done for each builder individually, so just
   # one check per type of content should suffice to ensure we're calling the providers correctly
   describe "metadata tags for" do
@@ -350,6 +361,8 @@ defmodule Pleroma.Web.StaticFE.StaticFEControllerTest do
       [{"meta", tw_desc, _}] = meta_find_twitter(document, "description")
       [{"meta", tw_img, _}] = meta_find_twitter(document, "image")
 
+      alt_links = meta_find_alt_links(document)
+
       assert meta_content(og_type) == "article"
       assert meta_content(og_title) == Pleroma.Web.Metadata.Utils.user_name_string(user)
       assert meta_content(og_url) == user.ap_id
@@ -362,6 +375,8 @@ defmodule Pleroma.Web.StaticFE.StaticFEControllerTest do
       assert meta_content(tw_title) == meta_content(og_title)
       assert meta_content(tw_desc) == meta_content(og_desc)
       assert meta_content(tw_img) == meta_content(og_img)
+
+      assert Enum.any?(alt_links, fn e -> e == {"application/activity+json", user.ap_id} end)
     end
 
     test "text-only post", %{conn: conn, user: user, user_avatar_url: user_avatar_url} do
@@ -386,6 +401,8 @@ defmodule Pleroma.Web.StaticFE.StaticFEControllerTest do
       [{"meta", tw_desc, _}] = meta_find_twitter(document, "description")
       [{"meta", tw_img, _}] = meta_find_twitter(document, "image")
 
+      alt_links = meta_find_alt_links(document)
+
       assert meta_content(og_type) == "article"
       assert meta_content(og_title) == Pleroma.Web.Metadata.Utils.user_name_string(user)
       assert meta_content(og_url) == activity.data["id"]
@@ -398,6 +415,10 @@ defmodule Pleroma.Web.StaticFE.StaticFEControllerTest do
       assert meta_content(tw_title) == meta_content(og_title)
       assert meta_content(tw_desc) == meta_content(og_desc)
       assert meta_content(tw_img) == meta_content(og_img)
+
+      assert Enum.any?(alt_links, fn e ->
+               e == {"application/activity+json", activity.object.data["id"]}
+             end)
     end
 
     test "post with attachments", %{conn: conn, user: user} do

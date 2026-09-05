@@ -962,7 +962,7 @@ defmodule Pleroma.Web.AdminAPI.UserControllerTest do
       "is_confirmed" => true,
       "is_approved" => true,
       "is_suggested" => false,
-      "url" => user.ap_id,
+      "url" => user.uri || user.ap_id,
       "registration_reason" => nil,
       "actor_type" => "Person",
       "created_at" => CommonAPI.Utils.to_masto_date(user.inserted_at)

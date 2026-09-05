@@ -11,8 +11,8 @@ defmodule Pleroma.Web.ActivityPub.MRF.MediaProxyWarmingPolicy do
 
   require Logger
 
-  @adapter_options [
-    receive_timeout: 10_000
+  @http_options [
+    adapter: [receive_timeout: 10_000]
   ]
 
   @impl true
@@ -36,7 +36,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.MediaProxyWarmingPolicy do
     end
   end
 
-  defp fetch(url), do: HTTP.get(url, [], @adapter_options)
+  defp fetch(url), do: HTTP.get(url, [], @http_options)
 
   defp preload(%{"object" => %{"attachment" => attachments}} = _message) do
     Enum.each(attachments, fn

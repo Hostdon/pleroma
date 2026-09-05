@@ -46,7 +46,7 @@ config :pleroma, :emoji,
   ]
 ```
 
-Order of the `groups` matters, so to override default tags just put your group on top of the list. E.g:
+Order of the `groups` matters, so to override default tags, just put your group on top of the list. E.g:
 ```elixir
 config :pleroma, :emoji,
   shortcode_globs: ["/emoji/custom/**/*.png"],

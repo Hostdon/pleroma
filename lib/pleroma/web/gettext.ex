@@ -9,7 +9,7 @@ defmodule Pleroma.Web.Gettext do
   By using [Gettext](https://hexdocs.pm/gettext),
   your module gains a set of macros for translations, for example:
 
-      import Pleroma.Web.Gettext
+      use Gettext, backend: Pleroma.Web.Gettext
 
       # Simple translation
       gettext "Here is the string to translate"
@@ -24,132 +24,7 @@ defmodule Pleroma.Web.Gettext do
 
   See the [Gettext Docs](https://hexdocs.pm/gettext) for detailed usage.
   """
-  use Gettext, otp_app: :pleroma
-
-  def language_tag do
-    # Naive implementation: HTML lang attribute uses BCP 47, which
-    # uses - as a separator.
-    # https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/lang
-
-    Gettext.get_locale()
-    |> String.replace("_", "-", global: true)
-  end
-
-  def normalize_locale(locale) do
-    if is_binary(locale) do
-      String.replace(locale, "-", "_", global: true)
-    else
-      nil
-    end
-  end
-
-  def supports_locale?(locale) do
-    Pleroma.Web.Gettext
-    |> Gettext.known_locales()
-    |> Enum.member?(locale)
-  end
-
-  def variant?(locale), do: String.contains?(locale, "_")
-
-  def language_for_variant(locale) do
-    Enum.at(String.split(locale, "_"), 0)
-  end
-
-  def ensure_fallbacks(locales) do
-    locales
-    |> Enum.flat_map(fn locale ->
-      others =
-        other_supported_variants_of_locale(locale)
-        |> Enum.filter(fn l -> not Enum.member?(locales, l) end)
-
-      [locale] ++ others
-    end)
-  end
-
-  def other_supported_variants_of_locale(locale) do
-    cond do
-      supports_locale?(locale) ->
-        []
-
-      variant?(locale) ->
-        lang = language_for_variant(locale)
-        if supports_locale?(lang), do: [lang], else: []
-
-      true ->
-        Gettext.known_locales(Pleroma.Web.Gettext)
-        |> Enum.filter(fn l -> String.starts_with?(l, locale <> "_") end)
-    end
-  end
-
-  def get_locales do
-    Process.get({Pleroma.Web.Gettext, :locales}, [])
-  end
-
-  def is_locale_list(locales) do
-    Enum.all?(locales, &is_binary/1)
-  end
-
-  def put_locales(locales) do
-    if is_locale_list(locales) do
-      Process.put({Pleroma.Web.Gettext, :locales}, Enum.uniq(locales))
-      Gettext.put_locale(Enum.at(locales, 0, Gettext.get_locale()))
-      :ok
-    else
-      {:error, :not_locale_list}
-    end
-  end
-
-  def locale_or_default(locale) do
-    if supports_locale?(locale) do
-      locale
-    else
-      Gettext.get_locale()
-    end
-  end
-
-  def with_locales_func(locales, fun) do
-    prev_locales = Process.get({Pleroma.Web.Gettext, :locales})
-    put_locales(locales)
-
-    try do
-      fun.()
-    after
-      if prev_locales do
-        put_locales(prev_locales)
-      else
-        Process.delete({Pleroma.Web.Gettext, :locales})
-        Process.delete(Gettext)
-      end
-    end
-  end
-
-  defmacro with_locales(locales, do: fun) do
-    quote do
-      Pleroma.Web.Gettext.with_locales_func(unquote(locales), fn ->
-        unquote(fun)
-      end)
-    end
-  end
-
-  def to_locale_list(locale) when is_binary(locale) do
-    locale
-    |> String.split(",")
-    |> Enum.filter(&supports_locale?/1)
-  end
-
-  def to_locale_list(_), do: []
-
-  defmacro with_locale_or_default(locale, do: fun) do
-    quote do
-      Pleroma.Web.Gettext.with_locales_func(
-        Pleroma.Web.Gettext.to_locale_list(unquote(locale))
-        |> Enum.concat(Pleroma.Web.Gettext.get_locales()),
-        fn ->
-          unquote(fun)
-        end
-      )
-    end
-  end
+  use Gettext.Backend, otp_app: :pleroma
 
   defp next_locale(locale, list) do
     index = Enum.find_index(list, fn item -> item == locale end)
@@ -176,8 +51,9 @@ defmodule Pleroma.Web.Gettext do
     locale != "en"
   end
 
+  @impl true
   def handle_missing_translation(locale, domain, msgctxt, msgid, bindings) do
-    next = next_locale(locale, get_locales())
+    next = next_locale(locale, Pleroma.Web.GettextCompanion.get_locales())
 
     if is_nil(next) or not should_fallback?(locale) do
       super(locale, domain, msgctxt, msgid, bindings)
@@ -189,6 +65,7 @@ defmodule Pleroma.Web.Gettext do
     end
   end
 
+  @impl true
   def handle_missing_plural_translation(
         locale,
         domain,
@@ -198,7 +75,7 @@ defmodule Pleroma.Web.Gettext do
         n,
         bindings
       ) do
-    next = next_locale(locale, get_locales())
+    next = next_locale(locale, Pleroma.Web.GettextCompanion.get_locales())
 
     if is_nil(next) or not should_fallback?(locale) do
       super(locale, domain, msgctxt, msgid, msgid_plural, n, bindings)

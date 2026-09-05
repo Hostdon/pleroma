@@ -4,6 +4,7 @@
 
 defmodule Pleroma.Web.Preload do
   alias Phoenix.HTML
+  alias PhoenixHTMLHelpers.Tag
 
   def build_tags(%{assigns: %{csp_nonce: nonce}}, params) do
     preload_data =
@@ -27,7 +28,7 @@ defmodule Pleroma.Web.Preload do
   end
 
   def build_script_tag(content, nonce) do
-    HTML.Tag.content_tag(:script, HTML.raw(content),
+    Tag.content_tag(:script, HTML.raw(content),
       id: "initial-results",
       type: "application/json",
       nonce: nonce

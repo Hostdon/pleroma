@@ -5,8 +5,9 @@
 defmodule Pleroma.Web.MastodonAPI.SearchController do
   use Pleroma.Web, :controller
 
-  alias Pleroma.Repo
+  alias Pleroma.Config
   alias Pleroma.User
+  alias Pleroma.User.Search, as: UserSearch
   alias Pleroma.Web.ControllerHelper
   alias Pleroma.Web.Endpoint
   alias Pleroma.Web.MastodonAPI.AccountView
@@ -29,8 +30,24 @@ defmodule Pleroma.Web.MastodonAPI.SearchController do
 
   defdelegate open_api_operation(action), to: Pleroma.Web.ApiSpec.SearchOperation
 
+  defp do_if_allowed(%{assigns: %{user: user}} = conn, action) do
+    restrict = Config.restrict_unauthenticated_access?(:search, :all)
+
+    if !!user || !restrict do
+      action.(conn)
+    else
+      conn
+      |> render_error(:forbidden, "This resource requires authentication.")
+    end
+  end
+
   def account_search(%{assigns: %{user: user}} = conn, %{q: query} = params) do
-    accounts = User.search(query, search_options(params, user))
+    conn
+    |> do_if_allowed(&do_account_search(&1, user, query, params))
+  end
+
+  defp do_account_search(conn, user, query, params) do
+    accounts = UserSearch.search(query, search_options(params, user))
 
     conn
     |> put_view(AccountView)
@@ -41,12 +58,15 @@ defmodule Pleroma.Web.MastodonAPI.SearchController do
     )
   end
 
-  def search2(conn, params), do: do_search(:v2, conn, params)
+  def search2(conn, params) do
+    conn
+    |> do_if_allowed(&do_search(:v2, &1, params))
+  end
 
   defp do_search(version, %{assigns: %{user: user}} = conn, %{q: query} = params) do
     query = String.trim(query)
     options = search_options(params, user)
-    timeout = Keyword.get(Repo.config(), :timeout, 15_000)
+    timeout = Pleroma.Config.get!([Pleroma.Search, :task_timeout])
     default_values = %{"statuses" => [], "accounts" => [], "hashtags" => []}
 
     result =
@@ -73,12 +93,29 @@ defmodule Pleroma.Web.MastodonAPI.SearchController do
     json(conn, result)
   end
 
+  def should_restrict_to_local(user) do
+    limit = Pleroma.Config.get([:instance, :limit_to_local_content], :unauthenticated)
+
+    case {limit, user} do
+      {:all, _} -> true
+      {:unauthenticated, %User{}} -> false
+      {:unauthenticated, _} -> true
+      {false, _} -> false
+    end
+  end
+
   defp search_options(params, user) do
+    conf_resolve = Config.restrict_unauthenticated_access?(:search, :resolve)
+    allow_resolve = !should_restrict_to_local(user) && (!!user || !conf_resolve)
+
+    conf_paginate = Config.restrict_unauthenticated_access?(:search, :paginate)
+    allow_paginate = !!user || !conf_paginate
+
     [
-      resolve: params[:resolve],
+      resolve: allow_resolve && params[:resolve],
       following: params[:following],
       limit: min(params[:limit], @search_limit),
-      offset: params[:offset],
+      offset: (allow_paginate && params[:offset]) || 0,
       type: params[:type],
       author: get_author(params),
       embed_relationships: ControllerHelper.embed_relationships?(params),
@@ -88,7 +125,7 @@ defmodule Pleroma.Web.MastodonAPI.SearchController do
   end
 
   defp resource_search(_, "accounts", query, options) do
-    accounts = with_fallback(fn -> User.search(query, options) end)
+    accounts = with_fallback(fn -> UserSearch.search(query, options) end)
 
     AccountView.render("index.json",
       users: accounts,

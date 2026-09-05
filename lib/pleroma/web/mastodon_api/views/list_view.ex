@@ -13,7 +13,8 @@ defmodule Pleroma.Web.MastodonAPI.ListView do
   def render("show.json", %{list: list}) do
     %{
       id: to_string(list.id),
-      title: list.title
+      title: list.title,
+      exclusive: list.exclusive
     }
   end
 end

@@ -22,16 +22,21 @@ defmodule Pleroma.Web.Plugs.MappedSignatureToIdentityPlugTest do
     {:ok, %{user: user}}
   end
 
-  defp set_signature(conn, ap_id) do
+  defp set_signature(conn, %Pleroma.User{} = user) do
     conn
-    |> put_req_header("signature", "keyId=\"#{ap_id}#main-key\"")
     |> assign(:valid_signature, true)
+    |> assign(:signature_user, user)
+  end
+
+  defp set_signature(conn, ap_id) when is_binary(ap_id) do
+    {:ok, user} = Pleroma.User.get_or_fetch_by_ap_id(ap_id)
+    set_signature(conn, user)
   end
 
   test "it successfully maps a valid identity with a valid signature", %{user: user} do
     conn =
       build_conn(:get, "/doesntmattter")
-      |> set_signature(user.ap_id)
+      |> set_signature(user)
       |> MappedSignatureToIdentityPlug.call(%{})
 
     refute is_nil(conn.assigns.user)
@@ -40,7 +45,7 @@ defmodule Pleroma.Web.Plugs.MappedSignatureToIdentityPlugTest do
   test "it successfully maps a valid identity with a valid signature with payload", %{user: user} do
     conn =
       build_conn(:post, "/doesntmattter", %{"actor" => user.ap_id})
-      |> set_signature(user.ap_id)
+      |> set_signature(user)
       |> MappedSignatureToIdentityPlug.call(%{})
 
     refute is_nil(conn.assigns.user)
@@ -52,7 +57,9 @@ defmodule Pleroma.Web.Plugs.MappedSignatureToIdentityPlugTest do
       |> set_signature("https://niu.moe/users/rye")
       |> MappedSignatureToIdentityPlug.call(%{})
 
-    assert %{valid_signature: false} == conn.assigns
+    assert conn.assigns.valid_signature == false
+    refute is_nil(conn.assigns.signature_user)
+    refute match?(%{user: _}, conn.assigns)
   end
 
   test "it considers a mapped identity to be invalid when the associated instance is blocked", %{
@@ -74,10 +81,12 @@ defmodule Pleroma.Web.Plugs.MappedSignatureToIdentityPlugTest do
 
     conn =
       build_conn(:post, "/doesntmattter", %{"actor" => user.ap_id})
-      |> set_signature(user.ap_id)
+      |> set_signature(user)
       |> MappedSignatureToIdentityPlug.call(%{})
 
-    assert %{valid_signature: false} == conn.assigns
+    assert conn.assigns.valid_signature == false
+    refute is_nil(conn.assigns.signature_user)
+    refute match?(%{user: _}, conn.assigns)
   end
 
   test "allowlist federation: it considers a mapped identity to be valid when the associated instance is allowed",
@@ -97,7 +106,7 @@ defmodule Pleroma.Web.Plugs.MappedSignatureToIdentityPlugTest do
 
     conn =
       build_conn(:post, "/doesntmattter", %{"actor" => user.ap_id})
-      |> set_signature(user.ap_id)
+      |> set_signature(user)
       |> MappedSignatureToIdentityPlug.call(%{})
 
     assert conn.assigns[:valid_signature]
@@ -119,19 +128,11 @@ defmodule Pleroma.Web.Plugs.MappedSignatureToIdentityPlugTest do
 
     conn =
       build_conn(:post, "/doesntmattter", %{"actor" => user.ap_id})
-      |> set_signature(user.ap_id)
+      |> set_signature(user)
       |> MappedSignatureToIdentityPlug.call(%{})
 
-    assert %{valid_signature: false} == conn.assigns
-  end
-
-  @tag skip: "known breakage; the testsuite presently depends on it"
-  test "it considers a mapped identity to be invalid when the identity cannot be found" do
-    conn =
-      build_conn(:post, "/doesntmattter", %{"actor" => "http://mastodon.example.org/users/admin"})
-      |> set_signature("http://niu.moe/users/rye")
-      |> MappedSignatureToIdentityPlug.call(%{})
-
-    assert %{valid_signature: false} == conn.assigns
+    assert conn.assigns.valid_signature == false
+    refute is_nil(conn.assigns.signature_user)
+    refute match?(%{user: _}, conn.assigns)
   end
 end

@@ -35,7 +35,7 @@ defmodule Pleroma.BookmarkTest do
       {:ok, activity} = CommonAPI.post(user, %{status: "Some cool information"})
       {:ok, _bookmark} = Bookmark.create(user.id, activity.id)
 
-      {:ok, _deleted_bookmark} = Bookmark.destroy(user.id, activity.id)
+      assert :ok == Bookmark.destroy(user.id, activity.id)
     end
   end
 

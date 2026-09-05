@@ -50,7 +50,6 @@ defmodule Pleroma.Web.AdminAPI.AccountView do
       :hide_favorites,
       :allow_following_move,
       :show_role,
-      :skip_thread_containment,
       :pleroma_settings_store,
       :raw_fields,
       :is_discoverable,

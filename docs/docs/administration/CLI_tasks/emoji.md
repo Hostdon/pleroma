@@ -14,9 +14,8 @@
     mix pleroma.emoji ls-packs [option ...]
     ```
 
-
 ### Options
-- `-m, --manifest PATH/URL` - path to a custom manifest, it can either be an URL starting with `http`, in that case the manifest will be fetched from that address, or a local path
+- `-m, --manifest PATH/URL` - path to a custom manifest, it can either be a URL starting with `http`, in that case the manifest will be fetched from that address, or a local path
 
 ## Fetch, verify and install the specified packs from the manifest into `STATIC-DIR/emoji/PACK-NAME`
 

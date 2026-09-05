@@ -27,6 +27,10 @@ defmodule Akkoma.Collections.Fetcher do
     partial_as_success(objects_from_collection(page))
   end
 
+  def fetch_collection(_) do
+    {:error, :invalid_type}
+  end
+
   defp partial_as_success({:partial, items}), do: {:ok, items}
   defp partial_as_success(res), do: res
 

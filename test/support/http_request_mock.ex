@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule HttpRequestMock do
+  require HttpRequestMockMacros, as: Macros
   require Logger
 
   def activitypub_object_headers,
@@ -41,10 +42,11 @@ defmodule HttpRequestMock do
   #
   def get(url, query \\ [], body \\ [], headers \\ [])
 
-  def get("https://osada.macgirvin.com/channel/mike", _, _, _) do
+  def get("https://osada.macgirvin.com/channel/mike" = url, _, _, _) do
     {:ok,
      %Tesla.Env{
        status: 200,
+       url: url,
        body: File.read!("test/fixtures/tesla_mock/https___osada.macgirvin.com_channel_mike.json"),
        headers: activitypub_object_headers()
      }}
@@ -120,7 +122,8 @@ defmodule HttpRequestMock do
   end
 
   def get(
-        "https://mastodon.social/.well-known/webfinger?resource=https://mastodon.social/users/emelie",
+        "https://mastodon.social/.well-known/webfinger?resource=https://mastodon.social/users/emelie" =
+          url,
         _,
         _,
         _
@@ -128,13 +131,15 @@ defmodule HttpRequestMock do
     {:ok,
      %Tesla.Env{
        status: 200,
+       url: url,
        body: File.read!("test/fixtures/tesla_mock/webfinger_emelie.json"),
        headers: activitypub_object_headers()
      }}
   end
 
   def get(
-        "https://osada.macgirvin.com/.well-known/webfinger?resource=acct:mike@osada.macgirvin.com",
+        "https://osada.macgirvin.com/.well-known/webfinger?resource=acct:mike@osada.macgirvin.com" =
+          url,
         _,
         _,
         [{"accept", "application/xrd+xml,application/jrd+json"}]
@@ -142,6 +147,7 @@ defmodule HttpRequestMock do
     {:ok,
      %Tesla.Env{
        status: 200,
+       url: url,
        body: File.read!("test/fixtures/tesla_mock/mike@osada.macgirvin.com.json"),
        headers: [{"content-type", "application/jrd+json"}]
      }}
@@ -161,7 +167,7 @@ defmodule HttpRequestMock do
   end
 
   def get(
-        "https://pawoo.net/.well-known/webfinger?resource=acct:https://pawoo.net/users/pekorino",
+        "https://pawoo.net/.well-known/webfinger?resource=https://pawoo.net/users/pekorino",
         _,
         _,
         [{"accept", "application/xrd+xml,application/jrd+json"}]
@@ -174,7 +180,7 @@ defmodule HttpRequestMock do
   end
 
   def get(
-        "https://social.stopwatchingus-heidelberg.de/.well-known/webfinger?resource=acct:https://social.stopwatchingus-heidelberg.de/user/18330",
+        "https://social.stopwatchingus-heidelberg.de/.well-known/webfinger?resource=https://social.stopwatchingus-heidelberg.de/user/18330",
         _,
         _,
         [{"accept", "application/xrd+xml,application/jrd+json"}]
@@ -187,7 +193,7 @@ defmodule HttpRequestMock do
   end
 
   def get(
-        "https://social.heldscal.la/.well-known/webfinger?resource=nonexistant@social.heldscal.la",
+        "https://social.heldscal.la/.well-known/webfinger?resource=acct:nonexistant@social.heldscal.la",
         _,
         _,
         [{"accept", "application/xrd+xml,application/jrd+json"}]
@@ -200,7 +206,7 @@ defmodule HttpRequestMock do
   end
 
   def get(
-        "https://squeet.me/xrd/?uri=acct:lain@squeet.me",
+        "https://squeet.me/xrd/?uri=lain@squeet.me",
         _,
         _,
         [{"accept", "application/xrd+xml,application/jrd+json"}]
@@ -236,6 +242,12 @@ defmodule HttpRequestMock do
      }}
   end
 
+  Macros.mock_masto_webfinger(
+    "https://prismo.news/.well-known/webfinger?resource=https://prismo.news/@mxb",
+    "mxb",
+    "prismo.news"
+  )
+
   def get(
         "https://hubzilla.example.org/channel/kaniini",
         _,
@@ -250,6 +262,12 @@ defmodule HttpRequestMock do
      }}
   end
 
+  Macros.mock_masto_webfinger(
+    "https://hubzilla.example.org/.well-known/webfinger?resource=https://hubzilla.example.org/channel/kaniini",
+    "kaniini",
+    "hubzilla.example.org"
+  )
+
   def get("https://niu.moe/users/rye", _, _, @activitypub_accept_headers) do
     {:ok,
      %Tesla.Env{
@@ -258,6 +276,12 @@ defmodule HttpRequestMock do
        headers: activitypub_object_headers()
      }}
   end
+
+  Macros.mock_masto_webfinger(
+    "https://niu.moe/.well-known/webfinger?resource=https://niu.moe/users/rye",
+    "rye",
+    "niu.moe"
+  )
 
   def get("https://n1u.moe/users/rye", _, _, @activitypub_accept_headers) do
     {:ok,
@@ -293,6 +317,12 @@ defmodule HttpRequestMock do
      }}
   end
 
+  Macros.mock_masto_webfinger(
+    "https://puckipedia.com/.well-known/webfinger?resource=https://puckipedia.com/",
+    "puckipedia",
+    "puckipedia.com"
+  )
+
   def get("https://peertube.moe/accounts/7even", _, _, _) do
     {:ok,
      %Tesla.Env{
@@ -302,6 +332,12 @@ defmodule HttpRequestMock do
      }}
   end
 
+  Macros.mock_masto_webfinger(
+    "https://peertube.moe/.well-known/webfinger?resource=https://peertube.moe/accounts/7even",
+    "7even",
+    "peertube.moe"
+  )
+
   def get("https://peertube.stream/accounts/createurs", _, _, _) do
     {:ok,
      %Tesla.Env{
@@ -310,6 +346,12 @@ defmodule HttpRequestMock do
        headers: activitypub_object_headers()
      }}
   end
+
+  Macros.mock_masto_webfinger(
+    "https://peertube.stream/.well-known/webfinger?resource=https://peertube.stream/accounts/createurs",
+    "createurs",
+    "peertube.stream"
+  )
 
   def get("https://peertube.moe/videos/watch/df5f464b-be8d-46fb-ad81-2d4c2d1630e3", _, _, _) do
     {:ok,
@@ -379,6 +421,12 @@ defmodule HttpRequestMock do
      }}
   end
 
+  Macros.mock_masto_webfinger(
+    "https://mobilizon.org/.well-known/webfinger?resource=https://mobilizon.org/@tcit",
+    "tcit",
+    "mobilizon.org"
+  )
+
   def get("https://baptiste.gelez.xyz/@/BaptisteGelez", _, _, _) do
     {:ok,
      %Tesla.Env{
@@ -387,6 +435,12 @@ defmodule HttpRequestMock do
        headers: activitypub_object_headers()
      }}
   end
+
+  Macros.mock_masto_webfinger(
+    "https://baptiste.gelez.xyz/.well-known/webfinger?resource=https://baptiste.gelez.xyz/@/BaptisteGelez",
+    "BaptisteGelez",
+    "baptiste.gelez.xyz"
+  )
 
   def get("https://baptiste.gelez.xyz/~/PlumeDevelopment/this-month-in-plume-june-2018/", _, _, _) do
     {:ok,
@@ -414,6 +468,12 @@ defmodule HttpRequestMock do
        headers: activitypub_object_headers()
      }}
   end
+
+  Macros.mock_masto_webfinger(
+    "https://wedistribute.org/.well-known/webfinger?resource=https://wedistribute.org/wp-json/pterotype/v1/actor/-blog",
+    "blog",
+    "wedistribute.org"
+  )
 
   def get("http://mastodon.example.org/users/admin", _, _, _) do
     {:ok,
@@ -445,6 +505,12 @@ defmodule HttpRequestMock do
        headers: activitypub_object_headers()
      }}
   end
+
+  Macros.mock_masto_webfinger(
+    "https://remote.example/.well-known/webfinger?resource=http://remote.example/users/with_key_id_of_admin-mastodon.example.org",
+    "evil",
+    "remote.example"
+  )
 
   def get(
         "http://mastodon.example.org/users/admin/statuses/99512778738411822/replies?min_id=99512778738411824&page=true",
@@ -505,6 +571,12 @@ defmodule HttpRequestMock do
      }}
   end
 
+  Macros.mock_masto_webfinger(
+    "https://mastodon.sdf.org/.well-known/webfinger?resource=https://mastodon.sdf.org/users/rinpatch",
+    "rinpatch",
+    "mastodon.sdf.org"
+  )
+
   def get("http://mstdn.jp/.well-known/host-meta", _, _, _) do
     {:ok,
      %Tesla.Env{
@@ -518,14 +590,6 @@ defmodule HttpRequestMock do
      %Tesla.Env{
        status: 200,
        body: File.read!("test/fixtures/tesla_mock/mstdn.jp_host_meta")
-     }}
-  end
-
-  def get("https://mstdn.jp/.well-known/webfinger?resource=kpherox@mstdn.jp", _, _, _) do
-    {:ok,
-     %Tesla.Env{
-       status: 200,
-       body: File.read!("test/fixtures/tesla_mock/kpherox@mstdn.jp.xml")
      }}
   end
 
@@ -664,6 +728,12 @@ defmodule HttpRequestMock do
      }}
   end
 
+  Macros.mock_masto_webfinger(
+    "https://mstdn.io/.well-known/webfinger?resource=https://mstdn.io/users/mayuutann",
+    "mayuutann",
+    "mstdn.io"
+  )
+
   def get(
         "https://mstdn.io/users/mayuutann/statuses/99568293732299394",
         _,
@@ -745,7 +815,8 @@ defmodule HttpRequestMock do
   end
 
   def get(
-        "https://social.sakamoto.gq/.well-known/webfinger?resource=https://social.sakamoto.gq/users/eal",
+        "https://social.sakamoto.gq/.well-known/webfinger?resource=https://social.sakamoto.gq/users/eal" =
+          url,
         _,
         _,
         [{"accept", "application/xrd+xml,application/jrd+json"}]
@@ -753,6 +824,7 @@ defmodule HttpRequestMock do
     {:ok,
      %Tesla.Env{
        status: 200,
+       url: url,
        body: File.read!("test/fixtures/tesla_mock/eal_sakamoto.xml")
      }}
   end
@@ -825,7 +897,7 @@ defmodule HttpRequestMock do
   end
 
   def get(
-        "https://squeet.me/xrd?uri=lain@squeet.me",
+        "https://squeet.me/xrd?uri=acct:lain@squeet.me",
         _,
         _,
         [{"accept", "application/xrd+xml,application/jrd+json"}]
@@ -869,14 +941,19 @@ defmodule HttpRequestMock do
   end
 
   def get(
-        "https://framatube.org/main/xrd?uri=acct:framasoft@framatube.org",
+        url,
         _,
         _,
         [{"accept", "application/xrd+xml,application/jrd+json"}]
-      ) do
+      )
+      when url in [
+             "https://framatube.org/main/xrd?uri=acct:framasoft@framatube.org",
+             "https://framatube.org/main/xrd?uri=https://framatube.org/accounts/framasoft"
+           ] do
     {:ok,
      %Tesla.Env{
        status: 200,
+       url: url,
        headers: [{"content-type", "application/jrd+json"}],
        body: File.read!("test/fixtures/tesla_mock/framasoft@framatube.org.json")
      }}
@@ -891,7 +968,7 @@ defmodule HttpRequestMock do
   end
 
   def get(
-        "http://gnusocial.de/main/xrd?uri=winterdienst@gnusocial.de",
+        "http://gnusocial.de/main/xrd?uri=acct:winterdienst@gnusocial.de",
         _,
         _,
         [{"accept", "application/xrd+xml,application/jrd+json"}]
@@ -929,7 +1006,7 @@ defmodule HttpRequestMock do
   end
 
   def get(
-        "https://gerzilla.de/xrd/?uri=acct:kaniini@gerzilla.de",
+        "https://gerzilla.de/xrd/?uri=kaniini@gerzilla.de",
         _,
         _,
         [{"accept", "application/xrd+xml,application/jrd+json"}]
@@ -1009,6 +1086,12 @@ defmodule HttpRequestMock do
        headers: activitypub_object_headers()
      }}
   end
+
+  Macros.mock_masto_webfinger(
+    "https://apfed.club/.well-known/webfinger?resource=https://apfed.club/channel/indio",
+    "indio",
+    "apfed.club"
+  )
 
   def get("https://social.heldscal.la/user/23211", _, _, @activitypub_accept_headers) do
     {:ok, Tesla.Mock.json(%{"id" => "https://social.heldscal.la/user/23211"}, status: 200)}
@@ -1156,7 +1239,8 @@ defmodule HttpRequestMock do
   end
 
   def get(
-        "https://zetsubou.xn--q9jyb4c/.well-known/webfinger?resource=acct:lain@zetsubou.xn--q9jyb4c",
+        "https://zetsubou.xn--q9jyb4c/.well-known/webfinger?resource=acct:lain@zetsubou.xn--q9jyb4c" =
+          url,
         _,
         _,
         [{"accept", "application/xrd+xml,application/jrd+json"}]
@@ -1164,13 +1248,15 @@ defmodule HttpRequestMock do
     {:ok,
      %Tesla.Env{
        status: 200,
+       url: url,
        body: File.read!("test/fixtures/lain.xml"),
        headers: [{"content-type", "application/xrd+xml"}]
      }}
   end
 
   def get(
-        "https://zetsubou.xn--q9jyb4c/.well-known/webfinger?resource=acct:https://zetsubou.xn--q9jyb4c/users/lain",
+        "https://zetsubou.xn--q9jyb4c/.well-known/webfinger?resource=https://zetsubou.xn--q9jyb4c/users/lain" =
+          url,
         _,
         _,
         [{"accept", "application/xrd+xml,application/jrd+json"}]
@@ -1178,21 +1264,23 @@ defmodule HttpRequestMock do
     {:ok,
      %Tesla.Env{
        status: 200,
+       url: url,
        body: File.read!("test/fixtures/lain.xml"),
        headers: [{"content-type", "application/xrd+xml"}]
      }}
   end
 
-  def get("http://zetsubou.xn--q9jyb4c/.well-known/host-meta", _, _, _) do
+  def get("http://zetsubou.xn--q9jyb4c/.well-known/host-meta" = url, _, _, _) do
     {:ok,
      %Tesla.Env{
        status: 200,
+       url: url,
        body: File.read!("test/fixtures/host-meta-zetsubou.xn--q9jyb4c.xml")
      }}
   end
 
   def get(
-        "https://zetsubou.xn--q9jyb4c/.well-known/host-meta",
+        "https://zetsubou.xn--q9jyb4c/.well-known/host-meta" = url,
         _,
         _,
         _
@@ -1200,6 +1288,7 @@ defmodule HttpRequestMock do
     {:ok,
      %Tesla.Env{
        status: 200,
+       url: url,
        body: File.read!("test/fixtures/host-meta-zetsubou.xn--q9jyb4c.xml")
      }}
   end
@@ -1221,23 +1310,29 @@ defmodule HttpRequestMock do
   end
 
   def get(
-        "https://lm.kazv.moe/.well-known/webfinger?resource=acct:mewmew@lm.kazv.moe",
+        url,
         _,
         _,
         [{"accept", "application/xrd+xml,application/jrd+json"}]
-      ) do
+      )
+      when url in [
+             "https://lm.kazv.moe/.well-known/webfinger?resource=acct:mewmew@lm.kazv.moe",
+             "https://lm.kazv.moe/.well-known/webfinger?resource=https://lm.kazv.moe/users/mewmew"
+           ] do
     {:ok,
      %Tesla.Env{
        status: 200,
+       url: url,
        body: File.read!("test/fixtures/tesla_mock/https___lm.kazv.moe_users_mewmew.xml"),
        headers: [{"content-type", "application/xrd+xml"}]
      }}
   end
 
-  def get("https://lm.kazv.moe/users/mewmew", _, _, _) do
+  def get("https://lm.kazv.moe/users/mewmew" = url, _, _, _) do
     {:ok,
      %Tesla.Env{
        status: 200,
+       url: url,
        body: File.read!("test/fixtures/tesla_mock/mewmew@lm.kazv.moe.json"),
        headers: activitypub_object_headers()
      }}
@@ -1294,10 +1389,11 @@ defmodule HttpRequestMock do
     {:ok, %Tesla.Env{status: 404, body: ""}}
   end
 
-  def get("https://mstdn.jp/.well-known/webfinger?resource=acct:kpherox@mstdn.jp", _, _, _) do
+  def get("https://mstdn.jp/.well-known/webfinger?resource=acct:kpherox@mstdn.jp" = url, _, _, _) do
     {:ok,
      %Tesla.Env{
        status: 200,
+       url: url,
        body: File.read!("test/fixtures/tesla_mock/kpherox@mstdn.jp.xml"),
        headers: [{"content-type", "application/xrd+xml"}]
      }}
@@ -1376,6 +1472,12 @@ defmodule HttpRequestMock do
      }}
   end
 
+  Macros.mock_masto_webfinger(
+    "https://misskey.io/.well-known/webfinger?resource=https://misskey.io/users/83ssedkv53",
+    "aimu",
+    "misskey.io"
+  )
+
   def get("https://example.org/emoji/firedfox.png", _, _, _) do
     {:ok, %Tesla.Env{status: 200, body: File.read!("test/fixtures/image.jpg")}}
   end
@@ -1389,12 +1491,27 @@ defmodule HttpRequestMock do
      }}
   end
 
+  Macros.mock_masto_webfinger(
+    "https://skippers-bin.com/.well-known/webfinger?resource=https://skippers-bin.com/users/7v1w1r8ce6",
+    "sjw",
+    "skippers-bin.com"
+  )
+
   def get("https://patch.cx/users/rin", _, _, _) do
     {:ok,
      %Tesla.Env{
        status: 200,
        body: File.read!("test/fixtures/tesla_mock/rin.json"),
        headers: activitypub_object_headers()
+     }}
+  end
+
+  def get("https://patch.cx/.well-known/webfinger?resource=https://patch.cx/users/rin", _, _, _) do
+    {:ok,
+     %Tesla.Env{
+       status: 200,
+       body: File.read!("test/fixtures/tesla_mock/rin.json"),
+       headers: []
      }}
   end
 
@@ -1421,6 +1538,12 @@ defmodule HttpRequestMock do
      }}
   end
 
+  Macros.mock_masto_webfinger(
+    "https://channels.tests.funkwhale.audio/.well-known/webfinger?resource=https://channels.tests.funkwhale.audio/federation/actors/compositions",
+    "compositions",
+    "channels.tests.funkwhale.audio"
+  )
+
   def get("http://example.com/rel_me/error", _, _, _) do
     {:ok, %Tesla.Env{status: 404, body: ""}}
   end
@@ -1442,6 +1565,12 @@ defmodule HttpRequestMock do
        headers: activitypub_object_headers()
      }}
   end
+
+  Macros.mock_masto_webfinger(
+    "https://relay.mastodon.host/.well-known/webfinger?resource=https://relay.mastodon.host/actor",
+    "relay",
+    "relay.mastodon.host"
+  )
 
   def get("http://localhost:4001/", _, "", [{"accept", "text/html"}]) do
     {:ok, %Tesla.Env{status: 200, body: File.read!("test/fixtures/tesla_mock/7369654.html")}}
@@ -1585,24 +1714,16 @@ defmodule HttpRequestMock do
      }}
   end
 
-  def get(
-        "https://sub.mastodon.example/.well-known/webfinger?resource=acct:a@mastodon.example",
-        _,
-        _,
-        _
-      ) do
-    {:ok,
-     %Tesla.Env{
-       status: 200,
-       body:
-         "test/fixtures/webfinger/masto-webfinger.json"
-         |> File.read!()
-         |> String.replace("{{nickname}}", "a")
-         |> String.replace("{{domain}}", "mastodon.example")
-         |> String.replace("{{subdomain}}", "sub.mastodon.example"),
-       headers: [{"content-type", "application/jrd+json"}]
-     }}
-  end
+  Macros.mock_masto_webfinger(
+    [
+      "https://sub.mastodon.example/.well-known/webfinger?resource=https://sub.mastodon.example/users/a",
+      "https://sub.mastodon.example/.well-known/webfinger?resource=acct:a@mastodon.example",
+      "https://mastodon.example/.well-known/webfinger?resource=acct:a@mastodon.example"
+    ],
+    "a",
+    "mastodon.example",
+    "sub.mastodon.example"
+  )
 
   def get("https://sub.mastodon.example/users/a", _, _, _) do
     {:ok,
@@ -1629,6 +1750,15 @@ defmodule HttpRequestMock do
      }}
   end
 
+  Macros.mock_masto_webfinger(
+    "https://mastodon.example.org/.well-known/webfinger?resource=http://mastodon.example.org/users/admin",
+    "admin",
+    "mastodon.example.org",
+    "mastodon.example.org",
+    # default AP ID uses HTTPS, but this mock (unfortunately) plain HTTP!
+    "http://mastodon.example.org/users/admin"
+  )
+
   def get("https://pleroma.example/.well-known/host-meta", _, _, _) do
     {:ok,
      %Tesla.Env{
@@ -1648,15 +1778,16 @@ defmodule HttpRequestMock do
      }}
   end
 
-  def get(
-        "https://sub.pleroma.example/.well-known/webfinger?resource=acct:a@pleroma.example",
-        _,
-        _,
-        _
-      ) do
+  def get(url, _, _, _)
+      when url in [
+             "https://sub.pleroma.example/.well-known/webfinger?resource=https://sub.pleroma.example/users/a",
+             "https://sub.pleroma.example/.well-known/webfinger?resource=acct:a@pleroma.example",
+             "https://pleroma.example/.well-known/webfinger?resource=acct:a@pleroma.example"
+           ] do
     {:ok,
      %Tesla.Env{
        status: 200,
+       url: url,
        body:
          "test/fixtures/webfinger/pleroma-webfinger.json"
          |> File.read!()
@@ -1667,16 +1798,56 @@ defmodule HttpRequestMock do
      }}
   end
 
-  def get("https://sub.pleroma.example/users/a", _, _, _) do
+  def get("https://sub.pleroma.example/users/a" = url, _, _, _) do
     {:ok,
      %Tesla.Env{
        status: 200,
+       url: url,
        body:
          "test/fixtures/webfinger/pleroma-user.json"
          |> File.read!()
          |> String.replace("{{nickname}}", "a")
          |> String.replace("{{domain}}", "sub.pleroma.example"),
        headers: [{"content-type", "application/activity+json"}]
+     }}
+  end
+
+  def get("https://smithereen.example/users/1" = url, _, _, _) do
+    {:ok,
+     %Tesla.Env{
+       status: 200,
+       url: url,
+       body: File.read!("test/fixtures/smithereen/user.json"),
+       headers: [
+         {"content-type",
+          "application/ld+json; profile=\"https://www.w3.org/ns/activitystreams\""}
+       ]
+     }}
+  end
+
+  def get("https://smithereen.example/posts/poll-disclosed" = url, _, _, _) do
+    {:ok,
+     %Tesla.Env{
+       status: 200,
+       url: url,
+       body: File.read!("test/fixtures/smithereen/poll_nonanonymous.json"),
+       headers: [
+         {"content-type",
+          "application/ld+json; profile=\"https://www.w3.org/ns/activitystreams\""}
+       ]
+     }}
+  end
+
+  def get("https://smithereen.example/posts/poll-anon" = url, _, _, _) do
+    {:ok,
+     %Tesla.Env{
+       status: 200,
+       url: url,
+       body: File.read!("test/fixtures/smithereen/poll_anonymous.json"),
+       headers: [
+         {"content-type",
+          "application/ld+json; profile=\"https://www.w3.org/ns/activitystreams\""}
+       ]
      }}
   end
 
@@ -1791,5 +1962,26 @@ defmodule HttpRequestMock do
   def head(url, query, body, headers) do
     {:error,
      "Mock response not implemented for HEAD #{inspect(url)}, #{query}, #{inspect(body)}, #{inspect(headers)}"}
+  end
+
+  defp webfinger_response_masto(url, nick, webfinger_domain, ap_domain, apid) do
+    ap_domain = ap_domain || webfinger_domain
+    apid = apid || "https://" <> ap_domain <> "/users/" <> nick
+
+    body =
+      "test/fixtures/webfinger/masto-webfinger.json"
+      |> File.read!()
+      |> String.replace("{{apid}}", apid)
+      |> String.replace("{{nickname}}", nick)
+      |> String.replace("{{domain}}", webfinger_domain)
+      |> String.replace("{{subdomain}}", ap_domain || webfinger_domain)
+
+    {:ok,
+     %Tesla.Env{
+       status: 200,
+       url: url,
+       body: body,
+       headers: [{"content-type", "application/jrd+json"}]
+     }}
   end
 end

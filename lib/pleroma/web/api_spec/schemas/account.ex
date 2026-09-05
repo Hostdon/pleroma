@@ -21,6 +21,7 @@ defmodule Pleroma.Web.ApiSpec.Schemas.Account do
       acct: %Schema{type: :string},
       avatar_static: %Schema{type: :string, format: :uri},
       avatar: %Schema{type: :string, format: :uri},
+      avatar_description: %Schema{type: :string},
       bot: %Schema{type: :boolean},
       created_at: %Schema{type: :string, format: "date-time"},
       display_name: %Schema{type: :string},
@@ -31,6 +32,7 @@ defmodule Pleroma.Web.ApiSpec.Schemas.Account do
       following_count: %Schema{type: :integer},
       header_static: %Schema{type: :string, format: :uri},
       header: %Schema{type: :string, format: :uri},
+      header_description: %Schema{type: :string},
       id: FlakeID,
       locked: %Schema{type: :boolean},
       note: %Schema{type: :string, format: :html},
@@ -47,6 +49,7 @@ defmodule Pleroma.Web.ApiSpec.Schemas.Account do
             description: "whether the user allows automatically follow moved following accounts"
           },
           background_image: %Schema{type: :string, nullable: true, format: :uri},
+          background_image_description: %Schema{type: :string},
           is_confirmed: %Schema{
             type: :boolean,
             description:
@@ -77,7 +80,6 @@ defmodule Pleroma.Web.ApiSpec.Schemas.Account do
             type: :boolean,
             description: "whether the user is a moderator of the local instance"
           },
-          skip_thread_containment: %Schema{type: :boolean},
           tags: %Schema{
             type: :array,
             items: %Schema{type: :string},
@@ -164,6 +166,7 @@ defmodule Pleroma.Web.ApiSpec.Schemas.Account do
     example: %{
       "acct" => "foobar",
       "avatar" => "https://mypleroma.com/images/avi.png",
+      "avatar_description" => "closeup of tuxedo cat staring directly into camera",
       "avatar_static" => "https://mypleroma.com/images/avi.png",
       "bot" => false,
       "created_at" => "2020-03-24T13:05:58.000Z",
@@ -174,6 +177,7 @@ defmodule Pleroma.Web.ApiSpec.Schemas.Account do
       "followers_count" => 0,
       "following_count" => 1,
       "header" => "https://mypleroma.com/images/banner.png",
+      "header_description" => "",
       "header_static" => "https://mypleroma.com/images/banner.png",
       "id" => "9tKi3esbG7OQgZ2920",
       "locked" => false,
@@ -181,6 +185,7 @@ defmodule Pleroma.Web.ApiSpec.Schemas.Account do
       "pleroma" => %{
         "allow_following_move" => true,
         "background_image" => nil,
+        "background_image_description" => "",
         "is_confirmed" => false,
         "hide_favorites" => true,
         "hide_followers" => false,
@@ -189,7 +194,6 @@ defmodule Pleroma.Web.ApiSpec.Schemas.Account do
         "hide_follows_count" => false,
         "is_admin" => false,
         "is_moderator" => false,
-        "skip_thread_containment" => false,
         "unread_conversation_count" => 0,
         "tags" => [],
         "notification_settings" => %{

@@ -5,6 +5,6 @@ If you want to give your Akkoma users an XMPP (chat) account, you can configure 
 In general, you just have to follow the configuration described at [https://mongooseim.readthedocs.io/en/latest/authentication-backends/HTTP-authentication-module/](https://mongooseim.readthedocs.io/en/latest/authentication-backends/HTTP-authentication-module/) and do these changes to your mongooseim.cfg.
 
 1. Set the auth_method to `{auth_method, http}`.
-2. Add the http auth pool like this: `{http, global, auth, [{workers, 50}], [{server, "https://yourakkomainstance.com"}]}`
+2. Add the HTTP auth pool like this: `{http, global, auth, [{workers, 50}], [{server, "https://yourakkomainstance.com"}]}`
 
 Restart your MongooseIM server, your users should now be able to connect with their Akkoma credentials.

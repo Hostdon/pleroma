@@ -97,7 +97,7 @@ defmodule Pleroma.Captcha do
 
   defp mark_captcha_as_used(token) do
     ttl = seconds_valid() |> :timer.seconds()
-    @cachex.put(:used_captcha_cache, token, true, ttl: ttl)
+    @cachex.put(:used_captcha_cache, token, true, expire: ttl)
   end
 
   defp method, do: Pleroma.Config.get!([__MODULE__, :method])

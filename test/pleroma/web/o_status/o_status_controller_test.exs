@@ -21,6 +21,7 @@ defmodule Pleroma.Web.OStatus.OStatusControllerTest do
   end
 
   setup do: clear_config([:static_fe, :enabled], false)
+  setup :request_host_header
 
   describe "Mastodon compatibility routes" do
     setup %{conn: conn} do
@@ -124,6 +125,24 @@ defmodule Pleroma.Web.OStatus.OStatusControllerTest do
     test "404s on nonexistent activities", %{conn: conn} do
       conn
       |> get("/activities/123")
+      |> response(404)
+    end
+
+    test "404s on non-Create activities", %{conn: conn} do
+      activity = insert(:note_activity)
+      like_user = insert(:user)
+
+      {:ok, like_activity} = CommonAPI.favorite(like_user, activity.id)
+
+      like_url_path =
+        like_activity.data["id"]
+        |> String.trim_leading(Pleroma.Web.Endpoint.url())
+
+      assert String.starts_with?(like_url_path, "/activities/")
+      assert Pleroma.Web.Endpoint.url() <> like_url_path == like_activity.data["id"]
+
+      conn
+      |> get(like_url_path)
       |> response(404)
     end
   end

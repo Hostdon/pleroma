@@ -1,4 +1,4 @@
-# Setting up a Akkoma development environment
+# Setting up an Akkoma development environment
 
 Akkoma requires some adjustments from the defaults for running the instance locally. The following should help you to get started.
 
@@ -9,15 +9,15 @@ Akkoma requires some adjustments from the defaults for running the instance loca
     * You can use your own fork of the repository and add akkoma as a remote `git remote add akkoma 'https://akkoma.dev/AkkomaGang/akkoma.git'`
     * For domain you can use `localhost`
     * For the DB you can still choose a dedicated user. The mix tasks sets it up, so it's no extra work for you
-    * instead of creating a `prod.secret.exs`, create `dev.secret.exs`
+    * Instead of creating a `prod.secret.exs`, create `dev.secret.exs`
     * No need to prefix with `MIX_ENV=prod`. We're using dev and that's the default MIX_ENV
     * You can skip nginx and systemd
     * For front-end, you'll probably want to install and use the develop branch instead of the stable branch. There's no guarantee that the stable branch of the FE will always work on the develop branch of the BE.
 2. Change the dev.secret.exs
     * Change the FE settings to use the installed branch (see also [Frontend Management](/configuration/frontend_management/))
-    * Change the scheme in `config :pleroma, Pleroma.Web.Endpoint` to http (see examples below)
+    * Change the scheme in `config :pleroma, Pleroma.Web.Endpoint` to HTTP (see examples below)
     * If you want to change other settings, you can do that too
-3. You can now start the server with `mix phx.server`. Once it's build and started, you can access the instance on `http://<host>:<port>` (e.g.http://localhost:4000 ) and should be able to do everything locally you normally can.
+3. You can now start the server with `mix phx.server`. Once it's build and started, you can access the instance on `http://<host>:<port>` (e.g. http://localhost:4000 ) and should be able to do everything locally you normally can.
 
 Example on how to install pleroma-fe and admin-fe using it's develop branch
 ```sh
@@ -32,7 +32,7 @@ config :pleroma, :frontends,
   admin: %{"name" => "admin-fe", "ref" => "develop"}
 ```
 
-Example config to change the scheme to http. Change the port if you want to run on another port.
+Example config to change the scheme to HTTP. Change the port if you want to run on another port.
 ```elixir
 config :pleroma, Pleroma.Web.Endpoint,
   url: [host: "localhost", scheme: "http", port: 4000],
@@ -53,7 +53,7 @@ config :logger, :console,
 
 ## Testing with HTTPS
 
-If you end up developing alongside other software like misskey,
+If you end up developing alongside other software like Misskey,
 you will not be able to federate without an SSL certificate. You should
 be able to use the snakeoil certificate that comes standard with most
 distributions or generate one from scratch, then force elixir to accept it.

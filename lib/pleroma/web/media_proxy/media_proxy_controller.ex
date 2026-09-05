@@ -7,7 +7,6 @@ defmodule Pleroma.Web.MediaProxy.MediaProxyController do
 
   alias Pleroma.Config
   alias Pleroma.Helpers.MediaHelper
-  alias Pleroma.Helpers.UriHelper
   alias Pleroma.ReverseProxy
   alias Pleroma.Web.MediaProxy
   alias Plug.Conn
@@ -54,7 +53,7 @@ defmodule Pleroma.Web.MediaProxy.MediaProxyController do
     media_proxy_url = MediaProxy.url(url)
 
     with {:ok, %{status: status} = head_response} when status in 200..299 <-
-           Pleroma.HTTP.request("HEAD", media_proxy_url, [], [], name: MyFinch) do
+           Pleroma.HTTP.head(media_proxy_url) do
       content_type = Tesla.get_header(head_response, "content-type")
       content_length = Tesla.get_header(head_response, "content-length")
       content_length = content_length && String.to_integer(content_length)
@@ -63,9 +62,6 @@ defmodule Pleroma.Web.MediaProxy.MediaProxyController do
       cond do
         static and content_type == "image/gif" ->
           handle_jpeg_preview(conn, media_proxy_url)
-
-        static ->
-          drop_static_param_and_redirect(conn)
 
         content_type == "image/gif" ->
           redirect(conn, external: media_proxy_url)
@@ -157,15 +153,6 @@ defmodule Pleroma.Web.MediaProxy.MediaProxyController do
       _ ->
         fallback_on_preview_error(conn, media_proxy_url)
     end
-  end
-
-  defp drop_static_param_and_redirect(conn) do
-    uri_without_static_param =
-      conn
-      |> current_url()
-      |> UriHelper.modify_uri_params(%{}, ["static"])
-
-    redirect(conn, external: uri_without_static_param)
   end
 
   defp fallback_on_preview_error(conn, media_proxy_url) do
