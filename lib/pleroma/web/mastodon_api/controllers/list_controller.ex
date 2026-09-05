@@ -27,8 +27,8 @@ defmodule Pleroma.Web.MastodonAPI.ListController do
   end
 
   # POST /api/v1/lists
-  def create(%{assigns: %{user: user}, body_params: %{title: title}} = conn, _) do
-    with {:ok, %Pleroma.List{} = list} <- Pleroma.List.create(title, user) do
+  def create(%{assigns: %{user: user}, body_params: params} = conn, _) do
+    with {:ok, %Pleroma.List{} = list} <- Pleroma.List.create(params, user) do
       render(conn, "show.json", list: list)
     end
   end
@@ -39,8 +39,8 @@ defmodule Pleroma.Web.MastodonAPI.ListController do
   end
 
   # PUT /api/v1/lists/:id
-  def update(%{assigns: %{list: list}, body_params: %{title: title}} = conn, _) do
-    with {:ok, list} <- Pleroma.List.rename(list, title) do
+  def update(%{assigns: %{list: list}, body_params: params} = conn, _) do
+    with {:ok, list} <- Pleroma.List.update(list, params) do
       render(conn, "show.json", list: list)
     end
   end

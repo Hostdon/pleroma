@@ -153,15 +153,19 @@ defmodule Pleroma.Web.ActivityPub.SideEffectsTest do
   describe "update users" do
     setup do
       user = insert(:user, local: false)
+      user_data = Pleroma.Web.ActivityPub.UserView.render("user.json", user: user)
 
       {:ok, update_data, []} =
-        Builder.update(user, %{
-          "id" => user.ap_id,
-          "type" => "Person",
-          "name" => "new name!",
-          "icon" => %{"type" => "Image", "url" => "https://example.org/icon.png"},
-          "backgroundUrl" => %{"type" => "Image", "url" => "https://example.org/bg.jxl"}
-        })
+        Builder.update(
+          user,
+          Map.merge(user_data, %{
+            "id" => user.ap_id,
+            "type" => "Person",
+            "name" => "new name!",
+            "icon" => %{"type" => "Image", "url" => "https://example.org/icon.png"},
+            "backgroundUrl" => %{"type" => "Image", "url" => "https://example.org/bg.jxl"}
+          })
+        )
 
       {:ok, update, _meta} = ActivityPub.persist(update_data, local: true)
 
@@ -684,13 +688,15 @@ defmodule Pleroma.Web.ActivityPub.SideEffectsTest do
       {:ok, post} = CommonAPI.post(poster, %{status: "hey"})
       {:ok, private_post} = CommonAPI.post(poster, %{status: "hey", visibility: "private"})
 
-      {:ok, announce_data, _meta} = Builder.announce(user, post.object, public: true)
+      {:ok, announce_data, _meta} = Builder.announce(user, post.object, visibility: "public")
 
       {:ok, private_announce_data, _meta} =
-        Builder.announce(user, private_post.object, public: false)
+        Builder.announce(user, private_post.object, visibility: "private")
 
       {:ok, relay_announce_data, _meta} =
-        Builder.announce(Pleroma.Web.ActivityPub.Relay.get_actor(), post.object, public: true)
+        Builder.announce(Pleroma.Web.ActivityPub.Relay.get_actor(), post.object,
+          visibility: "public"
+        )
 
       {:ok, announce, _meta} = ActivityPub.persist(announce_data, local: true)
       {:ok, private_announce, _meta} = ActivityPub.persist(private_announce_data, local: true)
@@ -725,7 +731,9 @@ defmodule Pleroma.Web.ActivityPub.SideEffectsTest do
       assert Repo.get_by(Notification, user_id: poster.id, activity_id: announce.id)
     end
 
-    test "it streams out the announce", %{announce: announce} do
+    test "it streams out the announce with notification but only after transaction", %{
+      announce: announce
+    } do
       with_mocks([
         {
           Pleroma.Web.Streamer,
@@ -742,10 +750,18 @@ defmodule Pleroma.Web.ActivityPub.SideEffectsTest do
           ]
         }
       ]) do
-        {:ok, announce, _} = SideEffects.handle(announce)
+        {:ok, announce, meta} = SideEffects.handle(announce)
 
+        # ideally the non-notification streaming would also happen
+        # only after the transaction but that’s not yet implemented
         assert called(Pleroma.Web.Streamer.stream(["user", "list"], announce))
 
+        refute called(Pleroma.Web.Streamer.stream(["user", "user:notification"], :_))
+        refute called(Pleroma.Web.Push.send(:_))
+
+        SideEffects.handle_after_transaction(meta)
+
+        assert called(Pleroma.Web.Streamer.stream(["user", "user:notification"], :_))
         assert called(Pleroma.Web.Push.send(:_))
       end
     end

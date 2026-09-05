@@ -69,7 +69,6 @@ defmodule Pleroma.Emoji.Loader do
               load_pack(Path.join(emoji_dir_path, pack), emoji_groups)
             end)
 
-          Emoji.clear_all()
           emojis
       end
 
@@ -103,26 +102,22 @@ defmodule Pleroma.Emoji.Loader do
     pack_file = Path.join(pack_dir, "pack.json")
 
     if File.exists?(pack_file) do
-      Logger.info("Loading emoji pack from JSON: #{pack_file}")
-      contents = Jason.decode!(File.read!(pack_file))
+      Logger.debug("Loading emoji pack from JSON: #{pack_file}")
 
-      contents["files"]
-      |> Enum.map(fn {name, rel_file} ->
-        filename = Path.join("/emoji/#{pack_name}", rel_file)
-        {name, filename, ["pack:#{pack_name}"]}
-      end)
+      Jason.decode(File.read!(pack_file))
+      |> load_from_pack(pack_name)
     else
       # Load from emoji.txt / all files
       emoji_txt = Path.join(pack_dir, "emoji.txt")
 
       if File.exists?(emoji_txt) do
-        Logger.info("Loading emoji pack from emoji.txt: #{emoji_txt}")
+        Logger.debug("Loading emoji pack from emoji.txt: #{emoji_txt}")
         load_from_file(emoji_txt, emoji_groups)
       else
         extensions = Config.get([:emoji, :pack_extensions])
 
         Logger.info(
-          "No emoji.txt found for pack \"#{pack_name}\", assuming all #{Enum.join(extensions, ", ")} files are emoji"
+          "No pack.json or emoji.txt found for pack \"#{pack_name}\", assuming all #{Enum.join(extensions, ", ")} files are emoji"
         )
 
         make_shortcode_to_file_map(pack_dir, extensions)
@@ -133,6 +128,21 @@ defmodule Pleroma.Emoji.Loader do
         end)
       end
     end
+  end
+
+  defp load_from_pack({:ok, %{"files" => files}}, pack_name) when is_map(files) do
+    Enum.map(files, fn {name, rel_file} ->
+      filename = Path.join("/emoji/#{pack_name}", rel_file)
+      {name, filename, ["pack:#{pack_name}"]}
+    end)
+  end
+
+  defp load_from_pack(pack_json_result, pack_name) do
+    Logger.error(
+      "Failed to load emoji pack #{pack_name} from pack.json:\n#{inspect(pack_json_result)}"
+    )
+
+    []
   end
 
   def make_shortcode_to_file_map(pack_dir, exts) do

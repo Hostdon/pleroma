@@ -3,7 +3,7 @@ defmodule Pleroma.Repo.Migrations.AddFTSIndexToActivities do
 
   def change do
     create(
-      index(:activities, ["(to_tsvector('english', data->'object'->>'content'))"],
+      index(:activities, ["(to_tsvector('simple', data->'object'->>'content'))"],
         using: :gin,
         name: :activities_fts
       )

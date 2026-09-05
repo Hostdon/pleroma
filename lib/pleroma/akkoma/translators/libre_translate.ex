@@ -1,5 +1,5 @@
 defmodule Pleroma.Akkoma.Translators.LibreTranslate do
-  @behaviour Pleroma.Akkoma.Translator
+  @behaviour Pleroma.Akkoma.Translator.Provider
 
   alias Pleroma.Config
   alias Pleroma.HTTP
@@ -13,7 +13,7 @@ defmodule Pleroma.Akkoma.Translators.LibreTranslate do
     Config.get([:libre_translate, :url])
   end
 
-  @impl Pleroma.Akkoma.Translator
+  @impl Pleroma.Akkoma.Translator.Provider
   def languages do
     with {:ok, %{status: 200} = response} <- do_languages(),
          {:ok, body} <- Jason.decode(response.body) do
@@ -30,7 +30,7 @@ defmodule Pleroma.Akkoma.Translators.LibreTranslate do
     end
   end
 
-  @impl Pleroma.Akkoma.Translator
+  @impl Pleroma.Akkoma.Translator.Provider
   def translate(string, from_language, to_language) do
     with {:ok, %{status: 200} = response} <- do_request(string, from_language, to_language),
          {:ok, body} <- Jason.decode(response.body) do
@@ -79,4 +79,7 @@ defmodule Pleroma.Akkoma.Translators.LibreTranslate do
 
     HTTP.get(to_string(url))
   end
+
+  @impl Pleroma.Akkoma.Translator.Provider
+  def name, do: "LibreTranslate"
 end

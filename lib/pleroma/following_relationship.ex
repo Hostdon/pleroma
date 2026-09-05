@@ -161,7 +161,11 @@ defmodule Pleroma.FollowingRelationship do
     |> where([r], r.state == ^:follow_pending)
     |> where([r], r.following_id == ^id)
     |> where([r, follower: f], f.is_active == true)
-    |> select([r, follower: f], f)
+  end
+
+  def get_follow_requesting_users_with_request_id(%User{} = user) do
+    get_follow_requests_query(user)
+    |> select([r, follower: f], %{id: r.id, entry: f})
   end
 
   def following?(%User{id: follower_id}, %User{id: followed_id}) do

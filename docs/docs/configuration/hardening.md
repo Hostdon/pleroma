@@ -81,7 +81,7 @@ Use private `/tmp` and `/var/tmp` folders inside a new file system namespace, wh
 
 > Recommended value: `true`
 
-The `/home`, `/root`, and `/run/user` folders can not be accessed by this service anymore. If your Akkoma user has its home folder in one of the restricted places, or use one of these folders as its working directory, you have to set this to `false`.
+The `/home`, `/root`, and `/run/user` folders cannot be accessed by this service anymore. If your Akkoma user has its home folder in one of the restricted places, or use one of these folders as its working directory, you have to set this to `false`.
 
 ### ProtectSystem
 

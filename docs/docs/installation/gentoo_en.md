@@ -181,7 +181,7 @@ It probably won't work over the public internet quite yet, however, as we still 
 
 Assuming you want to open your newly installed federated social network to, well, the federation, you should run nginx or some other webserver/proxy in front of Akkoma. It is also a good idea to set up Akkoma to run as a system service.
 
-#### Nginx
+#### nginx
 
 * Install nginx, if not already done:
 
@@ -197,7 +197,7 @@ Assuming you want to open your newly installed federated social network to, well
 
 * Append the following line at the end of the `http` block in `/etc/nginx/nginx.conf`:
 
-```Nginx
+```nginx
 include sites-enabled/*;
 ```
 

@@ -9,11 +9,11 @@ defmodule Pleroma.Web.Plugs.FederatingPlug do
     options
   end
 
-  def call(conn, _opts) do
+  def call(conn, opts) do
     if federating?() do
       conn
     else
-      fail(conn)
+      fail(conn, opts)
     end
   end
 
@@ -22,9 +22,11 @@ defmodule Pleroma.Web.Plugs.FederatingPlug do
   # Definition for the use in :if_func / :unless_func plug options
   def federating?(_conn), do: federating?()
 
-  defp fail(conn) do
+  defp fail(conn, opts) do
+    status = Keyword.get(opts, :fail_status, 404)
+
     conn
-    |> put_status(404)
+    |> put_status(status)
     |> Phoenix.Controller.put_view(Pleroma.Web.ErrorView)
     |> Phoenix.Controller.render("404.json")
     |> halt()

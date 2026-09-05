@@ -69,6 +69,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
   defp fix_tag(%{"tag" => tag} = data) when is_map(tag), do: Map.put(data, "tag", [tag])
   defp fix_tag(data), do: Map.drop(data, ["tag"])
 
+  # legacy internal *oma format
   defp fix_replies(%{"replies" => replies} = data) when is_list(replies), do: data
 
   defp fix_replies(%{"replies" => %{"first" => first}} = data) when is_binary(first) do
@@ -85,7 +86,14 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
        when is_list(replies),
        do: Map.put(data, "replies", replies)
 
+  defp fix_replies(%{"replies" => %{"first" => %{"orderedItems" => replies}}} = data)
+       when is_list(replies),
+       do: Map.put(data, "replies", replies)
+
   defp fix_replies(%{"replies" => %{"items" => replies}} = data) when is_list(replies),
+    do: Map.put(data, "replies", replies)
+
+  defp fix_replies(%{"replies" => %{"orderedItems" => replies}} = data) when is_list(replies),
     do: Map.put(data, "replies", replies)
 
   defp fix_replies(data), do: Map.delete(data, "replies")
@@ -116,6 +124,8 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
     end
   end
 
+  defp fix_misskey_content(object = %{"htmlMfm" => true}), do: object
+
   # See https://akkoma.dev/FoundKeyGang/FoundKey/issues/343
   # Misskey/Foundkey drops some of the custom formatting when it sends remotely
   # So this basically reprocesses the MFM source
@@ -136,20 +146,13 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
   # See https://github.com/misskey-dev/misskey/pull/8787
   # This is for compatibility with older Misskey instances
   defp fix_misskey_content(%{"_misskey_content" => content} = object) when is_binary(content) do
-    mention_handler = fn nick, buffer, opts, acc ->
-      remote_mention_resolver(object, nick, buffer, opts, acc)
-    end
-
-    {linked, _, _} =
-      Utils.format_input(content, "text/x.misskeymarkdown", mention_handler: mention_handler)
-
     object
     |> Map.put("source", %{
       "content" => content,
       "mediaType" => "text/x.misskeymarkdown"
     })
-    |> Map.put("content", linked)
     |> Map.delete("_misskey_content")
+    |> fix_misskey_content()
   end
 
   defp fix_misskey_content(data), do: data
@@ -176,7 +179,7 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidator do
 
   defp fix_content_map_languages(object), do: object
 
-  defp fix(data) do
+  def fix(data) do
     data
     |> CommonFixes.fix_actor()
     |> CommonFixes.fix_object_defaults()

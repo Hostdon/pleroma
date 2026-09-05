@@ -47,61 +47,59 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
   * `actor`: the actor which is signing the message
   * `id`: the ActivityStreams URI of the message
   """
-  def publish_one(%{inbox: inbox, json: json, actor: %User{} = actor, id: id} = params) do
+  def publish_one(
+        %{"inbox" => inbox, "json" => json, "actor" => %User{} = actor, "id" => id} = params
+      ) do
     Logger.debug("Federating #{id} to #{inbox}")
-    uri = %{path: path} = URI.parse(inbox)
-    digest = "SHA-256=" <> (:crypto.hash(:sha256, json) |> Base.encode64())
 
-    date = Pleroma.Signature.signed_date()
-
-    signature =
-      Pleroma.Signature.sign(actor, %{
-        "(request-target)": "post #{path}",
-        host: signature_host(uri),
-        "content-length": byte_size(json),
-        digest: digest,
-        date: date
-      })
+    signing_key = Pleroma.User.SigningKey.load_key(actor).signing_key
 
     with {:ok, %{status: code}} = result when code in 200..299 <-
            HTTP.post(
              inbox,
              json,
-             [
-               {"Content-Type", "application/activity+json"},
-               {"Date", date},
-               {"signature", signature},
-               {"digest", digest}
-             ]
+             [{"content-type", "application/activity+json"}],
+             httpsig: %{signing_key: signing_key}
            ) do
-      if not Map.has_key?(params, :unreachable_since) || params[:unreachable_since] do
+      if not Map.has_key?(params, "unreachable_since") || params["unreachable_since"] do
         Instances.set_reachable(inbox)
       end
 
       result
     else
       {_post_result, response} ->
-        unless params[:unreachable_since], do: Instances.set_unreachable(inbox)
-        {:error, response}
+        fmt_error = format_error_response(response)
+
+        case fmt_error do
+          # Instance does not support federation
+          # (see AP spec section 5.2)
+          {:http_error, 405, _} ->
+            Instances.set_consistently_unreachable(inbox)
+
+          _ ->
+            unless params["unreachable_since"], do: Instances.set_unreachable(inbox)
+        end
+
+        {:error, fmt_error}
     end
   end
 
-  def publish_one(%{actor_id: actor_id} = params) do
+  def publish_one(%{"actor_id" => actor_id} = params) do
     actor = User.get_cached_by_id(actor_id)
 
     params
-    |> Map.delete(:actor_id)
-    |> Map.put(:actor, actor)
+    |> Map.delete("actor_id")
+    |> Map.put("actor", actor)
     |> publish_one()
   end
 
-  defp signature_host(%URI{port: port, scheme: scheme, host: host}) do
-    if port == URI.default_port(scheme) do
-      host
-    else
-      "#{host}:#{port}"
-    end
-  end
+  defp format_error_response(%Tesla.Env{status: code, headers: headers}),
+    do: {:http_error, code, headers}
+
+  defp format_error_response(%Tesla.Env{} = env),
+    do: {:http_error, :connect, env}
+
+  defp format_error_response(response), do: response
 
   defp blocked_instances do
     Config.get([:instance, :quarantined_instances], []) ++
@@ -159,7 +157,7 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
           []
       end
 
-    Pleroma.Web.Federator.Publisher.remote_users(actor, activity) ++ followers ++ fetchers
+    Pleroma.Web.Federator.Publisher.remote_users(activity) ++ followers ++ fetchers
   end
 
   defp get_cc_ap_ids(ap_id, recipients) do
@@ -170,42 +168,8 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
     |> Enum.map(& &1.ap_id)
   end
 
-  defp maybe_use_sharedinbox(%User{shared_inbox: nil, inbox: inbox}), do: inbox
-  defp maybe_use_sharedinbox(%User{shared_inbox: shared_inbox}), do: shared_inbox
-
-  @doc """
-  Determine a user inbox to use based on heuristics.  These heuristics
-  are based on an approximation of the ``sharedInbox`` rules in the
-  [ActivityPub specification][ap-sharedinbox].
-
-  Please do not edit this function (or its children) without reading
-  the spec, as editing the code is likely to introduce some breakage
-  without some familiarity.
-
-     [ap-sharedinbox]: https://www.w3.org/TR/activitypub/#shared-inbox-delivery
-  """
-  def determine_inbox(
-        %Activity{data: activity_data},
-        %User{inbox: inbox} = user
-      ) do
-    to = activity_data["to"] || []
-    cc = activity_data["cc"] || []
-    type = activity_data["type"]
-
-    cond do
-      type == "Delete" ->
-        maybe_use_sharedinbox(user)
-
-      Pleroma.Constants.as_public() in to || Pleroma.Constants.as_public() in cc ->
-        maybe_use_sharedinbox(user)
-
-      length(to) + length(cc) > 1 ->
-        maybe_use_sharedinbox(user)
-
-      true ->
-        inbox
-    end
-  end
+  defp try_sharedinbox(%User{shared_inbox: nil, inbox: inbox}), do: inbox
+  defp try_sharedinbox(%User{shared_inbox: shared_inbox}), do: shared_inbox
 
   @doc """
   Publishes an activity with BCC to all relevant peers.
@@ -237,11 +201,11 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
           |> Jason.encode!()
 
         Pleroma.Web.Federator.Publisher.enqueue_one(__MODULE__, %{
-          inbox: inbox,
-          json: json,
-          actor_id: actor.id,
-          id: activity.data["id"],
-          unreachable_since: unreachable_since
+          "inbox" => inbox,
+          "json" => json,
+          "actor_id" => actor.id,
+          "id" => activity.data["id"],
+          "unreachable_since" => unreachable_since
         })
       end)
     end)
@@ -261,7 +225,7 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
 
     recipients(actor, activity)
     |> Enum.map(fn %User{} = user ->
-      determine_inbox(activity, user)
+      try_sharedinbox(user)
     end)
     |> Enum.uniq()
     |> Enum.filter(fn inbox -> should_federate?(inbox) end)
@@ -270,11 +234,11 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
       Pleroma.Web.Federator.Publisher.enqueue_one(
         __MODULE__,
         %{
-          inbox: inbox,
-          json: json,
-          actor_id: actor.id,
-          id: activity.data["id"],
-          unreachable_since: unreachable_since
+          "inbox" => inbox,
+          "json" => json,
+          "actor_id" => actor.id,
+          "id" => activity.data["id"],
+          "unreachable_since" => unreachable_since
         }
       )
     end)

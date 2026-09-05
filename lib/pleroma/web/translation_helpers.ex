@@ -11,11 +11,17 @@ defmodule Pleroma.Web.TranslationHelpers do
              identifier \\ Macro.escape("")
            ) do
     quote do
-      require Pleroma.Web.Gettext
+      require Gettext.Macros
 
       error_map =
         %{
-          error: Pleroma.Web.Gettext.dgettext("errors", unquote(msgid), unquote(bindings)),
+          error:
+            Gettext.Macros.dgettext_with_backend(
+              Pleroma.Web.Gettext,
+              "errors",
+              unquote(msgid),
+              unquote(bindings)
+            ),
           identifier: unquote(identifier)
         }
         |> Enum.reject(fn {_k, v} -> v == "" end)

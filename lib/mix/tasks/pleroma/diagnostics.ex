@@ -44,12 +44,11 @@ defmodule Mix.Tasks.Pleroma.Diagnostics do
       |> Map.put(:followed_hashtags, followed_hashtags)
       |> Map.delete(:local)
 
-    list_memberships = Pleroma.List.memberships(user)
     recipients = [user.ap_id | User.following(user)]
 
     query =
       Pleroma.Web.ActivityPub.ActivityPub.fetch_activities_query(
-        recipients ++ list_memberships,
+        recipients,
         params
       )
       |> limit(20)
@@ -71,8 +70,6 @@ defmodule Mix.Tasks.Pleroma.Diagnostics do
       |> Map.put(:actor_id, user.ap_id)
       |> Map.put(:pinned_object_ids, Map.keys(user.pinned_objects))
 
-    list_memberships = Pleroma.List.memberships(user)
-
     recipients =
       %{
         godmode: params[:godmode],
@@ -81,7 +78,7 @@ defmodule Mix.Tasks.Pleroma.Diagnostics do
       |> Pleroma.Web.ActivityPub.ActivityPub.user_activities_recipients()
 
     query =
-      (recipients ++ list_memberships)
+      recipients
       |> Pleroma.Web.ActivityPub.ActivityPub.fetch_activities_query(params)
       |> limit(20)
 

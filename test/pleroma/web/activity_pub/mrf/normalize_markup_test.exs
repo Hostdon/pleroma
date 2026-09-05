@@ -32,10 +32,14 @@ defmodule Pleroma.Web.ActivityPub.MRF.NormalizeMarkupTest do
   """
 
   test "it filter html tags" do
-    message = %{"type" => "Create", "object" => %{"content" => @html_sample}}
+    message = %{
+      "type" => "Create",
+      "object" => %{"content" => @html_sample, "contentMap" => %{"en" => @html_sample}}
+    }
 
     assert {:ok, res} = NormalizeMarkup.filter(message)
     assert res["object"]["content"] == @expected
+    assert res["object"]["contentMap"]["en"] == @expected
   end
 
   test "history-aware" do

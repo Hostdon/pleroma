@@ -13,7 +13,7 @@ defmodule Pleroma.Web.MastodonAPI.MarkerControllerTest do
       token = insert(:oauth_token, user: user, scopes: ["read:statuses"])
       insert_list(7, :notification, user: user, activity: insert(:note_activity))
 
-      {:ok, %{"notifications" => marker}} =
+      {:ok, %{"notifications" => _}} =
         Pleroma.Marker.upsert(
           user,
           %{"notifications" => %{"last_read_id" => "69420"}}
@@ -26,14 +26,14 @@ defmodule Pleroma.Web.MastodonAPI.MarkerControllerTest do
         |> get("/api/v1/markers?timeline[]=notifications")
         |> json_response_and_validate_schema(200)
 
-      assert response == %{
-               "notifications" => %{
-                 "last_read_id" => "69420",
-                 "updated_at" => NaiveDateTime.to_iso8601(marker.updated_at),
-                 "version" => 0,
-                 "pleroma" => %{"unread_count" => 7}
-               }
-             }
+      %{
+        "notifications" => %{
+          "last_read_id" => "69420",
+          "updated_at" => "" <> _,
+          "version" => 0,
+          "pleroma" => %{"unread_count" => 7}
+        }
+      } = response
     end
 
     test "gets markers with missed scopes", %{conn: conn} do
@@ -83,7 +83,7 @@ defmodule Pleroma.Web.MastodonAPI.MarkerControllerTest do
       user = insert(:user)
       token = insert(:oauth_token, user: user, scopes: ["write:statuses"])
 
-      {:ok, %{"notifications" => marker}} =
+      {:ok, %{"notifications" => _}} =
         Pleroma.Marker.upsert(
           user,
           %{"notifications" => %{"last_read_id" => "69477"}}
@@ -100,14 +100,14 @@ defmodule Pleroma.Web.MastodonAPI.MarkerControllerTest do
         })
         |> json_response_and_validate_schema(200)
 
-      assert response == %{
-               "notifications" => %{
-                 "last_read_id" => "69888",
-                 "updated_at" => NaiveDateTime.to_iso8601(marker.updated_at),
-                 "version" => 0,
-                 "pleroma" => %{"unread_count" => 0}
-               }
-             }
+      %{
+        "notifications" => %{
+          "last_read_id" => "69888",
+          "updated_at" => "" <> _,
+          "version" => 0,
+          "pleroma" => %{"unread_count" => 0}
+        }
+      } = response
     end
 
     test "creates a marker with missed scopes", %{conn: conn} do

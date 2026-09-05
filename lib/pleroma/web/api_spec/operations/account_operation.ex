@@ -65,7 +65,8 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
       responses: %{
         200 => Operation.response("Account", "application/json", Account),
         403 => Operation.response("Error", "application/json", ApiError),
-        413 => Operation.response("Error", "application/json", ApiError)
+        413 => Operation.response("Error", "application/json", ApiError),
+        422 => Operation.response("Error", "application/json", ApiError)
       }
     }
   end
@@ -138,12 +139,6 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
           ),
           Operation.parameter(:exclude_reblogs, :query, BooleanLike, "Exclude reblogs"),
           Operation.parameter(:exclude_replies, :query, BooleanLike, "Exclude replies"),
-          Operation.parameter(
-            :exclude_visibilities,
-            :query,
-            %Schema{type: :array, items: VisibilityScope},
-            "Exclude visibilities"
-          ),
           Operation.parameter(
             :with_muted,
             :query,
@@ -280,10 +275,16 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
           "Mute notifications in addition to statuses? Defaults to `true`."
         ),
         Operation.parameter(
+          :duration,
+          :query,
+          %Schema{type: :integer},
+          "Expire the mute in `duration` seconds. Default 0 for infinity"
+        ),
+        Operation.parameter(
           :expires_in,
           :query,
           %Schema{type: :integer, default: 0},
-          "Expire the mute in `expires_in` seconds. Default 0 for infinity"
+          "Deprecated, use `duration` instead"
         )
       ],
       responses: %{
@@ -428,7 +429,8 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
           :query,
           :string,
           "User nickname"
-        )
+        ),
+        with_relationships_param()
       ],
       responses: %{
         200 => Operation.response("Account", "application/json", Account),
@@ -616,11 +618,21 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
           description: "Avatar image encoded using multipart/form-data",
           format: :binary
         },
+        avatar_description: %Schema{
+          type: :string,
+          nullable: true,
+          description: "Sets description (alt text) of the user’s avatar image."
+        },
         header: %Schema{
           type: :string,
           nullable: true,
           description: "Header image encoded using multipart/form-data",
           format: :binary
+        },
+        header_description: %Schema{
+          type: :string,
+          nullable: true,
+          description: "Sets description (alt text) of the user’s header image."
         },
         locked: %Schema{
           allOf: [BooleanLike],
@@ -688,11 +700,6 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
           nullable: true,
           description: "Opaque user settings to be saved on the backend."
         },
-        skip_thread_containment: %Schema{
-          allOf: [BooleanLike],
-          nullable: true,
-          description: "Skip filtering out broken threads"
-        },
         allow_following_move: %Schema{
           allOf: [BooleanLike],
           nullable: true,
@@ -709,6 +716,11 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
           nullable: true,
           description: "Sets the background image of the user.",
           format: :binary
+        },
+        pleroma_background_image_description: %Schema{
+          type: :string,
+          nullable: true,
+          description: "Sets description (alt text) of the user’s background image."
         },
         discoverable: %Schema{
           allOf: [BooleanLike],
@@ -754,7 +766,6 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
         show_role: false,
         default_scope: "private",
         pleroma_settings_store: %{"pleroma-fe" => %{"key" => "val"}},
-        skip_thread_containment: false,
         allow_following_move: false,
         also_known_as: ["https://foo.bar/users/foo"],
         discoverable: false,
@@ -858,10 +869,15 @@ defmodule Pleroma.Web.ApiSpec.AccountOperation do
           description: "Mute notifications in addition to statuses? Defaults to true.",
           default: true
         },
+        duration: %Schema{
+          type: :integer,
+          nullable: true,
+          description: "Expire the mute in `duration` seconds. Default 0 for infinity"
+        },
         expires_in: %Schema{
           type: :integer,
           nullable: true,
-          description: "Expire the mute in `expires_in` seconds. Default 0 for infinity",
+          description: "Deprecated, use `duration` instead",
           default: 0
         }
       },

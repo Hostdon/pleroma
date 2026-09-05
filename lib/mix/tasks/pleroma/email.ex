@@ -33,7 +33,7 @@ defmodule Mix.Tasks.Pleroma.Email do
 
     Pleroma.User.Query.build(%{
       local: true,
-      is_active: true,
+      deactivated: false,
       is_confirmed: false,
       invisible: false
     })

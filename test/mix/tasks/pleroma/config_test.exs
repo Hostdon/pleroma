@@ -152,7 +152,6 @@ defmodule Mix.Tasks.Pleroma.ConfigTest do
           safe_dm_mentions: false,
           healthcheck: false,
           remote_post_retention_days: 90,
-          skip_thread_containment: true,
           limit_to_local_content: :unauthenticated,
           user_bio_length: 5000,
           user_name_length: 100,
@@ -224,7 +223,6 @@ defmodule Mix.Tasks.Pleroma.ConfigTest do
                  safe_dm_mentions: false,
                  healthcheck: false,
                  remote_post_retention_days: 90,
-                 skip_thread_containment: true,
                  limit_to_local_content: :unauthenticated,
                  user_bio_length: 5000,
                  user_name_length: 100,
@@ -401,6 +399,40 @@ defmodule Mix.Tasks.Pleroma.ConfigTest do
       MixTask.run(["reset", "--force"])
 
       assert config_records() == []
+    end
+
+    test "filters non-whitelisted settings" do
+      clear_config(:database_config_whitelist, [
+        {:pleroma},
+        {:web_push_encryption, :vapid_details}
+      ])
+
+      insert_config_record(:web_push_encryption, :non_whitelisted_key, a: 1)
+      insert_config_record(:web_push_encryption, :vapid_details, b: 1)
+
+      MixTask.run(["filter_whitelisted", "--force"])
+
+      assert [
+               %ConfigDB{group: :pleroma, key: :instance},
+               %ConfigDB{group: :pleroma, key: Pleroma.Captcha},
+               %ConfigDB{group: :web_push_encryption, key: :vapid_details}
+             ] = config_records()
+    end
+
+    test "filter_whitelisted doesn't crash when whitelist is unset" do
+      clear_config(:database_config_whitelist, nil)
+
+      existing = config_records()
+      MixTask.run(["filter_whitelisted", "--force"])
+      assert config_records() == existing
+    end
+
+    test "filter_whitelisted doesn't crash when whitelist is disabled" do
+      clear_config(:database_config_whitelist, false)
+
+      existing = config_records()
+      MixTask.run(["filter_whitelisted", "--force"])
+      assert config_records() == existing
     end
   end
 end

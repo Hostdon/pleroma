@@ -7,7 +7,9 @@ defmodule Pleroma.Web.ApiSpec.RenderError do
 
   import Plug.Conn, only: [put_status: 2]
   import Phoenix.Controller, only: [json: 2]
-  import Pleroma.Web.Gettext
+
+  use Gettext,
+    backend: Pleroma.Web.Gettext
 
   @impl Plug
   def init(opts), do: opts
@@ -17,10 +19,10 @@ defmodule Pleroma.Web.ApiSpec.RenderError do
   def call(conn, errors) do
     errors =
       Enum.map(errors, fn
-        %{name: nil, reason: :invalid_enum} = err ->
+        %OpenApiSpex.Cast.Error{name: nil, reason: :invalid_enum} = err ->
           %OpenApiSpex.Cast.Error{err | name: err.value}
 
-        %{name: nil} = err ->
+        %OpenApiSpex.Cast.Error{name: nil} = err ->
           %OpenApiSpex.Cast.Error{err | name: List.last(err.path)}
 
         err ->
@@ -226,6 +228,10 @@ defmodule Pleroma.Web.ApiSpec.RenderError do
       property_count: meta.property_count,
       min_properties: meta.min_properties
     )
+  end
+
+  defp message(%{reason: :custom, meta: meta}) do
+    meta.message
   end
 
   defp safe_string(string) do

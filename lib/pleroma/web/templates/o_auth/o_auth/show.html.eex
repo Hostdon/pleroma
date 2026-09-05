@@ -23,7 +23,7 @@
 <div class="container__content">
   <%= if @app do %>
     <div class="panel-heading">
-      <p><%= raw Gettext.dpgettext("static_pages", "oauth authorize message", "Application <strong>%{client_name}</strong> is requesting access to your account.", client_name: safe_to_string(html_escape(@app.client_name))) %></p>
+      <p><%= raw dpgettext("static_pages", "oauth authorize message", "Application <strong>%{client_name}</strong> is requesting access to your account.", client_name: safe_to_string(html_escape(@app.client_name))) %></p>
     </div>
   <% end %>
 
@@ -32,16 +32,16 @@
     <%= if @user do %>
       <div class="actions">
         <a class="button button-cancel" href="/">
-          <%= Gettext.dpgettext("static_pages", "oauth authorize cancel button", "Cancel") %>
+          <%= dpgettext("static_pages", "oauth authorize cancel button", "Cancel") %>
         </a>
-        <%= submit Gettext.dpgettext("static_pages", "oauth authorize approve button", "Approve"), class: "button--approve" %>
+        <%= submit dpgettext("static_pages", "oauth authorize approve button", "Approve"), class: "button--approve" %>
       </div>
     <% else %>
       <%= if @params["registration"] in ["true", true] do %>
-        <h3><%= Gettext.dpgettext("static_pages", "oauth register page title", "This is your first visit! Please enter your Akkoma handle.") %></h3>
-        <p><%= Gettext.dpgettext("static_pages", "oauth register nickname unchangeable warning", "Choose carefully! You won't be able to change this later. You will be able to change your display name, though.") %></p>
+        <h3><%= dpgettext("static_pages", "oauth register page title", "This is your first visit! Please enter your Akkoma handle.") %></h3>
+        <p><%= dpgettext("static_pages", "oauth register nickname unchangeable warning", "Choose carefully! You won't be able to change this later. You will be able to change your display name, though.") %></p>
         <div class="input">
-          <%= label f, :nickname, Gettext.dpgettext("static_pages", "oauth register nickname prompt", "Pleroma Handle") %>
+          <%= label f, :nickname, dpgettext("static_pages", "oauth register nickname prompt", "Pleroma Handle") %>
           <%= text_input f, :nickname, placeholder: "lain", autocomplete: "username" %>
         </div>
         <%= hidden_input f, :name, value: @params["name"] %>
@@ -49,14 +49,14 @@
         <br>
       <% else %>
         <div class="input">
-          <%= label f, :name, Gettext.dpgettext("static_pages", "oauth login username prompt", "Username") %>
+          <%= label f, :name, dpgettext("static_pages", "oauth login username prompt", "Username") %>
           <%= text_input f, :name %>
         </div>
         <div class="input">
-          <%= label f, :password, Gettext.dpgettext("static_pages", "oauth login password prompt", "Password") %>
+          <%= label f, :password, dpgettext("static_pages", "oauth login password prompt", "Password") %>
           <%= password_input f, :password %>
         </div>
-        <%= submit Gettext.dpgettext("static_pages", "oauth login button", "Log In") %>
+        <%= submit dpgettext("static_pages", "oauth login button", "Log In") %>
       <% end %>
     <% end %>
   </div>

@@ -3,12 +3,12 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.CommonAPI.Utils do
-  import Pleroma.Web.Gettext
+  use Gettext,
+    backend: Pleroma.Web.Gettext
 
   alias Calendar.Strftime
   alias Pleroma.Activity
   alias Pleroma.Config
-  alias Pleroma.Conversation.Participation
   alias Pleroma.Formatter
   alias Pleroma.Object
   alias Pleroma.Repo
@@ -51,74 +51,72 @@ defmodule Pleroma.Web.CommonAPI.Utils do
 
   @spec get_to_and_cc(ActivityDraft.t()) :: {list(String.t()), list(String.t())}
 
-  def get_to_and_cc(%{in_reply_to_conversation: %Participation{} = participation}) do
-    participation = Repo.preload(participation, :recipients)
-    {Enum.map(participation.recipients, & &1.ap_id), []}
-  end
-
-  def get_to_and_cc(%{visibility: visibility} = draft) when visibility in ["public", "local"] do
-    to =
-      case visibility do
-        "public" -> [Pleroma.Constants.as_public() | draft.mentions]
-        "local" -> [Utils.as_local_public() | draft.mentions]
+  def get_to_and_cc(%{visibility: visibility} = draft) do
+    # If the OP is a DM already, add the implicit actor
+    mentions =
+      if visibility == "direct" && draft.in_reply_to && Visibility.is_direct?(draft.in_reply_to) do
+        Enum.uniq([draft.in_reply_to.data["actor"] | draft.mentions])
+      else
+        draft.mentions
       end
 
-    cc = [draft.user.follower_address]
-
-    if draft.in_reply_to do
-      {Enum.uniq([draft.in_reply_to.data["actor"] | to]), cc}
-    else
-      {to, cc}
-    end
+    get_to_and_cc_for_visibility(
+      visibility,
+      draft.user.follower_address,
+      draft.in_reply_to && draft.in_reply_to.data["actor"],
+      mentions
+    )
   end
 
-  def get_to_and_cc(%{visibility: "unlisted"} = draft) do
-    to = [draft.user.follower_address | draft.mentions]
-    cc = [Pleroma.Constants.as_public()]
+  def get_to_and_cc_for_visibility("public", follower_collection, parent_actor, mentions) do
+    scope_addr = Pleroma.Constants.as_public()
 
-    if draft.in_reply_to do
-      {Enum.uniq([draft.in_reply_to.data["actor"] | to]), cc}
-    else
-      {to, cc}
-    end
+    to =
+      if parent_actor,
+        do: Enum.uniq([parent_actor, scope_addr | mentions]),
+        else: [scope_addr | mentions]
+
+    {to, [follower_collection]}
   end
 
-  def get_to_and_cc(%{visibility: "private"} = draft) do
-    {to, cc} = get_to_and_cc(struct(draft, visibility: "direct"))
-    {[draft.user.follower_address | to], cc}
+  def get_to_and_cc_for_visibility("local", follower_collection, parent_actor, mentions) do
+    recipients =
+      if parent_actor,
+        do: Enum.uniq([parent_actor | mentions]),
+        else: mentions
+
+    to = [
+      Utils.as_local_public()
+      | Enum.filter(recipients, fn addr ->
+          String.starts_with?(addr, Pleroma.Web.Endpoint.url() <> "/")
+        end)
+    ]
+
+    {to, [follower_collection]}
   end
 
-  def get_to_and_cc(%{visibility: "direct"} = draft) do
-    # If the OP is a DM already, add the implicit actor.
-    if draft.in_reply_to && Visibility.is_direct?(draft.in_reply_to) do
-      {Enum.uniq([draft.in_reply_to.data["actor"] | draft.mentions]), []}
-    else
-      {draft.mentions, []}
-    end
+  def get_to_and_cc_for_visibility("unlisted", follower_collection, parent_actor, mentions) do
+    to =
+      if parent_actor,
+        do: Enum.uniq([parent_actor, follower_collection | mentions]),
+        else: [follower_collection | mentions]
+
+    {to, [Pleroma.Constants.as_public()]}
   end
 
-  def get_to_and_cc(%{visibility: {:list, _}, mentions: mentions}), do: {mentions, []}
+  def get_to_and_cc_for_visibility("private", follower_collection, _, mentions) do
+    {[follower_collection | mentions], []}
+  end
+
+  def get_to_and_cc_for_visibility("direct", _, _, mentions) do
+    {mentions, []}
+  end
 
   def get_addressed_users(_, to) when is_list(to) do
     User.get_ap_ids_by_nicknames(to)
   end
 
   def get_addressed_users(mentioned_users, _), do: mentioned_users
-
-  def maybe_add_list_data(activity_params, user, {:list, list_id}) do
-    case Pleroma.List.get(list_id, user) do
-      %Pleroma.List{} = list ->
-        activity_params
-        |> put_in([:additional, "bcc"], [list.ap_id])
-        |> put_in([:additional, "listMessage"], list.ap_id)
-        |> put_in([:object, "listMessage"], list.ap_id)
-
-      _ ->
-        activity_params
-    end
-  end
-
-  def maybe_add_list_data(activity_params, _, _), do: activity_params
 
   def make_poll_data(%{"poll" => %{"expires_in" => expires_in}} = data)
       when is_binary(expires_in) do
@@ -154,7 +152,14 @@ defmodule Pleroma.Web.CommonAPI.Utils do
         |> DateTime.to_iso8601()
 
       key = if Params.truthy_param?(data.poll[:multiple]), do: "anyOf", else: "oneOf"
-      poll = %{"type" => "Question", key => option_notes, "closed" => end_time}
+
+      poll = %{
+        "type" => "Question",
+        key => option_notes,
+        "closed" => end_time,
+        "votersCount" => 0,
+        "nonAnonymous" => false
+      }
 
       {:ok, {poll, emoji}}
     end
@@ -225,10 +230,6 @@ defmodule Pleroma.Web.CommonAPI.Utils do
     end
   end
 
-  def make_context(%{in_reply_to_conversation: %Participation{} = participation}) do
-    Repo.preload(participation, :conversation).conversation.ap_id
-  end
-
   def make_context(%{in_reply_to: %Activity{data: %{"context" => context}}}), do: context
   def make_context(%{quote: %Activity{data: %{"context" => context}}}), do: context
   def make_context(_), do: Utils.generate_context_id()
@@ -242,13 +243,13 @@ defmodule Pleroma.Web.CommonAPI.Utils do
 
   def add_attachments(text, attachments) do
     attachment_text = Enum.map(attachments, &build_attachment_link/1)
-    Enum.join([text | attachment_text], "<br>")
+    Enum.join([text | attachment_text], "<br/>")
   end
 
   defp build_attachment_link(%{"url" => [%{"href" => href} | _]} = attachment) do
     name = attachment["name"] || URI.decode(Path.basename(href))
     href = MediaProxy.url(href)
-    "<a href=\"#{href}\" class='attachment'>#{shortname(name)}</a>"
+    "<a href=\"#{href}\">#{shortname(name)}</a>"
   end
 
   defp build_attachment_link(_), do: ""
@@ -265,6 +266,9 @@ defmodule Pleroma.Web.CommonAPI.Utils do
     |> (fn {text, mentions, tags} ->
           {String.replace(text, ~r/\r?\n/, "<br>"), mentions, tags}
         end).()
+
+    # XXX: breaks rel=me links in bios, thus for now omitted.
+    # |> Formatter.html_escape("text/html")
   end
 
   def format_input(text, "text/bbcode", options) do
@@ -274,19 +278,21 @@ defmodule Pleroma.Web.CommonAPI.Utils do
     |> BBCode.to_html()
     |> (fn {:ok, html} -> html end).()
     |> Formatter.linkify(options)
+    |> Formatter.html_escape("text/html")
   end
 
   def format_input(text, "text/html", options) do
     text
-    |> Formatter.html_escape("text/html")
     |> Formatter.linkify(options)
+    |> Formatter.html_escape("text/html")
   end
 
   def format_input(text, "text/x.misskeymarkdown", options) do
     text
     |> Formatter.markdown_to_html(%{breaks: true})
     |> MfmParser.Parser.parse()
-    |> MfmParser.Encoder.to_html()
+    # Must preserve HTML tags from markdown parser (last step removes dangerous bits)
+    |> MfmParser.Encoder.to_html(escape_text: false)
     |> Formatter.linkify(options)
     |> Formatter.html_escape("text/html")
   end
@@ -393,12 +399,53 @@ defmodule Pleroma.Web.CommonAPI.Utils do
           %{}
       end
 
-    tagged_mentions = maybe_extract_mentions(object_data)
+    tagged_mentions =
+      maybe_extract_mentions(object_data)
+      |> filter_tags_to_qualified(activity)
 
     recipients ++ tagged_mentions
   end
 
   def maybe_notify_mentioned_recipients(recipients, _), do: recipients
+
+  # Filter tagged mentions to ensure they can actually access the status
+  defp filter_tags_to_qualified(tagged_mentions, %Activity{
+         recipients: recipients,
+         data: data,
+         actor: actor
+       }) do
+    recipients =
+      if recipients && recipients != [],
+        do: recipients,
+        else:
+          (data["to"] || []) ++ (data["cc"] || []) ++ (data["bto"] || []) ++ (data["bcc"] || [])
+
+    cond do
+      recipients == [] ->
+        []
+
+      Pleroma.Constants.as_public() in recipients ->
+        tagged_mentions
+
+      true ->
+        author = User.get_cached_by_ap_id(actor)
+        to_followers = author.follower_address in recipients
+
+        Enum.filter(tagged_mentions, fn tagged ->
+          cond do
+            tagged in recipients ->
+              true
+
+            to_followers ->
+              tagged_user = User.get_cached_by_ap_id(tagged)
+              User.following?(tagged_user, author)
+
+            true ->
+              false
+          end
+        end)
+    end
+  end
 
   def maybe_notify_subscribers(
         recipients,

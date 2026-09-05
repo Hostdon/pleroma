@@ -102,7 +102,7 @@ defmodule Pleroma.Web.Plugs.Cache do
         conn =
           unless opts[:tracking_fun] do
             if should_cache do
-              @cachex.put(:web_resp_cache, key, {content_type, body}, ttl: ttl)
+              @cachex.put(:web_resp_cache, key, {content_type, body}, expire: ttl)
             end
 
             conn
@@ -110,7 +110,9 @@ defmodule Pleroma.Web.Plugs.Cache do
             tracking_fun_data = Map.get(conn.assigns, :tracking_fun_data, nil)
 
             if should_cache do
-              @cachex.put(:web_resp_cache, key, {content_type, body, tracking_fun_data}, ttl: ttl)
+              @cachex.put(:web_resp_cache, key, {content_type, body, tracking_fun_data},
+                expire: ttl
+              )
             end
 
             opts.tracking_fun.(conn, tracking_fun_data)

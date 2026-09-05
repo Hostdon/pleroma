@@ -14,7 +14,7 @@ defmodule Pleroma.Web.Plugs.SetLocalePlug do
     locales = get_locales_from_header(conn)
     first_locale = Enum.at(locales, 0, Gettext.get_locale())
 
-    Pleroma.Web.Gettext.put_locales(locales)
+    Pleroma.Web.GettextCompanion.put_locales(locales)
 
     conn
     |> assign(:locale, first_locale)
@@ -31,13 +31,13 @@ defmodule Pleroma.Web.Plugs.SetLocalePlug do
 
   defp all_supported(locales) do
     locales
-    |> Pleroma.Web.Gettext.ensure_fallbacks()
+    |> Pleroma.Web.GettextCompanion.ensure_fallbacks()
     |> Enum.filter(&supported_locale?/1)
   end
 
   defp normalize_language_codes(codes) do
     codes
-    |> Enum.map(fn code -> Pleroma.Web.Gettext.normalize_locale(code) end)
+    |> Enum.map(fn code -> Pleroma.Web.GettextCompanion.normalize_locale(code) end)
   end
 
   defp extract_preferred_language(conn) do
@@ -74,7 +74,7 @@ defmodule Pleroma.Web.Plugs.SetLocalePlug do
   end
 
   defp supported_locale?(locale) do
-    Pleroma.Web.Gettext.supports_locale?(locale)
+    Pleroma.Web.GettextCompanion.supports_locale?(locale)
   end
 
   defp parse_language_option(string) do

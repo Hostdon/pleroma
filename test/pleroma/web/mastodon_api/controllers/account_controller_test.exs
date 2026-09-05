@@ -177,6 +177,16 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
                |> get("/api/v1/accounts/#{user.id}")
                |> json_response_and_validate_schema(:not_found)
     end
+
+    test "returns 404 when the username is not valid utf8" do
+      nick = <<0xC0>>
+      refute String.valid?(nick)
+
+      assert %{"error" => "Can't find user"} =
+               build_conn()
+               |> get("/api/v1/accounts/#{nick}")
+               |> json_response_and_validate_schema(404)
+    end
   end
 
   defp local_and_remote_users do
@@ -482,17 +492,18 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
       assert [%{"id" => ^post_id}] = json_response_and_validate_schema(conn, 200)
     end
 
-    test "the user views their own timelines and excludes direct messages", %{
+    test "the user views their own timelines and exclude_visibilites will be ignored", %{
       user: user,
       conn: conn
     } do
-      {:ok, %{id: public_activity_id}} =
+      {:ok, %{id: _public_activity_id}} =
         CommonAPI.post(user, %{status: ".", visibility: "public"})
 
       {:ok, _direct_activity} = CommonAPI.post(user, %{status: ".", visibility: "direct"})
 
       conn = get(conn, "/api/v1/accounts/#{user.id}/statuses?exclude_visibilities[]=direct")
-      assert [%{"id" => ^public_activity_id}] = json_response_and_validate_schema(conn, 200)
+      # assert [%{"id" => ^public_activity_id}] = json_response_and_validate_schema(conn, 200)
+      %{"error" => "Unexpected field: exclude_visibilities."} = json_response(conn, 400)
     end
 
     test "muted reactions", %{user: user, conn: conn} do
@@ -1692,7 +1703,10 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
     test "returns lists to which the account belongs" do
       %{user: user, conn: conn} = oauth_access(["read:lists"])
       other_user = insert(:user)
-      assert {:ok, %Pleroma.List{id: _list_id} = list} = Pleroma.List.create("Test List", user)
+
+      assert {:ok, %Pleroma.List{id: _list_id} = list} =
+               Pleroma.List.create(%{title: "Test List"}, user)
+
       {:ok, %{following: _following}} = Pleroma.List.follow(list, other_user)
 
       assert [%{"id" => _list_id, "title" => "Test List"}] =
@@ -1954,6 +1968,21 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
       conn
       |> get("/api/v1/accounts/lookup?acct=unexisting_nickname")
       |> json_response_and_validate_schema(404)
+  end
+
+  test "account lookup supports with_relationship" do
+    %{conn: conn, user: user} = oauth_access(["read"])
+    %{nickname: acct_two} = user_two = insert(:user, %{nickname: "nickname@notlocaldoma.in"})
+
+    CommonAPI.follow(user_two, user)
+
+    result =
+      conn
+      |> get("/api/v1/accounts/lookup?acct=#{acct_two}&with_relationships=true")
+      |> json_response_and_validate_schema(200)
+
+    assert %{"pleroma" => %{"relationship" => %{"following" => false, "followed_by" => true}}} =
+             result
   end
 
   test "account lookup with restrict unauthenticated profiles for local" do

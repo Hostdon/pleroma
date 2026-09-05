@@ -5,7 +5,7 @@ In addition, federating with such instances will also help furthering that goal.
 This is a guide to show you how it can be easily done.
 
 This guide assumes you already got Akkoma working, and that it's running on the default port 4000.
-This guide also assumes you're using Nginx as the reverse proxy.
+This guide also assumes you're using nginx as the reverse proxy.
 
 To install Tor on Debian / Ubuntu:
 ```
@@ -21,7 +21,7 @@ HiddenServicePort 80 127.0.0.1:8099
 HiddenServiceVersion 3  # Remove if Tor version is below 0.3 ( tor --version )
 HTTPTunnelPort 9080
 ```
-Restart Tor to generate an adress:
+Restart Tor to generate an address:
 ```
 systemctl restart tor@default.service
 ```
@@ -63,7 +63,7 @@ If creating a Tor-only instance, open `config/prod.secret.exs` and under "config
 In addition to that, replace the existing nginx config's contents with the example below.
 
 ## Existing Instance (Clearnet Instance)
-If not a Tor-only instance, 
+If not a Tor-only instance,
 add the nginx config below to your existing config at `/etc/nginx/sites-enabled/akkoma.nginx`.
 
 ---
@@ -74,7 +74,7 @@ config :pleroma, :http_security,
   enabled: false
 ```
 
-In the Nginx config, add the following into the `location /` block:
+In the nginx config, add the following into the `location /` block:
 ```nginx
         add_header X-XSS-Protection "0";
         add_header X-Permitted-Cross-Domain-Policies none;
@@ -90,7 +90,7 @@ listen 127.0.0.1:8099;
 
 Set the `server_name` to your onion address.
 
-Reload Nginx:
+Reload nginx:
 ```
 systemctl reload nginx
 ```
@@ -101,7 +101,7 @@ You should now be able to both access your instance using Tor and federate with 
 
 ### Possible Issues
 
-* In Debian, make sure your hidden service folder `/var/lib/tor/akkoma_hidden_service/` and its contents, has debian-tor as both owner and group by using 
+* In Debian, make sure your hidden service folder `/var/lib/tor/akkoma_hidden_service/` and its contents, has debian-tor as both owner and group by using
 ```
 ls -la /var/lib/tor/
 ```

@@ -34,7 +34,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
 
   plug(:skip_auth when action in [:create])
 
-  plug(:skip_public_check when action in [:show, :statuses])
+  plug(:skip_public_check when action in [:show, :statuses, :lookup])
 
   plug(
     OAuthScopesPlug,
@@ -189,7 +189,6 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
         :hide_follows,
         :hide_favorites,
         :show_role,
-        :skip_thread_containment,
         :allow_following_move,
         :also_known_as
       ]
@@ -200,8 +199,14 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
       |> Maps.put_if_present(:bio, params[:note])
       |> Maps.put_if_present(:raw_bio, params[:note])
       |> Maps.put_if_present(:avatar, params[:avatar], user_image_value)
+      |> Maps.put_if_present(:avatar_description, params[:avatar_description])
       |> Maps.put_if_present(:banner, params[:header], user_image_value)
+      |> Maps.put_if_present(:header_description, params[:header_description])
       |> Maps.put_if_present(:background, params[:pleroma_background_image], user_image_value)
+      |> Maps.put_if_present(
+        :background_description,
+        params[:pleroma_background_image_description]
+      )
       |> Maps.put_if_present(
         :raw_fields,
         params[:fields_attributes],
@@ -219,7 +224,10 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
       |> Maps.put_if_present(:is_locked, params[:locked])
       # Note: param name is indeed :discoverable (not an error)
       |> Maps.put_if_present(:is_discoverable, params[:discoverable])
-      |> Maps.put_if_present(:language, Pleroma.Web.Gettext.normalize_locale(params[:language]))
+      |> Maps.put_if_present(
+        :language,
+        Pleroma.Web.GettextCompanion.normalize_locale(params[:language])
+      )
       |> Maps.put_if_present(:status_ttl_days, params[:status_ttl_days], status_ttl_days_value)
       |> Maps.put_if_present(:accepts_direct_messages_from, params[:accepts_direct_messages_from])
       |> Maps.put_if_present(:permit_followback, params[:permit_followback])
@@ -253,6 +261,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
         with_pleroma_settings: true
       )
     else
+      # Map errors to translation string constants
       {:error, %Ecto.Changeset{errors: [avatar: {"file is too large", _}]}} ->
         render_error(conn, :request_entity_too_large, "File is too large")
 
@@ -261,6 +270,62 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
 
       {:error, %Ecto.Changeset{errors: [background: {"file is too large", _}]}} ->
         render_error(conn, :request_entity_too_large, "File is too large")
+
+      {:error,
+       %Ecto.Changeset{errors: [{:avatar_description, {"avatar_description is too long", _}} | _]}} ->
+        render_error(conn, :request_entity_too_large, "Avatar description is too long")
+
+      {:error,
+       %Ecto.Changeset{
+         errors: [
+           {:avatar_description,
+            {"avatar_description needs avatar to be set before or simultaneously", _}}
+           | _
+         ]
+       }} ->
+        render_error(
+          conn,
+          :unprocessable_entity,
+          "Avatar description needs avatar to be set before or simultaneously"
+        )
+
+      {:error,
+       %Ecto.Changeset{errors: [{:header_description, {"header_description is too long", _}} | _]}} ->
+        render_error(conn, :request_entity_too_large, "Banner description is too long")
+
+      {:error,
+       %Ecto.Changeset{
+         errors: [
+           {:header_description,
+            {"header_description needs banner to be set before or simultaneously", _}}
+           | _
+         ]
+       }} ->
+        render_error(
+          conn,
+          :unprocessable_entity,
+          "Banner description needs banner to be set before or simultaneously"
+        )
+
+      {:error,
+       %Ecto.Changeset{
+         errors: [{:background_description, {"background description is too long", _}} | _]
+       }} ->
+        render_error(conn, :request_entity_too_large, "Background description is too long")
+
+      {:error,
+       %Ecto.Changeset{
+         errors: [
+           {:background_description,
+            {"background_description needs background to be set before or simultaneously", _}}
+           | _
+         ]
+       }} ->
+        render_error(
+          conn,
+          :unprocessable_entity,
+          "Background description needs background to be set before or simultaneously"
+        )
 
       _e ->
         render_error(conn, :forbidden, "Invalid request")
@@ -422,6 +487,10 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
 
   @doc "POST /api/v1/accounts/:id/mute"
   def mute(%{assigns: %{user: muter, account: muted}, body_params: params} = conn, _params) do
+    params =
+      params
+      |> Map.put_new(:duration, Map.get(params, :expires_in, 0))
+
     with {:ok, _user_relationships} <- User.mute(muter, muted, params) do
       render(conn, "relationship.json", user: muter, target: muted)
     else
@@ -528,12 +597,14 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
   end
 
   @doc "GET /api/v1/accounts/lookup"
-  def lookup(%{assigns: %{user: for_user}} = conn, %{acct: nickname} = _params) do
+  def lookup(%{assigns: %{user: for_user}} = conn, %{acct: nickname} = params) do
     with %User{} = user <- User.get_by_nickname(nickname),
          :visible <- User.visible_for(user, for_user) do
       render(conn, "show.json",
         user: user,
-        skip_visibility_check: true
+        for: for_user,
+        skip_visibility_check: true,
+        embed_relationships: embed_relationships?(params)
       )
     else
       error -> user_visibility_error(conn, error)

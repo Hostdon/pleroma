@@ -11,7 +11,7 @@ Possible uses include:
 * removing media from messages
 * sending only public messages to a specific instance
 
-The MRF provides user-configurable policies. The default policy is `NoOpPolicy`, which disables the MRF functionality. Akkoma also includes an easy to use policy called `SimplePolicy` which maps messages matching certain pre-defined criterion to actions built into the policy module.
+The MRF provides user-configurable policies. The default policy is `NoOpPolicy`, which disables the MRF functionality. Akkoma also includes an easy-to-use policy called `SimplePolicy` which maps messages matching certain pre-defined criterion to actions built into the policy module.
 
 It is possible to use multiple, active MRF policies at the same time.
 
@@ -29,7 +29,7 @@ config :pleroma, :mrf,
 
 Once `SimplePolicy` is enabled, you can configure various groups in the `:mrf_simple` config object. These groups are:
 
-* `reject`: Servers in this group will have their messages rejected. Also outbound messages will not be sent to these servers.
+* `reject`: Servers in this group will have their messages rejected. Also, outbound messages will not be sent to these servers.
 * `accept`: If not empty, only messages from these instances will be accepted (whitelist federation).
 * `media_nsfw`: Servers in this group will have the #nsfw tag and sensitive setting injected into incoming messages which contain media.
 * `media_removal`: Servers in this group will have media stripped from incoming messages.
@@ -72,6 +72,13 @@ To just hide everything set:
 config :pleroma, :mrf,
   ...
   transparency: false,
+```
+
+To hide everything to logged-out viewers, but show details to logged-in local users set:
+```elixir
+config :pleroma, :mrf,
+  ...
+  transparency: :authenticated,
 ```
 
 To hide or obfuscate only select entries, use:
@@ -151,7 +158,7 @@ Please note that the Akkoma developers consider custom MRF policy modules to fal
 
 ### MRF policies descriptions
 
-If MRF policy depends on config, it can be added into MRF tab to adminFE by adding `config_description/0` method, which returns a map with a specific structure. See existing MRF's like `lib/pleroma/web/activity_pub/mrf/activity_expiration_policy.ex` for examples. Note that more complex inputs, like tuples or maps, may need extra changes in the adminFE and just adding it to `config_description/0` may not be enough to get these inputs working from the adminFE.
+If MRF policy depends on config, it can be added into MRF tab to admin-fe by adding `config_description/0` method, which returns a map with a specific structure. See existing MRF's like `lib/pleroma/web/activity_pub/mrf/activity_expiration_policy.ex` for examples. Note that more complex inputs, like tuples or maps, may need extra changes in the admin-fe and just adding it to `config_description/0` may not be enough to get these inputs working from the admin-fe.
 
 Example:
 

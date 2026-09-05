@@ -45,6 +45,10 @@ services:
     ]
     volumes:
       - .:/opt/akkoma
+    ulimits:
+      # Maximum number of open file descriptors. The default should work well for most,
+      # but can be bumped for very large instances or if seeing FD-related errors.
+      nofile: 524288
 
   # Copy this into docker-compose.override.yml and uncomment there if you want to use a reverse proxy
   #proxy:

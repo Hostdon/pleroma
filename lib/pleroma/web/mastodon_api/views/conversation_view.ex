@@ -6,8 +6,8 @@ defmodule Pleroma.Web.MastodonAPI.ConversationView do
   use Pleroma.Web, :view
 
   alias Pleroma.Activity
+  alias Pleroma.Conversation.Participation
   alias Pleroma.Repo
-  alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.MastodonAPI.AccountView
   alias Pleroma.Web.MastodonAPI.StatusView
 
@@ -21,18 +21,10 @@ defmodule Pleroma.Web.MastodonAPI.ConversationView do
   def render("participation.json", %{participation: participation, for: user}) do
     participation = Repo.preload(participation, conversation: [], recipients: [])
 
-    last_activity_id =
-      with nil <- participation.last_activity_id do
-        ActivityPub.fetch_latest_direct_activity_id_for_context(
-          participation.conversation.ap_id,
-          %{
-            user: user,
-            blocking_user: user
-          }
-        )
-      end
+    activity_id =
+      participation.last_activity_id || Participation.last_activity_id(participation, user)
 
-    activity = Activity.get_by_id_with_object(last_activity_id)
+    activity = Activity.get_by_id_with_object(activity_id)
 
     # Conversations return all users except the current user,
     # except when the current user is the only participant

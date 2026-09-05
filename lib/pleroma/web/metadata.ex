@@ -4,6 +4,7 @@
 
 defmodule Pleroma.Web.Metadata do
   alias Phoenix.HTML
+  alias PhoenixHTMLHelpers.Tag
 
   def build_static_tags(params) do
     providers = [
@@ -44,10 +45,10 @@ defmodule Pleroma.Web.Metadata do
 
   def to_tag(data) do
     with {name, attrs, _content = []} <- data do
-      HTML.Tag.tag(name, attrs)
+      Tag.tag(name, attrs)
     else
       {name, attrs, content} ->
-        HTML.Tag.content_tag(name, content, attrs)
+        Tag.content_tag(name, content, attrs)
 
       _ ->
         raise ArgumentError, message: "make_tag invalid args"
@@ -64,7 +65,11 @@ defmodule Pleroma.Web.Metadata do
 
   defp activated_providers do
     unless Pleroma.Config.restrict_unauthenticated_access?(:activities, :local) do
-      [Pleroma.Web.Metadata.Providers.Feed | Pleroma.Config.get([__MODULE__, :providers], [])]
+      [
+        Pleroma.Web.Metadata.Providers.Feed,
+        Pleroma.Web.Metadata.Providers.ApUrl
+        | Pleroma.Config.get([__MODULE__, :providers], [])
+      ]
     else
       []
     end

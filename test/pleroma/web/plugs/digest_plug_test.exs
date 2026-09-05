@@ -1,6 +1,7 @@
 defmodule Pleroma.Web.Plugs.DigestPlugTest do
   use ExUnit.Case, async: true
-  use Plug.Test
+  import Plug.Test
+  import Plug.Conn
 
   test "digest algorithm is taken from digest header" do
     body = "{\"hello\": \"world\"}"

@@ -132,7 +132,74 @@ defmodule Pleroma.Web.FederatorTest do
       assert {:ok, _activity} = ObanHelpers.perform(job)
 
       assert {:ok, job} = Federator.incoming_ap_doc(params)
-      assert {:discard, :already_present} = ObanHelpers.perform(job)
+      assert {:cancel, :already_present} = ObanHelpers.perform(job)
+    end
+
+    defp mfm_activity(object_overrides \\ %{}) do
+      %{
+        "@context" => "https://www.w3.org/ns/activitystreams",
+        "actor" => "http://mastodon.example.org/users/admin",
+        "type" => "Create",
+        "id" => "http://mastodon.example.org/users/admin/activities/1",
+        "object" => %{
+          "type" => "Note",
+          "content" => "<p this-should-be-scrubbed-away>this is the original content</p>",
+          "source" => %{
+            "content" => "this is the source content",
+            "mediaType" => "text/x.misskeymarkdown"
+          },
+          "id" => "http://mastodon.example.org/users/admin/objects/1",
+          "attributedTo" => "http://mastodon.example.org/users/admin",
+          "to" => ["https://www.w3.org/ns/activitystreams#Public"]
+        },
+        "to" => ["https://www.w3.org/ns/activitystreams#Public"]
+      }
+      |> Map.update!("object", fn obj -> Map.merge(obj, object_overrides) end)
+    end
+
+    test "properly processes objects with the htmlMfm attribute true" do
+      params = mfm_activity(%{"htmlMfm" => true})
+
+      {:ok, job} = Federator.incoming_ap_doc(params)
+      {:ok, %Pleroma.Activity{data: %{"object" => object_ap_id}}} = ObanHelpers.perform(job)
+
+      %Pleroma.Object{data: %{"content" => content, "htmlMfm" => html_mfm}} =
+        Pleroma.Object.get_by_ap_id(object_ap_id)
+
+      assert html_mfm == true
+      refute content =~ "this-should-be-scrubbed-away"
+      refute content =~ "this is the source content"
+      assert content =~ "this is the original content"
+    end
+
+    test "properly processes objects with the htmlMfm attribute false" do
+      params = mfm_activity(%{"htmlMfm" => false})
+
+      {:ok, job} = Federator.incoming_ap_doc(params)
+      {:ok, %Pleroma.Activity{data: %{"object" => object_ap_id}}} = ObanHelpers.perform(job)
+
+      %Pleroma.Object{data: %{"content" => content, "htmlMfm" => html_mfm}} =
+        Pleroma.Object.get_by_ap_id(object_ap_id)
+
+      assert html_mfm == false
+      refute content =~ "this-should-be-scrubbed-away"
+      assert content =~ "this is the source content"
+      refute content =~ "this is the original content"
+    end
+
+    test "properly processes objects with the htmlMfm attribute not set" do
+      params = mfm_activity()
+
+      {:ok, job} = Federator.incoming_ap_doc(params)
+      {:ok, %Pleroma.Activity{data: %{"object" => object_ap_id}}} = ObanHelpers.perform(job)
+
+      %Pleroma.Object{data: %{"content" => content} = data} =
+        Pleroma.Object.get_by_ap_id(object_ap_id)
+
+      refute Map.has_key?(data, "htmlMfm")
+      refute content =~ "this-should-be-scrubbed-away"
+      assert content =~ "this is the source content"
+      refute content =~ "this is the original content"
     end
 
     test "successfully normalises public scope descriptors" do
@@ -199,7 +266,7 @@ defmodule Pleroma.Web.FederatorTest do
         |> Jason.decode!()
 
       assert {:ok, job} = Federator.incoming_ap_doc(params)
-      assert {:discard, _} = ObanHelpers.perform(job)
+      assert {:cancel, _} = ObanHelpers.perform(job)
     end
   end
 end

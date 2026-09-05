@@ -1,0 +1,104 @@
+when:
+  event:
+    - push
+    - tag
+  branch:
+    - develop
+    - stable
+  evaluate: 'SKIP_DEVELOP != "YES" || CI_COMMIT_BRANCH != "develop"'
+
+matrix:
+  include:
+    # Canonical amd64
+    - ARCH: amd64
+      SUFFIX:
+      IMG_VAR: debian-bookworm-20230612
+      UBUNTU_EXPORT: YES
+
+    # old debian variant of amd64
+    - ARCH: amd64
+      SUFFIX: -debian-bullseye
+      IMG_VAR: debian-bullseye-20230612
+
+    # Canonical amd64-musl
+    - ARCH: amd64
+      SUFFIX: -musl
+      IMG_VAR: alpine-3.18.2
+      SKIP_DEVELOP: YES
+
+    # Canonical arm64
+    - ARCH: arm64
+      SUFFIX:
+      RELEASER_TAG: :arm64
+      IMG_VAR: debian-bookworm-20230612
+      UBUNTU_EXPORT: YES
+
+    # Canonical arm64-musl
+    - ARCH: arm64
+      SUFFIX: -musl
+      RELEASER_TAG: :arm64
+      IMG_VAR: alpine-3.18.2
+      SKIP_DEVELOP: YES
+
+labels:
+  platform: linux/${ARCH}
+
+steps:
+  # Canonical amd64
+  build:
+    image: hexpm/elixir:1.15.4-erlang-26.0.2-${IMG_VAR}
+    environment:
+      MIX_ENV: prod
+      DEBIAN_FRONTEND: noninteractive
+    commands: |
+       # install deps
+       case "${IMG_VAR}" in
+        debian*)
+          apt-get update && apt-get install -y \
+            cmake libmagic-dev rclone zip git wget \
+            build-essential g++  imagemagick libmagic-dev
+          ;;
+        alpine*)
+          apk add git gcc g++ musl-dev make cmake file-dev rclone wget zip imagemagick
+          ;;
+        *)
+          echo "No package manager defined for ${BASE_IMG}!"
+          exit 1
+       esac
+
+       # clean leftovers
+       rm -rf release
+       rm -rf _build
+       rm -rf /root/.mix
+
+       # setup
+       echo "import Config" > config/prod.secret.exs
+       mix local.hex --force
+       mix local.rebar --force
+       export BUILD_TAG=$${CI_COMMIT_TAG:-\"$CI_COMMIT_BRANCH\"}
+       export PLEROMA_BUILD_BRANCH=$BUILD_TAG
+
+       # actually build and zip up
+       mix deps.get --only prod
+       mix release --path release
+       zip akkoma-${ARCH}${SUFFIX}.zip -r release
+
+  release:
+    image: akkoma/releaser${RELEASER_TAG}
+    environment:
+      SCW_ACCESS_KEY:
+        from_secret: SCW_ACCESS_KEY
+      SCW_SECRET_KEY:
+        from_secret: SCW_SECRET_KEY
+      SCW_DEFAULT_ORGANIZATION_ID:
+        from_secret: SCW_DEFAULT_ORGANIZATION_ID
+    commands: |
+      export SOURCE=akkoma-${ARCH}${SUFFIX}.zip
+      export DEST=scaleway:akkoma-updates/$${CI_COMMIT_TAG:-"$CI_COMMIT_BRANCH"}/$${SOURCE}
+      /bin/sh /entrypoint.sh
+
+      if [ "${UBUNTU_EXPORT}" = "YES" ] ; then
+        # Ubuntu jammy (currently compatible with our default debian builds)
+        export DEST=scaleway:akkoma-updates/$${CI_COMMIT_TAG:-"$CI_COMMIT_BRANCH"}/akkoma-${ARCH}-ubuntu-jammy.zip
+        /bin/sh /entrypoint.sh
+      fi

@@ -26,5 +26,5 @@ from the perspective of another given user.
     `./bin/pleroma_ctl diagnostics user_timeline <nickname> <viewing_nickname>`
 
 === "From Source"
-    
+
     `mix pleroma.diagnostics user_timeline <nickname> <viewing_nickname>`

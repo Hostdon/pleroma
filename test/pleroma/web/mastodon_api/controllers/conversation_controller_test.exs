@@ -108,6 +108,108 @@ defmodule Pleroma.Web.MastodonAPI.ConversationControllerTest do
     end
   end
 
+  test "paginates correctly", %{user: user, conn: conn} do
+    [p1, p2, p3, p4] = for _ <- 1..4, do: insert(:participation, %{user: user})
+
+    # jumble "last active" order to 4, 1, 3, 2
+    CommonAPI.post(user, %{status: "beep", in_reply_to_status_id: p3.last_bump})
+    CommonAPI.post(user, %{status: "beep", in_reply_to_status_id: p1.last_bump})
+    CommonAPI.post(user, %{status: "beep", in_reply_to_status_id: p4.last_bump})
+
+    expect_h1 = [to_string(p4.id), to_string(p1.id)]
+    expect_h2 = [to_string(p3.id), to_string(p2.id)]
+    expect_full = expect_h1 ++ expect_h2
+
+    # Everything at once
+    res_full_conn = get(conn, "/api/v1/conversations?limit=5")
+    res_full = json_response_and_validate_schema(res_full_conn, 200)
+
+    assert expect_full == Enum.map(res_full, & &1["id"])
+
+    # First half / initial fetch
+    res_h1_conn = get(conn, "/api/v1/conversations?limit=2")
+    res_h1_link = :proplists.get_value("link", res_h1_conn.resp_headers, :none)
+    res_h1 = json_response_and_validate_schema(res_h1_conn, 200)
+
+    assert expect_h1 == Enum.map(res_h1, & &1["id"])
+    assert res_h1_link != :none
+
+    h1_links = parse_link_header(res_h1_link)
+    h1_link_prev = :proplists.get_value("prev", h1_links, nil)
+    h1_link_next = :proplists.get_value("next", h1_links, nil)
+
+    assert Enum.all?(h1_links, fn {_, v} -> String.contains?(v, "limit=2") end)
+    assert h1_link_prev
+    assert h1_link_next
+
+    # Following the link header
+    res_h2_conn = get(conn, h1_link_next)
+    res_h2_link = :proplists.get_value("link", res_h2_conn.resp_headers, :none)
+    res_h2 = json_response_and_validate_schema(res_h2_conn, 200)
+
+    assert expect_h2 == Enum.map(res_h2, & &1["id"])
+    assert res_h1_link != :none
+
+    h2_links = parse_link_header(res_h2_link)
+    h2_link_prev = :proplists.get_value("prev", h2_links, nil)
+    h2_link_next = :proplists.get_value("next", h2_links, nil)
+
+    # Page after empty
+    res_beyond =
+      get(conn, h2_link_next)
+      |> json_response_and_validate_schema(200)
+
+    assert [] == res_beyond
+
+    # Going back from h2 is identical to h1
+    res_h1_reprise =
+      get(conn, h2_link_prev)
+      |> json_response_and_validate_schema(200)
+
+    assert expect_h1 == Enum.map(res_h1_reprise, & &1["id"])
+  end
+
+  test "can paginate over filtered-out sections larger than limit", %{user: user, conn: conn} do
+    blocked = insert(:user)
+
+    p1 = insert(:participation, %{user: user})
+
+    CommonAPI.post(blocked, %{
+      status: "@#{user.nickname} buy the best NFTs here!: xxx",
+      visibility: "direct"
+    })
+
+    CommonAPI.post(blocked, %{
+      status: "@#{user.nickname} invest in the AI future now: xxx",
+      visibility: "direct"
+    })
+
+    p4 = insert(:participation, %{user: user})
+
+    full_noblock =
+      get(conn, "/api/v1/conversations?limit=20")
+      |> json_response_and_validate_schema(200)
+
+    assert length(full_noblock) == 4
+    [%{"id" => p4_id}, _, _, %{"id" => p1_id}] = full_noblock
+    assert p4_id == to_string(p4.id)
+    assert p1_id == to_string(p1.id)
+
+    CommonAPI.block(user, blocked)
+    expect_full = [to_string(p4.id), to_string(p1.id)]
+
+    full_block =
+      get(conn, "/api/v1/conversations?limit=20")
+      |> json_response_and_validate_schema(200)
+
+    assert length(full_block) == 2
+    assert expect_full == Enum.map(full_block, & &1["id"])
+
+    # paginate such that there’l be a block of filtered participations exceeding limit
+    full_paginated = paginate_to_end(conn, "/api/v1/conversations?limit=1", [])
+    assert expect_full == Enum.map(full_paginated, & &1["id"])
+  end
+
   test "filters conversations by recipients", %{user: user_one, conn: conn} do
     user_two = insert(:user)
     user_three = insert(:user)
@@ -254,5 +356,43 @@ defmodule Pleroma.Web.MastodonAPI.ConversationControllerTest do
       status: "Hi #{hellos}!",
       visibility: "direct"
     })
+  end
+
+  defp parse_link_header(link_header_val) when is_binary(link_header_val) do
+    link_header_val
+    |> String.split(",")
+    |> Enum.map(fn l ->
+      [link, reldir] =
+        l
+        |> String.split(";", parts: 2)
+        |> Enum.map(fn part ->
+          part
+          |> String.trim(" ")
+          |> String.trim_leading("<")
+          |> String.trim_trailing(">")
+        end)
+
+      <<"rel=", dir::binary>> = reldir
+      dir = String.trim(dir, "\"")
+
+      {dir, link}
+    end)
+  end
+
+  defp paginate_to_end(conn, uri, acc) do
+    res_conn = get(conn, uri)
+    res = json_response_and_validate_schema(res_conn, 200)
+    acc = acc ++ res
+
+    link_val = :proplists.get_value("link", res_conn.resp_headers, :none)
+
+    if link_val == :none do
+      acc
+    else
+      links = parse_link_header(link_val)
+      next_uri = :proplists.get_value("next", links, nil)
+      assert next_uri
+      paginate_to_end(conn, next_uri, acc)
+    end
   end
 end

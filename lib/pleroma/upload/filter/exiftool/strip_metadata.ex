@@ -38,7 +38,7 @@ defmodule Pleroma.Upload.Filter.Exiftool.StripMetadata do
     args = ["-ignoreMinorErrors", "-overwrite_original" | purge_args] ++ preserve_args ++ [file]
 
     try do
-      case System.cmd("exiftool", args, parallelism: true) do
+      case System.cmd("exiftool", args, parallelism: true, stderr_to_stdout: true) do
         {_response, 0} -> {:ok, :filtered}
         {error, 1} -> {:error, error}
       end

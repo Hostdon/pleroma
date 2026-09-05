@@ -10,6 +10,8 @@ defmodule Pleroma.Search.Elasticsearch do
   alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Search.Elasticsearch.Parsers
 
+  require Logger
+
   def es_query(:activity, query, offset, limit) do
     must = Parsers.Activity.parse(query)
 
@@ -30,13 +32,33 @@ defmodule Pleroma.Search.Elasticsearch do
     }
   end
 
-  defp maybe_fetch(:activity, search_query) do
-    with true <- Regex.match?(~r/https?:/, search_query),
+  defp maybe_fetch(:activity, search_query, options) do
+    with true <- options[:resolve],
+         0 <- Keyword.get(options, :offset, 0),
+         true <- Regex.match?(~r/https?:/, search_query),
          {:ok, object} <- Fetcher.fetch_object_from_id(search_query),
          %Activity{} = activity <- Activity.get_create_by_object_ap_id(object.data["id"]) do
       activity
     else
       _ -> nil
+    end
+  end
+
+  defp await_fetch_task(task) do
+    # Multiplier for following redirect and id mismatch refetch (without redirect)
+    timeout = 3 * Pleroma.Config.get!([:http, :receive_timeout])
+
+    case Task.yield(task, timeout) || Task.shutdown(task, 250) do
+      {:ok, result} ->
+        result
+
+      {:exit, reason} ->
+        Logger.debug("Search fetch task exited: #{inspect(reason)}")
+        nil
+
+      nil ->
+        Logger.debug("Search fetch task timed out after #{timeout}ms")
+        nil
     end
   end
 
@@ -51,7 +73,7 @@ defmodule Pleroma.Search.Elasticsearch do
 
     activity_fetch_task =
       Task.async(fn ->
-        maybe_fetch(:activity, String.trim(query))
+        maybe_fetch(:activity, String.trim(query), options)
       end)
 
     activity_task =
@@ -67,7 +89,7 @@ defmodule Pleroma.Search.Elasticsearch do
       end)
 
     activity_results = Task.await(activity_task)
-    direct_activity = Task.await(activity_fetch_task)
+    direct_activity = await_fetch_task(activity_fetch_task)
 
     activity_results =
       if direct_activity == nil do

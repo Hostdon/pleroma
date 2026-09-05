@@ -82,7 +82,7 @@ defmodule Pleroma.Upload do
   def store(upload, opts \\ []) do
     opts = get_opts(opts)
 
-    with {:ok, upload} <- prepare_upload(upload, opts),
+    with {:ok, %__MODULE__{} = upload} <- prepare_upload(upload, opts),
          upload = %__MODULE__{upload | path: upload.path || "#{upload.id}/#{upload.name}"},
          {:ok, upload} <- Pleroma.Upload.Filter.filter(opts.filters, upload),
          description = Map.get(upload, :description) || "",

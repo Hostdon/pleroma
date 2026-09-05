@@ -15,26 +15,55 @@ defmodule Pleroma.Web.Feed.UserController do
 
   action_fallback(:errors)
 
-  def feed_redirect(%{assigns: %{format: "html"}} = conn, %{"nickname" => nickname}) do
-    with {_, %User{} = user} <- {:fetch_user, User.get_cached_by_nickname_or_id(nickname)} do
-      Pleroma.Web.Fallback.RedirectController.redirector_with_meta(conn, %{user: user})
-    else
-      _ -> Pleroma.Web.Fallback.RedirectController.redirector(conn, nil)
-    end
-  end
-
   def feed_redirect(%{assigns: %{format: format}} = conn, _params)
       when format in ["json", "activity+json"] do
     ActivityPubController.call(conn, :user)
   end
 
-  def feed_redirect(conn, %{"nickname" => nickname}) do
-    with {_, %User{} = user} <- {:fetch_user, User.get_cached_by_nickname(nickname)} do
-      redirect(conn, external: "#{url(~p"/users/#{user.nickname}/feed")}.atom")
-    end
+  # redirect from new AP id route
+  def feed_redirect(conn, %{"user_id" => id}) do
+    user = User.get_cached_by_id(id)
+    redirect_html_or_feed(conn, user)
   end
 
+  # redirect from static-fe or legacy AP id route
+  def feed_redirect(conn, %{"nickname" => nickname}) do
+    user = User.get_cached_by_nickname(nickname)
+    redirect_html_or_feed(conn, user)
+  end
+
+  defp redirect_html_or_feed(%{assigns: %{format: "html"}} = conn, %User{} = user) do
+    Pleroma.Web.Fallback.RedirectController.redirector_with_meta(conn, %{user: user})
+  end
+
+  defp redirect_html_or_feed(%{assigns: %{format: "html"}} = conn, _) do
+    Pleroma.Web.Fallback.RedirectController.redirector(conn, nil)
+  end
+
+  defp redirect_html_or_feed(%{assigns: assigns} = conn, %User{} = user) do
+    format = Map.get(assigns, :format, "atom")
+    format = if format in ["atom", "rss"], do: format, else: "atom"
+
+    redirect(conn, external: "#{url(~p"/users/by-id/#{user.id}/feed")}.#{format}")
+  end
+
+  defp redirect_html_or_feed(_conn, _user), do: {:error, :not_found}
+
+  def feed(conn, %{"user_id" => id} = params) do
+    user = User.get_cached_by_id(id)
+    render_feed(conn, params, user)
+  end
+
+  # legacy route; deprecated since unstable when nickname is updated
   def feed(conn, %{"nickname" => nickname} = params) do
+    user = User.get_cached_by_nickname(nickname)
+    render_feed(conn, params, user)
+  end
+
+  defp render_feed(_, _, nil), do: {:error, :not_found}
+  defp render_feed(_, _, %User{local: false}), do: {:error, :not_found}
+
+  defp render_feed(conn, params, user) do
     format = get_format(conn)
 
     format =
@@ -44,8 +73,7 @@ defmodule Pleroma.Web.Feed.UserController do
         "atom"
       end
 
-    with {_, %User{local: true} = user} <- {:fetch_user, User.get_cached_by_nickname(nickname)},
-         {_, :visible} <- {:visibility, User.visible_for(user, _reading_user = nil)} do
+    with {_, :visible} <- {:visibility, User.visible_for(user, _reading_user = nil)} do
       activities =
         %{
           type: ["Create"],
@@ -63,6 +91,8 @@ defmodule Pleroma.Web.Feed.UserController do
         feed_config: Config.get([:feed]),
         view_module: FeedView
       )
+    else
+      _ -> {:error, :not_found}
     end
   end
 

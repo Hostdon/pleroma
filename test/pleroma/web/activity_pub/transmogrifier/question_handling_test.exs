@@ -103,6 +103,26 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier.QuestionHandlingTest do
     assert Enum.sort(object.data["oneOf"]) == Enum.sort(options)
   end
 
+  test "GTS Question activity with a single, non-array tag" do
+    tag = %{
+      "href" => "https://gts.example/tags/caturday",
+      "name" => "#caturday",
+      "type" => "Hashtag"
+    }
+
+    data =
+      File.read!("test/fixtures/mastodon-question-activity.json")
+      |> Jason.decode!()
+      |> Kernel.put_in(["object", "tag"], tag)
+
+    {:ok, %Activity{local: false} = activity} = Transmogrifier.handle_incoming(data)
+    object = Object.normalize(activity, fetch: false)
+
+    [parsed_tag, tag_name] = Enum.sort(object.data["tag"])
+    assert tag_name == "caturday"
+    assert parsed_tag == %{tag | "name" => tag_name}
+  end
+
   test "Mastodon Question activity with custom emojis" do
     options = [
       %{
@@ -169,5 +189,24 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier.QuestionHandlingTest do
       |> Kernel.put_in(["object", "content"], "")
 
     assert {:ok, %Activity{local: false}} = Transmogrifier.handle_incoming(data)
+  end
+
+  test "it displays voters count for a poll" do
+    user = insert(:user)
+    other_user = insert(:user)
+
+    {:ok, activity} =
+      CommonAPI.post(user, %{
+        status: "???",
+        poll: %{expires_in: 10, options: ["yes", "no"]}
+      })
+
+    object = Object.normalize(activity, fetch: false)
+    {:ok, _, _} = CommonAPI.vote(other_user, object, [1])
+
+    {:ok, modified} = Transmogrifier.prepare_outgoing(activity.data)
+
+    refute Map.has_key?(modified["object"], "voters")
+    assert modified["object"]["votersCount"] == 1
   end
 end

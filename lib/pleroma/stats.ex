@@ -7,7 +7,6 @@ defmodule Pleroma.Stats do
 
   import Ecto.Query
 
-  alias Pleroma.CounterCache
   alias Pleroma.Repo
   alias Pleroma.User
   alias Pleroma.Instances.Instance
@@ -105,15 +104,6 @@ defmodule Pleroma.Stats do
         remote_user_count: remote_user_count
       }
     }
-  end
-
-  @spec get_status_visibility_count(String.t() | nil) :: map()
-  def get_status_visibility_count(instance \\ nil) do
-    if is_nil(instance) do
-      CounterCache.get_sum()
-    else
-      CounterCache.get_by_instance(instance)
-    end
   end
 
   @impl true

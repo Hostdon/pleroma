@@ -58,7 +58,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
                count: 2,
                me: false,
                name: "dinosaur",
-               url: "http://localhost:4001/emoji/dino walking.gif",
+               url: "http://localhost:4001/emoji/dino%20walking.gif",
                account_ids: [other_user.id, user.id]
              },
              %{name: "🍵", count: 1, me: false, url: nil, account_ids: [third_user.id]},
@@ -75,7 +75,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
                count: 2,
                me: true,
                name: "dinosaur",
-               url: "http://localhost:4001/emoji/dino walking.gif",
+               url: "http://localhost:4001/emoji/dino%20walking.gif",
                account_ids: [other_user.id, user.id]
              },
              %{name: "🍵", count: 1, me: false, url: nil, account_ids: [third_user.id]}
@@ -154,7 +154,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
     user = insert(:user)
 
     {:ok, activity} = CommonAPI.post(user, %{status: "Hey @shp!", visibility: "direct"})
-    [participation] = Participation.for_user(user)
+    [%{entry: participation}] = Participation.for_user_with_pagination(user)
 
     status =
       StatusView.render("show.json",
@@ -174,7 +174,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
     user = insert(:user)
 
     {:ok, activity} = CommonAPI.post(user, %{status: "Hey @shp!", visibility: "direct"})
-    [participation] = Participation.for_user(user)
+    [%{entry: participation}] = Participation.for_user_with_pagination(user)
 
     status =
       StatusView.render("show.json",
@@ -215,24 +215,6 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
     %{account: ms_user} = StatusView.render("show.json", activity: activity)
 
     assert ms_user.acct == "erroruser@example.com"
-  end
-
-  test "tries to get a user by nickname if fetching by ap_id doesn't work" do
-    user = insert(:user)
-
-    {:ok, activity} = CommonAPI.post(user, %{status: "Hey @shp!", visibility: "direct"})
-
-    {:ok, user} =
-      user
-      |> Ecto.Changeset.change(%{ap_id: "#{user.ap_id}/extension/#{user.nickname}"})
-      |> Repo.update()
-
-    User.invalidate_cache(user)
-
-    result = StatusView.render("show.json", activity: activity)
-
-    assert result[:account][:id] == to_string(user.id)
-    assert_schema(result, "Status", Pleroma.Web.ApiSpec.spec())
   end
 
   test "a note with null content" do
@@ -326,7 +308,9 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
         pinned_at: nil
       },
       akkoma: %{
-        source: HTML.filter_tags(object_data["content"])
+        source: HTML.filter_tags(object_data["content"]),
+        in_reply_to_apid: nil,
+        quote_apid: nil
       },
       quote_id: nil,
       quote: nil
@@ -417,7 +401,33 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
     assert status.in_reply_to_id == to_string(note.id)
   end
 
+  test "a reply to an unavailable post" do
+    note = insert(:note, data: %{"inReplyTo" => "https://example.org/404"})
+    activity = insert(:note_activity, note: note)
+
+    status = StatusView.render("show.json", %{activity: activity})
+
+    assert status.in_reply_to_id == "_"
+    assert status.in_reply_to_account_id == "_"
+    assert status.akkoma.in_reply_to_apid == "https://example.org/404"
+  end
+
   test "a quote" do
+    note = insert(:note_activity)
+    user = insert(:user)
+
+    {:ok, activity} = CommonAPI.post(user, %{status: "hehe", quoted_status_id: note.id})
+
+    status = StatusView.render("show.json", %{activity: activity})
+
+    assert status.quote_id == to_string(note.id)
+
+    [status] = StatusView.render("index.json", %{activities: [activity], as: :activity})
+
+    assert status.quote_id == to_string(note.id)
+  end
+
+  test "a quote created with deprecated quote_id" do
     note = insert(:note_activity)
     user = insert(:user)
 
@@ -432,13 +442,58 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
     assert status.quote_id == to_string(note.id)
   end
 
+  test "a quote provides polyglott *oma and Masto quote object" do
+    note = insert(:note_activity)
+    user = insert(:user)
+
+    {:ok, activity} = CommonAPI.post(user, %{status: "hehe", quoted_status_id: note.id})
+
+    status = StatusView.render("show.json", %{activity: activity})
+
+    # *oma style
+    assert status.quote_id == to_string(note.id)
+    assert status.quote.id == to_string(note.id)
+
+    # Mastodon style
+    assert status.quote.quoted_status.id == to_string(note.id)
+    assert status.quote.state == "accepted"
+  end
+
+  test "a nested quote only provides shallow ids" do
+    note = insert(:note_activity)
+    user = insert(:user)
+
+    {:ok, activity_q1} = CommonAPI.post(user, %{status: "hehe", quoted_status_id: note.id})
+    {:ok, activity_q2} = CommonAPI.post(user, %{status: "hihi", quoted_status_id: activity_q1.id})
+
+    status = StatusView.render("show.json", %{activity: activity_q2})
+
+    # first-level has full object in both flavours
+    assert status.quote_id == to_string(activity_q1.id)
+    assert status.quote.id == to_string(activity_q1.id)
+    assert status.quote.state == "accepted"
+    assert status.quote.quoted_status.id == to_string(activity_q1.id)
+
+    nested = status.quote
+
+    # *oma-style shallow
+    assert nested.quote_id == to_string(note.id)
+
+    # For Mastodon-style shallow, status.quote should be %{state: "accepted", quoted_status_id: "…"}
+    # but then *oma-style clients expecting either null or a full status object
+    # may throw up errors during parsing, thus nothing at all is provided.
+    assert nested.quote == nil
+  end
+
   test "a quote that we can't resolve" do
-    note = insert(:note_activity, quoteUri: "oopsie")
+    note = insert(:note, data: %{"quoteUri" => "oopsie"})
+    activity = insert(:note_activity, note: note)
 
-    status = StatusView.render("show.json", %{activity: note})
+    status = StatusView.render("show.json", %{activity: activity})
 
-    assert is_nil(status.quote_id)
     assert is_nil(status.quote)
+    assert status.quote_id == "_"
+    assert status.akkoma.quote_apid == "oopsie"
   end
 
   test "a quote from a user we block" do
@@ -449,7 +504,9 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
     {:ok, _relationship} = User.block(user, blocked_user)
 
     {:ok, activity} = CommonAPI.post(blocked_user, %{status: ":< i am ANGERY"})
-    {:ok, quote_activity} = CommonAPI.post(other_user, %{status: "hehe", quote_id: activity.id})
+
+    {:ok, quote_activity} =
+      CommonAPI.post(other_user, %{status: "hehe", quoted_status_id: activity.id})
 
     status = StatusView.render("show.json", %{activity: quote_activity, for: user})
     assert is_nil(status.quote)
@@ -463,7 +520,9 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
     {:ok, _relationship} = User.mute(user, blocked_user)
 
     {:ok, activity} = CommonAPI.post(blocked_user, %{status: ":< i am ANGERY"})
-    {:ok, quote_activity} = CommonAPI.post(other_user, %{status: "hehe", quote_id: activity.id})
+
+    {:ok, quote_activity} =
+      CommonAPI.post(other_user, %{status: "hehe", quoted_status_id: activity.id})
 
     status = StatusView.render("show.json", %{activity: quote_activity, for: user})
     assert is_nil(status.quote)
@@ -484,13 +543,13 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
   end
 
   test "create mentions from the 'to' field" do
-    %User{ap_id: recipient_ap_id} = insert(:user)
+    recipient = insert(:user)
     cc = insert_pair(:user) |> Enum.map(& &1.ap_id)
 
     object =
       insert(:note, %{
         data: %{
-          "to" => [recipient_ap_id],
+          "to" => [recipient.ap_id],
           "cc" => cc
         }
       })
@@ -498,7 +557,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
     activity =
       insert(:note_activity, %{
         note: object,
-        recipients: [recipient_ap_id | cc]
+        recipients: [recipient.ap_id | cc]
       })
 
     assert length(activity.recipients) == 3
@@ -506,7 +565,46 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
     %{mentions: [mention] = mentions} = StatusView.render("show.json", %{activity: activity})
 
     assert length(mentions) == 1
-    assert mention.url == recipient_ap_id
+    assert mention.url == recipient.uri
+    assert mention.id == recipient.id
+  end
+
+  test "inlined images are media proxied" do
+    clear_config([:media_proxy, :enabled], true)
+    user = insert(:user)
+
+    {:ok, activity} =
+      CommonAPI.post(user, %{
+        content_type: "text/html",
+        status: "hii <img src=\"https://example.org/a.png\" />"
+      })
+
+    activity = Repo.get(Activity, activity.id)
+    status = StatusView.render("show.json", activity: activity)
+
+    assert_schema(status, "Status", Pleroma.Web.ApiSpec.spec())
+
+    assert status[:content] =~
+             ~r/^hii <img src="https?:\/\/[^\/]+\/proxy\/[^\/]+\/aHR0cHM6Ly9leGFtcGxlLm9yZy9hLnBuZw\/a.png"/
+  end
+
+  test "inlined images using network-path ref are media proxied" do
+    clear_config([:media_proxy, :enabled], true)
+    user = insert(:user)
+
+    {:ok, activity} =
+      CommonAPI.post(user, %{
+        content_type: "text/html",
+        status: "hii <img src=\"//example.org/a.png\" />"
+      })
+
+    activity = Repo.get(Activity, activity.id)
+    status = StatusView.render("show.json", activity: activity)
+
+    assert_schema(status, "Status", Pleroma.Web.ApiSpec.spec())
+
+    assert status[:content] =~
+             ~r/^hii <img src="https?:\/\/[^\/]+\/proxy\/[^\/]+\/aHR0cHM6Ly9leGFtcGxlLm9yZy9hLnBuZw\/a.png"/
   end
 
   test "create mentions from the 'tag' field" do
@@ -543,7 +641,8 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
     %{mentions: [mention] = mentions} = StatusView.render("show.json", %{activity: activity})
 
     assert length(mentions) == 1
-    assert mention.url == recipient.ap_id
+    assert mention.url == recipient.uri
+    assert mention.id == recipient.id
   end
 
   test "attachments" do
@@ -587,10 +686,91 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
     assert_schema(result, "Attachment", api_spec)
   end
 
+  test "attachment type will fallback to generic type if inconclusive full media type" do
+    # e.g. used by Bridgy
+    attachment_ap = %{
+      "name" => "very cool image",
+      "type" => "Image",
+      # transformed into array of objects with duped mediaType by transmogrifier
+      "url" => [
+        %{
+          "type" => "Link",
+          "href" =>
+            "https://bsky.network.example.org/xrpc/com.atproto.sync.getBlob?did=did:plc:xx2w6vfvn7AAAAAAA5tlosyx&cid=bafanala",
+          "mediaType" => "application/octet-stream"
+        }
+      ],
+      # inserted by transmogrifier:
+      "mediaType" => "application/octet-stream"
+    }
+
+    resp = StatusView.render("attachment.json", %{attachment: attachment_ap})
+
+    api_spec = Pleroma.Web.ApiSpec.spec()
+    assert_schema(resp, "Attachment", api_spec)
+
+    assert resp[:type] == "image"
+    assert resp[:pleroma][:mime_type] == "application/octet-stream"
+  end
+
+  test "attachment alt text can use the summary attribute" do
+    # federated like this by e.g. GtS
+    alt_text = "Two sloths hanging from the same branch. It’s sunny."
+
+    attachment_ap = %{
+      "blurhash" => "L38}3{XS9EInNZtSxvxbH=ngocWT",
+      "mediaType" => "image/png",
+      "summary" => alt_text,
+      "type" => "Image",
+      "url" => [
+        %{
+          "type" => "Link",
+          "href" =>
+            "https://gts.exampleorg/fileserver/016VVVVV/attachment/original/01JSXXYZZ.png",
+          "mediaType" => "image/png"
+        }
+      ]
+    }
+
+    resp = StatusView.render("attachment.json", %{attachment: attachment_ap})
+
+    api_spec = Pleroma.Web.ApiSpec.spec()
+    assert_schema(resp, "Attachment", api_spec)
+
+    assert resp[:description] == alt_text
+  end
+
+  test "attachment alt text prefers the summary attribute when name is also present" do
+    alt_text = "Two sloths hanging from the same branch. It’s sunny."
+
+    attachment_ap = %{
+      "blurhash" => "L38}3{XS9EInNZtSxvxbH=ngocWT",
+      "mediaType" => "image/png",
+      "name" => "two_sloths.png",
+      "summary" => alt_text,
+      "type" => "Image",
+      "url" => [
+        %{
+          "type" => "Link",
+          "href" =>
+            "https://gts.exampleorg/fileserver/016VVVVV/attachment/original/01JSXXYZZ.png",
+          "mediaType" => "image/png"
+        }
+      ]
+    }
+
+    resp = StatusView.render("attachment.json", %{attachment: attachment_ap})
+
+    api_spec = Pleroma.Web.ApiSpec.spec()
+    assert_schema(resp, "Attachment", api_spec)
+
+    assert resp[:description] == alt_text
+  end
+
   test "put the url advertised in the Activity in to the url attribute" do
-    Pleroma.Config.put([:instance, :limit_to_local_content], false)
     id = "https://wedistribute.org/wp-json/pterotype/v1/object/85810"
-    [activity] = Activity.search(nil, id)
+    {:ok, object} = Pleroma.Object.Fetcher.fetch_object_from_id(id)
+    activity = Pleroma.Activity.get_create_by_object_ap_id_with_object(object.data["id"])
 
     status = StatusView.render("show.json", %{activity: activity})
 
@@ -806,18 +986,6 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
     assert result[:account][:pleroma][:relationship] == %{}
     assert result[:reblog][:account][:pleroma][:relationship] == %{}
     assert_schema(result, "Status", Pleroma.Web.ApiSpec.spec())
-  end
-
-  test "visibility/list" do
-    user = insert(:user)
-
-    {:ok, list} = Pleroma.List.create("foo", user)
-
-    {:ok, activity} = CommonAPI.post(user, %{status: "foobar", visibility: "list:#{list.id}"})
-
-    status = StatusView.render("show.json", activity: activity)
-
-    assert status.visibility == "list"
   end
 
   test "has a field for parent visibility" do

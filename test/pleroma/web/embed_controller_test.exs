@@ -1,5 +1,6 @@
 # Pleroma: A lightweight social networking server
 # Copyright © 2017-2021 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2026 Akkoma Authors <https://akkoma.dev/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.EmbedControllerTest do
@@ -17,6 +18,15 @@ defmodule Pleroma.Web.EmbedControllerTest do
     object = Pleroma.Object.get_by_ap_id(activity.data["object"])
 
     assert String.contains?(resp, object.data["content"])
+  end
+
+  test "/embed has html content-type when browser", %{conn: conn} do
+    activity = insert(:note_activity)
+
+    conn
+    |> put_req_header("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+    |> get("/embed/#{activity.id}")
+    |> html_response(200)
   end
 
   test "/embed with a restricted post", %{conn: conn} do

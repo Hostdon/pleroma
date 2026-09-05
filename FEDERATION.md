@@ -10,6 +10,7 @@
 ## Supported FEPs
 
 - [FEP-67ff: FEDERATION](https://codeberg.org/fediverse/fep/src/branch/main/fep/67ff/fep-67ff.md)
+- [FEP-2c59: Discovery of a Webfinger address from an ActivityPub actor](https://codeberg.org/fediverse/fep/src/branch/main/fep/2c59/fep-2c59.md)
 - [FEP-dc88: Formatting Mathematics](https://codeberg.org/fediverse/fep/src/branch/main/fep/dc88/fep-dc88.md)
 - [FEP-f1d5: NodeInfo in Fediverse Software](https://codeberg.org/fediverse/fep/src/branch/main/fep/f1d5/fep-f1d5.md)
 - [FEP-fffd: Proxy Objects](https://codeberg.org/fediverse/fep/src/branch/main/fep/fffd/fep-fffd.md)
@@ -34,7 +35,24 @@ Depending on instance configuration the same may be true for GET requests.
 
 ### FEP-c16b: Formatting MFM functions
 
-The optional extension term `htmlMfm` is currently not used.
+We set the optional extension term `htmlMfm: true` when using content type "text/x.misskeymarkdown".
+Incoming messages containing `htmlMfm: true` will not have their content re-parsed.
+
+## WebFinger
+
+Akkoma requires WebFinger implmentations to respond to queries about a given user both when
+`acct:user@domain` or the canonical ActivityPub id of the actor is passed as the `resource`.
+
+Akkoma strongly encourages ActivityPub implementations to include
+a FEP-2c59-compliant WebFinger backlink in their actor documents.
+
+Without FEP-2c59 and if different domains are used for ActivityPub and the Webfinger subject,
+Akkoma relies on either the presence of an host-meta LRDD template on the ActivityPub domain
+or a working WebFinger endpoint on the ActivityPub domain. Additionally all WebFinger endpoints
+related to the ActivityPub and canonical WebFinger domain SHOULD also respond to queries about
+an alternative acct URI constructed with the WebFinger domain passed as the resource.  
+Without FEP-2c59 Akkoma may not become aware of changes to the
+preferred WebFinger `subject` domain for already discovered users.
 
 ## Nodeinfo
 

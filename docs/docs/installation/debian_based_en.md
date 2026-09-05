@@ -50,6 +50,11 @@ First, install some dependencies needed to build Elixir and Erlang:
 sudo apt install curl unzip build-essential autoconf m4 libncurses5-dev libssh-dev unixodbc-dev xsltproc libxml2-utils libncurses-dev
 ```
 
+Second, make sure that erlang and elixir (via asdf) is reachable from `sudo -Hu akkoma`:
+```shell
+echo 'Defaults>akkoma secure_path="/var/lib/akkoma/.asdf/shims:/sbin:/bin:/usr/sbin:/usr/bin"' > /etc/sudoers.d/custom_path
+```
+
 Then login to the `akkoma` user.
 
 Install asdf by following steps 1 to 3 on [their website](https://asdf-vm.com/guide/getting-started.html), then restart the shell to load asdf:
@@ -139,7 +144,7 @@ sudo -Hu akkoma MIX_ENV=prod mix phx.server
 
 If you want to open your newly installed instance to the world, you should run nginx or some other webserver/proxy in front of Akkoma and you should consider to create a systemd service file for Akkoma.
 
-#### Nginx
+#### nginx
 
 * Install nginx, if not already done:
 

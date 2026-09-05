@@ -9,7 +9,6 @@ defmodule Pleroma.Web.MastodonAPI.MediaControllerTest do
   import Pleroma.Factory
 
   alias Pleroma.Object
-  alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
 
   setup do: clear_config([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
@@ -45,7 +44,7 @@ defmodule Pleroma.Web.MastodonAPI.MediaControllerTest do
       assert media["id"]
 
       object = Object.get_by_id(media["id"])
-      assert object.data["actor"] == User.ap_id(conn.assigns[:user])
+      assert object.data["actor"] == conn.assigns[:user].ap_id
     end
 
     test "/api/v2/media", %{conn: conn, user: user, image: image} do
@@ -128,7 +127,7 @@ defmodule Pleroma.Web.MastodonAPI.MediaControllerTest do
     end
 
     test "Do not allow nested filename", %{conn: conn, image: image} do
-      image = %Plug.Upload{
+      image = %{
         image
         | filename: "../../../../../nested/file.jpg"
       }
@@ -158,7 +157,7 @@ defmodule Pleroma.Web.MastodonAPI.MediaControllerTest do
       {:ok, %Object{} = object} =
         ActivityPub.upload(
           file,
-          actor: User.ap_id(actor),
+          actor: actor.ap_id,
           description: "test-m"
         )
 
@@ -202,7 +201,7 @@ defmodule Pleroma.Web.MastodonAPI.MediaControllerTest do
       {:ok, %Object{} = object} =
         ActivityPub.upload(
           file,
-          actor: User.ap_id(actor),
+          actor: actor.ap_id,
           description: "test-media"
         )
 

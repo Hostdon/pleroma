@@ -16,7 +16,6 @@ defmodule Pleroma.Web.ActivityPub.SideEffects.DeleteTest do
   alias Pleroma.Web.ActivityPub.SideEffects
   alias Pleroma.Web.CommonAPI
 
-  alias Pleroma.LoggerMock
   alias Pleroma.Web.ActivityPub.ActivityPubMock
 
   import Mox
@@ -133,13 +132,12 @@ defmodule Pleroma.Web.ActivityPub.SideEffects.DeleteTest do
       delete: delete,
       object: object
     } do
-      {:ok, _object} =
-        object
-        |> Object.change(%{data: Map.delete(object.data, "actor")})
-        |> Repo.update()
-
-      LoggerMock
-      |> expect(:error, fn str -> assert str =~ "The object doesn't have an actor" end)
+      ExUnit.CaptureLog.capture_log(fn ->
+        {:ok, _object} =
+          object
+          |> Object.change(%{data: Map.delete(object.data, "actor")})
+          |> Repo.update()
+      end) =~ "The object doesn't have an actor"
 
       {:error, :no_object_actor} = SideEffects.handle(delete)
     end

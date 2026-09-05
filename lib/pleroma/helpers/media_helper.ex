@@ -12,8 +12,10 @@ defmodule Pleroma.Helpers.MediaHelper do
   require Logger
 
   def missing_dependencies do
-    Enum.reduce([imagemagick: "convert", ffmpeg: "ffmpeg"], [], fn {sym, executable}, acc ->
-      if Pleroma.Utils.command_available?(executable) do
+    Enum.reduce([imagemagick: ["magick", "convert"], ffmpeg: ["ffmpeg"]], [], fn {sym,
+                                                                                  executables},
+                                                                                 acc ->
+      if Enum.any?(executables, &Pleroma.Utils.command_available?/1) do
         acc
       else
         [sym | acc]
@@ -22,9 +24,10 @@ defmodule Pleroma.Helpers.MediaHelper do
   end
 
   def image_resize(url, options) do
-    with executable when is_binary(executable) <- System.find_executable("convert"),
+    with executable when is_binary(executable) <-
+           Enum.find_value(["magick", "convert"], &System.find_executable/1),
          {:ok, args} <- prepare_image_resize_args(options),
-         {:ok, env} <- HTTP.get(url, [], []),
+         {:ok, env} <- HTTP.get(url),
          {:ok, fifo_path} <- mkfifo() do
       args = List.flatten([fifo_path, args])
       run_fifo(fifo_path, env, executable, args)
@@ -73,7 +76,7 @@ defmodule Pleroma.Helpers.MediaHelper do
   # Note: video thumbnail is intentionally not resized (always has original dimensions)
   def video_framegrab(url) do
     with executable when is_binary(executable) <- System.find_executable("ffmpeg"),
-         {:ok, env} <- HTTP.get(url, [], []),
+         {:ok, env} <- HTTP.get(url),
          {:ok, fifo_path} <- mkfifo(),
          args = [
            "-y",

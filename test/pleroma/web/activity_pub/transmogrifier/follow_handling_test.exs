@@ -6,6 +6,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier.FollowHandlingTest do
   use Pleroma.DataCase, async: false
   @moduletag :mocked
   alias Pleroma.Activity
+  alias Pleroma.FollowingRelationship
   alias Pleroma.Notification
   alias Pleroma.Repo
   alias Pleroma.User
@@ -203,7 +204,11 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier.FollowHandlingTest do
       assert data["state"] == "pending"
       assert data["actor"] == "http://mastodon.example.org/users/admin"
 
-      assert [^pending_follower] = User.get_follow_requests(user)
+      pending_follows =
+        FollowingRelationship.get_follow_requesting_users_with_request_id(user)
+        |> Repo.all()
+
+      assert [%{entry: ^pending_follower}] = pending_follows
     end
   end
 end

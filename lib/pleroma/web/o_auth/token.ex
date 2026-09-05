@@ -16,6 +16,9 @@ defmodule Pleroma.Web.OAuth.Token do
 
   @type t :: %__MODULE__{}
 
+  # hide sensitive data from logs
+  @derive {Inspect, except: [:token, :refresh_token]}
+
   schema "oauth_tokens" do
     field(:token, :string)
     field(:refresh_token, :string)

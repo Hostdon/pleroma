@@ -62,21 +62,29 @@ defmodule Pleroma.Web.ActivityPub.BuilderTest do
       user = insert(:user)
       note = insert(:note)
 
-      assert {:ok,
-              %{
-                "content" => ":dinosaur:",
-                "type" => "EmojiReact",
-                "tag" => [
-                  %{
-                    "name" => ":dinosaur:",
-                    "id" => "http://localhost:4001/emoji/dino walking.gif",
-                    "icon" => %{
-                      "type" => "Image",
-                      "url" => "http://localhost:4001/emoji/dino walking.gif"
-                    }
-                  }
-                ]
-              }, []} = Builder.emoji_react(user, note, ":dinosaur:")
+      {:ok, %{} = data, []} = Builder.emoji_react(user, note, ":dinosaur:")
+
+      assert match?(
+               %{
+                 "content" => ":dinosaur:",
+                 "type" => "EmojiReact",
+                 "tag" => [
+                   %{
+                     "type" => "Emoji",
+                     "name" => ":dinosaur:",
+                     "icon" => %{
+                       "type" => "Image",
+                       "url" => "http://localhost:4001/emoji/dino%20walking.gif"
+                     }
+                   }
+                 ]
+               },
+               data
+             )
+
+      emoji = hd(data["tag"])
+
+      refute emoji["id"]
     end
 
     test "remote custom emoji" do
@@ -95,7 +103,6 @@ defmodule Pleroma.Web.ActivityPub.BuilderTest do
                 "tag" => [
                   %{
                     "name" => ":wow:",
-                    "id" => "https://remote/emoji/wow",
                     "icon" => %{
                       "type" => "Image",
                       "url" => "https://remote/emoji/wow"

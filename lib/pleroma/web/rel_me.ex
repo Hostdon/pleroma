@@ -4,8 +4,7 @@
 
 defmodule Pleroma.Web.RelMe do
   @options [
-    max_body: 2_000_000,
-    receive_timeout: 2_000
+    adapter: [receive_timeout: 2_000]
   ]
 
   if Pleroma.Config.get(:env) == :test do

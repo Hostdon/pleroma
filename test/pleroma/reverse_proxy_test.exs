@@ -205,7 +205,7 @@ defmodule Pleroma.ReverseProxyTest do
         %Tesla.Env{
           status: 200,
           headers: [
-            {"cache-control", "public, max-age=1209600"},
+            {"cache-control", "public, max-age=1209600, immutable"},
             {"etag", "some ETag"},
             {"expires", "Wed, 21 Oct 2015 07:28:00 GMT"}
           ],
@@ -214,7 +214,7 @@ defmodule Pleroma.ReverseProxyTest do
       end)
 
       conn = ReverseProxy.call(conn, "/cache")
-      assert {"cache-control", "public, max-age=1209600"} in conn.resp_headers
+      assert {"cache-control", "public, max-age=1209600, immutable"} in conn.resp_headers
       assert {"etag", "some ETag"} in conn.resp_headers
       assert {"expires", "Wed, 21 Oct 2015 07:28:00 GMT"} in conn.resp_headers
     end

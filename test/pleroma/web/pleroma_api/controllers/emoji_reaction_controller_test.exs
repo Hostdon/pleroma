@@ -9,9 +9,37 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionControllerTest do
   alias Pleroma.Object
   alias Pleroma.Tests.ObanHelpers
   alias Pleroma.User
+  alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Web.CommonAPI
 
   import Pleroma.Factory
+
+  defp prepare_reacted_post(visibility \\ "private") do
+    unrelated_user = insert(:user, local: true)
+    poster = insert(:user, local: true)
+    follower = insert(:user, local: true)
+    {:ok, _, _, %{data: %{"state" => "accept"}}} = CommonAPI.follow(follower, poster)
+
+    {:ok, post_activity} = CommonAPI.post(poster, %{status: "miaow!", visibility: visibility})
+
+    if visibility != "direct" do
+      assert Visibility.visible_for_user?(post_activity, follower)
+    end
+
+    if visibility in ["direct", "private"] do
+      refute Visibility.visible_for_user?(post_activity, unrelated_user)
+    end
+
+    {:ok, _react_activity} = CommonAPI.react_with_emoji(post_activity.id, follower, "🐾")
+
+    {post_activity, poster, follower, unrelated_user}
+  end
+
+  defp prepare_conn_of_user(conn, user) do
+    conn
+    |> assign(:user, user)
+    |> assign(:token, insert(:oauth_token, user: user, scopes: ["write", "read"]))
+  end
 
   test "PUT /api/v1/pleroma/statuses/:id/reactions/:emoji", %{conn: conn} do
     user = insert(:user)
@@ -67,7 +95,7 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionControllerTest do
                "name" => "dinosaur",
                "count" => 1,
                "me" => true,
-               "url" => "http://localhost:4001/emoji/dino walking.gif",
+               "url" => "http://localhost:4001/emoji/dino%20walking.gif",
                "account_ids" => [other_user.id]
              }
            ]
@@ -118,6 +146,28 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionControllerTest do
            |> assign(:token, insert(:oauth_token, user: other_user, scopes: ["write:statuses"]))
            |> put("/api/v1/pleroma/statuses/#{activity.id}/reactions/x")
            |> json_response_and_validate_schema(400)
+  end
+
+  test "PUT /api/v1/pleroma/statuses/:id/reactions/:emoji not allowed for non-visible posts", %{
+    conn: conn
+  } do
+    {%{id: activity_id} = _activity, _author, follower, stranger} = prepare_reacted_post()
+
+    # Works for follower
+    resp =
+      prepare_conn_of_user(conn, follower)
+      |> put("/api/v1/pleroma/statuses/#{activity_id}/reactions/🐈")
+      |> json_response_and_validate_schema(200)
+
+    assert match?(%{"id" => ^activity_id}, resp)
+
+    # Fails for stranger
+    resp =
+      prepare_conn_of_user(conn, stranger)
+      |> put("/api/v1/pleroma/statuses/#{activity_id}/reactions/🐈")
+      |> json_response_and_validate_schema(400)
+
+    assert match?(%{"error" => _}, resp)
   end
 
   test "DELETE /api/v1/pleroma/statuses/:id/reactions/:emoji", %{conn: conn} do
@@ -192,6 +242,26 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionControllerTest do
            |> assign(:token, insert(:oauth_token, user: other_user, scopes: ["write:statuses"]))
            |> delete("/api/v1/pleroma/statuses/#{activity.id}/reactions/:zoop@remote:")
            |> json_response(400)
+  end
+
+  test "DELETE /api/v1/pleroma/statuses/:id/reactions/:emoji only allows original reacter to revoke",
+       %{conn: conn} do
+    {%{id: activity_id} = _activity, author, follower, unrelated} = prepare_reacted_post("public")
+
+    # Works for original reacter
+    prepare_conn_of_user(conn, follower)
+    |> delete("/api/v1/pleroma/statuses/#{activity_id}/reactions/🐾")
+    |> json_response_and_validate_schema(200)
+
+    # Fails for anyone else
+    for u <- [author, unrelated] do
+      resp =
+        prepare_conn_of_user(conn, u)
+        |> delete("/api/v1/pleroma/statuses/#{activity_id}/reactions/🐾")
+        |> json_response(400)
+
+      assert match?(%{"error" => _}, resp)
+    end
   end
 
   test "GET /api/v1/pleroma/statuses/:id/reactions", %{conn: conn} do
@@ -275,6 +345,28 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionControllerTest do
     assert [%{"name" => "🎅", "count" => 2}] = result
   end
 
+  test "GET /api/v1/pleroma/statuses/:id/reactions not allowed for non-visible posts", %{
+    conn: conn
+  } do
+    {%{id: activity_id} = _activity, _author, follower, stranger} = prepare_reacted_post()
+
+    # Works for follower
+    resp =
+      prepare_conn_of_user(conn, follower)
+      |> get("/api/v1/pleroma/statuses/#{activity_id}/reactions")
+      |> json_response_and_validate_schema(200)
+
+    assert match?([%{"name" => _, "count" => _} | _], resp)
+
+    # Fails for stranger
+    resp =
+      prepare_conn_of_user(conn, stranger)
+      |> get("/api/v1/pleroma/statuses/#{activity_id}/reactions")
+      |> json_response_and_validate_schema(403)
+
+    assert match?(%{"error" => _}, resp)
+  end
+
   test "GET /api/v1/pleroma/statuses/:id/reactions with :show_reactions disabled", %{conn: conn} do
     clear_config([:instance, :show_reactions], false)
 
@@ -322,5 +414,21 @@ defmodule Pleroma.Web.PleromaAPI.EmojiReactionControllerTest do
              |> json_response_and_validate_schema(200)
 
     assert represented_user["id"] == other_user.id
+  end
+
+  test "GET /api/v1/pleroma/statuses/:id/reactions/:emoji not allowed for non-visible posts", %{
+    conn: conn
+  } do
+    {%{id: activity_id} = _activity, _author, follower, stranger} = prepare_reacted_post()
+
+    # Works for follower
+    prepare_conn_of_user(conn, follower)
+    |> get("/api/v1/pleroma/statuses/#{activity_id}/reactions/🐈")
+    |> json_response_and_validate_schema(200)
+
+    # Fails for stranger
+    prepare_conn_of_user(conn, stranger)
+    |> get("/api/v1/pleroma/statuses/#{activity_id}/reactions/🐈")
+    |> json_response_and_validate_schema(403)
   end
 end

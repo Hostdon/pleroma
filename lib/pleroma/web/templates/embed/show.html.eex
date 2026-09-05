@@ -24,7 +24,7 @@
       <div class="attachment">
       <%= if sensitive?(@activity) do %>
         <details class="nsfw">
-          <summary onClick="updateHeight()"><%= Gettext.gettext("sensitive media") %></summary>
+          <summary onClick="updateHeight()"><%= gettext("sensitive media") %></summary>
           <div class="nsfw-content">
             <%= render("_attachment.html", %{name: name, url: url["href"],
                                              mediaType: fetch_media_type(url)}) %>
@@ -39,9 +39,9 @@
   </div>
 
   <dl class="counts pull-right">
-    <dt><%= Gettext.gettext("replies") %></dt><dd><%= @counts.replies %></dd>
-    <dt><%= Gettext.gettext("announces") %></dt><dd><%= @counts.announces %></dd>
-    <dt><%= Gettext.gettext("likes") %></dt><dd><%= @counts.likes %></dd>
+    <dt><%= gettext("replies") %></dt><dd><%= @counts.replies %></dd>
+    <dt><%= gettext("announces") %></dt><dd><%= @counts.announces %></dd>
+    <dt><%= gettext("likes") %></dt><dd><%= @counts.likes %></dd>
   </dl>
 
   <p class="date pull-left">

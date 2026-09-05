@@ -44,9 +44,9 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.TagValidator do
     |> validate_required([:type, :href])
   end
 
-  def changeset(struct, %{"type" => "Hashtag", "name" => name} = data) do
+  def changeset(struct, %{"type" => "Hashtag", "name" => full_name} = data) do
     name =
-      cond do
+      case full_name do
         "#" <> name -> name
         name -> name
       end

@@ -65,7 +65,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPI do
 
     user
     |> Notification.for_user_query(options)
-    |> restrict(:include_types, options)
+    |> restrict(:types, options)
     |> restrict(:exclude_types, options)
     |> restrict(:account_ap_id, options)
     |> Pagination.fetch_paginated(params)
@@ -80,8 +80,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPI do
   defp cast_params(params) do
     param_types = %{
       exclude_types: {:array, :string},
-      include_types: {:array, :string},
-      exclude_visibilities: {:array, :string},
+      types: {:array, :string},
       reblogs: :boolean,
       with_muted: :boolean,
       account_ap_id: :string,
@@ -92,7 +91,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPI do
     changeset.changes
   end
 
-  defp restrict(query, :include_types, %{include_types: mastodon_types = [_ | _]}) do
+  defp restrict(query, :types, %{types: mastodon_types = [_ | _]}) do
     where(query, [n], n.type in ^mastodon_types)
   end
 

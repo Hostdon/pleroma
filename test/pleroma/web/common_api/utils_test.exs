@@ -34,7 +34,7 @@ defmodule Pleroma.Web.CommonAPI.UtilsTest do
       clear_config([Pleroma.Upload, :filename_display_max_length], len)
 
       expected =
-        "<br><a href=\"#{URI.encode(name)}\" class='attachment'>#{String.slice(name, 0..len)}…</a>"
+        "<br/><a href=\"#{URI.encode(name)}\">#{String.slice(name, 0..len)}…</a>"
 
       assert Utils.add_attachments("", [attachment]) == expected
     end
@@ -45,7 +45,7 @@ defmodule Pleroma.Web.CommonAPI.UtilsTest do
     } do
       clear_config([Pleroma.Upload, :filename_display_max_length], 0)
 
-      expected = "<br><a href=\"#{URI.encode(name)}\" class='attachment'>#{name}</a>"
+      expected = "<br/><a href=\"#{URI.encode(name)}\">#{name}</a>"
 
       assert Utils.add_attachments("", [attachment]) == expected
     end
@@ -134,7 +134,7 @@ defmodule Pleroma.Web.CommonAPI.UtilsTest do
       assert output == expected
 
       text = "[b]hello world![/b]\n\nsecond paragraph!"
-      expected = "<strong>hello world!</strong><br><br>second paragraph!"
+      expected = "<strong>hello world!</strong><br/><br/>second paragraph!"
 
       {output, [], []} = Utils.format_input(text, "text/bbcode")
 
@@ -143,7 +143,7 @@ defmodule Pleroma.Web.CommonAPI.UtilsTest do
       text = "[b]hello world![/b]\n\n<strong>second paragraph!</strong>"
 
       expected =
-        "<strong>hello world!</strong><br><br>&lt;strong&gt;second paragraph!&lt;/strong&gt;"
+        "<strong>hello world!</strong><br/><br/>&lt;strong&gt;second paragraph!&lt;/strong&gt;"
 
       {output, [], []} = Utils.format_input(text, "text/bbcode")
 
@@ -196,7 +196,7 @@ defmodule Pleroma.Web.CommonAPI.UtilsTest do
       {result, _, []} = Utils.format_input(code, "text/markdown")
 
       assert result ==
-               ~s[<p><span class="h-card"><a class="u-url mention" data-user="#{mario.id}" href="#{mario.ap_id}" rel="ugc">@<span>mario</span></a></span> <span class="h-card"><a class="u-url mention" data-user="#{luigi.id}" href="#{luigi.ap_id}" rel="ugc">@<span>luigi</span></a></span> yo what’s up?</p>]
+               ~s[<p><span class="h-card"><a class="u-url mention" data-user="#{mario.id}" href="#{mario.uri}" rel="ugc">@<span>mario</span></a></span> <span class="h-card"><a class="u-url mention" data-user="#{luigi.id}" href="#{luigi.uri}" rel="ugc">@<span>luigi</span></a></span> yo what’s up?</p>]
     end
 
     test "remote mentions" do
@@ -609,27 +609,6 @@ defmodule Pleroma.Web.CommonAPI.UtilsTest do
     end
   end
 
-  describe "maybe_add_list_data/3" do
-    test "adds list params when found user list" do
-      user = insert(:user)
-      {:ok, %Pleroma.List{} = list} = Pleroma.List.create("title", user)
-
-      assert Utils.maybe_add_list_data(%{additional: %{}, object: %{}}, user, {:list, list.id}) ==
-               %{
-                 additional: %{"bcc" => [list.ap_id], "listMessage" => list.ap_id},
-                 object: %{"listMessage" => list.ap_id}
-               }
-    end
-
-    test "returns original params when list not found" do
-      user = insert(:user)
-      {:ok, %Pleroma.List{} = list} = Pleroma.List.create("title", insert(:user))
-
-      assert Utils.maybe_add_list_data(%{additional: %{}, object: %{}}, user, {:list, list.id}) ==
-               %{additional: %{}, object: %{}}
-    end
-  end
-
   describe "maybe_add_attachments/3" do
     test "returns parsed results when attachment_links is false" do
       assert Utils.maybe_add_attachments(
@@ -647,7 +626,7 @@ defmodule Pleroma.Web.CommonAPI.UtilsTest do
                [attachment],
                true
              ) == {
-               "test<br><a href=\"SakuraPM.png\" class='attachment'>SakuraPM.png</a>",
+               "test<br/><a href=\"SakuraPM.png\">SakuraPM.png</a>",
                [],
                ["tags"]
              }

@@ -3,16 +3,16 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2020-09-20 13:18+0000\n"
-"PO-Revision-Date: 2023-02-26 08:57+0000\n"
-"Last-Translator: SevicheCC <sevicheee@outlook.com>\n"
-"Language-Team: Chinese (Simplified) <http://translate.akkoma.dev/projects/"
-"akkoma/akkoma-backend-errors/zh_Hans/>\n"
+"PO-Revision-Date: 2025-09-01 06:55+0000\n"
+"Last-Translator: Poesty Li <poesty7450@gmail.com>\n"
+"Language-Team: Chinese (Simplified Han script) <http://translate.akkoma.dev/"
+"projects/akkoma/akkoma-backend-errors/zh_Hans/>\n"
 "Language: zh_Hans\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.14\n"
+"X-Generator: Weblate 5.12.2\n"
 
 ## This file is a PO Template file.
 ##
@@ -280,7 +280,7 @@ msgstr "该资源需要认证。"
 #: lib/pleroma/web/plugs/rate_limiter.ex:214
 #, elixir-autogen, elixir-format
 msgid "Throttled"
-msgstr "节流了"
+msgstr "已限速"
 
 #: lib/pleroma/web/common_api.ex:285
 #, elixir-autogen, elixir-format
@@ -388,7 +388,7 @@ msgstr "无效的回答数据"
 #: lib/pleroma/web/nodeinfo/nodeinfo_controller.ex:40
 #, elixir-autogen, elixir-format
 msgid "Nodeinfo schema version not handled"
-msgstr ""
+msgstr "Nodeinfo 模式版本未处理"
 
 #: lib/pleroma/web/o_auth/fallback_controller.ex:14
 #, elixir-autogen, elixir-format
@@ -399,7 +399,7 @@ msgstr "未知错误，请检查并重试。"
 #: lib/pleroma/web/o_auth/o_auth_controller.ex:204
 #, elixir-autogen, elixir-format
 msgid "Unlisted redirect_uri."
-msgstr ""
+msgstr "未列出的 redirect_uri。"
 
 #: lib/pleroma/web/o_auth/o_auth_controller.ex:458
 #, elixir-autogen, elixir-format
@@ -535,17 +535,17 @@ msgstr "需要重置密码"
 #: lib/pleroma/web/web_finger/web_finger_controller.ex:6
 #, elixir-autogen, elixir-format
 msgid "Security violation: OAuth scopes check was neither handled nor explicitly skipped."
-msgstr ""
+msgstr "安全违规：OAuth 范围检查既未处理也未明确跳过。"
 
 #: lib/pleroma/web/plugs/ensure_authenticated_plug.ex:32
-#, elixir-autogen, elixir-format, fuzzy
+#, elixir-autogen, elixir-format
 msgid "Two-factor authentication enabled, you must use a access token."
-msgstr "已启用两因素验证，您需要使用访问令牌。"
+msgstr "双因素认证已启用，您必须使用访问令牌。"
 
 #: lib/pleroma/web/mastodon_api/controllers/subscription_controller.ex:61
-#, elixir-autogen, elixir-format, fuzzy
+#, elixir-autogen, elixir-format
 msgid "Web push subscription is disabled on this Pleroma instance"
-msgstr "此 Pleroma 实例禁用了网页推送订阅"
+msgstr "此 Pleroma 实例已禁用网页推送订阅功能"
 
 #: lib/pleroma/web/admin_api/controllers/admin_api_controller.ex:214
 #, elixir-autogen, elixir-format
@@ -571,7 +571,7 @@ msgstr "此 API 需要已认证的用户"
 #: lib/pleroma/web/plugs/user_is_admin_plug.ex:21
 #, elixir-autogen, elixir-format
 msgid "User is not an admin."
-msgstr "该用户不是管理员。"
+msgstr "用户不是管理员。"
 
 #: lib/pleroma/user/backup.ex:73
 #, elixir-format
@@ -582,64 +582,64 @@ msgstr[0] ""
 #: lib/pleroma/web/activity_pub/activity_pub_controller.ex:399
 #, elixir-autogen, elixir-format
 msgid "Character limit (%{limit} characters) exceeded, contains %{length} characters"
-msgstr ""
+msgstr "字符限制（%{limit}字符）已超出，包含%{length}字符"
 
 #: lib/pleroma/web/plugs/ensure_staff_privileged_plug.ex:33
 #: lib/pleroma/web/plugs/user_is_staff_plug.ex:20
-#, elixir-autogen, elixir-format, fuzzy
+#, elixir-autogen, elixir-format
 msgid "User is not a staff member."
-msgstr "该用户不是管理员。"
+msgstr "用户不是管理人员。"
 
 #: lib/pleroma/web/o_auth/o_auth_controller.ex:391
 #, elixir-autogen, elixir-format
 msgid "Your account is awaiting approval."
-msgstr ""
+msgstr "您的账号正在等待批准。"
 
 #: lib/pleroma/web/mastodon_api/controllers/account_controller.ex:256
 #: lib/pleroma/web/mastodon_api/controllers/account_controller.ex:259
 #: lib/pleroma/web/mastodon_api/controllers/account_controller.ex:262
 #, elixir-autogen, elixir-format
 msgid "File is too large"
-msgstr ""
+msgstr "文件过大"
 
 #: lib/pleroma/web/mastodon_api/controllers/tag_controller.ex:37
 #: lib/pleroma/web/mastodon_api/controllers/tag_controller.ex:48
 #: lib/pleroma/web/mastodon_api/controllers/tag_controller.ex:59
-#, elixir-autogen, elixir-format, fuzzy
+#, elixir-autogen, elixir-format
 msgid "Hashtag not found"
-msgstr "未找到列表"
+msgstr "话题标签未找到"
 
 #: lib/pleroma/web/common_api/activity_draft.ex:144
 #, elixir-autogen, elixir-format
 msgid "Invalid language"
-msgstr ""
+msgstr "无效语言"
 
 #: lib/pleroma/web/o_auth/o_auth_controller.ex:218
-#, elixir-autogen, elixir-format, fuzzy
+#, elixir-autogen, elixir-format
 msgid "This action is outside of authorized scopes"
-msgstr "此操作在许可范围以外"
+msgstr "此操作超出授权范围"
 
 #: lib/pleroma/web/common_api/activity_draft.ex:129
 #, elixir-autogen, elixir-format
 msgid "You can only quote public or unlisted statuses"
-msgstr ""
+msgstr "您只能引用公开或未列出的状态"
 
 #: lib/pleroma/web/common_api/activity_draft.ex:126
 #, elixir-autogen, elixir-format
 msgid "You can't quote a status that doesn't exist"
-msgstr ""
+msgstr "您无法引用不存在的状态"
 
 #: lib/pleroma/web/embed_controller.ex:35
 #, elixir-autogen, elixir-format
 msgid "Federated posts cannot be embedded"
-msgstr ""
+msgstr "联合帖文无法被嵌入"
 
 #: lib/pleroma/web/embed_controller.ex:38
 #, elixir-autogen, elixir-format
 msgid "Not authorized to view this post"
-msgstr ""
+msgstr "未获授权查看此帖文"
 
 #: lib/pleroma/web/embed_controller.ex:32
-#, elixir-autogen, elixir-format, fuzzy
+#, elixir-autogen, elixir-format
 msgid "Post not found"
-msgstr "未找到列表"
+msgstr "未找到帖文"

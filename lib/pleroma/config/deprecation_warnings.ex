@@ -22,6 +22,66 @@ defmodule Pleroma.Config.DeprecationWarnings do
      "\n* `config :pleroma, :instance, :quarantined_instances` is now covered by `:pleroma, :mrf_simple, :reject`"}
   ]
 
+  def check_queryless_signature do
+    if !Config.get!([:activitypub, :sign_query_part]) do
+      Logger.warning("""
+      !!!BUG WORKAROUND DETECTED!!!
+      Your config is explicitly disabling signing the query part of the target in HTTP Signatures
+
+        config :pleroma, :activitypub, sign_query_part: false
+
+      Mastodon will soon stop accepting such requests and
+      when this happens this config toggle will disappear too,
+      see: https://github.com/mastodon/mastodon/pull/39516
+
+      If you currently need this, this is a bug in whatever
+      remote instance is acting up without it!
+      Contact its admins and make sure they update their software,
+      and/or file a bug with their implementations devs if it persists.
+      It WILL cease to work, better fix it up before it becomes a problem.
+      """)
+    else
+      :ok
+    end
+  end
+
+  def check_skip_thread_containment do
+    # The default in config/config.exs is "true" since 593b8b1e6a8502cca9bf5559b8bec86f172bbecb
+    # but when the default is retrieved in code the fallback is still "false"
+    uses_thread_visibility_filtering = Config.get([:instance, :skip_thread_containment]) != nil
+
+    if uses_thread_visibility_filtering do
+      Logger.warning("""
+      !!!CONFIG ERROR!!!
+      config :pleroma, :instance, skip_thread_containment: false
+      was removed after a deprecation window during which no complaints were raised.
+      You should drop this setting from your config.
+      """)
+
+      :error
+    else
+      :ok
+    end
+  end
+
+  def check_truncated_nodeinfo_in_accounts do
+    if !Config.get!([:instance, :filter_embedded_nodeinfo]) do
+      Logger.warning("""
+      !!!BUG WORKAROUND DETECTED!!!
+      Your config is explicitly disabling filtering of nodeinfo data embedded in other Masto API responses
+
+        config :pleroma, :instance, filter_embedded_nodeinfo: false
+
+      This setting will soon be removed. Any usage of it merely serves as a temporary workaround.
+      Make sure to file a bug telling us which problems you encountered and circumvented by setting this!
+         https://akkoma.dev/AkkomaGang/akkoma/issues
+      We can’t fix bugs we don’t know about.
+      """)
+    else
+      :ok
+    end
+  end
+
   def check_exiftool_filter do
     filters = Config.get([Pleroma.Upload]) |> Keyword.get(:filters, [])
 
@@ -222,7 +282,10 @@ defmodule Pleroma.Config.DeprecationWarnings do
       check_http_adapter(),
       check_uploader_base_url_set(),
       check_uploader_base_url_is_not_base_domain(),
-      check_exiftool_filter()
+      check_exiftool_filter(),
+      check_skip_thread_containment(),
+      check_truncated_nodeinfo_in_accounts(),
+      check_queryless_signature()
     ]
     |> Enum.reduce(:ok, fn
       :ok, :ok -> :ok

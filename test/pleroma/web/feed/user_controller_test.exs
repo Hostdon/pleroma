@@ -14,6 +14,23 @@ defmodule Pleroma.Web.Feed.UserControllerTest do
   alias Pleroma.Web.Feed.FeedView
 
   setup do: clear_config([:static_fe, :enabled], false)
+  setup :request_host_header
+
+  defp with_new_and_legacy_feed_routes(user, suffix \\ "", action) do
+    new_route = ~p[/users/by-id/#{user.id}/feed#{suffix}]
+    action.(new_route)
+
+    legacy_route = ~p[/users/#{user.nickname}/feed#{suffix}]
+    action.(legacy_route)
+  end
+
+  defp with_new_and_legacy_user_routes(user, suffix \\ "", action) do
+    new_route = ~p[/users/by-id/#{user.id}] <> suffix
+    action.(new_route)
+
+    legacy_route = ~p[/users/#{user.nickname}] <> suffix
+    action.(legacy_route)
+  end
 
   describe "feed" do
     setup do: clear_config([:feed])
@@ -63,65 +80,69 @@ defmodule Pleroma.Web.Feed.UserControllerTest do
     end
 
     test "gets an atom feed", %{conn: conn, user: user, object: object, max_id: max_id} do
-      resp =
-        conn
-        |> put_req_header("accept", "application/atom+xml")
-        |> get(~p[/users/#{user.nickname}/feed])
-        |> response(200)
+      with_new_and_legacy_feed_routes(user, fn route ->
+        resp =
+          conn
+          |> put_req_header("accept", "application/atom+xml")
+          |> get(route)
+          |> response(200)
 
-      activity_titles =
-        resp
-        |> SweetXml.parse()
-        |> SweetXml.xpath(~x"//entry/title/text()"l)
+        activity_titles =
+          resp
+          |> SweetXml.parse()
+          |> SweetXml.xpath(~x"//entry/title/text()"l)
 
-      assert activity_titles == [~c"42 &amp; Thi...", ~c"This &amp; t..."]
-      assert resp =~ FeedView.escape(object.data["content"])
-      assert resp =~ FeedView.escape(object.data["summary"])
-      assert resp =~ FeedView.escape(object.data["context"])
+        assert activity_titles == [~c"42 &amp; Thi...", ~c"This &amp; t..."]
+        assert resp =~ FeedView.escape(object.data["content"])
+        assert resp =~ FeedView.escape(object.data["summary"])
+        assert resp =~ FeedView.escape(object.data["context"])
 
-      resp =
-        conn
-        |> put_req_header("accept", "application/atom+xml")
-        |> get("/users/#{user.nickname}/feed", %{"max_id" => max_id})
-        |> response(200)
+        resp =
+          conn
+          |> put_req_header("accept", "application/atom+xml")
+          |> get(route, %{"max_id" => max_id})
+          |> response(200)
 
-      activity_titles =
-        resp
-        |> SweetXml.parse()
-        |> SweetXml.xpath(~x"//entry/title/text()"l)
+        activity_titles =
+          resp
+          |> SweetXml.parse()
+          |> SweetXml.xpath(~x"//entry/title/text()"l)
 
-      assert activity_titles == [~c"This &amp; t..."]
+        assert activity_titles == [~c"This &amp; t..."]
+      end)
     end
 
     test "gets a rss feed", %{conn: conn, user: user, object: object, max_id: max_id} do
-      resp =
-        conn
-        |> put_req_header("accept", "application/rss+xml")
-        |> get("/users/#{user.nickname}/feed.rss")
-        |> response(200)
+      with_new_and_legacy_feed_routes(user, ".rss", fn route ->
+        resp =
+          conn
+          |> put_req_header("accept", "application/rss+xml")
+          |> get(route)
+          |> response(200)
 
-      activity_titles =
-        resp
-        |> SweetXml.parse()
-        |> SweetXml.xpath(~x"//item/title/text()"l)
+        activity_titles =
+          resp
+          |> SweetXml.parse()
+          |> SweetXml.xpath(~x"//item/title/text()"l)
 
-      assert activity_titles == [~c"42 &amp; Thi...", ~c"This &amp; t..."]
-      assert resp =~ FeedView.escape(object.data["content"])
-      assert resp =~ FeedView.escape(object.data["summary"])
-      assert resp =~ FeedView.escape(object.data["context"])
+        assert activity_titles == [~c"42 &amp; Thi...", ~c"This &amp; t..."]
+        assert resp =~ FeedView.escape(object.data["content"])
+        assert resp =~ FeedView.escape(object.data["summary"])
+        assert resp =~ FeedView.escape(object.data["context"])
 
-      resp =
-        conn
-        |> put_req_header("accept", "application/rss+xml")
-        |> get("/users/#{user.nickname}/feed.rss", %{"max_id" => max_id})
-        |> response(200)
+        resp =
+          conn
+          |> put_req_header("accept", "application/rss+xml")
+          |> get(route, %{"max_id" => max_id})
+          |> response(200)
 
-      activity_titles =
-        resp
-        |> SweetXml.parse()
-        |> SweetXml.xpath(~x"//item/title/text()"l)
+        activity_titles =
+          resp
+          |> SweetXml.parse()
+          |> SweetXml.xpath(~x"//item/title/text()"l)
 
-      assert activity_titles == [~c"This &amp; t..."]
+        assert activity_titles == [~c"This &amp; t..."]
+      end)
     end
 
     test "returns 404 for a missing feed", %{conn: conn} do
@@ -141,40 +162,46 @@ defmodule Pleroma.Web.Feed.UserControllerTest do
       {:ok, _} = CommonAPI.post(user, %{status: "unlisted", visibility: "unlisted"})
       {:ok, _} = CommonAPI.post(user, %{status: "private", visibility: "private"})
 
-      resp =
-        conn
-        |> put_req_header("accept", "application/atom+xml")
-        |> get(~p[/users/#{user.nickname}/feed])
-        |> response(200)
+      with_new_and_legacy_feed_routes(user, fn route ->
+        resp =
+          conn
+          |> put_req_header("accept", "application/atom+xml")
+          |> get(route)
+          |> response(200)
 
-      activity_titles =
-        resp
-        |> SweetXml.parse()
-        |> SweetXml.xpath(~x"//entry/title/text()"l)
-        |> Enum.sort()
+        activity_titles =
+          resp
+          |> SweetXml.parse()
+          |> SweetXml.xpath(~x"//entry/title/text()"l)
+          |> Enum.sort()
 
-      assert activity_titles == [~c"public", ~c"unlisted"]
+        assert activity_titles == [~c"public", ~c"unlisted"]
+      end)
     end
 
     test "returns 404 when the user is remote", %{conn: conn} do
       user = insert(:user, local: false)
 
-      {:ok, _} = CommonAPI.post(user, %{status: "test"})
+      with_new_and_legacy_feed_routes(user, fn route ->
+        {:ok, _} = CommonAPI.post(user, %{status: "test"})
 
-      assert conn
-             |> put_req_header("accept", "application/atom+xml")
-             |> get(~p[/users/#{user.nickname}/feed])
-             |> response(404)
+        assert conn
+               |> put_req_header("accept", "application/atom+xml")
+               |> get(route)
+               |> response(404)
+      end)
     end
 
     test "does not require authentication on non-federating instances", %{conn: conn} do
       clear_config([:instance, :federating], false)
       user = insert(:user)
 
-      conn
-      |> put_req_header("accept", "application/rss+xml")
-      |> get("/users/#{user.nickname}/feed.rss")
-      |> response(200)
+      with_new_and_legacy_feed_routes(user, ".rss", fn route ->
+        conn
+        |> put_req_header("accept", "application/rss+xml")
+        |> get(route)
+        |> response(200)
+      end)
     end
   end
 
@@ -184,17 +211,19 @@ defmodule Pleroma.Web.Feed.UserControllerTest do
       note_activity = insert(:note_activity)
       user = User.get_cached_by_ap_id(note_activity.data["actor"])
 
-      %{assigns: %{csp_nonce: nonce}} = resp_conn = get(conn, "/users/#{user.nickname}")
+      with_new_and_legacy_user_routes(user, fn route ->
+        %{assigns: %{csp_nonce: nonce}} = resp_conn = get(conn, route)
 
-      response =
-        resp_conn
-        |> response(200)
+        response =
+          resp_conn
+          |> response(200)
 
-      assert response ==
-               Pleroma.Web.Fallback.RedirectController.redirector_with_meta(
-                 assign(conn, :csp_nonce, nonce),
-                 %{user: user}
-               ).resp_body
+        assert response ==
+                 Pleroma.Web.Fallback.RedirectController.redirector_with_meta(
+                   assign(conn, :csp_nonce, nonce),
+                   %{user: user}
+                 ).resp_body
+      end)
     end
 
     test "with html format, it falls back to frontend when user is remote", %{conn: conn} do
@@ -202,12 +231,14 @@ defmodule Pleroma.Web.Feed.UserControllerTest do
 
       {:ok, _} = CommonAPI.post(user, %{status: "test"})
 
-      response =
-        conn
-        |> get("/users/#{user.nickname}")
-        |> response(200)
+      with_new_and_legacy_user_routes(user, fn route ->
+        response =
+          conn
+          |> get(route)
+          |> response(200)
 
-      assert response =~ "</html>"
+        assert response =~ "</html>"
+      end)
     end
 
     test "with html format, it falls back to frontend when user is not found", %{conn: conn} do
@@ -225,15 +256,34 @@ defmodule Pleroma.Web.Feed.UserControllerTest do
       note_activity = insert(:note_activity)
       user = User.get_cached_by_ap_id(note_activity.data["actor"])
 
-      conn =
-        conn
-        |> put_req_header("accept", "application/xml")
-        |> get("/users/#{user.nickname}")
+      with_new_and_legacy_user_routes(user, fn route ->
+        conn =
+          conn
+          |> put_req_header("accept", "application/xml")
+          |> get(route)
 
-      assert conn.status == 302
+        assert conn.status == 302
 
-      assert redirected_to(conn) ==
-               "#{Pleroma.Web.Endpoint.url()}/users/#{user.nickname}/feed.atom"
+        assert redirected_to(conn) ==
+                 "#{Pleroma.Web.Endpoint.url()}/users/by-id/#{user.id}/feed.atom"
+      end)
+    end
+
+    test "redirects to rss feed when explicitly requested", %{conn: conn} do
+      note_activity = insert(:note_activity)
+      user = User.get_cached_by_ap_id(note_activity.data["actor"])
+
+      with_new_and_legacy_user_routes(user, ".rss", fn route ->
+        conn =
+          conn
+          |> put_req_header("accept", "application/xml")
+          |> get(route)
+
+        assert conn.status == 302
+
+        assert redirected_to(conn) ==
+                 "#{Pleroma.Web.Endpoint.url()}/users/by-id/#{user.id}/feed.rss"
+      end)
     end
 
     test "with non-html / non-json format, it returns error when user is not found", %{conn: conn} do
@@ -256,10 +306,12 @@ defmodule Pleroma.Web.Feed.UserControllerTest do
 
       {:ok, _} = CommonAPI.post(user, %{status: "test"})
 
-      assert conn
-             |> put_req_header("accept", "application/atom+xml")
-             |> get(~p[/users/#{user.nickname}/feed])
-             |> response(404)
+      with_new_and_legacy_feed_routes(user, fn route ->
+        assert conn
+               |> put_req_header("accept", "application/atom+xml")
+               |> get(route)
+               |> response(404)
+      end)
     end
   end
 end

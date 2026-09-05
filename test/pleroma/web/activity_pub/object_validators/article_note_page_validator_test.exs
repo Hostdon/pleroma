@@ -114,18 +114,27 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidatorTest 
 
     test "a misskey MFM status with a content field should work and be linked", _ do
       local_user =
-        insert(:user, %{nickname: "akkoma_user", ap_id: "http://localhost:4001/users/akkoma_user"})
+        insert(:user, %{
+          local: false,
+          nickname: "akkoma_user",
+          ap_id: "http://localhost:4001/users/akkoma_user",
+          uri: "http://localhost:4001/users/akkoma_user"
+        })
 
       remote_user =
         insert(:user, %{
+          local: false,
           nickname: "remote_user",
-          ap_id: "http://misskey.local.live/users/remote_user"
+          ap_id: "http://misskey.local.live/users/remote_user",
+          uri: "http://misskey.local.live/users/remote_user"
         })
 
       full_tag_remote_user =
         insert(:user, %{
+          local: false,
           nickname: "full_tag_remote_user",
-          ap_id: "http://misskey.local.live/users/full_tag_remote_user"
+          ap_id: "http://misskey.local.live/users/full_tag_remote_user",
+          uri: "http://misskey.local.live/users/full_tag_remote_user"
         })
 
       insert(:user, %{ap_id: "https://misskey.local.live/users/92hzkskwgy"})
@@ -146,13 +155,13 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidatorTest 
       } = ArticleNotePageValidator.cast_and_validate(note)
 
       assert content =~
-               "<span class=\"h-card\"><a class=\"u-url mention\" data-user=\"#{local_user.id}\" href=\"#{local_user.ap_id}\" rel=\"ugc\">@<span>akkoma_user</span></a></span>"
+               "<span class=\"h-card\"><a class=\"u-url mention\" data-user=\"#{local_user.id}\" href=\"#{local_user.uri}\" rel=\"ugc\">@<span>akkoma_user</span></a></span>"
 
       assert content =~
-               "<span class=\"h-card\"><a class=\"u-url mention\" data-user=\"#{remote_user.id}\" href=\"#{remote_user.ap_id}\" rel=\"ugc\">@<span>remote_user</span></a></span>"
+               "<span class=\"h-card\"><a class=\"u-url mention\" data-user=\"#{remote_user.id}\" href=\"#{remote_user.uri}\" rel=\"ugc\">@<span>remote_user</span></a></span>"
 
       assert content =~
-               "<span class=\"h-card\"><a class=\"u-url mention\" data-user=\"#{full_tag_remote_user.id}\" href=\"#{full_tag_remote_user.ap_id}\" rel=\"ugc\">@<span>full_tag_remote_user</span></a></span>"
+               "<span class=\"h-card\"><a class=\"u-url mention\" data-user=\"#{full_tag_remote_user.id}\" href=\"#{full_tag_remote_user.uri}\" rel=\"ugc\">@<span>full_tag_remote_user</span></a></span>"
 
       assert content =~ "@oops_not_a_mention"
 
@@ -189,6 +198,31 @@ defmodule Pleroma.Web.ActivityPub.ObjectValidators.ArticleNotePageValidatorTest 
       assert content =~
                "<span class=\"h-card\"><a class=\"u-url mention\" data-user=\"#{local_user.id}\" href=\"#{local_user.ap_id}\" rel=\"ugc\">@<span>akkoma_user</span></a></span>"
     end
+  end
+
+  test "an MFM status with htmlMfm should not have its content re-parsed" do
+    insert(:user, %{ap_id: "https://misskey.local.live/users/92hzkskwgy"})
+
+    note =
+      "test/fixtures/misskey/mfm_x_format.json"
+      |> File.read!()
+      |> Jason.decode!()
+      |> Map.put("htmlMfm", true)
+      |> Map.put("content", "do not re-parse")
+
+    changes = ArticleNotePageValidator.cast_and_validate(note)
+
+    %{
+      valid?: true,
+      changes: %{
+        content: content,
+        source: %{
+          "mediaType" => "text/x.misskeymarkdown"
+        }
+      }
+    } = changes
+
+    assert content == "do not re-parse"
   end
 
   test "a Note without replies/first/items validates" do

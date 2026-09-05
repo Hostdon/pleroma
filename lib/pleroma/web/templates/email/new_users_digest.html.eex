@@ -1,5 +1,5 @@
 <%= for {user, total_statuses, latest_status} <- @users_and_statuses do %>
-	<%# user card START %>
+	<%!-- user card START --%>
 						<div style="background-color:transparent;">
 		<div class="block-grid mixed-two-up no-stack"
 			style="Margin: 0 auto; min-width: 320px; max-width: 590px; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; background-color: <%= @styling.content_background_color%>;">
@@ -60,7 +60,7 @@
 			</div>
 		</div>
 	</div>
-	<%# user card END %>
+	<%!-- user card END --%>
 
 	<%= if latest_status do %>
 		<div style="background-color:transparent;">
@@ -104,7 +104,7 @@
 				</div>
 			</div>
 	<% end %>
-          <%# divider start %>
+          <%!-- divider start --%>
 					<div style="background-color:transparent;">
 						<div class="block-grid"
 							style="Margin: 0 auto; min-width: 320px; max-width: 590px; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; background-color: <%= @styling.content_background_color%>;">
@@ -153,6 +153,6 @@
 						</div>
 					</div>
 
-          <%# divider end %>
-	<%# user card END %>
+          <%!-- divider end --%>
+	<%!-- user card END --%>
 <% end %>

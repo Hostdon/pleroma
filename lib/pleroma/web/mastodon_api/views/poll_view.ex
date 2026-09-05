@@ -11,6 +11,12 @@ defmodule Pleroma.Web.MastodonAPI.PollView do
     {end_time, expired} = end_time_and_expired(object)
     {options, votes_count} = options_and_votes_count(options)
 
+    anonymous =
+      case object.data["nonAnonymous"] do
+        nil -> nil
+        val -> !val
+      end
+
     poll = %{
       # Mastodon uses separate ids for polls, but an object can't have
       # more than one poll embedded so object id is fine
@@ -21,7 +27,10 @@ defmodule Pleroma.Web.MastodonAPI.PollView do
       votes_count: votes_count,
       voters_count: voters_count(multiple, object),
       options: options,
-      emojis: Pleroma.Web.MastodonAPI.StatusView.build_emojis(object.data["emoji"])
+      emojis: Pleroma.Web.MastodonAPI.StatusView.build_emojis(object.data["emoji"]),
+      akkoma: %{
+        anonymous: anonymous
+      }
     }
 
     if params[:for] do
@@ -75,6 +84,8 @@ defmodule Pleroma.Web.MastodonAPI.PollView do
     # only count local voters here; see https://akkoma.dev/AkkomaGang/akkoma/issues/190
     nil
   end
+
+  defp voters_count(_multiple, %{data: %{"votersCount" => count}}), do: count
 
   defp voters_count(_multiple, %{data: %{"voters" => voters}}) when is_list(voters) do
     length(voters)

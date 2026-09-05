@@ -137,7 +137,7 @@ doas -u akkoma env MIX_ENV=prod mix phx.server
 
 If you want to open your newly installed instance to the world, you should run nginx or some other webserver/proxy in front of Akkoma and you should consider to create an OpenRC service file for Akkoma.
 
-#### Nginx
+#### nginx
 
 * Install nginx, if not already done:
 

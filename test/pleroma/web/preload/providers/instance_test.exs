@@ -38,12 +38,12 @@ defmodule Pleroma.Web.Preload.Providers.InstanceTest do
 
   test "it renders the node_info", %{"/nodeinfo/2.0.json" => nodeinfo} do
     %{
-      metadata: metadata,
-      version: "2.0"
+      "metadata" => metadata,
+      "version" => "2.0"
     } = nodeinfo
 
-    assert metadata.private == false
-    assert metadata.suggestions == %{enabled: false}
+    assert metadata["private"] == false
+    assert metadata["suggestions"] == %{"enabled" => false}
   end
 
   test "it renders the frontend configurations", %{

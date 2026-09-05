@@ -27,7 +27,6 @@ config :pleroma, Pleroma.Emails.Mailer, adapter: Swoosh.Adapters.Test, enabled: 
 config :pleroma, :instance,
   email: "admin@example.com",
   notify_email: "noreply@example.com",
-  skip_thread_containment: false,
   federating: false,
   external_user_synchronization: false
 
@@ -73,8 +72,6 @@ config :pleroma, :http_security, report_uri: "https://endpoint.com"
 rum_enabled = System.get_env("RUM_ENABLED") == "true"
 config :pleroma, :database, rum_enabled: rum_enabled
 IO.puts("RUM enabled: #{rum_enabled}")
-
-config :pleroma, Pleroma.ReverseProxy.Client, Pleroma.ReverseProxy.ClientMock
 
 if File.exists?("./config/benchmark.secret.exs") do
   import_config "benchmark.secret.exs"

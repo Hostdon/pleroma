@@ -6,85 +6,49 @@ defmodule Pleroma.HTTP.AdapterHelperTest do
   use Pleroma.DataCase, async: true
   alias Pleroma.HTTP.AdapterHelper
 
-  describe "format_proxy/1" do
+  defp get_proxy_val(opts) do
+    opts
+    |> Keyword.get(:pools)
+    |> then(& &1[:default])
+    |> Keyword.get(:conn_opts)
+    |> Keyword.get(:proxy, :undefined)
+  end
+
+  defp assert_proxy_val(inp, ref) do
+    clear_config([:http, :proxy_url], inp)
+    opts = AdapterHelper.options()
+    assert get_proxy_val(opts) == ref
+  end
+
+  describe "accepts proxy format" do
     test "with nil" do
-      assert AdapterHelper.format_proxy(nil) == nil
+      assert_proxy_val(nil, :undefined)
     end
 
     test "with string" do
-      assert AdapterHelper.format_proxy("http://127.0.0.1:8123") == {:http, "127.0.0.1", 8123, []}
+      assert_proxy_val("http://127.0.0.1:8123", {:http, "127.0.0.1", 8123, []})
     end
 
     test "localhost with port" do
-      assert AdapterHelper.format_proxy("https://localhost:8123") ==
-               {:https, "localhost", 8123, []}
+      assert_proxy_val("https://localhost:8123", {:https, "localhost", 8123, []})
     end
 
     test "tuple" do
-      assert AdapterHelper.format_proxy({:http, "localhost", 9050}) ==
-               {:http, "localhost", 9050, []}
+      assert_proxy_val({:http, "localhost", 9050}, {:http, "localhost", 9050, []})
     end
   end
 
-  describe "maybe_add_proxy_pool/1" do
-    test "should do nothing with nil" do
-      assert AdapterHelper.maybe_add_proxy_pool([], nil) == []
-    end
+  test "properly merges default with passed runtime config" do
+    clear_config([:http, :proxy_url], "http://127.0.0.1:8123")
+    opts = AdapterHelper.options(pools: %{default: [conn_opts: [already: "set"]]})
 
-    test "should create pools" do
-      assert AdapterHelper.maybe_add_proxy_pool([], "proxy") == [
-               pools: %{default: [conn_opts: [proxy: "proxy"]]}
-             ]
-    end
+    assert get_proxy_val(opts) == {:http, "127.0.0.1", 8123, []}
 
-    test "should not override conn_opts if set" do
-      assert AdapterHelper.maybe_add_proxy_pool(
-               [pools: %{default: [conn_opts: [already: "set"]]}],
-               "proxy"
-             ) == [
-               pools: %{default: [conn_opts: [proxy: "proxy", already: "set"]]}
-             ]
-    end
-  end
-
-  describe "timeout settings" do
-    test "should default to 5000/15000" do
-      options = AdapterHelper.options(%URI{host: ~c"somewhere"})
-      assert options[:pool_timeout] == 5000
-      assert options[:receive_timeout] == 15_000
-    end
-
-    test "pool_timeout should be overridden by :http, :pool_timeout" do
-      clear_config([:http, :pool_timeout], 10_000)
-      options = AdapterHelper.options(%URI{host: ~c"somewhere"})
-      assert options[:pool_timeout] == 10_000
-    end
-
-    test "receive_timeout should be overridden by :http, :receive_timeout" do
-      clear_config([:http, :receive_timeout], 20_000)
-      options = AdapterHelper.options(%URI{host: ~c"somewhere"})
-      assert options[:receive_timeout] == 20_000
-    end
-  end
-
-  describe "pool size settings" do
-    test "should get set" do
-      options = AdapterHelper.add_pool_size([], 50)
-      assert options[:pools][:default][:size] == 50
-    end
-  end
-
-  describe "pool idle time setting" do
-    test "should get set" do
-      options = AdapterHelper.add_default_pool_max_idle_time([], 50)
-      assert options[:pools][:default][:pool_max_idle_time] == 50
-    end
-  end
-
-  describe "connection timeout setting" do
-    test "should get set" do
-      options = AdapterHelper.add_default_conn_max_idle_time([], 50)
-      assert options[:pools][:default][:conn_max_idle_time] == 50
-    end
+    assert "set" ==
+             opts
+             |> Keyword.get(:pools)
+             |> then(& &1[:default])
+             |> Keyword.get(:conn_opts)
+             |> Keyword.get(:already)
   end
 end

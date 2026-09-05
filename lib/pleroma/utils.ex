@@ -16,7 +16,7 @@ defmodule Pleroma.Utils do
   def compile_dir(dir) when is_binary(dir) do
     dir
     |> elixir_files()
-    |> Kernel.ParallelCompiler.compile()
+    |> Kernel.ParallelCompiler.compile(return_diagnostics: true)
   end
 
   defp elixir_files(dir) when is_binary(dir) do

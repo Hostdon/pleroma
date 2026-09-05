@@ -5,12 +5,13 @@
 defmodule Pleroma.Emails.UserEmail do
   @moduledoc "User emails"
 
-  require Pleroma.Web.Gettext
+  require Pleroma.Web.GettextCompanion
+  use Gettext, backend: Pleroma.Web.Gettext
   use Pleroma.Web, :mailer
 
   alias Pleroma.Config
   alias Pleroma.User
-  alias Pleroma.Web.Gettext
+  alias Pleroma.Web.GettextCompanion
 
   import Swoosh.Email
   import Phoenix.Swoosh, except: [render_body: 3]
@@ -29,7 +30,7 @@ defmodule Pleroma.Emails.UserEmail do
 
   @spec welcome(User.t(), map()) :: Swoosh.Email.t()
   def welcome(user, opts \\ %{}) do
-    Gettext.with_locale_or_default user.language do
+    GettextCompanion.with_locale_or_default user.language do
       new()
       |> to(recipient(user))
       |> from(Map.get(opts, :sender, sender()))
@@ -37,7 +38,7 @@ defmodule Pleroma.Emails.UserEmail do
         Map.get(
           opts,
           :subject,
-          Gettext.dpgettext(
+          dpgettext(
             "static_pages",
             "welcome email subject",
             "Welcome to %{instance_name}!",
@@ -49,7 +50,7 @@ defmodule Pleroma.Emails.UserEmail do
         Map.get(
           opts,
           :html,
-          Gettext.dpgettext(
+          dpgettext(
             "static_pages",
             "welcome email html body",
             "Welcome to %{instance_name}!",
@@ -61,7 +62,7 @@ defmodule Pleroma.Emails.UserEmail do
         Map.get(
           opts,
           :text,
-          Gettext.dpgettext(
+          dpgettext(
             "static_pages",
             "welcome email text body",
             "Welcome to %{instance_name}!",
@@ -73,11 +74,11 @@ defmodule Pleroma.Emails.UserEmail do
   end
 
   def password_reset_email(user, token) when is_binary(token) do
-    Gettext.with_locale_or_default user.language do
+    GettextCompanion.with_locale_or_default user.language do
       password_reset_url = url(~p[/api/v1/pleroma/password_reset/#{token}])
 
       html_body =
-        Gettext.dpgettext(
+        dpgettext(
           "static_pages",
           "password reset email body",
           """
@@ -93,9 +94,7 @@ defmodule Pleroma.Emails.UserEmail do
       new()
       |> to(recipient(user))
       |> from(sender())
-      |> subject(
-        Gettext.dpgettext("static_pages", "password reset email subject", "Password reset")
-      )
+      |> subject(dpgettext("static_pages", "password reset email subject", "Password reset"))
       |> html_body(html_body)
     end
   end
@@ -106,11 +105,11 @@ defmodule Pleroma.Emails.UserEmail do
         to_email,
         to_name \\ nil
       ) do
-    Gettext.with_locale_or_default user.language do
+    GettextCompanion.with_locale_or_default user.language do
       registration_url = url(~p[/registration/#{user_invite_token.token}])
 
       html_body =
-        Gettext.dpgettext(
+        dpgettext(
           "static_pages",
           "user invitation email body",
           """
@@ -127,7 +126,7 @@ defmodule Pleroma.Emails.UserEmail do
       |> to(recipient(to_email, to_name))
       |> from(sender())
       |> subject(
-        Gettext.dpgettext(
+        dpgettext(
           "static_pages",
           "user invitation email subject",
           "Invitation to %{instance_name}",
@@ -139,11 +138,11 @@ defmodule Pleroma.Emails.UserEmail do
   end
 
   def account_confirmation_email(user) do
-    Gettext.with_locale_or_default user.language do
+    GettextCompanion.with_locale_or_default user.language do
       confirmation_url = url(~p[/api/account/confirm_email/#{user.id}/#{user.confirmation_token}])
 
       html_body =
-        Gettext.dpgettext(
+        dpgettext(
           "static_pages",
           "confirmation email body",
           """
@@ -159,7 +158,7 @@ defmodule Pleroma.Emails.UserEmail do
       |> to(recipient(user))
       |> from(sender())
       |> subject(
-        Gettext.dpgettext(
+        dpgettext(
           "static_pages",
           "confirmation email subject",
           "%{instance_name} account confirmation",
@@ -171,9 +170,9 @@ defmodule Pleroma.Emails.UserEmail do
   end
 
   def approval_pending_email(user) do
-    Gettext.with_locale_or_default user.language do
+    GettextCompanion.with_locale_or_default user.language do
       html_body =
-        Gettext.dpgettext(
+        dpgettext(
           "static_pages",
           "approval pending email body",
           """
@@ -187,7 +186,7 @@ defmodule Pleroma.Emails.UserEmail do
       |> to(recipient(user))
       |> from(sender())
       |> subject(
-        Gettext.dpgettext(
+        dpgettext(
           "static_pages",
           "approval pending email subject",
           "Your account is awaiting approval"
@@ -198,9 +197,9 @@ defmodule Pleroma.Emails.UserEmail do
   end
 
   def successful_registration_email(user) do
-    Gettext.with_locale_or_default user.language do
+    GettextCompanion.with_locale_or_default user.language do
       html_body =
-        Gettext.dpgettext(
+        dpgettext(
           "static_pages",
           "successful registration email body",
           """
@@ -216,7 +215,7 @@ defmodule Pleroma.Emails.UserEmail do
       |> to(recipient(user))
       |> from(sender())
       |> subject(
-        Gettext.dpgettext(
+        dpgettext(
           "static_pages",
           "successful registration email subject",
           "Account registered on %{instance_name}",
@@ -234,7 +233,7 @@ defmodule Pleroma.Emails.UserEmail do
   """
   @spec digest_email(User.t()) :: Swoosh.Email.t() | nil
   def digest_email(user) do
-    Gettext.with_locale_or_default user.language do
+    GettextCompanion.with_locale_or_default user.language do
       notifications = Pleroma.Notification.for_user_since(user, user.last_digest_emailed_at)
 
       mentions =
@@ -295,7 +294,7 @@ defmodule Pleroma.Emails.UserEmail do
         |> to(recipient(user))
         |> from(sender())
         |> subject(
-          Gettext.dpgettext(
+          dpgettext(
             "static_pages",
             "digest email subject",
             "Your digest from %{instance_name}",
@@ -336,12 +335,12 @@ defmodule Pleroma.Emails.UserEmail do
   def backup_is_ready_email(backup, admin_user_id \\ nil) do
     %{user: user} = Pleroma.Repo.preload(backup, :user)
 
-    Gettext.with_locale_or_default user.language do
+    GettextCompanion.with_locale_or_default user.language do
       download_url = Pleroma.Web.PleromaAPI.BackupView.download_url(backup)
 
       html_body =
         if is_nil(admin_user_id) do
-          Gettext.dpgettext(
+          dpgettext(
             "static_pages",
             "account archive email body - self-requested",
             """
@@ -353,7 +352,7 @@ defmodule Pleroma.Emails.UserEmail do
         else
           admin = Pleroma.Repo.get(User, admin_user_id)
 
-          Gettext.dpgettext(
+          dpgettext(
             "static_pages",
             "account archive email body - admin requested",
             """
@@ -369,7 +368,7 @@ defmodule Pleroma.Emails.UserEmail do
       |> to(recipient(user))
       |> from(sender())
       |> subject(
-        Gettext.dpgettext(
+        dpgettext(
           "static_pages",
           "account archive email subject",
           "Your account archive is ready"

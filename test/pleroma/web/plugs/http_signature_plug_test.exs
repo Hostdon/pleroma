@@ -7,12 +7,12 @@ defmodule Pleroma.Web.Plugs.HTTPSignaturePlugTest do
   @moduletag :mocked
   import Pleroma.Factory
   alias Pleroma.Web.Plugs.HTTPSignaturePlug
-  alias Pleroma.Instances.Instance
-  alias Pleroma.Repo
 
   import Plug.Conn
   import Phoenix.Controller, only: [put_format: 2]
   import Mock
+
+  @user_ap_id "http://mastodon.example.org/users/admin"
 
   setup do
     user =
@@ -26,33 +26,25 @@ defmodule Pleroma.Web.Plugs.HTTPSignaturePlugTest do
   setup_with_mocks([
     {HTTPSignatures, [],
      [
-       signature_for_conn: fn _ ->
-         %{
-           "keyId" => "http://mastodon.example.org/users/admin#main-key",
-           "created" => "1234567890",
-           "expires" => "1234567890"
-         }
-       end,
-       validate_conn: fn conn ->
-         Map.get(conn.assigns, :valid_signature, true)
+       validate_conn: fn conn, _ ->
+         cond do
+           Map.get(conn.assigns, :gone_signature_key, false) ->
+             {:error, :gone}
+
+           Map.get(conn.assigns, :rejected_key_id, false) ->
+             {:error, {:reject, :mrf}}
+
+           Map.get(conn.assigns, :valid_signature, true) ->
+             {:ok, user} = Pleroma.User.get_or_fetch_by_ap_id(@user_ap_id)
+             {:ok, %HTTPSignatures.HTTPKey{key: "aaa", user_data: %{"key_user" => user}}}
+
+           true ->
+             {:error, :wrong_signature}
+         end
        end
      ]}
   ]) do
     :ok
-  end
-
-  defp submit_to_plug(host), do: submit_to_plug(host, :get, "/doesntmattter")
-
-  defp submit_to_plug(host, method, path) do
-    params = %{"actor" => "http://#{host}/users/admin"}
-
-    build_conn(method, path, params)
-    |> put_req_header(
-      "signature",
-      "keyId=\"http://#{host}/users/admin#main-key"
-    )
-    |> put_format("activity+json")
-    |> HTTPSignaturePlug.call(%{})
   end
 
   test "it call HTTPSignatures to check validity if the actor signed it", %{user: user} do
@@ -61,6 +53,7 @@ defmodule Pleroma.Web.Plugs.HTTPSignaturePlugTest do
 
     conn =
       conn
+      |> assign(:host_matches, true)
       |> put_req_header(
         "signature",
         "keyId=\"#{user.signing_key.key_id}\""
@@ -69,36 +62,9 @@ defmodule Pleroma.Web.Plugs.HTTPSignaturePlugTest do
       |> HTTPSignaturePlug.call(%{})
 
     assert conn.assigns.valid_signature == true
-    assert conn.assigns.signature_actor_id == params["actor"]
+    assert conn.assigns.signature_user.ap_id == params["actor"]
     assert conn.halted == false
-    assert called(HTTPSignatures.validate_conn(:_))
-  end
-
-  test "it sets request signatures property on the instance" do
-    host = "mastodon.example.org"
-    conn = submit_to_plug(host)
-    assert conn.assigns.valid_signature == true
-    instance = Repo.get_by(Instance, %{host: host})
-    assert instance.has_request_signatures
-  end
-
-  test "it does not set request signatures property on the instance when using inbox" do
-    host = "mastodon.example.org"
-    conn = submit_to_plug(host, :post, "/inbox")
-    assert conn.assigns.valid_signature == true
-
-    # we don't even create the instance entry if its just POST /inbox
-    refute Repo.get_by(Instance, %{host: host})
-  end
-
-  test "it does not set request signatures property on the instance when its cached" do
-    host = "mastodon.example.org"
-    Cachex.put(:request_signatures_cache, host, true)
-    conn = submit_to_plug(host)
-    assert conn.assigns.valid_signature == true
-
-    # we don't even create the instance entry if it was already done
-    refute Repo.get_by(Instance, %{host: host})
+    assert called(HTTPSignatures.validate_conn(:_, :_))
   end
 
   describe "requires a signature when `authorized_fetch_mode` is enabled" do
@@ -106,7 +72,11 @@ defmodule Pleroma.Web.Plugs.HTTPSignaturePlugTest do
       clear_config([:activitypub, :authorized_fetch_mode], true)
 
       params = %{"actor" => "http://mastodon.example.org/users/admin"}
-      conn = build_conn(:get, "/doesntmattter", params) |> put_format("activity+json")
+
+      conn =
+        build_conn(:get, "/doesntmattter", params)
+        |> put_format("activity+json")
+        |> assign(:host_matches, true)
 
       [conn: conn]
     end
@@ -122,7 +92,7 @@ defmodule Pleroma.Web.Plugs.HTTPSignaturePlugTest do
         |> HTTPSignaturePlug.call(%{})
 
       assert conn.assigns.valid_signature == false
-      assert called(HTTPSignatures.validate_conn(:_))
+      assert called(HTTPSignatures.validate_conn(:_, :_))
     end
 
     test "and signature is correct", %{conn: conn} do
@@ -135,7 +105,7 @@ defmodule Pleroma.Web.Plugs.HTTPSignaturePlugTest do
         |> HTTPSignaturePlug.call(%{})
 
       assert conn.assigns.valid_signature == true
-      assert called(HTTPSignatures.validate_conn(:_))
+      assert called(HTTPSignatures.validate_conn(:_, :_))
     end
 
     test "and halts the connection when `signature` header is not present", %{conn: conn} do
@@ -151,21 +121,93 @@ defmodule Pleroma.Web.Plugs.HTTPSignaturePlugTest do
     path = URI.parse(obj.data["id"]).path
     conn = build_conn(:get, path, params)
 
-    assert ["/notice/#{act.id}", "/notice/#{act.id}?actor=someparam"] ==
-             HTTPSignaturePlug.route_aliases(conn)
+    aliases =
+      HTTPSignaturePlug.route_aliases(conn)
+      |> Enum.reduce([], fn
+        x, acc when is_binary(x) ->
+          acc ++ [x]
+
+        f, acc when is_function(f) ->
+          add =
+            case f.() do
+              a when is_binary(a) -> [a]
+              a -> a
+            end
+
+          acc ++ add
+      end)
+
+    assert ["get /notice/#{act.id}?actor=someparam", "get /notice/#{act.id}"] == aliases
   end
 
-  test "(created) psudoheader", _ do
-    conn = build_conn(:get, "/doesntmattter")
-    conn = HTTPSignaturePlug.maybe_put_created_psudoheader(conn)
-    created_header = List.keyfind(conn.req_headers, "(created)", 0)
-    assert {_, "1234567890"} = created_header
+  test "fakes success on gone key when receiving Delete" do
+    build_conn(:post, "/inbox", %{"type" => "Delete"})
+    |> put_format("activity+json")
+    |> assign(:host_matches, true)
+    |> assign(:gone_signature_key, true)
+    |> put_req_header(
+      "signature",
+      "keyId=\"http://somewhere.example.org/users/deleted#main-key\""
+    )
+    |> HTTPSignaturePlug.call(%{})
+    |> response(202)
   end
 
-  test "(expires) psudoheader", _ do
-    conn = build_conn(:get, "/doesntmattter")
-    conn = HTTPSignaturePlug.maybe_put_expires_psudoheader(conn)
-    expires_header = List.keyfind(conn.req_headers, "(expires)", 0)
-    assert {_, "1234567890"} = expires_header
+  test "fails on gone key for non-Delete" do
+    conn =
+      build_conn(:post, "/inbox", %{"type" => "Note"})
+      |> assign(:host_matches, true)
+      |> put_format("activity+json")
+      |> assign(:gone_signature_key, true)
+      |> put_req_header(
+        "signature",
+        "keyId=\"http://somewhere.example.org/users/deleted#main-key\""
+      )
+      |> HTTPSignaturePlug.call(%{})
+
+    refute conn.halted
+    assert conn.assigns.valid_signature == false
+    assert conn.assigns.signature_user == nil
+  end
+
+  test "fakes accept for POST on rejected keys", %{user: user} do
+    build_conn(:post, "/inbox", %{"type" => "Note"})
+    |> assign(:host_matches, true)
+    |> put_format("activity+json")
+    |> assign(:rejected_key_id, true)
+    |> put_req_header(
+      "signature",
+      "keyId=\"#{user.signing_key.key_id}\""
+    )
+    |> HTTPSignaturePlug.call(%{})
+    |> response(202)
+  end
+
+  test "fakes not found for GET on rejected keys", %{user: user} do
+    build_conn(:get, "/doesntmattter", %{"user" => user.ap_id})
+    |> assign(:host_matches, true)
+    |> put_format("activity+json")
+    |> assign(:rejected_key_id, true)
+    |> put_req_header(
+      "signature",
+      "keyId=\"#{user.signing_key.key_id}\""
+    )
+    |> HTTPSignaturePlug.call(%{})
+    |> response(404)
+  end
+
+  test "does not assign anything when a host match has not been run", %{user: user} do
+    conn =
+      build_conn(:get, "/doesntmattter", %{"user" => user.ap_id})
+      |> assign(:host_matches, false)
+      |> put_format("activity+json")
+      |> put_req_header(
+        "signature",
+        "keyId=\"#{user.signing_key.key_id}\""
+      )
+      |> HTTPSignaturePlug.call(%{})
+
+    refute Map.has_key?(conn.assigns, :valid_signature)
+    refute Map.has_key?(conn.assigns, :signature_user)
   end
 end

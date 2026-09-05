@@ -1,5 +1,5 @@
 defmodule Pleroma.Akkoma.Translators.DeepL do
-  @behaviour Pleroma.Akkoma.Translator
+  @behaviour Pleroma.Akkoma.Translator.Provider
 
   alias Pleroma.HTTP
   alias Pleroma.Config
@@ -21,7 +21,7 @@ defmodule Pleroma.Akkoma.Translators.DeepL do
     Config.get([:deepl, :tier])
   end
 
-  @impl Pleroma.Akkoma.Translator
+  @impl Pleroma.Akkoma.Translator.Provider
   def languages do
     with {:ok, %{status: 200} = source_response} <- do_languages("source"),
          {:ok, %{status: 200} = dest_response} <- do_languages("target"),
@@ -48,7 +48,7 @@ defmodule Pleroma.Akkoma.Translators.DeepL do
     end
   end
 
-  @impl Pleroma.Akkoma.Translator
+  @impl Pleroma.Akkoma.Translator.Provider
   def translate(string, from_language, to_language) do
     with {:ok, %{status: 200} = response} <-
            do_request(api_key(), tier(), string, from_language, to_language),
@@ -97,4 +97,7 @@ defmodule Pleroma.Akkoma.Translators.DeepL do
       ]
     )
   end
+
+  @impl Pleroma.Akkoma.Translator.Provider
+  def name, do: "DeepL"
 end

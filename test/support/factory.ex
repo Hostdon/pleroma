@@ -20,27 +20,34 @@ defmodule Pleroma.Factory do
             ]
             |> Enum.map(&File.read!/1)
 
-  def participation_factory do
+  def participation_factory(attrs \\ %{}) do
     conversation = insert(:conversation)
-    user = insert(:user)
+    user = attrs[:user] || insert(:user)
+    activity = insert(:direct_note_activity, %{user: user, context: conversation.ap_id})
+
+    attrs = Map.drop(attrs, [:user])
 
     %Pleroma.Conversation.Participation{
       conversation: conversation,
       user: user,
+      last_bump: activity.id,
       read: false
     }
+    |> Map.merge(attrs)
   end
 
-  def conversation_factory do
+  def conversation_factory(attrs \\ %{}) do
+    ctx_ap_id = attrs[:ap_id] || sequence(:ap_id, &"https://some_conversation/#{&1}")
+
     %Pleroma.Conversation{
-      ap_id: sequence(:ap_id, &"https://some_conversation/#{&1}")
+      ap_id: ctx_ap_id
     }
   end
 
   def instance_factory(attrs \\ %{}) do
     %Pleroma.Instances.Instance{
       host: attrs[:domain] || "example.com",
-      nodeinfo: %{version: "2.0", openRegistrations: true},
+      nodeinfo: %{"version" => "2.0", "openRegistrations" => true},
       unreachable_since: nil
     }
     |> Map.merge(attrs)
@@ -55,7 +62,7 @@ defmodule Pleroma.Factory do
     user = %User{
       name: sequence(:name, &"Test テスト User #{&1}"),
       email: sequence(:email, &"user#{&1}@example.com"),
-      nickname: sequence(:nickname, &"nick#{&1}"),
+      nickname: attrs[:nickname] || sequence(:nickname, &"nick#{&1}"),
       password_hash: password_hash,
       bio: sequence(:bio, &"Tester Number #{&1}"),
       is_discoverable: true,
@@ -69,24 +76,47 @@ defmodule Pleroma.Factory do
       if attrs[:local] == false do
         base_domain = attrs[:domain] || Enum.random(["domain1.com", "domain2.com", "domain3.com"])
 
-        ap_id = "https://#{base_domain}/users/#{user.nickname}"
+        ap_id = attrs[:ap_id] || "https://#{base_domain}/users/#{user.nickname}"
 
         %{
           ap_id: ap_id,
+          inbox: ap_id <> "/inbox",
           follower_address: ap_id <> "/followers",
           following_address: ap_id <> "/following",
           featured_address: ap_id <> "/collections/featured"
         }
       else
+        id = FlakeId.get()
+        user = Map.put(user, :id, id)
+
+        ap_id =
+          cond do
+            is_binary(attrs[:ap_id]) ->
+              attrs[:ap_id]
+
+            attrs[:legacy_ap] == true ->
+              Pleroma.Web.Endpoint.url() <> "/users/" <> user.nickname
+
+            true ->
+              User.generate_ap_id(user)
+          end
+
+        user = Map.put(user, :ap_id, ap_id)
+
         %{
-          ap_id: User.ap_id(user),
-          follower_address: User.ap_followers(user),
-          following_address: User.ap_following(user),
-          featured_address: User.ap_featured_collection(user)
+          id: id,
+          ap_id: ap_id,
+          uri: User.generate_display_uri(user),
+          inbox: User.generate_ap_inbox(user),
+          outbox: User.generate_ap_outbox(user),
+          follower_address: User.generate_ap_followers(user),
+          following_address: User.generate_ap_following(user),
+          featured_address: User.generate_ap_featured_collection(user)
         }
       end
 
     attrs = Map.delete(attrs, :domain)
+    attrs = Map.delete(attrs, :legacy_ap)
 
     user
     |> Map.put(:raw_bio, user.bio)
@@ -245,10 +275,10 @@ defmodule Pleroma.Factory do
     }
   end
 
-  def direct_note_factory do
+  def direct_note_factory(attrs \\ %{}) do
     user2 = insert(:user)
 
-    %Pleroma.Object{data: data} = note_factory()
+    %Pleroma.Object{data: data} = note_factory(attrs)
     %Pleroma.Object{data: Map.merge(data, %{"to" => [user2.ap_id]})}
   end
 
@@ -303,24 +333,32 @@ defmodule Pleroma.Factory do
     }
   end
 
-  def direct_note_activity_factory do
-    dm = insert(:direct_note)
+  def direct_note_activity_factory(attrs \\ %{}) do
+    user = attrs[:user] || insert(:user)
+    context = attrs[:context] || sequence(:ap_id, &"https://some_conversation/#{&1}")
+    dm = attrs[:note] || insert(:direct_note, user: user, data: %{"context" => context})
 
-    data = %{
-      "id" => Pleroma.Web.ActivityPub.Utils.generate_activity_id(),
-      "type" => "Create",
-      "actor" => dm.data["actor"],
-      "to" => dm.data["to"],
-      "object" => dm.data,
-      "published" => DateTime.utc_now() |> DateTime.to_iso8601(),
-      "context" => dm.data["context"]
-    }
+    data_attrs = attrs[:data_attrs] || %{}
+    attrs = Map.drop(attrs, [:user, :note, :data_attrs, :context])
+
+    data =
+      %{
+        "id" => Pleroma.Web.ActivityPub.Utils.generate_activity_id(),
+        "type" => "Create",
+        "actor" => dm.data["actor"],
+        "to" => dm.data["to"],
+        "object" => dm.data,
+        "published" => DateTime.utc_now() |> DateTime.to_iso8601(),
+        "context" => dm.data["context"]
+      }
+      |> Map.merge(data_attrs)
 
     %Pleroma.Activity{
       data: data,
       actor: data["actor"],
       recipients: data["to"]
     }
+    |> Map.merge(attrs)
   end
 
   def add_activity_factory(attrs \\ %{}) do
@@ -364,10 +402,11 @@ defmodule Pleroma.Factory do
 
   def followers_only_note_activity_factory(attrs \\ %{}) do
     user = attrs[:user] || insert(:user)
-    note = insert(:followers_only_note, user: user)
+    context = attrs[:context] || sequence(:ap_id, &"https://some_conversation/#{&1}")
+    note = insert(:followers_only_note, user: user, data: %{"context" => context})
 
     data_attrs = attrs[:data_attrs] || %{}
-    attrs = Map.drop(attrs, [:user, :note, :data_attrs])
+    attrs = Map.drop(attrs, [:user, :note, :data_attrs, :context])
 
     data =
       %{
@@ -391,10 +430,11 @@ defmodule Pleroma.Factory do
 
   def note_activity_factory(attrs \\ %{}) do
     user = attrs[:user] || insert(:user)
-    note = attrs[:note] || insert(:note, user: user)
+    context = attrs[:context] || sequence(:ap_id, &"https://some_conversation/#{&1}")
+    note = attrs[:note] || insert(:note, user: user, data: %{"context" => context})
 
     data_attrs = attrs[:data_attrs] || %{}
-    attrs = Map.drop(attrs, [:user, :note, :data_attrs])
+    attrs = Map.drop(attrs, [:user, :note, :data_attrs, :context])
 
     data =
       %{

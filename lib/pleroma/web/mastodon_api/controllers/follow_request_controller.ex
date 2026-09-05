@@ -8,6 +8,7 @@ defmodule Pleroma.Web.MastodonAPI.FollowRequestController do
   import Pleroma.Web.ControllerHelper,
     only: [add_link_headers: 2]
 
+  alias Pleroma.FollowingRelationship
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.Plugs.OAuthScopesPlug
@@ -31,12 +32,14 @@ defmodule Pleroma.Web.MastodonAPI.FollowRequestController do
   def index(%{assigns: %{user: followed}} = conn, params) do
     follow_requests =
       followed
-      |> User.get_follow_requests_query()
-      |> Pagination.fetch_paginated(params, :keyset, :follower)
+      |> FollowingRelationship.get_follow_requesting_users_with_request_id()
+      |> Pagination.fetch_paginated(params, :keyset)
+
+    requesting_users = Pagination.unwrap(follow_requests)
 
     conn
     |> add_link_headers(follow_requests)
-    |> render("index.json", for: followed, users: follow_requests, as: :user)
+    |> render("index.json", for: followed, users: requesting_users, as: :user)
   end
 
   @doc "POST /api/v1/follow_requests/:id/authorize"

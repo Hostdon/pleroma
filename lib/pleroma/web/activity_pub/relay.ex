@@ -16,7 +16,12 @@ defmodule Pleroma.Web.ActivityPub.Relay do
   def ap_id, do: "#{Pleroma.Web.Endpoint.url()}/#{@nickname}"
 
   @spec get_actor() :: User.t() | nil
-  def get_actor, do: User.get_or_create_service_actor_by_ap_id(ap_id(), @nickname)
+  def get_actor,
+    do:
+      User.get_or_create_service_actor_by_ap_id(ap_id(), @nickname,
+        followable: true,
+        following: true
+      )
 
   @spec follow(String.t()) :: {:ok, Activity.t()} | {:error, any()}
   def follow(target_instance) do

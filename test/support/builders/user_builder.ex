@@ -4,6 +4,7 @@ defmodule Pleroma.Builders.UserBuilder do
 
   def build(data \\ %{}) do
     user = %User{
+      id: "9n2ciuz1wdesFnrGJU",
       email: "test@example.org",
       name: "Test Name",
       nickname: "testname",

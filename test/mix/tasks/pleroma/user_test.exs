@@ -502,22 +502,16 @@ defmodule Mix.Tasks.Pleroma.UserTest do
 
   describe "search" do
     test "it returns users matching" do
-      user = insert(:user)
       moon = insert(:user, nickname: "moon", name: "fediverse expert moon")
       moot = insert(:user, nickname: "moot")
       kawen = insert(:user, nickname: "kawen", name: "fediverse expert moon")
 
-      {:ok, user, moon} = User.follow(user, moon)
-
       assert [moon.id, kawen.id] == User.Search.search("moon") |> Enum.map(& &1.id)
 
-      res = User.search("moo") |> Enum.map(& &1.id)
-      assert Enum.sort([moon.id, moot.id, kawen.id]) == Enum.sort(res)
+      res = User.Search.search("moo") |> Enum.map(& &1.id)
+      assert Enum.sort([moon.id, moot.id]) == Enum.sort(res)
 
-      assert [kawen.id, moon.id] == User.Search.search("expert fediverse") |> Enum.map(& &1.id)
-
-      assert [moon.id, kawen.id] ==
-               User.Search.search("expert fediverse", for_user: user) |> Enum.map(& &1.id)
+      assert [moon.id, kawen.id] == User.Search.search("expert fediverse") |> Enum.map(& &1.id)
     end
   end
 

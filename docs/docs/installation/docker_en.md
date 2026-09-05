@@ -113,7 +113,7 @@ This is a tad more complex in docker than on the host itself. It
 
 You've got two options. 
 
-#### Running caddy in a container
+#### Running Caddy in a container
 
 This is by far the easiest option. It'll handle HTTPS and all that for you. 
 

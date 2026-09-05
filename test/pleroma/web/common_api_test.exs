@@ -8,7 +8,6 @@ defmodule Pleroma.Web.CommonAPITest do
   @moduletag :mocked
 
   alias Pleroma.Activity
-  alias Pleroma.Conversation.Participation
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.Repo
@@ -127,6 +126,26 @@ defmodule Pleroma.Web.CommonAPITest do
       assert User.blocks?(blocker, blocked)
       assert {:ok, :no_activity} == CommonAPI.unblock(blocker, blocked)
       refute User.blocks?(blocker, blocked)
+    end
+
+    test "it unblocks and does not federate if outgoing blocks are disabled" do
+      clear_config([:instance, :federating], true)
+      clear_config([:activitypub, :outgoing_blocks], false)
+
+      blocked = insert(:user)
+      blocker = insert(:user)
+
+      with_mock Pleroma.Web.Federator,
+        publish: fn _ -> nil end do
+        assert {:ok, block} = CommonAPI.block(blocker, blocked)
+        assert block.local
+        assert User.blocks?(blocker, blocked)
+
+        assert {:ok, unblock} = CommonAPI.unblock(blocker, blocked)
+        assert unblock.local
+        refute User.blocks?(blocker, blocked)
+        assert_not_called(Pleroma.Web.Federator.publish(:_))
+      end
     end
   end
 
@@ -296,49 +315,6 @@ defmodule Pleroma.Web.CommonAPITest do
 
     object = Object.get_by_ap_id(activity.data["object"])
     assert object.data["announcement_count"] == 20
-  end
-
-  test "when replying to a conversation / participation, it will set the correct context id even if no explicit reply_to is given" do
-    user = insert(:user)
-    {:ok, activity} = CommonAPI.post(user, %{status: ".", visibility: "direct"})
-
-    [participation] = Participation.for_user(user)
-
-    {:ok, convo_reply} =
-      CommonAPI.post(user, %{status: ".", in_reply_to_conversation_id: participation.id})
-
-    assert Visibility.is_direct?(convo_reply)
-
-    assert activity.data["context"] == convo_reply.data["context"]
-  end
-
-  test "when replying to a conversation / participation, it only mentions the recipients explicitly declared in the participation" do
-    har = insert(:user)
-    jafnhar = insert(:user)
-    tridi = insert(:user)
-
-    {:ok, activity} =
-      CommonAPI.post(har, %{
-        status: "@#{jafnhar.nickname} hey",
-        visibility: "direct"
-      })
-
-    assert har.ap_id in activity.recipients
-    assert jafnhar.ap_id in activity.recipients
-
-    [participation] = Participation.for_user(har)
-
-    {:ok, activity} =
-      CommonAPI.post(har, %{
-        status: "I don't really like @#{tridi.nickname}",
-        visibility: "direct",
-        in_reply_to_status_id: activity.id,
-        in_reply_to_conversation_id: participation.id
-      })
-
-    assert har.ap_id in activity.recipients
-    assert jafnhar.ap_id in activity.recipients
-    refute tridi.ap_id in activity.recipients
   end
 
   test "with the safe_dm_mention option set, it does not mention people beyond the initial tags" do
@@ -523,15 +499,52 @@ defmodule Pleroma.Web.CommonAPITest do
       refute user.ap_id in secret_answer.recipients
     end
 
-    test "it allows to address a list" do
+    test "it adds the htmlMFM term to MFM posts and properly processes it" do
       user = insert(:user)
-      {:ok, list} = Pleroma.List.create("foo", user)
 
-      {:ok, activity} = CommonAPI.post(user, %{status: "foobar", visibility: "list:#{list.id}"})
+      assert {:ok,
+              %Pleroma.Activity{
+                object: %Pleroma.Object{
+                  data: %{
+                    "content" => content,
+                    "source" => %{
+                      "content" => source_content,
+                      "mediaType" => "text/x.misskeymarkdown"
+                    },
+                    "htmlMfm" => html_mfm
+                  }
+                }
+              }} =
+               CommonAPI.post(user, %{
+                 status: "<p class='scrub-this'>$[spin 13:37]</p>",
+                 content_type: "text/x.misskeymarkdown"
+               })
 
-      assert activity.data["bcc"] == [list.ap_id]
-      assert activity.recipients == [list.ap_id, user.ap_id]
-      assert activity.data["listMessage"] == list.ap_id
+      assert html_mfm == true
+      assert content =~ "mfm-spin"
+      assert content =~ "13:37"
+      refute content =~ "scrub-this"
+      assert source_content == "<p class='scrub-this'>$[spin 13:37]</p>"
+    end
+
+    test "it does not allow HTML injection via MFM attributes" do
+      user = insert(:user, local: true)
+
+      {:ok, %Pleroma.Activity{object: %Pleroma.Object{} = object}} =
+        CommonAPI.post(user, %{
+          status: "$[twitch.speed=5s\"><script>alert(1);</script><span>\" boo!]",
+          content_type: "text/x.misskeymarkdown"
+        })
+
+      refute object.data["content"] =~ "<script>"
+      refute object.data["content"] =~ "</script>"
+
+      {:ok, fhtml} = Floki.parse_document(object.data["content"])
+      assert Floki.find(fhtml, "script") == []
+
+      # the exact output may change in the future, but when updating make sure it never turns into something fishy
+      assert object.data["content"] ==
+               "<p><span class=\"mfm-twitch\" data-mfm-speed=\"5s\">”&gt;&lt;script&gt;alert(1);&lt;/script&gt;&lt;span&gt;” boo!</span></p>"
     end
 
     test "it returns error when status is empty and no attachments" do
@@ -966,6 +979,47 @@ defmodule Pleroma.Web.CommonAPITest do
              } = flag_activity
     end
 
+    test "doesn't create a report when post is not visible to user" do
+      reporter = insert(:user)
+      target_user = insert(:user)
+      {:ok, post} = CommonAPI.post(target_user, %{status: "Eric", visibility: "private"})
+
+      assert Pleroma.Web.ActivityPub.Visibility.is_private?(post)
+      refute Pleroma.Web.ActivityPub.Visibility.visible_for_user?(post, reporter)
+
+      # Fails when all status are invisible
+      report_data = %{
+        account_id: target_user.id,
+        comment: "foobar",
+        status_ids: [post.id]
+      }
+
+      assert {:error, :visibility} = CommonAPI.report(reporter, report_data)
+    end
+
+    test "doesn't create a report when some posts are not visible to user" do
+      reporter = insert(:user)
+      target_user = insert(:user)
+
+      {:ok, visible_activity} = CommonAPI.post(target_user, %{status: "cofe"})
+
+      {:ok, invisibile_activity} =
+        CommonAPI.post(target_user, %{status: "cawfee", visibility: "private"})
+
+      assert Pleroma.Web.ActivityPub.Visibility.is_private?(invisibile_activity)
+      assert Pleroma.Web.ActivityPub.Visibility.is_public?(visible_activity)
+      refute Pleroma.Web.ActivityPub.Visibility.visible_for_user?(invisibile_activity, reporter)
+
+      # Fails when some statuses are invisible
+      report_data_partial = %{
+        account_id: target_user.id,
+        comment: "foobar",
+        status_ids: [visible_activity.id, invisibile_activity.id]
+      }
+
+      assert {:error, :visibility} = CommonAPI.report(reporter, report_data_partial)
+    end
+
     test "updates report state" do
       [reporter, target_user] = insert_pair(:user)
       activity = insert(:note_activity, user: target_user)
@@ -1222,11 +1276,6 @@ defmodule Pleroma.Web.CommonAPITest do
     test "gets user by ap_id" do
       user = insert(:user)
       assert CommonAPI.get_user(user.ap_id) == user
-    end
-
-    test "gets user by guessed nickname" do
-      user = insert(:user, ap_id: "", nickname: "mario@mushroom.kingdom")
-      assert CommonAPI.get_user("https://mushroom.kingdom/users/mario") == user
     end
 
     test "fallback" do

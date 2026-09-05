@@ -16,7 +16,6 @@
     mix pleroma.user new <nickname> <email> [option ...]
     ```
 
-
 ### Options
 - `--name <name>` - the user's display name
 - `--bio <bio>` - the user's bio
@@ -39,8 +38,7 @@
     mix pleroma.user list
     ```
 
-
-## Generate an invite link
+## Generate an invitation link
 
 === "OTP"
 
@@ -53,7 +51,6 @@
     ```sh
     mix pleroma.user invite [option ...]
     ```
-
 
 ### Options
 - `--expires-at DATE` - last day on which token is active (e.g. "2019-04-05")
@@ -73,7 +70,6 @@
     mix pleroma.user invites
     ```
 
-
 ## Revoke invite
 
 === "OTP"
@@ -87,7 +83,6 @@
     ```sh
     mix pleroma.user revoke_invite <token>
     ```
-
 
 ## Delete a user
 
@@ -103,7 +98,6 @@
     mix pleroma.user rm <nickname>
     ```
 
-
 ## Delete user's posts and interactions
 
 === "OTP"
@@ -117,7 +111,6 @@
     ```sh
     mix pleroma.user delete_activities <nickname>
     ```
-
 
 ## Sign user out from all applications (delete user's OAuth tokens and authorizations)
 
@@ -161,7 +154,6 @@
     mix pleroma.user deactivate NICKNAME
     ```
 
-
 ## Deactivate all accounts from an instance and unsubscribe local users on it
 
 === "OTP"
@@ -175,7 +167,6 @@
     ```sh
     mix pleroma.user deactivate_all_from_instance <instance>
     ```
-
 
 ## Create a password reset link for user
 
@@ -191,8 +182,7 @@
     mix pleroma.user reset_password <nickname>
     ```
 
-
-## Disable Multi Factor Authentication (MFA/2FA) for a user
+## Disable Multi-Factor Authentication (MFA/2FA) for a user
 
 === "OTP"
 
@@ -205,7 +195,6 @@
     ```sh
     mix pleroma.user reset_mfa <nickname>
     ```
-
 
 ## Set the value of the given user's settings
 
@@ -241,7 +230,6 @@
     mix pleroma.user tag <nickname> <tags>
     ```
 
-
 ## Delete tags from a user
 
 === "OTP"
@@ -255,7 +243,6 @@
     ```sh
     mix pleroma.user untag <nickname> <tags>
     ```
-
 
 ## Toggle confirmation status of the user
 
@@ -304,7 +291,7 @@
 ## Fix following state
 
 Sometimes the system can get into a situation where
-it think you're already following someone and won't send a request
+it thinks you're already following someone and won't send a request
 to the remote instance, or won't let you unfollow someone. This
 bug was fixed, but in case you encounter these weird states:
 
@@ -324,4 +311,4 @@ The first argument is the local user's nickname - if you are `myuser@myinstance`
 
 The second is the remote user, consisting of both nickname AND domain.
 
-If you are a weird follow state situation and cannot resolve it with the above, you may need to co-operate with the remote admin to clear the state their side too - they should provide the arguments *backwards*, i.e `fix_follow_state remote local`.
+If you are a weird follow state situation and cannot resolve it with the above, you may need to co-operate with the remote admin to clear the state their side too - they should provide the arguments *backwards*, i.e. `fix_follow_state remote local`.

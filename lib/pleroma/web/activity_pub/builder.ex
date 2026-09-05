@@ -57,6 +57,17 @@ defmodule Pleroma.Web.ActivityPub.Builder do
     {:ok, data, []}
   end
 
+  @spec emoji_object!({String.t(), String.t()}) :: map()
+  def emoji_object!({name, url}) do
+    # TODO: we should probably send mtime instead of unix epoch time for updated
+    %{
+      "icon" => %{"url" => "#{URI.encode(url)}", "type" => "Image"},
+      "name" => Emoji.maybe_quote(name),
+      "type" => "Emoji",
+      "updated" => "1970-01-01T00:00:00Z"
+    }
+  end
+
   defp unicode_emoji_react(_object, data, emoji) do
     data
     |> Map.put("content", emoji)
@@ -67,18 +78,7 @@ defmodule Pleroma.Web.ActivityPub.Builder do
     data
     |> Map.put("content", Emoji.maybe_quote(emoji))
     |> Map.put("type", "EmojiReact")
-    |> Map.put("tag", [
-      %{}
-      |> Map.put("id", url)
-      |> Map.put("type", "Emoji")
-      |> Map.put("name", Emoji.maybe_quote(emoji))
-      |> Map.put(
-        "icon",
-        %{}
-        |> Map.put("type", "Image")
-        |> Map.put("url", url)
-      )
-    ])
+    |> Map.put("tag", [emoji_object!({emoji, url})])
   end
 
   defp remote_custom_emoji_react(
@@ -316,21 +316,18 @@ defmodule Pleroma.Web.ActivityPub.Builder do
 
   @spec announce(User.t(), Object.t(), keyword()) :: {:ok, map(), keyword()}
   def announce(actor, object, options \\ []) do
-    public? = Keyword.get(options, :public, false)
+    visibility = Keyword.get(options, :visibility, "public")
 
-    to =
-      cond do
-        actor.ap_id == Relay.ap_id() ->
-          [actor.follower_address]
-
-        public? and Visibility.is_local_public?(object) ->
-          [actor.follower_address, object.data["actor"], Utils.as_local_public()]
-
-        public? ->
-          [actor.follower_address, object.data["actor"], Pleroma.Constants.as_public()]
-
-        true ->
-          [actor.follower_address, object.data["actor"]]
+    {to, cc} =
+      if actor.ap_id == Relay.ap_id() do
+        {[actor.follower_address], []}
+      else
+        Pleroma.Web.CommonAPI.Utils.get_to_and_cc_for_visibility(
+          visibility,
+          actor.follower_address,
+          nil,
+          [object.data["actor"]]
+        )
       end
 
     {:ok,
@@ -339,6 +336,7 @@ defmodule Pleroma.Web.ActivityPub.Builder do
        "actor" => actor.ap_id,
        "object" => object.data["id"],
        "to" => to,
+       "cc" => cc,
        "context" => object.data["context"],
        "type" => "Announce",
        "published" => Utils.make_date()
@@ -380,7 +378,7 @@ defmodule Pleroma.Web.ActivityPub.Builder do
     {:ok,
      %{
        "id" => Utils.generate_activity_id(),
-       "target" => pinned_url(user.nickname),
+       "target" => user.featured_address,
        "object" => object.data["id"],
        "actor" => user.ap_id,
        "type" => "Add",
@@ -394,16 +392,12 @@ defmodule Pleroma.Web.ActivityPub.Builder do
     {:ok,
      %{
        "id" => Utils.generate_activity_id(),
-       "target" => pinned_url(user.nickname),
+       "target" => user.featured_address,
        "object" => object.data["id"],
        "actor" => user.ap_id,
        "type" => "Remove",
        "to" => [Pleroma.Constants.as_public()],
        "cc" => [user.follower_address]
      }, []}
-  end
-
-  defp pinned_url(nickname) when is_binary(nickname) do
-    url(~p[/users/#{nickname}/collections/featured])
   end
 end

@@ -3,7 +3,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.TwitterAPI.TwitterAPI do
-  import Pleroma.Web.Gettext
+  use Gettext,
+    backend: Pleroma.Web.Gettext
 
   alias Pleroma.Emails.Mailer
   alias Pleroma.Emails.UserEmail
@@ -24,7 +25,7 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPI do
       |> Map.put(:registration_reason, params[:reason])
       |> Map.put(
         :language,
-        Pleroma.Web.Gettext.normalize_locale(params[:language]) || fallback_language
+        Pleroma.Web.GettextCompanion.normalize_locale(params[:language]) || fallback_language
       )
 
     if Pleroma.Config.get([:instance, :registrations_open]) do

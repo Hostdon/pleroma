@@ -20,16 +20,16 @@ The docs are written in Markdown, including certain extensions, and can be found
 
 Akkoma is written in [Elixir](https://elixir-lang.org/) and uses [Postgresql](https://www.postgresql.org/) for database. We use [Git](https://git-scm.com/) for collaboration and tracking code changes. Furthermore it can typically run on [Unix and Unix-like OS'es](https://en.wikipedia.org/wiki/Unix-like). For development, you should use an OS which [can run Akkoma](../installation/debian_based_en/).
 
-It's good to have at least some basic understanding of at least Git and Elixir. If this is completely new for you, there's some [videos explaining Git](https://git-scm.com/doc) and Codeberg has a nice article explaining the typical [pull requests Git flow](https://docs.codeberg.org/collaborating/pull-requests-and-git-flow/). For Elixir, you can follow Elixir's own [Getting Started guide](https://elixir-lang.org/getting-started/introduction.html).
+It's good to have at least some basic understanding of at least Git and Elixir. If this is completely new for you, there are some [videos explaining Git](https://git-scm.com/doc) and Codeberg has a nice article explaining the typical [pull requests Git flow](https://docs.codeberg.org/collaborating/pull-requests-and-git-flow/). For Elixir, you can follow Elixir's own [Getting Started guide](https://elixir-lang.org/getting-started/introduction.html).
 
 ## Setting up a development environment
 
-The best way to start is getting the software to run from source so you can start poking on it. Check out the [guides for setting up an Akkoma instance for development](setting_up_akkoma_dev/#setting-up-a-akkoma-development-environment).
+The best way to start is getting the software to run from source, so you can start poking on it. Check out the [guides for setting up an Akkoma instance for development](setting_up_akkoma_dev/#setting-up-a-akkoma-development-environment).
 
 ## General overview
 ### Modules
 
-Akkoma has several modules. There are modules for [uploading](https://akkoma.dev/AkkomaGang/akkoma/src/branch/develop/lib/pleroma/uploaders), [upload filters](https://akkoma.dev/AkkomaGang/akkoma/src/branch/develop/lib/pleroma/upload/filter), [translators](https://akkoma.dev/AkkomaGang/akkoma/src/branch/develop/lib/pleroma/akkoma/translators)... The most famous ones are without a doubt the [MRF policies](https://akkoma.dev/AkkomaGang/akkoma/src/branch/develop/lib/pleroma/web/activity_pub/mrf). Modules are often self contained and a good way to start with development because you don't have to think about much more than just the module itself. We even have an example on [writing your own MRF policy](/configuration/mrf/#writing-your-own-mrf-policy)!
+Akkoma has several modules. There are modules for [uploading](https://akkoma.dev/AkkomaGang/akkoma/src/branch/develop/lib/pleroma/uploaders), [upload filters](https://akkoma.dev/AkkomaGang/akkoma/src/branch/develop/lib/pleroma/upload/filter), [translators](https://akkoma.dev/AkkomaGang/akkoma/src/branch/develop/lib/pleroma/akkoma/translators)... The most famous ones are without a doubt the [MRF policies](https://akkoma.dev/AkkomaGang/akkoma/src/branch/develop/lib/pleroma/web/activity_pub/mrf). Modules are often self-contained and a good way to start with development because you don't have to think about much more than just the module itself. We even have an example on [writing your own MRF policy](/configuration/mrf/#writing-your-own-mrf-policy)!
 
 Another easy entry point is the [mix tasks](https://akkoma.dev/AkkomaGang/akkoma/src/branch/develop/lib/mix/tasks/pleroma). They too are often self contained and don't need you to go through much of the code.
 

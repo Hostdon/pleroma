@@ -40,7 +40,7 @@ defmodule Pleroma.MarkerTest do
       assert Marker.get_markers(
                user,
                ["notifications"]
-             ) == [%Marker{refresh_record(marker) | unread_count: 2}]
+             ) == [%{refresh_record(marker) | unread_count: 2}]
     end
   end
 

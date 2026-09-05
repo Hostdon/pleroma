@@ -40,6 +40,7 @@ defmodule Pleroma.Web.MediaProxy do
   end
 
   def url(url) when is_nil(url) or url == "", do: nil
+  def url("//" <> _ = url), do: url("https:" <> url)
   def url("/" <> _ = url), do: url
 
   def url(url) do
@@ -55,7 +56,10 @@ defmodule Pleroma.Web.MediaProxy do
     not local?(url) and not whitelisted?(url) and not blocked?(url) and http_scheme?(url)
   end
 
-  def preview_url(url, preview_params \\ []) do
+  def preview_url(url, preview_params \\ [])
+  def preview_url("//" <> _ = url, pparams), do: preview_url("https:" <> url, pparams)
+
+  def preview_url(url, preview_params) do
     if preview_enabled?() and url_proxiable?(url) do
       encode_preview_url(url, preview_params)
     else

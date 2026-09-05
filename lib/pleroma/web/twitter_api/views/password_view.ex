@@ -4,6 +4,5 @@
 
 defmodule Pleroma.Web.TwitterAPI.PasswordView do
   use Pleroma.Web, :view
-  import Phoenix.HTML.Form
-  alias Pleroma.Web.Gettext
+  use Gettext, backend: Pleroma.Web.Gettext
 end

@@ -5,8 +5,8 @@
 defmodule Pleroma.HTTP.WebPush do
   @moduledoc false
 
-  def post(url, payload, headers, options \\ []) do
+  def post(url, payload, headers, _options) do
     list_headers = Map.to_list(headers)
-    Pleroma.HTTP.post(url, payload, list_headers, options)
+    Pleroma.HTTP.post(url, payload, list_headers)
   end
 end

@@ -60,7 +60,7 @@ defmodule Pleroma.Workers.AttachmentsCleanupWorkerTest do
     assert {:ok, %Oban.Job{}} = AttachmentsCleanupWorker.enqueue_if_needed(local_data)
   end
 
-  test "doesn't delete immediately", %{attachment: attachment, user: user} do
+  test "doesn't delete immediately, but will eventually", %{attachment: attachment, user: user} do
     delay = 6000
     clear_config([:instance, :cleanup_attachments_delay], delay)
 
@@ -82,5 +82,36 @@ defmodule Pleroma.Workers.AttachmentsCleanupWorkerTest do
     assert Object.get_by_id(note.id).data["deleted"]
     assert Object.get_by_id(attachment.id) == nil
     refute File.exists?(path)
+  end
+
+  test "does not delete attachment if still used in other post too", %{
+    attachment: attachment,
+    user: user
+  } do
+    original_note = insert(:note, %{user: user, data: %{"attachment" => [attachment.data]}})
+
+    uploads_dir = Pleroma.Config.get!([Pleroma.Uploaders.Local, :uploads])
+    %{"url" => [%{"href" => href}]} = attachment.data
+    path = "#{uploads_dir}/#{Path.basename(href)}"
+
+    assert File.exists?(path)
+
+    # Delete & Redraft
+    Object.delete(original_note)
+
+    redrafted_note =
+      insert(:note, %{
+        user: user,
+        text: "fixed up desc",
+        data: %{"attachment" => [attachment.data]}
+      })
+
+    ObanHelpers.perform(all_enqueued(worker: Pleroma.Workers.AttachmentsCleanupWorker))
+
+    assert Object.get_by_id(original_note.id).data["deleted"]
+    refute Object.get_by_id(redrafted_note.id).data["deleted"]
+
+    assert Object.get_by_id(attachment.id) != nil
+    assert File.exists?(path)
   end
 end

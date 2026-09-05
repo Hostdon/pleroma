@@ -31,20 +31,18 @@ defmodule Pleroma.Web do
 
   def controller do
     quote do
-      use Phoenix.Controller, namespace: Pleroma.Web
+      use Phoenix.Controller,
+        formats: [html: "View", json: "View"],
+        layouts: [html: Pleroma.Web.LayoutView]
 
       import Plug.Conn
 
-      import Pleroma.Web.Gettext
+      use Gettext,
+        backend: Pleroma.Web.Gettext
+
       import Pleroma.Web.TranslationHelpers
 
       unquote(verified_routes())
-
-      plug(:set_put_layout)
-
-      defp set_put_layout(conn, _) do
-        put_layout(conn, Pleroma.Config.get(:app_layout, "app.html"))
-      end
 
       # Marks plugs intentionally skipped and blocks their execution if present in plugs chain
       defp skip_plug(conn, plug_modules) do
@@ -233,14 +231,18 @@ defmodule Pleroma.Web do
   def channel do
     quote do
       use Phoenix.Channel
-      import Pleroma.Web.Gettext
+
+      use Gettext,
+        backend: Pleroma.Web.Gettext
     end
   end
 
   defp view_helpers do
     quote do
       # Use all HTML functionality (forms, tags, etc)
-      use Phoenix.HTML
+      import Phoenix.HTML
+      import Phoenix.HTML.Form
+      use PhoenixHTMLHelpers
 
       # Import LiveView and .heex helpers (live_render, live_patch, <.form>, etc)
       import Phoenix.LiveView.Helpers
@@ -249,7 +251,10 @@ defmodule Pleroma.Web do
       import Phoenix.View
 
       import Pleroma.Web.ErrorHelpers
-      import Pleroma.Web.Gettext
+
+      use Gettext,
+        backend: Pleroma.Web.Gettext
+
       unquote(verified_routes())
     end
   end

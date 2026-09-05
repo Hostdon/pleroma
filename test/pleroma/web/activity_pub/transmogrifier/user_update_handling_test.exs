@@ -11,20 +11,29 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier.UserUpdateHandlingTest do
 
   import Pleroma.Factory
 
-  test "it works for incoming update activities" do
-    user = insert(:user, local: false)
-
+  defp update_data_for(%User{} = user) do
     update_data = File.read!("test/fixtures/mastodon-update.json") |> Jason.decode!()
 
     object =
       update_data["object"]
       |> Map.put("actor", user.ap_id)
       |> Map.put("id", user.ap_id)
+      |> Map.put("inbox", user.inbox)
+      |> Map.put("featured", user.featured_address)
+      |> Map.put("followers", user.follower_address)
+      |> Map.put("following", user.following_address)
+      |> put_in(["publicKey", "id"], user.ap_id <> "#key")
+      |> put_in(["publicKey", "owner"], user.ap_id)
 
-    update_data =
-      update_data
-      |> Map.put("actor", user.ap_id)
-      |> Map.put("object", object)
+    update_data
+    |> Map.put("actor", user.ap_id)
+    |> Map.put("object", object)
+  end
+
+  test "it works for incoming update activities" do
+    user = insert(:user, local: false)
+
+    update_data = update_data_for(user)
 
     {:ok, %Activity{data: data, local: false}} = Transmogrifier.handle_incoming(update_data)
 
@@ -51,25 +60,20 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier.UserUpdateHandlingTest do
   end
 
   test "it works with alsoKnownAs" do
-    %{ap_id: actor} = insert(:user, local: false)
+    %{ap_id: actor} = user = insert(:user, local: false)
 
     assert User.get_cached_by_ap_id(actor).also_known_as == []
 
-    {:ok, _activity} =
-      "test/fixtures/mastodon-update.json"
-      |> File.read!()
-      |> Jason.decode!()
+    update_data_for(user)
+    |> Map.update!("object", fn object ->
+      object
       |> Map.put("actor", actor)
-      |> Map.update!("object", fn object ->
-        object
-        |> Map.put("actor", actor)
-        |> Map.put("id", actor)
-        |> Map.put("alsoKnownAs", [
-          "http://mastodon.example.org/users/foo",
-          "http://example.org/users/bar"
-        ])
-      end)
-      |> Transmogrifier.handle_incoming()
+      |> Map.put("alsoKnownAs", [
+        "http://mastodon.example.org/users/foo",
+        "http://example.org/users/bar"
+      ])
+    end)
+    |> Transmogrifier.handle_incoming()
 
     assert User.get_cached_by_ap_id(actor).also_known_as == [
              "http://mastodon.example.org/users/foo",
@@ -82,17 +86,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier.UserUpdateHandlingTest do
 
     assert user.fields == []
 
-    update_data = File.read!("test/fixtures/mastodon-update.json") |> Jason.decode!()
-
-    object =
-      update_data["object"]
-      |> Map.put("actor", user.ap_id)
-      |> Map.put("id", user.ap_id)
-
-    update_data =
-      update_data
-      |> Map.put("actor", user.ap_id)
-      |> Map.put("object", object)
+    update_data = update_data_for(user)
 
     {:ok, _update_activity} = Transmogrifier.handle_incoming(update_data)
 
@@ -138,17 +132,14 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier.UserUpdateHandlingTest do
   test "it works for incoming update activities which lock the account" do
     user = insert(:user, local: false)
 
-    update_data = File.read!("test/fixtures/mastodon-update.json") |> Jason.decode!()
+    update_data = update_data_for(user)
 
     object =
       update_data["object"]
-      |> Map.put("actor", user.ap_id)
-      |> Map.put("id", user.ap_id)
       |> Map.put("manuallyApprovesFollowers", true)
 
     update_data =
       update_data
-      |> Map.put("actor", user.ap_id)
       |> Map.put("object", object)
 
     {:ok, %Activity{local: false}} = Transmogrifier.handle_incoming(update_data)

@@ -16,22 +16,22 @@ defmodule Pleroma.Workers.RemoteFetcherWorker do
         :ok
 
       {:error, :forbidden} ->
-        {:discard, :forbidden}
+        {:cancel, :forbidden}
 
       {:error, :not_found} ->
-        {:discard, :not_found}
+        {:cancel, :not_found}
 
       {:error, :allowed_depth} ->
-        {:discard, :allowed_depth}
+        {:cancel, :allowed_depth}
 
       {:error, :invalid_uri_scheme} ->
-        {:discard, :invalid_uri_scheme}
+        {:cancel, :invalid_uri_scheme}
 
       {:error, :local_resource} ->
-        {:discard, :local_resource}
+        {:cancel, :local_resource}
 
       {:reject, _} ->
-        {:discard, :reject}
+        {:cancel, :reject}
 
       {:error, :id_mismatch} ->
         {:discard, :id_mismatch}

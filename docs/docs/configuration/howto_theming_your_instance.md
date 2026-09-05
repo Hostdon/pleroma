@@ -47,7 +47,7 @@ Now you'll already be able to select the theme in Pleroma FE from the drop-down.
 
 ### Give the theme a name
 
-When you open one of the themes that ship with Akkoma, you'll notice that the json has a `"name"` key. Add a key-value pair to your theme where the key name is `"name"` and the value the name you want to give your theme. After this you can refresh te page in your browser and the name should be visible in the drop-down.
+When you open one of the themes that ship with Akkoma, you'll notice that the JSON has a `"name"` key. Add a key-value pair to your theme where the key name is `"name"` and the value the name you want to give your theme. After this you can refresh the page in your browser and the name should be visible in the drop-down.
 
 Example of `my-awesome-theme.json` where we add the name "My Awesome Theme"
 ```json
@@ -70,4 +70,4 @@ config :pleroma, :frontend_configurations,
   }
 ```
 
-If you added it in the back-end configuration file, you'll need to restart your instance for the changes to take effect. If you don't see the changes, it's probably because the browser has cached the previous theme. In that case you'll want to clear browser caches. Alternatively you can use a private/incognito window just to see the changes.
+If you added it in the back-end configuration file, you'll need to restart your instance for the changes to take effect. If you don't see the changes, it's probably because the browser has cached the previous theme. In that case you'll want to clear browser caches. Alternatively, you can use a private/incognito window just to see the changes.

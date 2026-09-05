@@ -153,8 +153,7 @@ defmodule Pleroma.Object.ContainmentTest do
         insert(:user, %{
           nickname: "rye@niu.moe",
           local: false,
-          ap_id: "https://niu.moe/users/rye",
-          follower_address: User.ap_followers(%User{nickname: "rye@niu.moe"})
+          ap_id: "https://niu.moe/users/rye"
         })
 
       # Fetch from an attempted spoof id will suceed, but automatically retrieve

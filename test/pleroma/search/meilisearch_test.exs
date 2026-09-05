@@ -17,11 +17,6 @@ defmodule Pleroma.Search.MeilisearchTest do
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Workers.SearchIndexingWorker
 
-  setup_all do
-    Tesla.Mock.mock_global(fn env -> apply(HttpRequestMock, :request, [env]) end)
-    :ok
-  end
-
   describe "meilisearch" do
     setup do: clear_config([Pleroma.Search, :module], Meilisearch)
 
@@ -34,14 +29,16 @@ defmodule Pleroma.Search.MeilisearchTest do
            meili_put: fn u, a -> passthrough([u, a]) end
          ]}
       ],
-      context,
-      do: {:ok, context}
-    )
+      context
+    ) do
+      Tesla.Mock.mock(fn env -> apply(HttpRequestMock, :request, [env]) end)
+      {:ok, context}
+    end
 
     test "indexes a local post on creation" do
       user = insert(:user)
 
-      mock_global(fn
+      mock(fn
         %{method: :put, url: "http://127.0.0.1:7700/indexes/objects/documents", body: body} ->
           assert match?(
                    [%{"content" => "guys i just don&#39;t wanna leave the swamp"}],
@@ -94,7 +91,7 @@ defmodule Pleroma.Search.MeilisearchTest do
     test "deletes posts from index when deleted locally" do
       user = insert(:user)
 
-      mock_global(fn
+      mock(fn
         %{method: :put, url: "http://127.0.0.1:7700/indexes/objects/documents", body: body} ->
           assert match?(
                    [%{"content" => "guys i just don&#39;t wanna leave the swamp"}],

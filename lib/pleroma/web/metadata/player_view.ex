@@ -4,7 +4,7 @@
 
 defmodule Pleroma.Web.Metadata.PlayerView do
   use Pleroma.Web, :view
-  import Phoenix.HTML.Tag, only: [content_tag: 3, tag: 2]
+  import PhoenixHTMLHelpers.Tag, only: [content_tag: 3, tag: 2]
 
   def render("player.html", %{"mediaType" => type, "href" => href}) do
     {tag_type, tag_attrs} =

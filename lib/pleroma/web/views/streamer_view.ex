@@ -87,22 +87,32 @@ defmodule Pleroma.Web.StreamerView do
     |> Jason.encode!()
   end
 
-  def render("follow_relationships_update.json", item, topic) do
+  def render(
+        "follow_relationships_update.json",
+        %{follower: follower, following: following, state: state},
+        topic
+      ) do
+    # This is streamed out to the _follower_
+    # Thus the full details of the follower should be sent out unchecked,
+    # but details of the following user must obey user-indicated preferences
+    following_followers = if following.hide_followers_count, do: 0, else: following.follower_count
+    following_following = if following.hide_follows_count, do: 0, else: following.following_count
+
     %{
       stream: [topic],
       event: "pleroma:follow_relationships_update",
       payload:
         %{
-          state: item.state,
+          state: state,
           follower: %{
-            id: item.follower.id,
-            follower_count: item.follower.follower_count,
-            following_count: item.follower.following_count
+            id: follower.id,
+            follower_count: follower.follower_count,
+            following_count: follower.following_count
           },
           following: %{
-            id: item.following.id,
-            follower_count: item.following.follower_count,
-            following_count: item.following.following_count
+            id: following.id,
+            follower_count: following_followers,
+            following_count: following_following
           }
         }
         |> Jason.encode!()

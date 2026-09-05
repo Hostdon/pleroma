@@ -35,7 +35,6 @@ config :pleroma, Pleroma.Emails.Mailer, adapter: Swoosh.Adapters.Test, enabled: 
 config :pleroma, :instance,
   email: "admin@example.com",
   notify_email: "noreply@example.com",
-  skip_thread_containment: false,
   federating: false,
   external_user_synchronization: false,
   static_dir: "test/instance_static/"
@@ -129,9 +128,7 @@ config :pleroma, :cachex, provider: Pleroma.CachexMock
 
 config :pleroma, Pleroma.Web.WebFinger, update_nickname_on_user_fetch: false
 
-config :pleroma, :side_effects,
-  ap_streamer: Pleroma.Web.ActivityPub.ActivityPubMock,
-  logger: Pleroma.LoggerMock
+config :pleroma, :side_effects, ap_streamer: Pleroma.Web.ActivityPub.ActivityPubMock
 
 config :pleroma, Pleroma.Search, module: Pleroma.Search.DatabaseSearch
 

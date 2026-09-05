@@ -9,7 +9,6 @@ defmodule Pleroma.Web.MastodonAPI.TimelineController do
     only: [add_link_headers: 2, add_link_headers: 3]
 
   alias Pleroma.Config
-  alias Pleroma.Pagination
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.Plugs.OAuthScopesPlug
@@ -52,6 +51,8 @@ defmodule Pleroma.Web.MastodonAPI.TimelineController do
       |> User.followed_hashtags()
       |> Enum.map(& &1.id)
 
+    excluded_list_members = Pleroma.List.get_exclusive_list_members(user)
+
     params =
       params
       |> Map.put(:type, ["Create", "Announce"])
@@ -67,7 +68,7 @@ defmodule Pleroma.Web.MastodonAPI.TimelineController do
     Logger.debug("TimelineController.home: #{nickname} - fetching activities")
 
     activities =
-      [user.ap_id | User.following(user)]
+      [user.ap_id | User.following(user) -- excluded_list_members]
       |> ActivityPub.fetch_activities(params)
       |> Enum.reverse()
 
@@ -80,35 +81,6 @@ defmodule Pleroma.Web.MastodonAPI.TimelineController do
       for: user,
       as: :activity,
       with_muted: Map.get(params, :with_muted, false)
-    )
-  end
-
-  # GET /api/v1/timelines/direct
-  def direct(%{assigns: %{user: user}} = conn, params) do
-    Logger.debug("TimelineController.direct: #{user.nickname}")
-
-    params =
-      params
-      |> Map.put(:type, "Create")
-      |> Map.put(:blocking_user, user)
-      |> Map.put(:user, user)
-      |> Map.put(:visibility, "direct")
-
-    Logger.debug("TimelineController.direct: #{user.nickname} - fetching activities")
-
-    activities =
-      [user.ap_id]
-      |> ActivityPub.fetch_activities_query(params)
-      |> Pagination.fetch_paginated(params)
-
-    Logger.debug("TimelineController.direct: #{user.nickname} - rendering")
-
-    conn
-    |> add_link_headers(activities)
-    |> render("index.json",
-      activities: activities,
-      for: user,
-      as: :activity
     )
   end
 
@@ -249,7 +221,7 @@ defmodule Pleroma.Web.MastodonAPI.TimelineController do
     with %Pleroma.List{title: _title, following: following} <- Pleroma.List.get(id, user) do
       params =
         params
-        |> Map.put(:type, "Create")
+        |> Map.put(:type, ["Create", "Announce"])
         |> Map.put(:blocking_user, user)
         |> Map.put(:user, user)
         |> Map.put(:muting_user, user)

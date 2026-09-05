@@ -64,6 +64,7 @@ defmodule Pleroma.Web.AdminAPI.FrontendControllerTest do
         "pleroma" => %{
           "ref" => "fantasy",
           "name" => "pleroma",
+          "blind_trust" => true,
           "build_url" => "http://gensokyo.2hu/builds/${ref}"
         }
       })
@@ -86,7 +87,9 @@ defmodule Pleroma.Web.AdminAPI.FrontendControllerTest do
 
       assert response == [
                %{
+                 "blind_trust" => true,
                  "build_url" => "http://gensokyo.2hu/builds/${ref}",
+                 "bugtracker" => nil,
                  "git" => nil,
                  "installed" => true,
                  "name" => "pleroma",
@@ -100,6 +103,7 @@ defmodule Pleroma.Web.AdminAPI.FrontendControllerTest do
         "pleroma" => %{
           "ref" => "fantasy",
           "name" => "pleroma",
+          "blind_trust" => true,
           "build_dir" => ""
         }
       })

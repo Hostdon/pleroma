@@ -1,8 +1,17 @@
 defmodule Pleroma.Akkoma.Translator do
-  @callback translate(String.t(), String.t() | nil, String.t()) ::
-              {:ok, String.t(), String.t()} | {:error, any()}
-  @callback languages() ::
-              {:ok, [%{name: String.t(), code: String.t()}],
-               [%{name: String.t(), code: String.t()}]}
-              | {:error, any()}
+  @cachex Pleroma.Config.get([:cachex, :provider], Cachex)
+
+  def languages do
+    module = Pleroma.Config.get([:translator, :module])
+
+    @cachex.fetch!(:translations_cache, "languages:#{module}}", fn _ ->
+      with {_, true} <- {:enabled, Pleroma.Config.get([:translator, :enabled])},
+           {:ok, source_languages, dest_languages} <- module.languages() do
+        {:commit, {:ok, source_languages, dest_languages}}
+      else
+        {:enabled, _} -> {:commit, {:enabled, false}}
+        {:error, err} -> {:ignore, {:error, err}}
+      end
+    end)
+  end
 end

@@ -13,7 +13,11 @@ defmodule Pleroma.Web.ApiSpec.Schemas.List do
     type: :object,
     properties: %{
       id: %Schema{type: :string, description: "The internal database ID of the list"},
-      title: %Schema{type: :string, description: "The user-defined title of the list"}
+      title: %Schema{type: :string, description: "The user-defined title of the list"},
+      exclusive: %Schema{
+        type: :boolean,
+        description: "Whether members of the list should be removed from the “Home” feed"
+      }
     },
     example: %{
       "id" => "12249",

@@ -88,6 +88,74 @@ defmodule Mix.Tasks.Pleroma.DatabaseTest do
       refute Object.get_by_id(note_remote_non_public_id)
     end
 
+    test "it retains pinned posts by default", %{old_insert_date: old_insert_date} do
+      insert(:note)
+
+      pin_user = insert(:user, local: false)
+
+      %{id: note_remote_pinned_id, data: note_remote_pinned_data} =
+        :note
+        |> insert(user: pin_user)
+        |> Ecto.Changeset.change(%{updated_at: old_insert_date})
+        |> Repo.update!()
+
+      User.add_pinned_object_id(pin_user, note_remote_pinned_data["id"])
+
+      note_remote_non_public =
+        %{id: note_remote_non_public_id, data: note_remote_non_public_data} =
+        :note
+        |> insert()
+
+      note_remote_non_public
+      |> Ecto.Changeset.change(%{
+        updated_at: old_insert_date,
+        data: note_remote_non_public_data |> update_in(["to"], fn _ -> [] end)
+      })
+      |> Repo.update!()
+
+      assert length(Repo.all(Object)) == 3
+
+      Mix.Tasks.Pleroma.Database.run(["prune_objects"])
+
+      assert length(Repo.all(Object)) == 2
+      assert Object.get_by_id(note_remote_pinned_id)
+      refute Object.get_by_id(note_remote_non_public_id)
+    end
+
+    test "it prunes pinned posts with --prune-pinned", %{old_insert_date: old_insert_date} do
+      insert(:note)
+
+      pin_user = insert(:user, local: false)
+
+      %{id: note_remote_pinned_id, data: note_remote_pinned_data} =
+        :note
+        |> insert(user: pin_user)
+        |> Ecto.Changeset.change(%{updated_at: old_insert_date})
+        |> Repo.update!()
+
+      User.add_pinned_object_id(pin_user, note_remote_pinned_data["id"])
+
+      note_remote_non_public =
+        %{id: note_remote_non_public_id, data: note_remote_non_public_data} =
+        :note
+        |> insert()
+
+      note_remote_non_public
+      |> Ecto.Changeset.change(%{
+        updated_at: old_insert_date,
+        data: note_remote_non_public_data |> update_in(["to"], fn _ -> [] end)
+      })
+      |> Repo.update!()
+
+      assert length(Repo.all(Object)) == 3
+
+      Mix.Tasks.Pleroma.Database.run(["prune_objects", "--prune-pinned"])
+
+      assert length(Repo.all(Object)) == 1
+      refute Object.get_by_id(note_remote_pinned_id)
+      refute Object.get_by_id(note_remote_non_public_id)
+    end
+
     test "it cleans up bookmarks", %{old_insert_date: old_insert_date} do
       user = insert(:user)
       {:ok, old_object_activity} = CommonAPI.post(user, %{status: "yadayada"})
@@ -351,6 +419,85 @@ defmodule Mix.Tasks.Pleroma.DatabaseTest do
       assert length(Repo.all(Object)) == 1
     end
 
+    defp prepare_keep_followed_test(old_insert_date) do
+      remote_user = insert(:user, local: false)
+      local_user = insert(:user, local: true)
+      third_party = insert(:user, local: false)
+
+      CommonAPI.follow(local_user, remote_user)
+      CommonAPI.accept_follow_request(local_user, remote_user)
+
+      assert :follow_accept == Pleroma.FollowingRelationship.get(local_user, remote_user).state
+
+      {:ok, old_remote_post_activity} =
+        CommonAPI.post(remote_user, %{status: "some thing", local: false})
+
+      old_remote_post_activity
+      |> Ecto.Changeset.change(%{local: false, updated_at: old_insert_date})
+      |> Repo.update!()
+
+      old_remote_post_activity.object
+      |> Ecto.Changeset.change(%{updated_at: old_insert_date})
+      |> Repo.update!()
+
+      {:ok, old_liked_post_activity} =
+        CommonAPI.post(third_party, %{status: "boo!", local: false})
+
+      {:ok, old_like_activity} = CommonAPI.favorite(remote_user, old_liked_post_activity.id)
+
+      old_liked_post_activity
+      |> Ecto.Changeset.change(%{local: false, updated_at: old_insert_date})
+      |> Repo.update!()
+
+      old_liked_post_activity.object
+      |> Ecto.Changeset.change(%{updated_at: old_insert_date})
+      |> Repo.update!()
+
+      old_like_activity
+      |> Ecto.Changeset.change(%{local: false, updated_at: old_insert_date})
+      |> Repo.update!()
+
+      assert length(Repo.all(Object)) == 2
+
+      {old_remote_post_activity.object.id, old_liked_post_activity.object.id}
+    end
+
+    test "by default does not keep posts of followed users", %{
+      old_insert_date: old_insert_date
+    } do
+      _ = prepare_keep_followed_test(old_insert_date)
+      Mix.Tasks.Pleroma.Database.run(["prune_objects"])
+      assert length(Repo.all(Object)) == 0
+    end
+
+    test "with the --keep-followed posts option it keeps old posts of followed users", %{
+      old_insert_date: old_insert_date
+    } do
+      {old_remote_post_id, old_liked_post_id} =
+        prepare_keep_followed_test(old_insert_date)
+
+      Mix.Tasks.Pleroma.Database.run(["prune_objects", "--keep-followed", "posts"])
+
+      assert length(Repo.all(Object)) == 1
+      assert Object.get_by_id(old_remote_post_id)
+      refute Object.get_by_id(old_liked_post_id)
+    end
+
+    test "with the --keep-followed full option it keeps old posts liked by a followed user", %{
+      old_insert_date: old_insert_date
+    } do
+      _ = prepare_keep_followed_test(old_insert_date)
+
+      Mix.Tasks.Pleroma.Database.run([
+        "prune_objects",
+        "--keep-followed",
+        "full",
+        "--keep-threads"
+      ])
+
+      assert length(Repo.all(Object)) == 2
+    end
+
     test "We don't have unexpected tables which may contain objects that are referenced by activities" do
       # We can delete orphaned activities. For that we look for the objects they reference in the 'objects', 'activities', and 'users' table.
       # If someone adds another table with objects (idk, maybe with separate relations, or collections or w/e), then we need to make sure we
@@ -375,7 +522,6 @@ defmodule Mix.Tasks.Pleroma.DatabaseTest do
                ["conversation_participation_recipient_ships"],
                ["conversation_participations"],
                ["conversations"],
-               ["counter_cache"],
                ["data_migration_failed_ids"],
                ["data_migrations"],
                ["deliveries"],

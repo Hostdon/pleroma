@@ -10,4 +10,4 @@ It is also recommended to not use "Network Storage" option.
 
 If your server runs other services, you may want to take that into account. E.g. if you have 4G ram, but 1G of it is already used for other services, it may be better to tell PGTune you only have 3G.
 
-In the end, PGTune only provides recomended settings, you can always try to finetune further.
+In the end, PGTune only provides recommended settings, you can always try to finetune further.

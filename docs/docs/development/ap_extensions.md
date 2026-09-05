@@ -244,7 +244,7 @@ Post using this scope will never federate to other servers
 but for the sake of completeness it is listed here.
 
 In addition to the usual scopes *(public, unlisted, followers-only, direct)*
-Akkoma supports an “unlisted” post scope. Such posts will not federate to
+Akkoma supports a “local” post scope. Such posts will not federate to
 other instances and only be shown to logged-in users on the same instance.
 It is included into the local timeline.  
 This may be useful to discuss or announce instance-specific policies and topics.
@@ -267,16 +267,32 @@ special meaning to the potential local-scope identifier.
     however those are also shown publicly on the local web interface
     and are thus visible to non-members.
 
-## List post scope
-
-Messages originally addressed to a custom list will contain
-a `listMessage` field with an unresolvable pseudo ActivityPub id.
-
 # Deprecated and Removed Extensions
 
 The following extensions were used in the past but have been dropped.
 Documentation is retained here as a reference and since old objects might
 still contains related fields.
+
+## List post scope
+
+Messages originally addressed to a custom list will contain
+a `listMessage` field with an unresolvable pseudo ActivityPub id.
+
+!!! note
+    The concept did not work out too well in practice with even remote servers
+    recognising the `listMessage` extension being unaware of the state of the
+    list and resulting weird desyncs in thread display and handling between
+    servers.  
+    As it was it also never found its way in any known clients or frontends.
+
+    A more consistent superset of what this was able to actually do
+    can be achieved without ActivityPub extensions by explicitly addressing
+    all intended participants without inline mentions.
+    While true federated and moderated "lists" or "groups"
+    will need more work and a different approach.
+
+    Thus suport for it was removed and it is recommended
+    to not create any new implementation of it.
 
 ## Actor endpoints
 

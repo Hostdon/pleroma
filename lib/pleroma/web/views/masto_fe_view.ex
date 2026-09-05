@@ -8,6 +8,7 @@ defmodule Pleroma.Web.MastoFEView do
   alias Pleroma.User
   alias Pleroma.Web.MastodonAPI.AccountView
   alias Pleroma.Web.MastodonAPI.CustomEmojiView
+  alias Pleroma.Web.ManifestView
 
   def initial_state(token, user, custom_emojis) do
     limit = Config.get([:instance, :limit])
@@ -77,21 +78,11 @@ defmodule Pleroma.Web.MastoFEView do
   defp present?(_), do: true
 
   def render("manifest.json", _params) do
-    %{
-      name: Config.get([:instance, :name]),
-      description: Config.get([:instance, :description]),
-      icons: Config.get([:manifest, :icons]),
-      theme_color: Config.get([:manifest, :theme_color]),
-      background_color: Config.get([:manifest, :background_color]),
-      display: "standalone",
-      scope: Pleroma.Web.Endpoint.url(),
-      start_url: ~p"/web/getting-started",
-      categories: [
-        "social"
-      ],
-      serviceworker: %{
-        src: "/sw.js"
+    ManifestView.render("manifest.json",
+      api_manifest_overrides: %{
+        start_url: ~p"/web/getting-started",
+        serviceworker: %{src: "/sw.js"}
       }
-    }
+    )
   end
 end

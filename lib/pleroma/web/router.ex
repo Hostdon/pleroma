@@ -146,15 +146,14 @@ defmodule Pleroma.Web.Router do
   end
 
   pipeline :optional_http_signature do
-    plug(Pleroma.Web.Plugs.EnsureUserPublicKeyPlug)
+    plug(Pleroma.Web.Plugs.EnsureHostPlug)
     plug(Pleroma.Web.Plugs.HTTPSignaturePlug)
     plug(Pleroma.Web.Plugs.MappedSignatureToIdentityPlug)
+    plug(Pleroma.Web.Plugs.UserEnabledPlug)
   end
 
   pipeline :http_signature do
-    plug(Pleroma.Web.Plugs.EnsureUserPublicKeyPlug)
-    plug(Pleroma.Web.Plugs.HTTPSignaturePlug)
-    plug(Pleroma.Web.Plugs.MappedSignatureToIdentityPlug)
+    plug(:optional_http_signature)
     plug(Pleroma.Web.Plugs.EnsureHTTPSignaturePlug)
   end
 
@@ -616,7 +615,8 @@ defmodule Pleroma.Web.Router do
     post("/statuses/:id/unbookmark", StatusController, :unbookmark)
     post("/statuses/:id/mute", StatusController, :mute_conversation)
     post("/statuses/:id/unmute", StatusController, :unmute_conversation)
-    get("/statuses/:id/translations/:language", StatusController, :translate)
+    post("/statuses/:id/translate", StatusController, :translate)
+    get("/statuses/:id/translations/:language", StatusController, :translate_legacy)
 
     post("/push/subscription", SubscriptionController, :create)
     get("/push/subscription", SubscriptionController, :show)
@@ -627,7 +627,6 @@ defmodule Pleroma.Web.Router do
     delete("/suggestions/:account_id", SuggestionController, :dismiss)
 
     get("/timelines/home", TimelineController, :home)
-    get("/timelines/direct", TimelineController, :direct)
     get("/timelines/list/:list_id", TimelineController, :list)
 
     get("/announcements", AnnouncementController, :index)
@@ -669,6 +668,7 @@ defmodule Pleroma.Web.Router do
     post("/accounts", AccountController, :create)
 
     get("/instance", InstanceController, :show)
+    get("/instance/translation_languages", InstanceController, :translation_languages)
     get("/instance/peers", InstanceController, :peers)
 
     get("/statuses", StatusController, :index)
@@ -755,8 +755,13 @@ defmodule Pleroma.Web.Router do
     # Note: http signature is only considered for json requests (no auth for non-json requests)
     pipe_through([:accepts_html_xml_json, :optional_http_signature, :static_fe])
 
-    # Note: returns user _profile_ for json requests, redirects to user _feed_ for non-json ones
+    # Note: returns user AP _profile_ for json requests (for legacy user AP ids),
+    #       redirects to user _feed_ for non-json ones
+    # Since unsigned requests must still be able to fall back to a stripped down minimal user,
+    # both this feed and legacy AP as well as the new AP-only path are placed here
+    # rather than in the main AP block with proper signature enforcement
     get("/users/:nickname", Feed.UserController, :feed_redirect, as: :user_feed)
+    get("/users/by-id/:user_id", Feed.UserController, :feed_redirect, as: :user_feed)
   end
 
   scope "/", Pleroma.Web do
@@ -764,6 +769,7 @@ defmodule Pleroma.Web.Router do
     pipe_through([:accepts_html_xml, :static_fe])
 
     get("/users/:nickname/feed", Feed.UserController, :feed, as: :user_feed)
+    get("/users/by-id/:user_id/feed", Feed.UserController, :feed, as: :user_feed)
   end
 
   scope "/", Pleroma.Web.StaticFE do
@@ -808,24 +814,37 @@ defmodule Pleroma.Web.Router do
   scope "/", Pleroma.Web.ActivityPub do
     pipe_through([:activitypub_client])
 
+    # C2S-only
     get("/users/:nickname/inbox", ActivityPubController, :read_inbox)
+    get("/users/by-id/:user_id/inbox", ActivityPubController, :read_inbox)
   end
 
   scope "/", Pleroma.Web.ActivityPub do
     # Note: html format is supported only if static FE is enabled
-    pipe_through([:accepts_html_json, :static_fe, :activitypub_client])
+    pipe_through([:accepts_html_json, :static_fe, :activitypub])
 
-    # The following two are S2S as well, see `ActivityPub.fetch_follow_information_for_user/1`:
+    # The following are legacy AP-ID scheme S2S and also used in static FE as well
+    # (See e.g. `ActivityPub.fetch_follow_information_for_user/1` for S2S usage)
+    # New AP-ID schem versions in AP S2S-only block below
     get("/users/:nickname/followers", ActivityPubController, :followers)
     get("/users/:nickname/following", ActivityPubController, :following)
   end
 
   scope "/", Pleroma.Web.ActivityPub do
     pipe_through(:activitypub)
+
+    # new-id version of static-FE twins above
+    get("/users/by-id/:user_id/followers", ActivityPubController, :followers)
+    get("/users/by-id/:user_id/following", ActivityPubController, :following)
+
     post("/inbox", ActivityPubController, :inbox)
     get("/users/:nickname/outbox", ActivityPubController, :outbox)
+    get("/users/by-id/:user_id/outbox", ActivityPubController, :outbox)
     post("/users/:nickname/inbox", ActivityPubController, :inbox)
+    post("/users/by-id/:user_id/inbox", ActivityPubController, :inbox)
     get("/users/:nickname/collections/featured", ActivityPubController, :pinned)
+    get("/users/by-id/:user_id/collections/featured", ActivityPubController, :pinned)
+    get("/objects/:uuid/replies", ActivityPubController, :object_replies)
   end
 
   scope "/relay", Pleroma.Web.ActivityPub do

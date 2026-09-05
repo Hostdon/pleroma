@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Mix.Tasks.Pleroma.Database do
-  alias Pleroma.Conversation
   alias Pleroma.Maintenance
   alias Pleroma.Object
   alias Pleroma.Repo
@@ -19,6 +18,10 @@ defmodule Mix.Tasks.Pleroma.Database do
 
   @shortdoc "A collection of database related tasks"
   @moduledoc File.read!("docs/docs/administration/CLI_tasks/database.md")
+
+  defp maybe_concat(str, condition, appendix) do
+    if condition, do: str <> appendix, else: str
+  end
 
   defp maybe_limit(query, limit_cnt) do
     if is_number(limit_cnt) and limit_cnt > 0 do
@@ -116,6 +119,149 @@ defmodule Mix.Tasks.Pleroma.Database do
     del_single + del_array
   end
 
+  defp query_pinned_object_apids() do
+    Pleroma.User
+    |> select([u], %{ap_id: fragment("jsonb_object_keys(?)", u.pinned_objects)})
+  end
+
+  defp query_pinned_object_ids() do
+    # If this additional level of subquery is omitted and we directly supply AP ids
+    # to te final query, it appears to overexert PostgreSQL(17)'s planner leading
+    # to a very inefficient query with enormous memory and time consumption.
+    # By supplying database IDs it ends up quite cheap however.
+    Object
+    |> where([o], fragment("?->>'id' IN ?", o.data, subquery(query_pinned_object_apids())))
+    |> select([o], o.id)
+  end
+
+  defp query_followed_remote_user_apids() do
+    Pleroma.FollowingRelationship
+    |> join(:inner, [rel], ufing in User, on: rel.following_id == ufing.id)
+    |> join(:inner, [rel], ufer in User, on: rel.follower_id == ufer.id)
+    |> where([rel], rel.state == :follow_accept)
+    |> where([_rel, ufing, ufer], ufer.local and not ufing.local)
+    |> select([_rel, ufing], %{ap_id: ufing.ap_id})
+  end
+
+  defp parse_keep_followed_arg(options) do
+    case Keyword.get(options, :keep_followed) do
+      "full" -> :full
+      "posts" -> :posts
+      "none" -> false
+      nil -> false
+      _ -> raise "Invalid argument for keep_followed! Must be 'full', 'posts' or 'none'"
+    end
+  end
+
+  defp maybe_restrict_followed_activities(query, options) do
+    case Keyword.get(options, :keep_followed) do
+      :full ->
+        having(
+          query,
+          [a],
+          fragment(
+            "bool_and(?->>'actor' NOT IN ?)",
+            a.data,
+            subquery(query_followed_remote_user_apids())
+          )
+        )
+
+      :posts ->
+        having(
+          query,
+          [a],
+          not fragment(
+            "bool_or(?->>'actor' IN ? AND ?->>'type' = ANY('{Create,Announce}'))",
+            a.data,
+            subquery(query_followed_remote_user_apids()),
+            a.data
+          )
+        )
+
+      _ ->
+        query
+    end
+  end
+
+  defp deletable_objects_keeping_threads(time_deadline, limit_cnt, options) do
+    # We want to delete objects from threads where
+    # 1. the newest post is still old
+    # 2. none of the activities is local
+    # 3. none of the activities is bookmarked
+    # 4. optionally none of the posts is non-public
+    deletable_context =
+      if Keyword.get(options, :keep_non_public) do
+        Pleroma.Activity
+        |> join(:left, [a], b in Pleroma.Bookmark, on: a.id == b.activity_id)
+        |> group_by([a], fragment("? ->> 'context'::text", a.data))
+        |> having(
+          [a],
+          not fragment(
+            # Posts (checked on Create Activity) is non-public
+            "bool_or((not(?->'to' \\? ? OR ?->'cc' \\? ?)) and ? ->> 'type' = 'Create')",
+            a.data,
+            ^Pleroma.Constants.as_public(),
+            a.data,
+            ^Pleroma.Constants.as_public(),
+            a.data
+          )
+        )
+      else
+        Pleroma.Activity
+        |> join(:left, [a], b in Pleroma.Bookmark, on: a.id == b.activity_id)
+        |> group_by([a], fragment("? ->> 'context'::text", a.data))
+      end
+      |> having([a], max(a.updated_at) < ^time_deadline)
+      |> having([a], not fragment("bool_or(?)", a.local))
+      |> having([_, b], fragment("max(?::text) is null", b.id))
+      |> maybe_restrict_followed_activities(options)
+      |> maybe_limit(limit_cnt)
+      |> select([a], fragment("? ->> 'context'::text", a.data))
+
+    Pleroma.Object
+    |> where([o], fragment("? ->> 'context'::text", o.data) in subquery(deletable_context))
+  end
+
+  defp deletable_objects_breaking_threads(time_deadline, limit_cnt, options) do
+    deletable =
+      if Keyword.get(options, :keep_non_public) do
+        Pleroma.Object
+        |> where(
+          [o],
+          fragment(
+            "?->'to' \\? ? OR ?->'cc' \\? ?",
+            o.data,
+            ^Pleroma.Constants.as_public(),
+            o.data,
+            ^Pleroma.Constants.as_public()
+          )
+        )
+      else
+        Pleroma.Object
+      end
+      |> where([o], o.updated_at < ^time_deadline)
+      |> where(
+        [o],
+        fragment("split_part(?->>'actor', '/', 3) != ?", o.data, ^Pleroma.Web.Endpoint.host())
+      )
+      |> then(fn q ->
+        if Keyword.get(options, :keep_followed) do
+          where(
+            q,
+            [o],
+            fragment("?->>'actor'", o.data) not in subquery(query_followed_remote_user_apids())
+          )
+        else
+          q
+        end
+      end)
+      |> maybe_limit(limit_cnt)
+      |> select([o], o.id)
+
+    Pleroma.Object
+    |> where([o], o.id in subquery(deletable))
+  end
+
   def run(["remove_embedded_objects" | args]) do
     {options, [], []} =
       OptionParser.parse(
@@ -139,17 +285,12 @@ defmodule Mix.Tasks.Pleroma.Database do
     end
   end
 
-  def run(["bump_all_conversations"]) do
-    start_pleroma()
-    Conversation.bump_for_all_activities()
-  end
-
   def run(["update_users_following_followers_counts"]) do
     start_pleroma()
 
     Repo.transaction(
       fn ->
-        from(u in User, select: u)
+        from(u in User, select: u, where: u.local or u.is_active)
         |> Repo.stream()
         |> Stream.each(&User.update_follower_count/1)
         |> Stream.run()
@@ -173,16 +314,9 @@ defmodule Mix.Tasks.Pleroma.Database do
 
     {limit, options} = Keyword.pop(options, :limit, 0)
 
-    log_message = "Pruning orphaned activities"
-
-    log_message =
-      if limit > 0 do
-        log_message <> ", limiting deletion to #{limit} rows"
-      else
-        log_message
-      end
-
-    Logger.info(log_message)
+    "Pruning orphaned activities"
+    |> maybe_concat(limit > 0, ", limiting deletion to #{limit} rows")
+    |> Logger.info()
 
     deleted = prune_orphaned_activities(limit, options)
 
@@ -195,12 +329,22 @@ defmodule Mix.Tasks.Pleroma.Database do
         args,
         strict: [
           vacuum: :boolean,
+          keep_followed: :string,
           keep_threads: :boolean,
           keep_non_public: :boolean,
           prune_orphaned_activities: :boolean,
+          prune_pinned: :boolean,
+          fix_replies_count: :boolean,
           limit: :integer
         ]
       )
+
+    kf = parse_keep_followed_arg(options)
+    options = Keyword.put(options, :keep_followed, kf)
+
+    if kf == :full and not Keyword.get(options, :keep_threads) do
+      raise "keep_followed=full only works in conjunction with keep_thread!"
+    end
 
     start_pleroma()
 
@@ -209,111 +353,35 @@ defmodule Mix.Tasks.Pleroma.Database do
 
     limit_cnt = Keyword.get(options, :limit, 0)
 
-    log_message = "Pruning objects older than #{deadline} days"
-
-    log_message =
-      if Keyword.get(options, :keep_non_public) do
-        log_message <> ", keeping non public posts"
-      else
-        log_message
-      end
-
-    log_message =
-      if Keyword.get(options, :keep_threads) do
-        log_message <> ", keeping threads intact"
-      else
-        log_message
-      end
-
-    log_message =
-      if Keyword.get(options, :prune_orphaned_activities) do
-        log_message <> ", pruning orphaned activities"
-      else
-        log_message
-      end
-
-    log_message =
-      if Keyword.get(options, :vacuum) do
-        log_message <>
-          ", doing a full vacuum (you shouldn't do this as a recurring maintanance task)"
-      else
-        log_message
-      end
-
-    log_message =
-      if limit_cnt > 0 do
-        log_message <> ", limiting to #{limit_cnt} rows"
-      else
-        log_message
-      end
-
-    Logger.info(log_message)
+    "Pruning objects older than #{deadline} days"
+    |> maybe_concat(Keyword.get(options, :keep_non_public), ", keeping non public posts")
+    |> maybe_concat(Keyword.get(options, :keep_threads), ", keeping threads intact")
+    |> maybe_concat(kf, ", keeping #{kf} activities of followed users")
+    |> maybe_concat(Keyword.get(options, :prune_pinned), ", pruning pinned posts")
+    |> maybe_concat(
+      Keyword.get(options, :prune_orphaned_activities),
+      ", pruning orphaned activities"
+    )
+    |> maybe_concat(
+      Keyword.get(options, :vacuum),
+      ", doing a full vacuum (you shouldn't do this as a recurring maintanance task)"
+    )
+    |> maybe_concat(limit_cnt > 0, ", limiting to #{limit_cnt} rows")
+    |> Logger.info()
 
     {del_obj, _} =
       if Keyword.get(options, :keep_threads) do
-        # We want to delete objects from threads where
-        # 1. the newest post is still old
-        # 2. none of the activities is local
-        # 3. none of the activities is bookmarked
-        # 4. optionally none of the posts is non-public
-        deletable_context =
-          if Keyword.get(options, :keep_non_public) do
-            Pleroma.Activity
-            |> join(:left, [a], b in Pleroma.Bookmark, on: a.id == b.activity_id)
-            |> group_by([a], fragment("? ->> 'context'::text", a.data))
-            |> having(
-              [a],
-              not fragment(
-                # Posts (checked on Create Activity) is non-public
-                "bool_or((not(?->'to' \\? ? OR ?->'cc' \\? ?)) and ? ->> 'type' = 'Create')",
-                a.data,
-                ^Pleroma.Constants.as_public(),
-                a.data,
-                ^Pleroma.Constants.as_public(),
-                a.data
-              )
-            )
-          else
-            Pleroma.Activity
-            |> join(:left, [a], b in Pleroma.Bookmark, on: a.id == b.activity_id)
-            |> group_by([a], fragment("? ->> 'context'::text", a.data))
-          end
-          |> having([a], max(a.updated_at) < ^time_deadline)
-          |> having([a], not fragment("bool_or(?)", a.local))
-          |> having([_, b], fragment("max(?::text) is null", b.id))
-          |> maybe_limit(limit_cnt)
-          |> select([a], fragment("? ->> 'context'::text", a.data))
-
-        Pleroma.Object
-        |> where([o], fragment("? ->> 'context'::text", o.data) in subquery(deletable_context))
+        deletable_objects_keeping_threads(time_deadline, limit_cnt, options)
       else
-        deletable =
-          if Keyword.get(options, :keep_non_public) do
-            Pleroma.Object
-            |> where(
-              [o],
-              fragment(
-                "?->'to' \\? ? OR ?->'cc' \\? ?",
-                o.data,
-                ^Pleroma.Constants.as_public(),
-                o.data,
-                ^Pleroma.Constants.as_public()
-              )
-            )
-          else
-            Pleroma.Object
-          end
-          |> where([o], o.updated_at < ^time_deadline)
-          |> where(
-            [o],
-            fragment("split_part(?->>'actor', '/', 3) != ?", o.data, ^Pleroma.Web.Endpoint.host())
-          )
-          |> maybe_limit(limit_cnt)
-          |> select([o], o.id)
-
-        Pleroma.Object
-        |> where([o], o.id in subquery(deletable))
+        deletable_objects_breaking_threads(time_deadline, limit_cnt, options)
       end
+      |> then(fn q ->
+        if Keyword.get(options, :prune_pinned) do
+          q
+        else
+          where(q, [o], o.id not in subquery(query_pinned_object_ids()))
+        end
+      end)
       |> Repo.delete_all(timeout: :infinity)
 
     Logger.info("Deleted #{del_obj} objects...")
@@ -354,9 +422,14 @@ defmodule Mix.Tasks.Pleroma.Database do
           AND hto.hashtag_id is NULL
           AND ufht.hashtag_id is NULL
       """
-      |> Repo.query!()
+      |> Repo.query!([], timeout: :infinity)
 
     Logger.info("Deleted #{del_hashtags} no longer used hashtags...")
+
+    if Keyword.get(options, :fix_replies_count, true) do
+      Logger.info("Fixing reply counters...")
+      resync_replies_count()
+    end
 
     if Keyword.get(options, :vacuum) do
       Logger.info("Starting vacuum...")
@@ -373,6 +446,7 @@ defmodule Mix.Tasks.Pleroma.Database do
     |> Pleroma.Workers.Cron.PruneDatabaseWorker.perform()
   end
 
+  # fixes wrong type of inlined like references for objects predating the inlined array
   def run(["fix_likes_collections"]) do
     start_pleroma()
 
@@ -443,6 +517,60 @@ defmodule Mix.Tasks.Pleroma.Database do
     |> Stream.run()
   end
 
+  def run(["resync_inlined_caches" | args]) do
+    {options, [], []} =
+      OptionParser.parse(
+        args,
+        strict: [
+          replies_count: :boolean,
+          announcements: :boolean,
+          likes: :boolean,
+          reactions: :boolean
+        ]
+      )
+
+    start_pleroma()
+
+    if Keyword.get(options, :replies_count, true) do
+      resync_replies_count()
+    end
+
+    if Keyword.get(options, :announcements, true) do
+      resync_inlined_array("Announce", "announcement")
+    end
+
+    if Keyword.get(options, :likes, true) do
+      resync_inlined_array("Like", "like")
+    end
+
+    if Keyword.get(options, :reactions, true) do
+      resync_inlined_reactions()
+    end
+  end
+
+  def run(["clean_inlined_replies"]) do
+    # The inlined replies array is not used after the initial processing
+    # when first receiving the object and only wastes space
+    start_pleroma()
+
+    # We cannot check jsonb_typeof(array) and jsonb_array_length() in the same query
+    # since the checks do not short-circuit and NULL values will raise an error for the latter
+    has_replies =
+      Pleroma.Object
+      |> select([o], %{id: o.id})
+      |> where([o], fragment("jsonb_typeof(?->'replies') = 'array'", o.data))
+
+    {update_cnt, _} =
+      Pleroma.Object
+      |> with_cte("arrays", as: ^has_replies)
+      |> join(:inner, [o], a in "arrays", on: o.id == a.id)
+      |> where([o, _a], fragment("jsonb_array_length(?->'replies') > 0", o.data))
+      |> update(set: [data: fragment("jsonb_set(data, '{replies}', '[]'::jsonb)")])
+      |> Pleroma.Repo.update_all([], timeout: :infinity)
+
+    Logger.info("Emptied inlined replies lists from #{update_cnt} rows.")
+  end
+
   def run(["set_text_search_config", tsconfig]) do
     start_pleroma()
     %{rows: [[tsc]]} = Ecto.Adapters.SQL.query!(Pleroma.Repo, "SHOW default_text_search_config;")
@@ -469,7 +597,7 @@ defmodule Mix.Tasks.Pleroma.Database do
         Ecto.Adapters.SQL.query!(
           Pleroma.Repo,
           "CREATE OR REPLACE FUNCTION objects_fts_update() RETURNS trigger AS $$ BEGIN
-          new.fts_content := to_tsvector(new.data->>'content');
+          new.fts_content := to_tsvector(COALESCE(new.data->>'summary', '') || ' ' || (new.data->>'content'));
           RETURN new;
           END
           $$ LANGUAGE plpgsql",
@@ -484,7 +612,14 @@ defmodule Mix.Tasks.Pleroma.Database do
 
         Ecto.Adapters.SQL.query!(
           Pleroma.Repo,
-          "CREATE INDEX CONCURRENTLY objects_fts ON objects USING gin(to_tsvector('#{tsconfig}', data->>'content')); ",
+          """
+          CREATE INDEX CONCURRENTLY objects_fts ON objects USING gin(
+            to_tsvector(
+              '#{tsconfig}',
+              COALESCE(data->>'summary', '') || ' ' || (data->>'content')
+            )
+          );
+          """,
           [],
           timeout: :infinity
         )
@@ -520,5 +655,126 @@ defmodule Mix.Tasks.Pleroma.Database do
 
       shell_info(inspect(result))
     end
+  end
+
+  defp resync_replies_count() do
+    public_str = Pleroma.Constants.as_public()
+
+    ref =
+      Pleroma.Object
+      |> select([o], %{apid: fragment("?->>'inReplyTo'", o.data), cnt: count()})
+      |> where(
+        [o],
+        fragment("?->>'type' <> 'Answer'", o.data) and
+          fragment("?->>'inReplyTo' IS NOT NULL", o.data) and
+          (fragment("?->'to' @> ?::jsonb", o.data, ^public_str) or
+             fragment("?->'cc' @> ?::jsonb", o.data, ^public_str))
+      )
+      |> group_by([o], fragment("?->>'inReplyTo'", o.data))
+
+    {update_cnt, _} =
+      Pleroma.Object
+      |> with_cte("ref", as: ^ref)
+      |> join(:inner, [o], r in "ref", on: fragment("?->>'id'", o.data) == r.apid)
+      |> where([o, r], fragment("(?->>'repliesCount')::bigint <> ?", o.data, r.cnt))
+      |> update([o, r],
+        set: [data: fragment("jsonb_set(?, '{repliesCount}', to_jsonb(?))", o.data, r.cnt)]
+      )
+      |> Pleroma.Repo.update_all([], timeout: :infinity)
+
+    Logger.info("Fixed reply counter for #{update_cnt} objects.")
+  end
+
+  defp resync_inlined_array(activity_type, basename) do
+    array_name = basename <> "s"
+    counter_name = basename <> "_count"
+
+    ref =
+      Pleroma.Activity
+      |> select([a], %{
+        apid: fragment("?->>'object'", a.data),
+        correct: fragment("to_jsonb(ARRAY_AGG(?->>'actor'))", a.data)
+      })
+      |> where(
+        [a],
+        fragment("?->>'type' = ?", a.data, ^activity_type) and
+          fragment("?->>'id' IS NOT NULL", a.data) and
+          fragment("?->>'actor' IS NOT NULL", a.data)
+      )
+      |> group_by([a], fragment("?->>'object'", a.data))
+
+    {update_cnt, _} =
+      Pleroma.Object
+      |> with_cte("ref", as: ^ref)
+      |> join(:inner, [o], r in "ref", on: fragment("?->>'id'", o.data) == r.apid)
+      |> where(
+        [o, r],
+        fragment("?->>'id' = ?", o.data, r.apid) and
+          not (fragment("? @> (?->?)", r.correct, o.data, ^array_name) and
+                 fragment("? <@ (?->?)", r.correct, o.data, ^array_name))
+      )
+      |> update([o, r],
+        set: [
+          data:
+            fragment(
+              "? || jsonb_build_object(?::text, jsonb_array_length(?::jsonb), ?::text, ?::jsonb)",
+              o.data,
+              ^counter_name,
+              r.correct,
+              ^array_name,
+              r.correct
+            )
+        ]
+      )
+      |> Pleroma.Repo.update_all([], timeout: :infinity)
+
+    Logger.info("Fixed inlined #{basename} array and counter for #{update_cnt} objects.")
+  end
+
+  defp resync_inlined_reactions() do
+    expanded_ref =
+      Pleroma.Activity
+      |> select([a], %{
+        apid: selected_as(fragment("?->>'object'", a.data), :apid),
+        emoji_name: selected_as(fragment("TRIM(?->>'content', ':')", a.data), :emoji_name),
+        actors: fragment("ARRAY_AGG(DISTINCT ?->>'actor')", a.data),
+        url: selected_as(fragment("?#>>'{tag,0,icon,url}'", a.data), :url)
+      })
+      |> where(
+        [a],
+        fragment("?->>'type' = 'EmojiReact'", a.data) and
+          fragment("?->>'actor' IS NOT NULL", a.data) and
+          fragment("TRIM(?->>'content', ':') IS NOT NULL", a.data)
+      )
+      |> group_by([_], [selected_as(:apid), selected_as(:emoji_name), selected_as(:url)])
+
+    ref =
+      from(e in subquery(expanded_ref))
+      |> select([e], %{
+        apid: e.apid,
+        correct:
+          fragment(
+            "jsonb_agg(DISTINCT ARRAY[to_jsonb(?), to_jsonb(?), to_jsonb(?)])",
+            e.emoji_name,
+            e.actors,
+            e.url
+          )
+      })
+      |> group_by([e], e.apid)
+
+    {update_cnt, _} =
+      Pleroma.Object
+      |> join(:inner, [o], r in subquery(ref), on: r.apid == fragment("?->>'id'", o.data))
+      |> where(
+        [o, r],
+        not (fragment("? @> (?->'reactions')", r.correct, o.data) and
+               fragment("? <@ (?->'reactions')", r.correct, o.data))
+      )
+      |> update([o, r],
+        set: [data: fragment("jsonb_set(?, '{reactions}', ?)", o.data, r.correct)]
+      )
+      |> Pleroma.Repo.update_all([], timeout: :infinity)
+
+    Logger.info("Fixed inlined emoji reactions for #{update_cnt} objects.")
   end
 end

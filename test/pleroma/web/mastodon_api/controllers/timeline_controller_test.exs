@@ -38,21 +38,23 @@ defmodule Pleroma.Web.MastodonAPI.TimelineControllerTest do
              end)
     end
 
-    test "the home timeline when the direct messages are excluded", %{user: user, conn: conn} do
-      {:ok, public_activity} = CommonAPI.post(user, %{status: ".", visibility: "public"})
-      {:ok, direct_activity} = CommonAPI.post(user, %{status: ".", visibility: "direct"})
+    test "the home timeline ignores exclude_visibilities", %{user: user, conn: conn} do
+      {:ok, _public_activity} = CommonAPI.post(user, %{status: ".", visibility: "public"})
+      {:ok, _direct_activity} = CommonAPI.post(user, %{status: ".", visibility: "direct"})
 
-      {:ok, unlisted_activity} = CommonAPI.post(user, %{status: ".", visibility: "unlisted"})
+      {:ok, _unlisted_activity} = CommonAPI.post(user, %{status: ".", visibility: "unlisted"})
 
-      {:ok, private_activity} = CommonAPI.post(user, %{status: ".", visibility: "private"})
+      {:ok, _private_activity} = CommonAPI.post(user, %{status: ".", visibility: "private"})
 
       conn = get(conn, "/api/v1/timelines/home?exclude_visibilities[]=direct")
 
-      assert status_ids = json_response_and_validate_schema(conn, :ok) |> Enum.map(& &1["id"])
-      assert public_activity.id in status_ids
-      assert unlisted_activity.id in status_ids
-      assert private_activity.id in status_ids
-      refute direct_activity.id in status_ids
+      %{"error" => "Unexpected field: exclude_visibilities."} = json_response(conn, 400)
+
+      # assert status_ids = json_response_and_validate_schema(conn, :ok) |> Enum.map(& &1["id"])
+      # assert public_activity.id in status_ids
+      # assert unlisted_activity.id in status_ids
+      # assert private_activity.id in status_ids
+      # refute direct_activity.id in status_ids
     end
 
     test "muted emotions", %{user: user, conn: conn} do
@@ -148,6 +150,31 @@ defmodule Pleroma.Web.MastodonAPI.TimelineControllerTest do
       assert conn
              |> get("/api/v1/timelines/home?remote=true&local=true")
              |> json_response_and_validate_schema(200) == []
+    end
+
+    test "the home timeline excludes posts from users in exclusive lists", %{
+      user: user,
+      conn: conn
+    } do
+      other_user1 = insert(:user)
+      other_user2 = insert(:user)
+
+      {:ok, user, other_user1} = User.follow(user, other_user1)
+      {:ok, user, other_user2} = User.follow(user, other_user2)
+
+      {:ok, list} = Pleroma.List.create(%{title: "foo", exclusive: true}, user)
+      {:ok, _list} = Pleroma.List.follow(list, other_user1)
+
+      {:ok, _activity} = CommonAPI.post(other_user1, %{status: "hi"})
+      {:ok, %{id: activity2_id}} = CommonAPI.post(other_user2, %{status: "hi too"})
+
+      response =
+        conn
+        |> assign(:user, user)
+        |> get("/api/v1/timelines/home")
+        |> json_response_and_validate_schema(200)
+
+      assert [%{"id" => ^activity2_id}] = response
     end
   end
 
@@ -520,124 +547,30 @@ defmodule Pleroma.Web.MastodonAPI.TimelineControllerTest do
     end
   end
 
-  describe "direct" do
-    test "direct timeline", %{conn: conn} do
-      user_one = insert(:user)
-      user_two = insert(:user)
-
-      {:ok, user_two, user_one} = User.follow(user_two, user_one)
-
-      {:ok, direct} =
-        CommonAPI.post(user_one, %{
-          status: "Hi @#{user_two.nickname}!",
-          visibility: "direct"
-        })
-
-      {:ok, _follower_only} =
-        CommonAPI.post(user_one, %{
-          status: "Hi @#{user_two.nickname}!",
-          visibility: "private"
-        })
-
-      conn_user_two =
-        conn
-        |> assign(:user, user_two)
-        |> assign(:token, insert(:oauth_token, user: user_two, scopes: ["read:statuses"]))
-
-      # Only direct should be visible here
-      res_conn = get(conn_user_two, "/api/v1/timelines/direct")
-
-      assert [status] = json_response_and_validate_schema(res_conn, :ok)
-
-      assert %{"visibility" => "direct"} = status
-      assert status["url"] != direct.data["id"]
-
-      # User should be able to see their own direct message
-      res_conn =
-        build_conn()
-        |> assign(:user, user_one)
-        |> assign(:token, insert(:oauth_token, user: user_one, scopes: ["read:statuses"]))
-        |> get("/api/v1/timelines/direct")
-
-      [status] = json_response_and_validate_schema(res_conn, :ok)
-
-      assert %{"visibility" => "direct"} = status
-
-      # Both should be visible here
-      res_conn = get(conn_user_two, "/api/v1/timelines/home")
-
-      [_s1, _s2] = json_response_and_validate_schema(res_conn, :ok)
-
-      # Test pagination
-      Enum.each(1..20, fn _ ->
-        {:ok, _} =
-          CommonAPI.post(user_one, %{
-            status: "Hi @#{user_two.nickname}!",
-            visibility: "direct"
-          })
-      end)
-
-      res_conn = get(conn_user_two, "/api/v1/timelines/direct")
-
-      statuses = json_response_and_validate_schema(res_conn, :ok)
-      assert length(statuses) == 20
-
-      max_id = List.last(statuses)["id"]
-
-      res_conn = get(conn_user_two, "/api/v1/timelines/direct?max_id=#{max_id}")
-
-      assert [status] = json_response_and_validate_schema(res_conn, :ok)
-
-      assert status["url"] != direct.data["id"]
-    end
-
-    test "doesn't include DMs from blocked users" do
-      %{user: blocker, conn: conn} = oauth_access(["read:statuses"])
-      blocked = insert(:user)
-      other_user = insert(:user)
-      {:ok, _user_relationship} = User.block(blocker, blocked)
-
-      {:ok, _blocked_direct} =
-        CommonAPI.post(blocked, %{
-          status: "Hi @#{blocker.nickname}!",
-          visibility: "direct"
-        })
-
-      {:ok, direct} =
-        CommonAPI.post(other_user, %{
-          status: "Hi @#{blocker.nickname}!",
-          visibility: "direct"
-        })
-
-      res_conn = get(conn, "/api/v1/timelines/direct")
-
-      [status] = json_response_and_validate_schema(res_conn, :ok)
-      assert status["id"] == direct.id
-    end
-  end
-
   describe "list" do
     setup do: oauth_access(["read:lists"])
 
-    test "does not contain retoots", %{user: user, conn: conn} do
+    test "includes retoots", %{user: user, conn: conn} do
       other_user = insert(:user)
       {:ok, activity_one} = CommonAPI.post(user, %{status: "Marisa is cute."})
       {:ok, activity_two} = CommonAPI.post(other_user, %{status: "Marisa is stupid."})
-      {:ok, _} = CommonAPI.repeat(activity_one.id, other_user)
+      {:ok, activity_repeat} = CommonAPI.repeat(activity_one.id, other_user)
 
-      {:ok, list} = Pleroma.List.create("name", user)
+      {:ok, list} = Pleroma.List.create(%{title: "name"}, user)
       {:ok, list} = Pleroma.List.follow(list, other_user)
 
       conn = get(conn, "/api/v1/timelines/list/#{list.id}")
 
-      assert [%{"id" => id}] = json_response_and_validate_schema(conn, :ok)
+      assert [%{"id" => id_repeat}, %{"id" => id_note}] =
+               json_response_and_validate_schema(conn, :ok)
 
-      assert id == to_string(activity_two.id)
+      assert id_repeat == to_string(activity_repeat.id)
+      assert id_note == to_string(activity_two.id)
     end
 
     test "works with pagination", %{user: user, conn: conn} do
       other_user = insert(:user)
-      {:ok, list} = Pleroma.List.create("name", user)
+      {:ok, list} = Pleroma.List.create(%{title: "name"}, user)
       {:ok, list} = Pleroma.List.follow(list, other_user)
 
       Enum.each(1..30, fn i ->
@@ -663,7 +596,7 @@ defmodule Pleroma.Web.MastodonAPI.TimelineControllerTest do
       other_user = insert(:user)
       {:ok, _activity_one} = CommonAPI.post(user, %{status: "Marisa is cute."})
       {:ok, activity_two} = CommonAPI.post(other_user, %{status: "Marisa is cute."})
-      {:ok, list} = Pleroma.List.create("name", user)
+      {:ok, list} = Pleroma.List.create(%{title: "name"}, user)
       {:ok, list} = Pleroma.List.follow(list, other_user)
 
       conn = get(conn, "/api/v1/timelines/list/#{list.id}")
@@ -686,7 +619,7 @@ defmodule Pleroma.Web.MastodonAPI.TimelineControllerTest do
           visibility: "private"
         })
 
-      {:ok, list} = Pleroma.List.create("name", user)
+      {:ok, list} = Pleroma.List.create(%{title: "name"}, user)
       {:ok, list} = Pleroma.List.follow(list, other_user)
 
       conn = get(conn, "/api/v1/timelines/list/#{list.id}")
@@ -704,7 +637,7 @@ defmodule Pleroma.Web.MastodonAPI.TimelineControllerTest do
       {:ok, _} = CommonAPI.react_with_emoji(activity.id, user3, "🎅")
       User.mute(user, user3)
 
-      {:ok, list} = Pleroma.List.create("name", user)
+      {:ok, list} = Pleroma.List.create(%{title: "name"}, user)
       {:ok, list} = Pleroma.List.follow(list, user2)
 
       result =
@@ -735,7 +668,7 @@ defmodule Pleroma.Web.MastodonAPI.TimelineControllerTest do
     end
 
     test "filtering", %{user: user, conn: conn} do
-      {:ok, list} = Pleroma.List.create("name", user)
+      {:ok, list} = Pleroma.List.create(%{title: "name"}, user)
 
       local_user = insert(:user)
       {:ok, local_activity} = CommonAPI.post(local_user, %{status: "Marisa is stupid."})
@@ -1110,7 +1043,7 @@ defmodule Pleroma.Web.MastodonAPI.TimelineControllerTest do
         data: %{
           "to" => [
             "https://www.w3.org/ns/activitystreams#Public",
-            User.ap_followers(user)
+            user.follower_address
           ]
         },
         user: user
@@ -1120,7 +1053,7 @@ defmodule Pleroma.Web.MastodonAPI.TimelineControllerTest do
       note: obj,
       recipients: [
         "https://www.w3.org/ns/activitystreams#Public",
-        User.ap_followers(user)
+        user.follower_address
       ],
       user: user,
       local: false
@@ -1132,7 +1065,7 @@ defmodule Pleroma.Web.MastodonAPI.TimelineControllerTest do
 
     insert(:note_activity, %{
       note: obj,
-      recipients: ["https://www.w3.org/ns/activitystreams#Public", User.ap_followers(user)],
+      recipients: ["https://www.w3.org/ns/activitystreams#Public", user.follower_address],
       user: user
     })
   end

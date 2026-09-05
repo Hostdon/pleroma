@@ -15,6 +15,10 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
   import Tesla.Mock
   import Mock
 
+  defp base_url do
+    Pleroma.Web.Endpoint.url()
+  end
+
   setup do
     mock(fn env -> apply(HttpRequestMock, :request, [env]) end)
     clear_config([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
@@ -44,7 +48,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
         last_status_at: ~N[2023-12-31T15:06:17]
       })
 
-    insert(:instance, %{host: "example.com", nodeinfo: %{version: "2.1"}})
+    insert(:instance, %{host: "example.com", nodeinfo: %{"version" => "2.1"}})
 
     expected = %{
       id: to_string(user.id),
@@ -57,7 +61,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
       following_count: 0,
       statuses_count: 5,
       note: "<span>valid html</span>. a<br/>b<br/>c<br/>d<br/>f &#39;&amp;&lt;&gt;&quot;",
-      url: user.ap_id,
+      url: user.uri,
       akkoma: %{
         instance: %{
           name: "example.com",
@@ -67,12 +71,15 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
           favicon: nil
         },
         status_ttl_days: 5,
-        permit_followback: false
+        permit_followback: false,
+        web_feed: base_url() <> "/users/by-id/#{user.id}/feed"
       },
       avatar: "http://localhost:4001/images/avi.png",
       avatar_static: "http://localhost:4001/images/avi.png",
+      avatar_description: "",
       header: "http://localhost:4001/images/banner.png",
       header_static: "http://localhost:4001/images/banner.png",
+      header_description: "",
       emojis: [
         %{
           static_url: "/file.png",
@@ -98,6 +105,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
         ap_id: user.ap_id,
         also_known_as: ["https://shitposter.zone/users/shp"],
         background_image: "https://example.com/images/asuka_hospital.png",
+        background_image_description: "",
         favicon: nil,
         is_confirmed: true,
         tags: [],
@@ -109,8 +117,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
         hide_follows: false,
         hide_followers_count: false,
         hide_follows_count: false,
-        relationship: %{},
-        skip_thread_containment: false
+        relationship: %{}
       }
     }
 
@@ -151,8 +158,8 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
                  instance: %{
                    name: "localhost",
                    nodeinfo: %{
-                     software: %{
-                       name: "akkoma"
+                     "software" => %{
+                       "name" => "akkoma"
                      }
                    }
                  }
@@ -225,11 +232,13 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
       following_count: 0,
       statuses_count: 5,
       note: user.bio,
-      url: user.ap_id,
+      url: user.uri,
       avatar: "http://localhost:4001/images/avi.png",
       avatar_static: "http://localhost:4001/images/avi.png",
+      avatar_description: "",
       header: "http://localhost:4001/images/banner.png",
       header_static: "http://localhost:4001/images/banner.png",
+      header_description: "",
       emojis: [],
       fields: [],
       bot: true,
@@ -248,15 +257,17 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
         instance: %{
           name: "localhost",
           favicon: "http://localhost:4001/favicon.png",
-          nodeinfo: %{version: "2.0"}
+          nodeinfo: %{"version" => "2.0"}
         },
         status_ttl_days: nil,
-        permit_followback: false
+        permit_followback: false,
+        web_feed: base_url() <> "/users/by-id/#{user.id}/feed"
       },
       pleroma: %{
         ap_id: user.ap_id,
         also_known_as: [],
         background_image: nil,
+        background_image_description: "",
         favicon: "http://localhost:4001/favicon.png",
         is_confirmed: true,
         tags: [],
@@ -268,14 +279,13 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
         hide_follows: false,
         hide_followers_count: false,
         hide_follows_count: false,
-        relationship: %{},
-        skip_thread_containment: false
+        relationship: %{}
       }
     }
 
     with_mock(
       Pleroma.Web.Nodeinfo.Nodeinfo,
-      get_nodeinfo: fn _ -> %{version: "2.0"} end
+      get_nodeinfo: fn _ -> %{"version" => "2.0"} end
     ) do
       assert expected ==
                AccountView.render("show.json", %{user: user, skip_visibility_check: true})
@@ -309,7 +319,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
       id: to_string(user.id),
       acct: user.nickname,
       username: user.nickname,
-      url: user.ap_id
+      url: user.uri
     }
 
     assert expected == AccountView.render("mention.json", %{user: user})

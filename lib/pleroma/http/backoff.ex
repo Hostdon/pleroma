@@ -77,6 +77,12 @@ defmodule Pleroma.HTTP.Backoff do
 
   defp next_backoff_timestamp(_), do: DateTime.utc_now() |> Timex.shift(seconds: 5 * 60)
 
+  defp log_ratelimit(429, host, time),
+    do: Logger.error("Rate limited on #{host}! Backing off until #{time}...")
+
+  defp log_ratelimit(503, host, time),
+    do: Logger.warning("#{host} temporarily unavailable! Backing off until #{time}...")
+
   # utility function to check the HTTP response for potential backoff headers
   # will check if we get a 429 or 503 response, and if we do, will back off for a bit
   @spec check_backoff({:ok | :error, HTTP.Env.t()}, binary()) ::
@@ -84,11 +90,11 @@ defmodule Pleroma.HTTP.Backoff do
   defp check_backoff({:ok, env}, host) do
     case env.status do
       status when status in [429, 503] ->
-        Logger.error("Rate limited on #{host}! Backing off...")
         timestamp = next_backoff_timestamp(env)
+        log_ratelimit(status, host, timestamp)
         ttl = Timex.diff(timestamp, DateTime.utc_now(), :seconds)
         # we will cache the host for 5 minutes
-        @cachex.put(@backoff_cache, host, true, ttl: ttl)
+        @cachex.put(@backoff_cache, host, true, expire: ttl)
         {:error, :ratelimit}
 
       _ ->

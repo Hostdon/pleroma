@@ -1,5 +1,6 @@
 # Pleroma: A lightweight social networking server
 # Copyright © 2017-2021 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2026 Akkoma Authors <https://akkoma.dev/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.EmbedController do
@@ -11,6 +12,8 @@ defmodule Pleroma.Web.EmbedController do
 
   alias Pleroma.Web.ActivityPub.Visibility
 
+  plug(:put_layout, html: {Pleroma.Web.LayoutView, :embed})
+
   def show(conn, %{"id" => id}) do
     with {:activity, %Activity{} = activity} <-
            {:activity, Activity.get_by_id_with_object(id)},
@@ -21,7 +24,7 @@ defmodule Pleroma.Web.EmbedController do
       conn
       |> delete_resp_header("x-frame-options")
       |> delete_resp_header("content-security-policy")
-      |> put_view(Pleroma.Web.EmbedView)
+      |> put_resp_content_type("text/html")
       |> render("show.html",
         activity: activity,
         author: User.sanitize_html(author),

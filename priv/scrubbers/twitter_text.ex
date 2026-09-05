@@ -19,7 +19,8 @@ defmodule Pleroma.HTML.Scrubber.TwitterText do
     "u-url",
     "mention",
     "u-url mention",
-    "mention u-url"
+    "mention u-url",
+    "mention hashtag"
   ])
 
   Meta.allow_tag_with_this_attribute_values(:a, "rel", [

@@ -112,7 +112,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.StealEmojiPolicy do
 
   defp is_remote_size_within_limit?(url) do
     with {:ok, %{status: status, headers: headers} = _response} when status in 200..299 <-
-           Pleroma.HTTP.request(:head, url, nil, [], []) do
+           Pleroma.HTTP.head(url) do
       content_length = get_int_header(headers, "content-length")
       size_limit = Config.get([:mrf_steal_emoji, :size_limit], @size_limit)
 
@@ -165,7 +165,6 @@ defmodule Pleroma.Web.ActivityPub.MRF.StealEmojiPolicy do
 
       if !Enum.empty?(new_emojis) do
         Logger.info("Stole new emojis: #{inspect(new_emojis)}")
-        Pleroma.Emoji.reload()
       end
     end
 

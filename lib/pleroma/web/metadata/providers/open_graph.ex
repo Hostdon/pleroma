@@ -77,7 +77,7 @@ defmodule Pleroma.Web.Metadata.Providers.OpenGraph do
            property: "og:title",
            content: Utils.user_name_string(user)
          ], []},
-        {:meta, [property: "og:url", content: user.uri || user.ap_id], []},
+        {:meta, [property: "og:url", content: user.ap_id], []},
         {:meta, [property: "og:description", content: truncated_bio], []},
         {:meta, [property: "og:type", content: "article"], []}
       ] ++ user_avatar_tags(user)

@@ -58,7 +58,7 @@ Other than things bundled in the OTP release Akkoma depends on:
 Per [`docs/installation/optional/media_graphics_packages.md`](optional/media_graphics_packages.md):
   * ImageMagick
   * ffmpeg
-  * exiftool
+  * ExifTool
 
 === "Alpine"
     ```
@@ -248,7 +248,7 @@ At this point if you open your (sub)domain in a browser you should see a 502 err
     systemctl enable akkoma
     ```
 
-If everything worked, you should see Akkoma-FE when visiting your domain. If that didn't happen, try reviewing the installation steps, starting Akkoma in the foreground and seeing if there are any errrors.
+If everything worked, you should see akkoma-fe when visiting your domain. If that didn't happen, try reviewing the installation steps, starting Akkoma in the foreground and seeing if there are any errrors.
 
 {! support.include !}
 

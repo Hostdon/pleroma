@@ -7,7 +7,9 @@ defmodule Pleroma.ConfigDB do
 
   import Ecto.Changeset
   import Ecto.Query, only: [select: 3, from: 2]
-  import Pleroma.Web.Gettext
+
+  use Gettext,
+    backend: Pleroma.Web.Gettext
 
   alias __MODULE__
   alias Pleroma.Repo
@@ -303,7 +305,9 @@ defmodule Pleroma.ConfigDB do
   end
 
   def to_elixir_types(%{"tuple" => entity}) do
-    Enum.reduce(entity, {}, &Tuple.append(&2, to_elixir_types(&1)))
+    entity
+    |> Enum.map(&to_elixir_types(&1))
+    |> List.to_tuple()
   end
 
   def to_elixir_types(entity) when is_map(entity) do

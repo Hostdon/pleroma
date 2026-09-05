@@ -11,7 +11,6 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   alias Pleroma.Config
   alias Pleroma.MFA
   alias Pleroma.ModerationLog
-  alias Pleroma.Stats
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.AdminAPI
@@ -399,10 +398,17 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     json(conn, "")
   end
 
-  def stats(conn, params) do
-    counters = Stats.get_status_visibility_count(params["instance"])
-
-    json(conn, %{"status_visibility" => counters})
+  # Legacy endpoint, stubbed out for a transition period before removal
+  # (atm only used by admin-fe)
+  def stats(conn, _params) do
+    json(conn, %{
+      "status_visibility" => %{
+        "direct" => 0,
+        "private" => 0,
+        "public" => 0,
+        "unlisted" => 0
+      }
+    })
   end
 
   def create_backup(%{assigns: %{user: admin}} = conn, %{"nickname" => nickname}) do

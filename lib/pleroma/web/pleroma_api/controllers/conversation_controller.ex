@@ -39,16 +39,22 @@ defmodule Pleroma.Web.PleromaAPI.ConversationController do
       ) do
     with %Participation{user_id: ^user_id} = participation <-
            Participation.get(participation_id, preload: [:conversation]) do
-      params =
+      qparams =
         params
         |> Map.put(:blocking_user, user)
         |> Map.put(:muting_user, user)
         |> Map.put(:user, user)
 
+      pparams =
+        params
+        |> Map.put(:total, false)
+        # Already sorted using a plain "DESC", matching our index instead of Pagination’s "DESC NULLS LAST"
+        |> Map.put(:skip_extra_order, true)
+
       activities =
         participation.conversation.ap_id
-        |> ActivityPub.fetch_activities_for_context_query(params)
-        |> Pleroma.Pagination.fetch_paginated(Map.put(params, :total, false))
+        |> ActivityPub.fetch_activities_for_context_query(qparams)
+        |> Pleroma.Pagination.fetch_paginated(pparams)
         |> Enum.reverse()
 
       conn
@@ -64,13 +70,22 @@ defmodule Pleroma.Web.PleromaAPI.ConversationController do
   end
 
   def update(
-        %{assigns: %{user: %{id: user_id} = user}} = conn,
-        %{id: participation_id, recipients: recipients}
+        %{assigns: %{user: %{id: user_id} = user}, body_params: body_params} = conn,
+        %{id: participation_id} = params
       ) do
-    with %Participation{user_id: ^user_id} = participation <- Participation.get(participation_id),
+    # OpenApiSpex 3.x prevents Plug's usual parameter premerging
+    params = Map.merge(body_params, params)
+
+    with {_, recipients} when recipients != nil <- {:params, params[:recipients]},
+         %Participation{user_id: ^user_id} = participation <- Participation.get(participation_id),
          {:ok, participation} <- Participation.set_recipients(participation, recipients) do
       render(conn, "participation.json", participation: participation, for: user)
     else
+      {:params, _} ->
+        conn
+        |> put_status(:bad_request)
+        |> json(%{"error" => "No paramters passed to update!"})
+
       {:error, message} ->
         conn
         |> put_status(:bad_request)

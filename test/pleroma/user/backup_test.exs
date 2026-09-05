@@ -131,7 +131,7 @@ defmodule Pleroma.User.BackupTest do
   end
 
   test "it creates a zip archive with user data" do
-    user = insert(:user, %{nickname: "cofe", name: "Cofe", ap_id: "http://cofe.io/users/cofe"})
+    user = insert(:user, %{nickname: "cofe", name: "Cofe"})
 
     {:ok, %{object: %{data: %{"id" => id1}}} = status1} =
       CommonAPI.post(user, %{status: "status1"})
@@ -153,27 +153,37 @@ defmodule Pleroma.User.BackupTest do
     assert {:ok, zipfile} = :zip.zip_open(String.to_charlist(path), [:memory])
     assert {:ok, {~c"actor.json", json}} = :zip.zip_get(~c"actor.json", zipfile)
 
+    ap_id = user.ap_id
+    inbox_ap = user.inbox
+    outbox_ap = user.outbox
+    followers_ap = user.follower_address
+    following_ap = user.following_address
+
+    display_url = user.uri
+    assert is_binary(display_url)
+
     assert %{
              "@context" => [
                "https://www.w3.org/ns/activitystreams",
                "http://localhost:4001/schemas/litepub-0.1.jsonld",
+               "https://purl.archive.org/socialweb/webfinger",
                %{"@language" => "und"}
              ],
              "bookmarks" => "bookmarks.json",
-             "followers" => "http://cofe.io/users/cofe/followers",
-             "following" => "http://cofe.io/users/cofe/following",
-             "id" => "http://cofe.io/users/cofe",
-             "inbox" => "http://cofe.io/users/cofe/inbox",
+             "followers" => ^followers_ap,
+             "following" => ^following_ap,
+             "id" => ^ap_id,
+             "inbox" => ^inbox_ap,
              "likes" => "likes.json",
              "name" => "Cofe",
-             "outbox" => "http://cofe.io/users/cofe/outbox",
+             "outbox" => ^outbox_ap,
              "preferredUsername" => "cofe",
              "publicKey" => %{
-               "id" => "http://cofe.io/users/cofe#main-key",
-               "owner" => "http://cofe.io/users/cofe"
+               "id" => ^ap_id <> "#main-key",
+               "owner" => ^ap_id
              },
              "type" => "Person",
-             "url" => "http://cofe.io/users/cofe"
+             "url" => ^display_url
            } = Jason.decode!(json)
 
     assert {:ok, {~c"outbox.json", json}} = :zip.zip_get(~c"outbox.json", zipfile)
@@ -184,7 +194,7 @@ defmodule Pleroma.User.BackupTest do
              "orderedItems" => [
                %{
                  "object" => %{
-                   "actor" => "http://cofe.io/users/cofe",
+                   "actor" => ^ap_id,
                    "content" => "status1",
                    "type" => "Note"
                  },
@@ -192,12 +202,12 @@ defmodule Pleroma.User.BackupTest do
                },
                %{
                  "object" => %{
-                   "actor" => "http://cofe.io/users/cofe",
+                   "actor" => ^ap_id,
                    "content" => "status2"
                  }
                },
                %{
-                 "actor" => "http://cofe.io/users/cofe",
+                 "actor" => ^ap_id,
                  "object" => %{
                    "content" => "status3"
                  }

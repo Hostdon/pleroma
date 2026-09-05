@@ -10,7 +10,7 @@ defmodule Pleroma.ReverseProxy do
   @keep_resp_headers @resp_cache_headers ++
                        ~w(content-length content-type content-disposition content-encoding) ++
                        ~w(content-range accept-ranges vary expires)
-  @default_cache_control_header "public, max-age=1209600"
+  @default_cache_control_header "public, max-age=1209600, immutable"
   @valid_resp_codes [200, 206, 304]
   @max_read_duration :timer.seconds(30)
   @max_body_length :infinity
@@ -109,7 +109,9 @@ defmodule Pleroma.ReverseProxy do
     with {:ok, nil} <- @cachex.get(:failed_proxy_url_cache, url),
          {:ok, status, headers, body} <- request(method, url, req_headers, client_opts),
          :ok <-
-           header_length_constraint(
+           check_length_constraint(
+             method,
+             body,
              headers,
              Keyword.get(opts, :max_body_length, @max_body_length)
            ) do
@@ -342,7 +344,9 @@ defmodule Pleroma.ReverseProxy do
     List.keystore(headers, "content-security-policy", 0, {"content-security-policy", "sandbox"})
   end
 
-  defp header_length_constraint(headers, limit) when is_integer(limit) and limit > 0 do
+  defp check_length_constraint(_, _, _, limit) when not is_integer(limit) or limit <= 0, do: :ok
+
+  defp check_length_constraint(:head, _, headers, limit) do
     with {_, size} <- List.keyfind(headers, "content-length", 0),
          {size, _} <- Integer.parse(size),
          true <- size <= limit do
@@ -356,7 +360,15 @@ defmodule Pleroma.ReverseProxy do
     end
   end
 
-  defp header_length_constraint(_, _), do: :ok
+  defp check_length_constraint(_, body, _, limit) when is_binary(body) do
+    if byte_size(body) <= limit do
+      :ok
+    else
+      {:error, :body_too_large}
+    end
+  end
+
+  defp check_length_constraint(_, _, _, _), do: :ok
 
   defp track_failed_url(url, error, opts) do
     ttl =
@@ -366,6 +378,6 @@ defmodule Pleroma.ReverseProxy do
         nil
       end
 
-    @cachex.put(:failed_proxy_url_cache, url, true, ttl: ttl)
+    @cachex.put(:failed_proxy_url_cache, url, true, expire: ttl)
   end
 end

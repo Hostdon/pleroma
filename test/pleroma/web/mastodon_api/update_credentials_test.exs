@@ -91,7 +91,7 @@ defmodule Pleroma.Web.MastodonAPI.UpdateCredentialsTest do
       assert user_data = json_response_and_validate_schema(conn, 200)
 
       assert user_data["note"] ==
-               ~s(I drink <a class="hashtag" data-tag="cofe" href="http://localhost:4001/tag/cofe" rel=\"tag ugc\">#cofe</a> with <span class="h-card"><a class="u-url mention" data-user="#{user2.id}" href="#{user2.ap_id}" rel="ugc">@<span>#{user2.nickname}</span></a></span><br/><br/>suya..)
+               ~s(I drink <a class="hashtag" data-tag="cofe" href="http://localhost:4001/tag/cofe" rel=\"tag ugc\">#cofe</a> with <span class="h-card"><a class="u-url mention" data-user="#{user2.id}" href="#{user2.uri}" rel="ugc">@<span>#{user2.nickname}</span></a></span><br/><br/>suya..)
 
       assert user_data["source"]["note"] == raw_bio
 
@@ -160,16 +160,6 @@ defmodule Pleroma.Web.MastodonAPI.UpdateCredentialsTest do
       assert user_data = json_response_and_validate_schema(conn, 200)
       assert user_data["pleroma"]["hide_followers_count"] == true
       assert user_data["pleroma"]["hide_follows_count"] == true
-    end
-
-    test "updates the user's skip_thread_containment option", %{user: user, conn: conn} do
-      response =
-        conn
-        |> patch("/api/v1/accounts/update_credentials", %{skip_thread_containment: "true"})
-        |> json_response_and_validate_schema(200)
-
-      assert response["pleroma"]["skip_thread_containment"] == true
-      assert refresh_record(user).skip_thread_containment
     end
 
     test "updates the user's hide_follows status", %{conn: conn} do
@@ -397,6 +387,214 @@ defmodule Pleroma.Web.MastodonAPI.UpdateCredentialsTest do
       clear_config([:instance, :upload_limit], upload_limit)
 
       assert :ok == File.rm(Path.absname("test/tmp/large_binary.data"))
+    end
+
+    test "adds avatar description with a new avatar", %{user: user, conn: conn} do
+      new_avatar = %Plug.Upload{
+        content_type: "image/jpeg",
+        path: Path.absname("test/fixtures/image.jpg"),
+        filename: "an_image.jpg"
+      }
+
+      res =
+        patch(conn, "/api/v1/accounts/update_credentials", %{
+          "avatar" => new_avatar,
+          "avatar_description" => "me and pleroma tan"
+        })
+
+      assert json_response_and_validate_schema(res, 200)
+
+      user = User.get_by_id(user.id)
+      assert user.avatar["name"] == "me and pleroma tan"
+    end
+
+    test "adds avatar description to existing avatar", %{user: user, conn: conn} do
+      new_avatar = %Plug.Upload{
+        content_type: "image/jpeg",
+        path: Path.absname("test/fixtures/image.jpg"),
+        filename: "an_image.jpg"
+      }
+
+      assert user.avatar == %{}
+
+      conn
+      |> patch("/api/v1/accounts/update_credentials", %{"avatar" => new_avatar})
+
+      assert conn
+             |> assign(:user, User.get_by_id(user.id))
+             |> patch("/api/v1/accounts/update_credentials", %{
+               "avatar_description" => "me and pleroma tan"
+             })
+             |> json_response_and_validate_schema(200)
+
+      user = User.get_by_id(user.id)
+      assert user.avatar["name"] == "me and pleroma tan"
+    end
+
+    test "does not wipe media description when uploading new image", %{user: user, conn: conn} do
+      new_avatar = %Plug.Upload{
+        content_type: "image/jpeg",
+        path: Path.absname("test/fixtures/image.jpg"),
+        filename: "an_image.jpg"
+      }
+
+      assert user.avatar == %{}
+      assert User.image_description(user.banner) == ""
+
+      desc = "many woozy akkos in stylised chibi style"
+
+      conn
+      |> patch("/api/v1/accounts/update_credentials", %{
+        "header" => new_avatar,
+        "header_description" => desc
+      })
+      |> json_response_and_validate_schema(200)
+
+      user = User.get_by_id(user.id)
+      assert User.image_description(user.banner) == desc
+
+      conn
+      |> assign(:user, User.get_by_id(user.id))
+      |> patch("/api/v1/accounts/update_credentials", %{"header" => new_avatar})
+      |> json_response_and_validate_schema(200)
+
+      user = User.get_by_id(user.id)
+      assert User.image_description(user.banner) == desc
+    end
+
+    test "adds background description with a new background upload", %{user: user, conn: conn} do
+      image = %Plug.Upload{
+        content_type: "image/jpeg",
+        path: Path.absname("test/fixtures/image.jpg"),
+        filename: "an_image.jpg"
+      }
+
+      alt = "arctus forest scenery"
+
+      res =
+        patch(conn, "/api/v1/accounts/update_credentials", %{
+          "pleroma_background_image" => image,
+          "pleroma_background_image_description" => alt
+        })
+
+      assert json_response_and_validate_schema(res, 200)
+
+      user = User.get_by_id(user.id)
+      assert User.image_description(user.background) == alt
+    end
+
+    test "updates description of existing background without image reupload", %{
+      user: user,
+      conn: conn
+    } do
+      image = %Plug.Upload{
+        content_type: "image/jpeg",
+        path: Path.absname("test/fixtures/image.jpg"),
+        filename: "an_image.jpg"
+      }
+
+      assert user.avatar == %{}
+
+      conn
+      |> patch("/api/v1/accounts/update_credentials", %{"pleroma_background_image" => image})
+
+      user = User.get_by_id(user.id)
+      assert User.image_description(user.background) == ""
+
+      alt1 = "shinyyyyyyy"
+
+      assert conn
+             |> assign(:user, User.get_by_id(user.id))
+             |> patch("/api/v1/accounts/update_credentials", %{
+               "pleroma_background_image_description" => alt1
+             })
+             |> json_response_and_validate_schema(200)
+
+      user = User.get_by_id(user.id)
+      assert User.image_description(user.background) == alt1
+
+      alt2 = "me and shiny chariot"
+
+      assert conn
+             |> assign(:user, User.get_by_id(user.id))
+             |> patch("/api/v1/accounts/update_credentials", %{
+               "pleroma_background_image_description" => alt2
+             })
+             |> json_response_and_validate_schema(200)
+
+      user = User.get_by_id(user.id)
+      assert User.image_description(user.background) == alt2
+    end
+
+    test "limits profile media alt text", %{user: user, conn: conn} do
+      new_header = %Plug.Upload{
+        content_type: "image/jpeg",
+        path: Path.absname("test/fixtures/image.jpg"),
+        filename: "an_image.jpg"
+      }
+
+      assert user.banner == %{}
+
+      conn
+      |> patch("/api/v1/accounts/update_credentials", %{"header" => new_header})
+
+      description_limit = 100
+      clear_config([:instance, :description_limit], description_limit)
+      description = String.duplicate(".", description_limit + 1)
+
+      conn =
+        conn
+        |> assign(:user, User.get_by_id(user.id))
+        |> patch("/api/v1/accounts/update_credentials", %{
+          "header_description" => description
+        })
+
+      assert %{"error" => "Banner description is too long"} =
+               json_response_and_validate_schema(conn, 413)
+    end
+
+    test "refuses to set a media description without media being present or set", %{conn: conn} do
+      # It not being a possible is a limitation of how we store things.
+      # This test is here to ensure the user will be made aware of it.
+      assert %{"error" => "Avatar description needs avatar to be set before or simultaneously"} =
+               conn
+               |> patch("/api/v1/accounts/update_credentials", %{
+                 "avatar_description" => "pure void"
+               })
+               |> json_response_and_validate_schema(422)
+
+      assert %{"error" => "Banner description needs banner to be set before or simultaneously"} =
+               conn
+               |> patch("/api/v1/accounts/update_credentials", %{
+                 "header_description" => "pure void"
+               })
+               |> json_response_and_validate_schema(422)
+
+      assert %{
+               "error" =>
+                 "Background description needs background to be set before or simultaneously"
+             } =
+               conn
+               |> patch("/api/v1/accounts/update_credentials", %{
+                 "pleroma_background_image_description" => "pure void"
+               })
+               |> json_response_and_validate_schema(422)
+    end
+
+    test "allows wiping media description without media being present or set", %{conn: conn} do
+      conn
+      |> patch("/api/v1/accounts/update_credentials", %{"avatar_description" => ""})
+      |> json_response_and_validate_schema(200)
+
+      conn
+      |> patch("/api/v1/accounts/update_credentials", %{"header_description" => ""})
+      |> json_response_and_validate_schema(200)
+
+      conn
+      |> patch("/api/v1/accounts/update_credentials", %{
+        "pleroma_background_image_description" => ""
+      })
+      |> json_response_and_validate_schema(200)
     end
 
     test "Strip / from upload files", %{user: user, conn: conn} do
@@ -745,7 +943,9 @@ defmodule Pleroma.Web.MastodonAPI.UpdateCredentialsTest do
 
       assert account["accepts_direct_messages_from"]
       assert account["accepts_direct_messages_from"] == "everybody"
-      assert Pleroma.User.get_by_ap_id(account["url"]).accepts_direct_messages_from == :everybody
+
+      assert Pleroma.User.get_by_ap_id(account["pleroma"]["ap_id"]).accepts_direct_messages_from ==
+               :everybody
     end
 
     test "changing to :nobody", %{conn: conn} do
@@ -756,7 +956,9 @@ defmodule Pleroma.Web.MastodonAPI.UpdateCredentialsTest do
 
       assert account["accepts_direct_messages_from"]
       assert account["accepts_direct_messages_from"] == "nobody"
-      assert Pleroma.User.get_by_ap_id(account["url"]).accepts_direct_messages_from == :nobody
+
+      assert Pleroma.User.get_by_ap_id(account["pleroma"]["ap_id"]).accepts_direct_messages_from ==
+               :nobody
     end
 
     test "changing to :people_i_follow", %{conn: conn} do
@@ -770,7 +972,7 @@ defmodule Pleroma.Web.MastodonAPI.UpdateCredentialsTest do
       assert account["accepts_direct_messages_from"]
       assert account["accepts_direct_messages_from"] == "people_i_follow"
 
-      assert Pleroma.User.get_by_ap_id(account["url"]).accepts_direct_messages_from ==
+      assert Pleroma.User.get_by_ap_id(account["pleroma"]["ap_id"]).accepts_direct_messages_from ==
                :people_i_follow
     end
 

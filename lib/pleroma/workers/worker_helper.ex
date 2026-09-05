@@ -22,6 +22,15 @@ defmodule Pleroma.Workers.WorkerHelper do
     trunc(backoff)
   end
 
+  def exponential_backoff(attempt, base, base_backoff \\ 15) do
+    backoff =
+      :math.pow(base, attempt) +
+        base_backoff +
+        :rand.uniform(2 * base_backoff) * attempt
+
+    trunc(backoff)
+  end
+
   defmacro __using__(opts) do
     caller_module = __CALLER__.module
     queue = Keyword.fetch!(opts, :queue)

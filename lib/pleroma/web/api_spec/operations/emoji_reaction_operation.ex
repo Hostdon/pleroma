@@ -35,7 +35,8 @@ defmodule Pleroma.Web.ApiSpec.EmojiReactionOperation do
       security: [%{"oAuth" => ["read:statuses"]}],
       operationId: "EmojiReactionController.index",
       responses: %{
-        200 => array_of_reactions_response()
+        200 => array_of_reactions_response(),
+        403 => Operation.response("Access denied", "application/json", ApiError)
       }
     }
   end

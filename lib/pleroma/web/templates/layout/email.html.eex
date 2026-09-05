@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="<%= Pleroma.Web.Gettext.language_tag() %>">
+<html lang="<%= Pleroma.Web.GettextCompanion.language_tag() %>">
   <head>
     <meta charset="utf-8">
     <title><%= @email.subject %></title>

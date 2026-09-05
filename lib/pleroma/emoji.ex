@@ -16,7 +16,7 @@ defmodule Pleroma.Emoji do
 
   @ets __MODULE__.Ets
   @ets_options [
-    :ordered_set,
+    :set,
     :protected,
     :named_table,
     {:read_concurrency, true}
@@ -24,6 +24,8 @@ defmodule Pleroma.Emoji do
   @emoji_regex ~r/:[A-Za-z0-9_-]+(@.+)?:/
 
   defstruct [:code, :file, :tags, :safe_code, :safe_file]
+
+  @type t :: %__MODULE__{}
 
   @doc "Build emoji struct"
   def build({code, file, tags}) do
@@ -43,14 +45,14 @@ defmodule Pleroma.Emoji do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
-  @doc "Reloads the emojis from disk."
+  @doc "Reloads the emojis from disk (asynchronous)"
   @spec reload() :: :ok
   def reload do
-    GenServer.call(__MODULE__, :reload)
+    GenServer.cast(__MODULE__, :reload)
   end
 
-  @doc "Returns the path of the emoji `name`."
-  @spec get(String.t()) :: String.t() | nil
+  @doc "Returns the emoji struct of the given `name` if it exists."
+  @spec get(String.t()) :: t() | nil
   def get(name) do
     name =
       if String.starts_with?(name, ":") do
@@ -62,9 +64,21 @@ defmodule Pleroma.Emoji do
       end
 
     case :ets.lookup(@ets, name) do
-      [{_, path}] -> path
+      [{_, emoji}] -> emoji
       _ -> nil
     end
+  end
+
+  @doc "Updates or inserts new emoji (asynchronous)"
+  @spec add_or_update(t()) :: :ok
+  def add_or_update(%__MODULE__{} = emoji) do
+    GenServer.cast(__MODULE__, {:add, emoji})
+  end
+
+  @doc "Delete emoji with given shortcode if it exists (asynchronous)"
+  @spec delete(String.t()) :: :ok
+  def delete(code) do
+    GenServer.cast(__MODULE__, {:delete, code})
   end
 
   @spec exist?(String.t()) :: boolean()
@@ -75,9 +89,6 @@ defmodule Pleroma.Emoji do
   def get_all do
     :ets.tab2list(@ets)
   end
-
-  @doc "Clear out old emojis"
-  def clear_all, do: :ets.delete_all_objects(@ets)
 
   @doc false
   def init(_) do
@@ -92,10 +103,14 @@ defmodule Pleroma.Emoji do
     {:noreply, state}
   end
 
-  @doc false
-  def handle_call(:reload, _from, state) do
-    update_emojis(Loader.load())
-    {:reply, :ok, state}
+  def handle_cast({:add, %__MODULE__{} = emoji}, state) do
+    :ets.insert(@ets, {emoji.code, emoji})
+    {:noreply, state}
+  end
+
+  def handle_cast({:delete, code}, state) do
+    :ets.delete(@ets, code)
+    {:noreply, state}
   end
 
   @doc false
@@ -109,7 +124,10 @@ defmodule Pleroma.Emoji do
     {:ok, state}
   end
 
+  defp update_emojis([]), do: true
+
   defp update_emojis(emojis) do
+    :ets.delete_all_objects(@ets)
     :ets.insert(@ets, emojis)
   end
 

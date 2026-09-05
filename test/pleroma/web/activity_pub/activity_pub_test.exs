@@ -19,7 +19,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
   alias Pleroma.Web.AdminAPI.AccountView
   alias Pleroma.Web.CommonAPI
 
-  import ExUnit.CaptureLog
   import Mock
   import Pleroma.Factory
   import Tesla.Mock
@@ -42,7 +41,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
 
       participations =
         conversation.participations
-        |> Repo.preload(:user)
+        |> Repo.preload([:user, :conversation])
 
       with_mock Pleroma.Web.Streamer,
         stream: fn _, _ -> nil end do
@@ -67,359 +66,11 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
         conversation =
           activity.data["context"]
           |> Pleroma.Conversation.get_for_ap_id()
-          |> Repo.preload(participations: :user)
+          |> Repo.preload(participations: [:user, :conversation])
 
         assert called(Pleroma.Web.Streamer.stream("participation", conversation.participations))
       end
     end
-  end
-
-  describe "fetching restricted by visibility" do
-    test "it restricts by the appropriate visibility" do
-      user = insert(:user)
-
-      {:ok, public_activity} = CommonAPI.post(user, %{status: ".", visibility: "public"})
-
-      {:ok, direct_activity} = CommonAPI.post(user, %{status: ".", visibility: "direct"})
-
-      {:ok, unlisted_activity} = CommonAPI.post(user, %{status: ".", visibility: "unlisted"})
-
-      {:ok, private_activity} = CommonAPI.post(user, %{status: ".", visibility: "private"})
-
-      activities = ActivityPub.fetch_activities([], %{visibility: "direct", actor_id: user.ap_id})
-
-      assert activities == [direct_activity]
-
-      activities =
-        ActivityPub.fetch_activities([], %{visibility: "unlisted", actor_id: user.ap_id})
-
-      assert activities == [unlisted_activity]
-
-      activities =
-        ActivityPub.fetch_activities([], %{visibility: "private", actor_id: user.ap_id})
-
-      assert activities == [private_activity]
-
-      activities = ActivityPub.fetch_activities([], %{visibility: "public", actor_id: user.ap_id})
-
-      assert activities == [public_activity]
-
-      activities =
-        ActivityPub.fetch_activities([], %{
-          visibility: ~w[private public],
-          actor_id: user.ap_id
-        })
-
-      assert activities == [public_activity, private_activity]
-    end
-  end
-
-  describe "fetching excluded by visibility" do
-    test "it excludes by the appropriate visibility" do
-      user = insert(:user)
-
-      {:ok, public_activity} = CommonAPI.post(user, %{status: ".", visibility: "public"})
-
-      {:ok, direct_activity} = CommonAPI.post(user, %{status: ".", visibility: "direct"})
-
-      {:ok, unlisted_activity} = CommonAPI.post(user, %{status: ".", visibility: "unlisted"})
-
-      {:ok, private_activity} = CommonAPI.post(user, %{status: ".", visibility: "private"})
-
-      activities =
-        ActivityPub.fetch_activities([], %{
-          exclude_visibilities: "direct",
-          actor_id: user.ap_id
-        })
-
-      assert public_activity in activities
-      assert unlisted_activity in activities
-      assert private_activity in activities
-      refute direct_activity in activities
-
-      activities =
-        ActivityPub.fetch_activities([], %{
-          exclude_visibilities: "unlisted",
-          actor_id: user.ap_id
-        })
-
-      assert public_activity in activities
-      refute unlisted_activity in activities
-      assert private_activity in activities
-      assert direct_activity in activities
-
-      activities =
-        ActivityPub.fetch_activities([], %{
-          exclude_visibilities: "private",
-          actor_id: user.ap_id
-        })
-
-      assert public_activity in activities
-      assert unlisted_activity in activities
-      refute private_activity in activities
-      assert direct_activity in activities
-
-      activities =
-        ActivityPub.fetch_activities([], %{
-          exclude_visibilities: "public",
-          actor_id: user.ap_id
-        })
-
-      refute public_activity in activities
-      assert unlisted_activity in activities
-      assert private_activity in activities
-      assert direct_activity in activities
-    end
-  end
-
-  describe "building a user from his ap id" do
-    test "it returns a user" do
-      user_id = "http://mastodon.example.org/users/admin"
-      {:ok, user} = ActivityPub.make_user_from_ap_id(user_id)
-      assert user.ap_id == user_id
-      assert user.nickname == "admin@mastodon.example.org"
-      assert user.follower_address == "http://mastodon.example.org/users/admin/followers"
-    end
-
-    test "it returns a user that is invisible" do
-      user_id = "http://mastodon.example.org/users/relay"
-      {:ok, user} = ActivityPub.make_user_from_ap_id(user_id)
-      assert User.invisible?(user)
-    end
-
-    test "works for guppe actors" do
-      user_id = "https://gup.pe/u/bernie2020"
-
-      Tesla.Mock.mock(fn
-        %{method: :get, url: ^user_id} ->
-          %Tesla.Env{
-            status: 200,
-            body: File.read!("test/fixtures/guppe-actor.json"),
-            headers: [{"content-type", "application/activity+json"}]
-          }
-      end)
-
-      {:ok, user} = ActivityPub.make_user_from_ap_id(user_id)
-
-      assert user.name == "Bernie2020 group"
-      assert user.actor_type == "Group"
-    end
-
-    test "works for bridgy actors" do
-      user_id = "https://fed.brid.gy/jk.nipponalba.scot"
-
-      Tesla.Mock.mock(fn
-        %{method: :get, url: ^user_id} ->
-          %Tesla.Env{
-            status: 200,
-            body: File.read!("test/fixtures/bridgy/actor.json"),
-            headers: [{"content-type", "application/activity+json"}]
-          }
-      end)
-
-      {:ok, user} = ActivityPub.make_user_from_ap_id(user_id)
-
-      assert user.actor_type == "Person"
-
-      assert user.avatar == %{
-               "type" => "Image",
-               "url" => [%{"href" => "https://jk.nipponalba.scot/images/profile.jpg"}]
-             }
-
-      assert user.banner == %{
-               "type" => "Image",
-               "url" => [%{"href" => "https://jk.nipponalba.scot/images/profile.jpg"}]
-             }
-    end
-
-    test "works for takahe actors" do
-      user_id = "https://fedi.vision/@vote@fedi.vision/"
-
-      Tesla.Mock.mock(fn
-        %{method: :get, url: ^user_id} ->
-          %Tesla.Env{
-            status: 200,
-            body: File.read!("test/fixtures/users_mock/takahe_user.json"),
-            headers: [{"content-type", "application/activity+json"}]
-          }
-      end)
-
-      {:ok, user} = ActivityPub.make_user_from_ap_id(user_id)
-
-      assert user.actor_type == "Person"
-
-      assert [
-               %{
-                 "name" => "More details"
-               }
-             ] = user.fields
-    end
-
-    test "works for actors with malformed attachment fields" do
-      user_id = "https://fedi.vision/@vote@fedi.vision/"
-
-      Tesla.Mock.mock(fn
-        %{method: :get, url: ^user_id} ->
-          %Tesla.Env{
-            status: 200,
-            body: File.read!("test/fixtures/users_mock/nonsense_attachment_user.json"),
-            headers: [{"content-type", "application/activity+json"}]
-          }
-      end)
-
-      {:ok, user} = ActivityPub.make_user_from_ap_id(user_id)
-
-      assert user.actor_type == "Person"
-
-      assert [] = user.fields
-    end
-
-    test "fetches user featured collection" do
-      ap_id = "https://example.com/users/lain"
-
-      featured_url = "https://example.com/users/lain/collections/featured"
-
-      user_data =
-        "test/fixtures/users_mock/user.json"
-        |> File.read!()
-        |> String.replace("{{nickname}}", "lain")
-        |> Jason.decode!()
-        |> Map.put("featured", featured_url)
-        |> Jason.encode!()
-
-      object_id = Ecto.UUID.generate()
-
-      featured_data =
-        "test/fixtures/mastodon/collections/featured.json"
-        |> File.read!()
-        |> String.replace("{{domain}}", "example.com")
-        |> String.replace("{{nickname}}", "lain")
-        |> String.replace("{{object_id}}", object_id)
-
-      object_url = "https://example.com/objects/#{object_id}"
-
-      object_data =
-        "test/fixtures/statuses/note.json"
-        |> File.read!()
-        |> String.replace("{{object_id}}", object_id)
-        |> String.replace("{{nickname}}", "lain")
-
-      Tesla.Mock.mock(fn
-        %{
-          method: :get,
-          url: ^ap_id
-        } ->
-          %Tesla.Env{
-            status: 200,
-            body: user_data,
-            headers: [{"content-type", "application/activity+json"}]
-          }
-
-        %{
-          method: :get,
-          url: ^featured_url
-        } ->
-          %Tesla.Env{
-            status: 200,
-            body: featured_data,
-            headers: [{"content-type", "application/activity+json"}]
-          }
-
-        %{
-          method: :get,
-          url: ^object_url
-        } ->
-          %Tesla.Env{
-            status: 200,
-            body: object_data,
-            headers: [{"content-type", "application/activity+json"}]
-          }
-      end)
-
-      {:ok, user} = ActivityPub.make_user_from_ap_id(ap_id)
-      # wait for oban
-      Pleroma.Tests.ObanHelpers.perform_all()
-
-      assert user.featured_address == featured_url
-      assert Map.has_key?(user.pinned_objects, object_url)
-
-      in_db = Pleroma.User.get_by_ap_id(ap_id)
-      assert in_db.featured_address == featured_url
-      assert Map.has_key?(user.pinned_objects, object_url)
-
-      assert %{data: %{"id" => ^object_url}} = Object.get_by_ap_id(object_url)
-    end
-  end
-
-  test "fetches user featured collection using the first property" do
-    featured_url = "https://friendica.example.com/featured/raha"
-    first_url = "https://friendica.example.com/featured/raha?page=1"
-
-    featured_data =
-      "test/fixtures/friendica/friendica_featured_collection.json"
-      |> File.read!()
-
-    page_data =
-      "test/fixtures/friendica/friendica_featured_collection_first.json"
-      |> File.read!()
-
-    Tesla.Mock.mock(fn
-      %{
-        method: :get,
-        url: ^featured_url
-      } ->
-        %Tesla.Env{
-          status: 200,
-          body: featured_data,
-          headers: [{"content-type", "application/activity+json"}]
-        }
-
-      %{
-        method: :get,
-        url: ^first_url
-      } ->
-        %Tesla.Env{
-          status: 200,
-          body: page_data,
-          headers: [{"content-type", "application/activity+json"}]
-        }
-    end)
-
-    {:ok, data} = ActivityPub.fetch_and_prepare_featured_from_ap_id(featured_url)
-    assert Map.has_key?(data, "http://inserted")
-  end
-
-  test "fetches user featured when it has string IDs" do
-    featured_url = "https://example.com/users/alisaie/collections/featured"
-    dead_url = "https://example.com/users/alisaie/statuses/108311386746229284"
-
-    featured_data =
-      "test/fixtures/mastodon/featured_collection.json"
-      |> File.read!()
-
-    Tesla.Mock.mock(fn
-      %{
-        method: :get,
-        url: ^featured_url
-      } ->
-        %Tesla.Env{
-          status: 200,
-          body: featured_data,
-          headers: [{"content-type", "application/activity+json"}]
-        }
-
-      %{
-        method: :get,
-        url: ^dead_url
-      } ->
-        %Tesla.Env{
-          status: 404,
-          body: "{}",
-          headers: [{"content-type", "application/activity+json"}]
-        }
-    end)
-
-    {:ok, %{}} = ActivityPub.fetch_and_prepare_featured_from_ap_id(featured_url)
   end
 
   test "it fetches the appropriate tag-restricted posts" do
@@ -1458,58 +1109,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
     end
   end
 
-  describe "timeline post-processing" do
-    test "it filters broken threads" do
-      user1 = insert(:user)
-      user2 = insert(:user)
-      user3 = insert(:user)
-
-      {:ok, user1, user3} = User.follow(user1, user3)
-      assert User.following?(user1, user3)
-
-      {:ok, user2, user3} = User.follow(user2, user3)
-      assert User.following?(user2, user3)
-
-      {:ok, user3, user2} = User.follow(user3, user2)
-      assert User.following?(user3, user2)
-
-      {:ok, public_activity} = CommonAPI.post(user3, %{status: "hi 1"})
-
-      {:ok, private_activity_1} = CommonAPI.post(user3, %{status: "hi 2", visibility: "private"})
-
-      {:ok, private_activity_2} =
-        CommonAPI.post(user2, %{
-          status: "hi 3",
-          visibility: "private",
-          in_reply_to_status_id: private_activity_1.id
-        })
-
-      {:ok, private_activity_3} =
-        CommonAPI.post(user3, %{
-          status: "hi 4",
-          visibility: "private",
-          in_reply_to_status_id: private_activity_2.id
-        })
-
-      activities =
-        ActivityPub.fetch_activities([user1.ap_id | User.following(user1)])
-        |> Enum.map(fn a -> a.id end)
-
-      private_activity_1 = Activity.get_by_ap_id_with_object(private_activity_1.data["id"])
-
-      assert [public_activity.id, private_activity_1.id, private_activity_3.id] == activities
-
-      assert length(activities) == 3
-
-      activities =
-        ActivityPub.fetch_activities([user1.ap_id | User.following(user1)], %{user: user1})
-        |> Enum.map(fn a -> a.id end)
-
-      assert [public_activity.id, private_activity_1.id] == activities
-      assert length(activities) == 2
-    end
-  end
-
   describe "flag/1" do
     setup do
       reporter = insert(:user)
@@ -1634,13 +1233,13 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
   test "fetch_activities/2 returns activities addressed to a list " do
     user = insert(:user)
     member = insert(:user)
-    {:ok, list} = Pleroma.List.create("foo", user)
+    {:ok, list} = Pleroma.List.create(%{title: "foo"}, user)
     {:ok, list} = Pleroma.List.follow(list, member)
 
     {:ok, activity} = CommonAPI.post(user, %{status: "foobar", visibility: "list:#{list.id}"})
 
     activity = Repo.preload(activity, :bookmark)
-    activity = %Activity{activity | thread_muted?: !!activity.thread_muted?}
+    activity = %{activity | thread_muted?: !!activity.thread_muted?}
 
     assert ActivityPub.fetch_activities([], %{user: user}) == [activity]
   end
@@ -1678,126 +1277,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
     end
   end
 
-  describe "fetch_follow_information_for_user" do
-    test "synchronizes following/followers counters" do
-      user =
-        insert(:user,
-          local: false,
-          follower_address: "http://remote.org/users/fuser2/followers",
-          following_address: "http://remote.org/users/fuser2/following"
-        )
-
-      {:ok, info} = ActivityPub.fetch_follow_information_for_user(user)
-      assert info.follower_count == 527
-      assert info.following_count == 267
-    end
-
-    test "detects hidden followers" do
-      mock(fn env ->
-        case env.url do
-          "http://remote.org/users/masto_closed/followers?page=1" ->
-            %Tesla.Env{status: 403, body: ""}
-
-          _ ->
-            apply(HttpRequestMock, :request, [env])
-        end
-      end)
-
-      user =
-        insert(:user,
-          local: false,
-          follower_address: "http://remote.org/users/masto_closed/followers",
-          following_address: "http://remote.org/users/masto_closed/following"
-        )
-
-      {:ok, follow_info} = ActivityPub.fetch_follow_information_for_user(user)
-      assert follow_info.hide_followers == true
-      assert follow_info.hide_follows == false
-    end
-
-    test "detects hidden follows" do
-      mock(fn env ->
-        case env.url do
-          "http://remote.org/users/masto_closed/following?page=1" ->
-            %Tesla.Env{status: 403, body: ""}
-
-          _ ->
-            apply(HttpRequestMock, :request, [env])
-        end
-      end)
-
-      user =
-        insert(:user,
-          local: false,
-          follower_address: "http://remote.org/users/masto_closed/followers",
-          following_address: "http://remote.org/users/masto_closed/following"
-        )
-
-      {:ok, follow_info} = ActivityPub.fetch_follow_information_for_user(user)
-      assert follow_info.hide_followers == false
-      assert follow_info.hide_follows == true
-    end
-
-    test "detects hidden follows/followers for friendica" do
-      user =
-        insert(:user,
-          local: false,
-          follower_address: "http://remote.org/followers/fuser3",
-          following_address: "http://remote.org/following/fuser3"
-        )
-
-      {:ok, follow_info} = ActivityPub.fetch_follow_information_for_user(user)
-      assert follow_info.hide_followers == true
-      assert follow_info.follower_count == 296
-      assert follow_info.following_count == 32
-      assert follow_info.hide_follows == true
-    end
-
-    test "doesn't crash when follower and following counters are hidden" do
-      mock(fn env ->
-        case env.url do
-          "http://remote.org/users/masto_hidden_counters/following" ->
-            json(
-              %{
-                "@context" => "https://www.w3.org/ns/activitystreams",
-                "id" => "http://remote.org/users/masto_hidden_counters/following"
-              },
-              headers: HttpRequestMock.activitypub_object_headers()
-            )
-
-          "http://remote.org/users/masto_hidden_counters/following?page=1" ->
-            %Tesla.Env{status: 403, body: ""}
-
-          "http://remote.org/users/masto_hidden_counters/followers" ->
-            json(
-              %{
-                "@context" => "https://www.w3.org/ns/activitystreams",
-                "id" => "http://remote.org/users/masto_hidden_counters/followers"
-              },
-              headers: HttpRequestMock.activitypub_object_headers()
-            )
-
-          "http://remote.org/users/masto_hidden_counters/followers?page=1" ->
-            %Tesla.Env{status: 403, body: ""}
-        end
-      end)
-
-      user =
-        insert(:user,
-          local: false,
-          follower_address: "http://remote.org/users/masto_hidden_counters/followers",
-          following_address: "http://remote.org/users/masto_hidden_counters/following"
-        )
-
-      {:ok, follow_info} = ActivityPub.fetch_follow_information_for_user(user)
-
-      assert follow_info.hide_followers == true
-      assert follow_info.follower_count == 0
-      assert follow_info.hide_follows == true
-      assert follow_info.following_count == 0
-    end
-  end
-
   describe "fetch_favourites/3" do
     test "returns a favourite activities sorted by adds to favorite" do
       user = insert(:user)
@@ -1818,12 +1297,12 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       {:ok, _} = CommonAPI.favorite(other_user, a4.id)
       {:ok, _} = CommonAPI.favorite(user, a1.id)
       {:ok, _} = CommonAPI.favorite(other_user, a1.id)
-      result = ActivityPub.fetch_favourites(user)
+      result = ActivityPub.fetch_favourited_with_fav_id(user)
 
-      assert Enum.map(result, & &1.id) == [a1.id, a5.id, a3.id, a4.id]
+      assert Enum.map(result, & &1.entry.id) == [a1.id, a5.id, a3.id, a4.id]
 
-      result = ActivityPub.fetch_favourites(user, %{limit: 2})
-      assert Enum.map(result, & &1.id) == [a1.id, a5.id]
+      result = ActivityPub.fetch_favourited_with_fav_id(user, %{limit: 2})
+      assert Enum.map(result, & &1.entry.id) == [a1.id, a5.id]
     end
   end
 
@@ -1840,7 +1319,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       assert User.following?(follower, old_user)
       assert User.following?(follower_move_opted_out, old_user)
 
-      assert {:ok, activity} = ActivityPub.move(old_user, new_user)
+      assert {:ok, %Activity{} = activity} = ActivityPub.move(old_user, new_user)
 
       assert %Activity{
                actor: ^old_ap_id,
@@ -1872,7 +1351,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       assert User.following?(follower_move_opted_out, old_user)
       refute User.following?(follower_move_opted_out, new_user)
 
-      activity = %Activity{activity | object: nil}
+      activity = %{activity | object: nil}
 
       assert [%Notification{activity: ^activity}] = Notification.for_user(follower)
 
@@ -2458,53 +1937,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
      u4: %{r1: r4_1.id}}
   end
 
-  describe "maybe_update_follow_information/1" do
-    setup do
-      clear_config([:instance, :external_user_synchronization], true)
-
-      user = %{
-        local: false,
-        ap_id: "https://gensokyo.2hu/users/raymoo",
-        following_address: "https://gensokyo.2hu/users/following",
-        follower_address: "https://gensokyo.2hu/users/followers",
-        type: "Person"
-      }
-
-      %{user: user}
-    end
-
-    test "logs an error when it can't fetch the info", %{user: user} do
-      assert capture_log(fn ->
-               ActivityPub.maybe_update_follow_information(user)
-             end) =~ "Follower/Following counter update for #{user.ap_id} failed"
-    end
-
-    test "just returns the input if the user type is Application", %{
-      user: user
-    } do
-      user =
-        user
-        |> Map.put(:type, "Application")
-
-      refute capture_log(fn ->
-               assert ^user = ActivityPub.maybe_update_follow_information(user)
-             end) =~ "Follower/Following counter update for #{user.ap_id} failed"
-    end
-
-    test "it just returns the input if the user has no following/follower addresses", %{
-      user: user
-    } do
-      user =
-        user
-        |> Map.put(:following_address, nil)
-        |> Map.put(:follower_address, nil)
-
-      refute capture_log(fn ->
-               assert ^user = ActivityPub.maybe_update_follow_information(user)
-             end) =~ "Follower/Following counter update for #{user.ap_id} failed"
-    end
-  end
-
   describe "global activity expiration" do
     test "creates an activity expiration for local Create activities" do
       clear_config([:mrf, :policies], Pleroma.Web.ActivityPub.MRF.ActivityExpirationPolicy)
@@ -2525,48 +1957,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
         worker: Pleroma.Workers.PurgeExpiredActivity,
         args: %{activity_id: follow.id}
       )
-    end
-  end
-
-  describe "handling of clashing nicknames" do
-    test "renames an existing user with a clashing nickname and a different ap id" do
-      orig_user =
-        insert(
-          :user,
-          local: false,
-          nickname: "admin@mastodon.example.org",
-          ap_id: "http://mastodon.example.org/users/harinezumigari"
-        )
-
-      %{
-        nickname: orig_user.nickname,
-        ap_id: orig_user.ap_id <> "part_2"
-      }
-      |> ActivityPub.maybe_handle_clashing_nickname()
-
-      user = User.get_by_id(orig_user.id)
-
-      assert user.nickname == "#{orig_user.id}.admin@mastodon.example.org"
-    end
-
-    test "does nothing with a clashing nickname and the same ap id" do
-      orig_user =
-        insert(
-          :user,
-          local: false,
-          nickname: "admin@mastodon.example.org",
-          ap_id: "http://mastodon.example.org/users/harinezumigari"
-        )
-
-      %{
-        nickname: orig_user.nickname,
-        ap_id: orig_user.ap_id
-      }
-      |> ActivityPub.maybe_handle_clashing_nickname()
-
-      user = User.get_by_id(orig_user.id)
-
-      assert user.nickname == orig_user.nickname
     end
   end
 
@@ -2648,25 +2038,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
 
       assert length(activities) == 2
     end
-  end
-
-  test "allow fetching of accounts with an empty string name field" do
-    Tesla.Mock.mock(fn
-      %{method: :get, url: "https://princess.cat/users/mewmew"} ->
-        file = File.read!("test/fixtures/mewmew_no_name.json")
-        %Tesla.Env{status: 200, body: file, headers: HttpRequestMock.activitypub_object_headers()}
-    end)
-
-    {:ok, user} = ActivityPub.make_user_from_ap_id("https://princess.cat/users/mewmew")
-    assert user.name == " "
-  end
-
-  test "pin_data_from_featured_collection will ignore unsupported values" do
-    assert %{} ==
-             ActivityPub.pin_data_from_featured_collection(%{
-               "type" => "CollectionThatIsNotRealAndCannotHurtMe",
-               "first" => "https://social.example/users/alice/collections/featured?page=true"
-             })
   end
 
   describe "persist/1" do

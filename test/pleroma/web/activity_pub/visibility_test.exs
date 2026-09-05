@@ -5,7 +5,6 @@
 defmodule Pleroma.Web.ActivityPub.VisibilityTest do
   use Pleroma.DataCase, async: true
 
-  alias Pleroma.Activity
   alias Pleroma.Object
   alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Web.CommonAPI
@@ -18,7 +17,8 @@ defmodule Pleroma.Web.ActivityPub.VisibilityTest do
     unrelated = insert(:user)
     remote = insert(:user, local: false)
     {:ok, following, user} = Pleroma.User.follow(following, user)
-    {:ok, list} = Pleroma.List.create("foo", user)
+    {:ok, list} = Pleroma.List.create(%{title: "foo"}, user)
+    list_ap_id = user.ap_id <> "/lists/" <> to_string(list.id)
 
     Pleroma.List.follow(list, unrelated)
 
@@ -36,11 +36,17 @@ defmodule Pleroma.Web.ActivityPub.VisibilityTest do
 
     {:ok, local} = CommonAPI.post(user, %{status: "@#{mentioned.nickname}", visibility: "local"})
 
-    {:ok, list} =
+    # list visibility is no longer supported, but we want to check any
+    # leftover entreis are handled sensibly, so we nned to manually fix up the data
+    {:ok, list_activity} =
       CommonAPI.post(user, %{
         status: "@#{mentioned.nickname}",
-        visibility: "list:#{list.id}"
+        visibility: "direct"
       })
+
+    list_object = Object.normalize(list_activity)
+    {:ok, list_object} = Object.update_data(list_object, %{"listMessage" => list_ap_id})
+    list_activity = %{list_activity | object: list_object}
 
     %{
       public: public,
@@ -51,7 +57,7 @@ defmodule Pleroma.Web.ActivityPub.VisibilityTest do
       mentioned: mentioned,
       following: following,
       unrelated: unrelated,
-      list: list,
+      list: list_activity,
       local: local,
       remote: remote
     }
@@ -69,8 +75,8 @@ defmodule Pleroma.Web.ActivityPub.VisibilityTest do
     refute Visibility.is_direct?(public)
     refute Visibility.is_direct?(private)
     refute Visibility.is_direct?(unlisted)
-    assert Visibility.is_direct?(list)
     refute Visibility.is_direct?(local)
+    assert Visibility.is_direct?(list)
   end
 
   test "is_public?", %{
@@ -103,22 +109,6 @@ defmodule Pleroma.Web.ActivityPub.VisibilityTest do
     refute Visibility.is_private?(unlisted)
     refute Visibility.is_private?(list)
     refute Visibility.is_private?(local)
-  end
-
-  test "is_list?", %{
-    public: public,
-    private: private,
-    direct: direct,
-    unlisted: unlisted,
-    list: list,
-    local: local
-  } do
-    refute Visibility.is_list?(direct)
-    refute Visibility.is_list?(public)
-    refute Visibility.is_list?(private)
-    refute Visibility.is_list?(unlisted)
-    assert Visibility.is_list?(list)
-    refute Visibility.is_list?(local)
   end
 
   test "visible_for_user? Activity", %{
@@ -176,9 +166,6 @@ defmodule Pleroma.Web.ActivityPub.VisibilityTest do
     refute Visibility.visible_for_user?(private, nil)
     refute Visibility.visible_for_user?(direct, nil)
     refute Visibility.visible_for_user?(local, nil)
-
-    # Visible for a list member
-    assert Visibility.visible_for_user?(list, unrelated)
 
     # Local not visible to remote user
     refute Visibility.visible_for_user?(local, remote)
@@ -270,57 +257,15 @@ defmodule Pleroma.Web.ActivityPub.VisibilityTest do
     assert Visibility.get_visibility(private) == "private"
     assert Visibility.get_visibility(direct) == "direct"
     assert Visibility.get_visibility(unlisted) == "unlisted"
-    assert Visibility.get_visibility(list) == "list"
+    # legacy, no longer supported visibility type doesn't leak out now
+    assert Visibility.get_visibility(list) == "direct"
   end
 
   test "get_visibility with directMessage flag" do
     assert Visibility.get_visibility(%{data: %{"directMessage" => true}}) == "direct"
   end
 
-  test "get_visibility with listMessage flag" do
-    assert Visibility.get_visibility(%{data: %{"listMessage" => ""}}) == "list"
-  end
-
-  describe "entire_thread_visible_for_user?/2" do
-    test "returns false if not found activity", %{user: user} do
-      refute Visibility.entire_thread_visible_for_user?(%Activity{}, user)
-    end
-
-    test "returns true if activity hasn't 'Create' type", %{user: user} do
-      activity = insert(:like_activity)
-      assert Visibility.entire_thread_visible_for_user?(activity, user)
-    end
-
-    test "returns false when invalid recipients", %{user: user} do
-      author = insert(:user)
-
-      activity =
-        insert(:note_activity,
-          note:
-            insert(:note,
-              user: author,
-              data: %{"to" => ["test-user"]}
-            )
-        )
-
-      refute Visibility.entire_thread_visible_for_user?(activity, user)
-    end
-
-    test "returns true if user following to author" do
-      author = insert(:user)
-      user = insert(:user)
-      Pleroma.User.follow(user, author)
-
-      activity =
-        insert(:note_activity,
-          note:
-            insert(:note,
-              user: author,
-              data: %{"to" => [user.ap_id]}
-            )
-        )
-
-      assert Visibility.entire_thread_visible_for_user?(activity, user)
-    end
+  test "get_visibility treats legacy list messages as direct" do
+    assert Visibility.get_visibility(%{data: %{"listMessage" => ""}}) == "direct"
   end
 end

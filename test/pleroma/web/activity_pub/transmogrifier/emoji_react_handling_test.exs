@@ -212,6 +212,66 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier.EmojiReactHandlingTest do
     assert {:error, _} = Transmogrifier.handle_incoming(data)
   end
 
+  test "it strips colons from emoji object in tag" do
+    shortcode = ":blobcatgoogly:"
+    imgurl = "https://example.org/emoji/a.png"
+    {data, _, _} = prepare_react(shortcode, imgurl)
+    coloned_tag = Enum.map(data["tag"], fn tag -> %{tag | "name" => shortcode} end)
+    data = %{data | "tag" => coloned_tag}
+
+    {:ok, %Activity{data: data, local: false}} = Transmogrifier.handle_incoming(data)
+
+    assert data["type"] == "EmojiReact"
+    assert data["content"] == shortcode
+    [%{"name" => tag_name}] = data["tag"]
+    assert ":" <> tag_name <> ":" == shortcode
+  end
+
+  test "it prunes tag to only the relevant emoji object" do
+    shortcode = "blobcatgoogly"
+    imgurl = "https://example.org/emoji/a.png"
+    {data, _, _} = prepare_react(shortcode, imgurl)
+
+    ext_tag = [
+      %{
+        "type" => "Hashtag",
+        "name" => "#cat",
+        "href" => "https://example.org/hastags/cat"
+      },
+      emoji_object("evilcat", "https://example.org/evilcat.avif")
+      | data["tag"]
+    ]
+
+    data = %{data | "tag" => ext_tag}
+    refute match?([%{"type" => "Emoji"}], data["tag"])
+
+    {:ok, %Activity{data: data, local: false}} = Transmogrifier.handle_incoming(data)
+
+    assert match?([%{"type" => "Emoji", "name" => ^shortcode}], data["tag"])
+  end
+
+  test "it strips pre-existing remote indicators" do
+    shortcode = "blobcatgoogly@fedi.example.org"
+    imgurl = "https://example.org/emoji/a.png"
+    {data, _, _} = prepare_react(shortcode, imgurl)
+    [clean_shortcode, _] = String.split(shortcode, "@", parts: 2)
+
+    {:ok, %Activity{data: data, local: false}} = Transmogrifier.handle_incoming(data)
+
+    assert data["content"] == ":" <> clean_shortcode <> ":"
+    assert match?([%{"name" => ^clean_shortcode}], data["tag"])
+  end
+
+  defp prepare_react(shortcode, imgurl, emoji_id \\ nil) do
+    user = insert(:user)
+    other_user = insert(:user, local: false)
+    {:ok, activity} = CommonAPI.post(user, %{status: "hello"})
+
+    emoji = emoji_object(shortcode, emoji_id, imgurl)
+    data = react_with_custom(activity.data["object"], other_user.ap_id, emoji)
+    {data, activity, other_user}
+  end
+
   defp emoji_object(shortcode, id \\ nil, url \\ "https://example.org/emoji.png") do
     %{
       "type" => "Emoji",
